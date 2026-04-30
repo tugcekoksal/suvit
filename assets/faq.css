@@ -1,0 +1,33 @@
+.faq-content__wrapper{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    gap: 2rem;
+}
+.faq-collaps__inner .accordion{
+    margin-top: 0;
+}
+.faq-content__wrapper .faq-content_heading{
+    padding-top: 1rem;
+}
+.faq-collaps__inner .accordion .accordion__content{
+    padding: 0;
+    max-width: 84rem;
+}
+.faq-content-alignmnet--left{
+    text-align: left;
+}
+.faq-content-alignmnet--center{
+    text-align: center;
+}
+.faq-content-alignmnet--right{
+    text-align: right;
+}
+@media screen and (max-width: 749px) {
+    .faq-content__wrapper{
+        display: block;
+    }  
+    .faq-collaps__inner .accordion{
+        margin-top: 2rem;
+    }
+}

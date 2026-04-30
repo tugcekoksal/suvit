@@ -1,0 +1,248 @@
+.age-verification-popup.open{
+  visibility: visible;
+}
+.age-verification-popup {
+  position: fixed;
+  height: auto;
+  z-index: 99;
+  max-height: 40rem;
+  right: 1rem;
+  bottom: 1rem;
+  transition: all cubic-bezier(.86,-.09,.36,1.12) .5s;
+  width: auto;
+  visibility: hidden;
+}
+.age_verification_popup_division.remove-border-left:after{
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.age_verification_popup_division{
+  display: flex;
+  height: 40rem;
+  overflow: hidden;
+}
+.global-settings-popup, .header__submenu.global-settings-popup {
+  border: none;
+  border-style: none;
+  border-width: 0;
+  box-shadow: none;
+}
+.age_verification_popup_division > *{
+  max-width: 40.8rem;
+  width: 100%;
+}
+.age_verification_image{
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+.age-verification-popup.open .age-verificationrPopup__Close{
+  opacity: 1;
+  visibility: visible;
+  transition-delay: .45s;
+}
+.age-verificationrPopup__Close{
+  position: absolute;
+  top: 4%;
+  margin: 0;
+  right: 2%;
+  opacity: 0;
+  visibility: hidden;
+}
+.age-verification-popup__content, .age-verification-popup__decline-content{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  opacity: 0;
+  visibility: hidden;
+  position: relative;
+  z-index: 11;
+}
+.age-verification-popup.open .age-verification-popup__content, .age-verification-popup.open .age-verification-popup__decline-content{
+  opacity: 1;
+  visibility: visible;
+  transition-delay: .4s;
+}
+.age-veriication_heading{
+  text-align: left;
+  margin: 0 0 1rem 0;
+}
+.ageverification-active:after{
+  content: "";
+  height: 100%;
+  width: 100%;
+  position: fixed;
+  z-index: 8;
+  backdrop-filter: blur(17px);
+  background: rgba(var(--color-foreground),.6);
+  transition: background .2s ease-in-out;
+  cursor: default;
+}
+.ageverificationpopup_close{
+  color: rgb(var(--color-foreground));
+  position: relative;
+  text-decoration: none;
+  width: max-content;
+}
+.age-verification-popup.deactivate {
+  opacity: 0;
+  visibility: hidden;
+}
+.age-verification-popup__btns-wrapper {
+  margin-top: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 43px;
+} 
+.age-verification-popup__content-wrapper {
+  padding: 4rem;
+  max-height: 40rem;
+  position: relative;
+  z-index: 4;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  margin: 1rem 0;
+  height: 100%;
+}
+.age_verification_image {
+  position: relative;
+  padding-bottom: 55%;
+}
+.age_verification_image > img, .age_verification_image > svg{
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  left: 0;
+  object-fit: cover;
+}
+.age_verification_return_heading{
+  margin: 0;
+}
+.age-verification-popup__content--inactive, .age-verification-popup__content--inactive *, .age-verification-popup__content--inactive .btn, .age-verification-popup__decline-content--inactive, .age-verification-popup__decline-content--inactive *, .age-verification-popup__decline-content--inactive .btn {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+  visibility: hidden;
+  padding: 0;
+  border: 0;
+  margin: 0;
+  line-height: 0;
+  font-size: 0;
+}
+.age_division {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem;
+}
+.age_division >* {
+  width: 50%;
+}
+.enlarge-text >p{
+  line-height: 1.7;
+}
+.age-verifiationpopup__Content{
+  margin: 0;
+}
+@media screen and (max-width: 840px) {
+  .age-verification-popup.open {
+    height: 100%;
+    visibility: visible;
+  }
+  .age-verification-popup{
+    max-height: 46rem;
+    max-width: calc(100% - 2rem);
+    visibility: hidden;
+    height: 0;
+  }
+  .age_verification_popup_division{
+    height: auto;
+    flex-direction: column;
+    overflow: auto;
+    max-height: 55rem;
+  }
+  .age-verification-popup__btns-wrapper{
+    position: unset;
+    padding: 1rem 2rem;
+    height: auto;
+  }
+  .age-verification-popup__btns-wrapper .btn {
+    margin-bottom: 10px;
+  }
+  .age_verification_image, .age_verification_image >img{
+    max-height: 30rem;
+  }
+  .age_verification_popup_division{
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+  .age_verification_popup_division>*, .age_verification_popup_division>img, .age_division>*{
+    width: 100%;
+  }
+  .age_verification_popup_division{
+    width: 100%;
+    height: auto;
+    overflow: auto;
+    max-height: 560px;
+  }
+  .age-verification-popup__decline-content.age-verification-popup__decline-content--active{
+    padding: 2.6rem;
+    transform: translateY(-18px);
+  }
+  .popup_heading{
+    margin-top: 0;
+    transform: none;
+  }
+  .age_division{
+    display: block;
+  }
+}
+@media screen and (max-width:390px){
+  .age-verification-popup__btns-wrapper{
+    padding: 0;
+  }
+}
+@media screen and (min-width: 841px) {
+  .age-verification-popup.open .age_verification_popup_division:after{
+    width: 100%;
+  }
+  .age_verification_popup_division::after{
+    content: "";
+    background: rgb(var(--color-background));
+    background: var(--gradient-background);
+    background-attachment: fixed;
+    position: absolute;
+    border-radius: var(--popup-corner-radius);
+    bottom: 0;
+    right: 0;
+    width: 0;
+    height: 100%;
+    z-index: 3;
+    transition: all cubic-bezier(.86,-.09,.36,1.12) .5s;
+  }
+  .age-verification-popup.open .age_verification_image{
+    visibility: visible;
+    right: 100%;
+    transition-delay: .5s;
+  }
+  .age_verification_image{
+    position: absolute;
+    height: 40rem;
+    right: 0;
+    z-index: 2;
+    transition: all .5s;
+    border-radius: var(--popup-corner-radius);
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    overflow: hidden;
+    visibility: hidden;
+  }
+  .age_verification_popup_division{
+    background: transparent;
+  }
+}

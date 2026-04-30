@@ -1,0 +1,5 @@
+{% if collection.metafields.custom.long_desc != blank %}
+  <div class="collection-long-desc">
+    {{ collection.metafields.custom.long_desc.value | metafield_tag }}
+  </div>
+{% endif %}

@@ -1,0 +1,86 @@
+{% comment %}
+  Renders a collection card
+
+  Accepts:
+  - card_collection: {Object} Collection Liquid object
+  - media_aspect_ratio: {String} Size of the product image card. Values are "square" and "portrait". Default is "square" (optional)
+  - columns: {Number}
+  - extend_height: {Boolean} Card height extends to available container space. Default: false (optional)
+  - wrapper_class: {String} Wrapper class for card (optional)
+  - placeholder_image: {String} Placeholder image when collection is empty (optional)
+
+  Usage:
+  {% render 'card-collection' %}
+{% endcomment %}
+
+{%- liquid
+  assign ratio = 1
+  if media_aspect_ratio == 'portrait'
+    assign ratio = 0.8
+  elsif media_aspect_ratio == 'adapt'
+    assign ratio = card_collection.featured_image.aspect_ratio
+  endif
+  if ratio == 0 or ratio == null
+    assign ratio = 1
+  endif
+  assign card_color_scheme = settings.card_color_scheme
+  assign card_style = settings.card_style
+  if wrapper_class == null or wrapper_class == 'none'
+    assign card_color_scheme = settings.collection_card_color_scheme
+    assign card_style = settings.collection_card_style
+  endif
+-%}
+
+<div class="card-wrapper {% if wrapper_class and wrapper_class != 'none' %}{{ wrapper_class }}{% else %}collection-card-wrapper{% endif %}">
+  <div class="card card--{{ card_style }} card--media {% if card_style == 'card' %} color-{{ card_color_scheme }} gradient{% endif %} {% if extend_height %} card--extend-height{% endif %} " style="--ratio-percent: {{ 1 | divided_by: ratio | times: 100 }}%;">
+    <div class="card__inner {% if card_style == 'standard' %}color-{{ card_color_scheme }} gradient{% endif %} ratio" style="--ratio-percent: {{ 1 | divided_by: ratio | times: 100 }}%;">
+      <div class="card__media">
+        <div class="media--transparent media animate--hover-effect-{{ settings.animations_hover_elements }}">
+          <a role="link" title="{{ 'sections.collection_list.read_more' | t }}" aria-label="{{ 'sections.collection_list.read_more' | t }}" aria-disabled="true" href="{% if collection_url != blank %}{{  collection_url }}{% else %}{{ card_collection.url | default: routes.root_url }}{% endif %}" class="media full-unstyled-link">
+            {%- if card_image -%}                
+              {%- liquid
+                assign height = card_image.width | divided_by: card_image.aspect_ratio | round
+                assign sizes = '100vw'
+                assign widths = '165, 360, 550, 750, 800' 
+                assign alt = card_image.alt | default: 'collectionImage' -%}
+                  {{ card_image | image_url: width: 550 | image_tag: loading: 'lazy', height: height, sizes: sizes, alt: alt, title: alt,  widths: widths, onload: 'this.classList.add(`lazyloaded`)' }}
+            {%- elsif card_collection.featured_image -%}
+              {%- liquid
+                assign heights = card_collection.featured_image.width | divided_by: card_collection.featured_image.aspect_ratio | round
+                assign size = '100vw'
+                assign width = '165, 360, 550, 750, 1100'
+                assign alt = card_collection.featured_image.alt | default: 'collectionImage' -%}
+              {{ card_collection.featured_image | image_url: width: 550 | image_tag: loading: 'lazy', height: heights, sizes: size, widths: width, alt: alt, title: alt, class: 'motion-reduce', onload: 'this.classList.add(`lazyloaded`)' }}
+            {%- else -%}
+            {{ 'collection-apparel-2' | placeholder_svg_tag: 'PlaceholderSvg' }}
+            {%- endif -%}
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card__content card-collection-content">
+      <div class="card__information card_collection_information" style="--overlay_color: {{ overlay_color }}; --overlay_opacity: {{ overlay_opacity | divided_by: 100.0 }}">
+        <span class="card__heading collection-card__heading card_heading_{{ card_style }}">
+          <a href="{% if collection_url != blank %}{{  collection_url }}{% else %}{{ card_collection.url | default: routes.root_url }}{% endif %}" title="{{- card_collection.title | escape -}}" class="full-unstyled-link">
+            {%- if collection_label != blank -%}
+              {{ collection_label }}
+            {%- elsif card_collection.title != blank -%}
+              {{- card_collection.title | escape -}}
+            {%- else -%}
+              {{ 'onboarding.collection_title' | t }}
+            {%- endif -%}
+          </a>
+        </span>
+        {%- if card_collection.featured_image == null and card_collection.description != blank -%}
+          <p class="card__caption">
+            {{- card_collection.description | strip_html | truncatewords: 12 -}}
+          </p>
+        {%- endif -%}
+        <a href="{% if collection_url != blank %}{{  collection_url }}{% else %}{{ card_collection.url | default: routes.root_url }}{% endif %}" title=">{{ 'sections.collection_list.explore_now' | t }}" class="animated-button button card-collection-button">
+          <div><span>{{ 'sections.collection_list.explore_now' | t }}</span></div>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

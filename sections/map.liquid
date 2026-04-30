@@ -1,0 +1,208 @@
+{%- assign display_map = false -%}
+{%- assign onboarding = false -%}
+
+{%- if section.settings.api_key == blank -%}
+  {%- assign onboarding = true -%}
+{%- endif -%}
+{%- if section.settings.api_key != blank and section.settings.map_address -%}
+  {%- assign display_map = true -%}
+{%- endif -%}
+
+
+{%- style -%}
+  .section-{{ section.id }}-padding {
+    padding-top: {{ section.settings.padding_top | times: 0.75 | round: 0 }}px;
+    padding-bottom: {{ section.settings.padding_bottom | times: 0.75 | round: 0 }}px;
+  }
+  .map-section__content{
+    text-align: left;
+    padding: 5rem 2.5rem 2.5rem;
+  }
+  .map-section__content .button {
+    display: inline-flex;
+    align-items: center;
+  }
+  .map-section__content .button svg {
+    margin-right: 0.8rem;
+    width: 1.6rem;
+    height: 1.6rem;
+    fill: currentColor;
+  }
+  .map-section__content .button svg path {
+    fill: currentColor;
+  }
+  .map-section__wrapper{
+    position: relative;
+  }
+  .rte-setting.rte {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+  }
+  .map-section__content .title {
+    margin: 0;
+    margin-bottom: 2rem;
+  }
+  .map-section__background-wrapper svg{
+    border-radius: var(--media-radius);
+  }
+  @media only screen and (min-width: 767px){
+    .map-section__wrapper {
+      display: flex;
+      align-items: flex-start;
+    }
+    .map-section__background-wrapper {
+      width: 75%;
+    }
+    .map-section__content {
+      width: 35%;
+    }
+  }
+  @media only screen and (max-width: 767px){
+    .map-section__content {
+      padding: 1.5rem;
+    }
+  }
+  @media screen and (min-width: 750px) {
+    .section-{{ section.id }}-padding {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+{%- endstyle -%}
+
+<div class="section-{{ section.id }}-padding gradient color-{{ section.settings.color_scheme }}">
+  <div class="page-width {{ section.settings.show_on }}">
+    <div class="map-section {% if display_map %}map-section--display-map{% endif %} {% if onboarding == true %}map-section--onboarding{% endif %}" data-section-id="{{ section.id }}" data-section-type="map">
+      <div class="map-section__wrapper">
+        <div class="map-section__background-wrapper">
+          {%- if display_map -%}
+          <iframe src="{{ section.settings.api_key }}" class="global-media-settings" width="100%" height="450" style="border:0;" title="Map" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            <div class="map-section__overlay" data-map-overlay></div>
+            {%- else -%}
+              {{ 'hero-apparel-1' | placeholder_svg_tag: 'placeholder-svg' }}
+          {%- endif -%}
+        </div>
+        <div class="map-section__content">
+          {%- if section.settings.heading != blank -%}
+            <h2 class="title">{{ section.settings.heading | escape }}</h2>
+          {%- endif -%}
+          {%- if section.settings.address != blank -%}
+          <div class="rte-setting rte">{{ section.settings.address | truncatewords: 30 }}</div>
+            {%- if section.settings.map_address != blank and section.settings.button_text != blank -%}
+              <a href="https://maps.google.com?daddr={{ section.settings.map_address | escape }}" title="{{ section.settings.button_text | escape }}" class="button animated-button button--primary button--primary-outline" {%- if section.settings.button_text_new -%}target="_blank"{%- endif -%}>
+                <div><span>{{ section.settings.button_text | escape }}</span></div>
+              </a>
+            {%- endif -%}
+          {%- endif -%}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.map.name",
+  "class": "index-section index-section--flush-medium-up",
+  "disabled_on": {
+    "templates": ["password"],
+    "groups": ["header", "footer", "custom.popup"]
+  },
+  "settings": [
+    {
+      "type": "select",
+      "id": "show_on",
+      "label": "t:sections.all.show_on.name",
+      "options": [
+        {
+          "value": "small-hide",
+          "label": "t:sections.all.show_on.desktop"
+        },
+        {
+          "value": "large-up-hide medium-hide",
+          "label": "t:sections.all.show_on.mobile"
+        },
+        {
+          "value": "both",
+          "label": "t:sections.all.show_on.both"
+        }
+      ],
+      "default": "both"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.all.colors.label",
+      "default": "scheme-1"
+    },
+    {
+      "id": "heading",
+      "type": "text",
+      "label": "t:sections.map.settings.heading.label",
+      "default": "Find us on map."
+    },
+    {
+      "id": "address",
+      "type": "richtext",
+      "label": "t:sections.map.settings.address.label",
+      "default": "<p>123 Fake St.<br>Toronto, Canada Mon - Fri, 10am - 9pm<br>Saturday, 11am - 9pm<br>Sunday, 11am - 5pm</p>"
+    },
+    {
+      "id": "map_address",
+      "type": "text",
+      "label": "t:sections.map.settings.map_address.label",
+      "info": "t:sections.map.settings.map_address.info",
+      "default": "80 Spadina Ave, Toronto"
+    },
+    {
+      "id": "button_text",
+      "type": "text",
+      "label": "t:sections.map.settings.button_text.label",
+      "default": "Get directions"
+    },
+    {
+      "type": "checkbox",
+      "id": "button_text_new",
+      "label": "t:sections.map.settings.button_text_new.label",
+      "default": false
+    },
+    {
+      "id": "api_key",
+      "type": "text",
+      "label": "t:sections.map.settings.api_key.label",
+      "info": "t:sections.map.settings.api_key.info"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.all.padding.section_padding_heading"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_top",
+      "default": 36
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_bottom",
+      "default": 36
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.map.presets.name",
+      "category": "Store information"
+    }
+  ]
+}
+{% endschema %}

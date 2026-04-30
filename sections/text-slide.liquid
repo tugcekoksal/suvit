@@ -1,0 +1,211 @@
+{%- style -%}
+  .section-{{ section.id }}-padding {
+    padding-top: {{ section.settings.padding_top | times: 0.75 | round: 0 }}px;
+    padding-bottom: {{ section.settings.padding_bottom | times: 0.75 | round: 0 }}px;
+  }
+  .text_slide {
+    display: block;
+  }
+  .text_slide .text_slide_content_wrapper{
+    padding: 2.5rem 0;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .text_slide>span{
+    display: inline-flex;
+    margin: 0 5.5rem;
+    text-transform: uppercase;
+    line-height: normal;
+    font-weight: 700;
+    vertical-align: middle;
+  }
+  {% if section.settings.paused != blank %}
+    .text_slide:hover .slide_heading {
+      animation-play-state: paused;
+    }   
+  {% endif %}  
+  .text_slide.left_right>span{
+    -webkit-animation: marqueeltr 46.475s linear 0s infinite normal none running;
+    animation: marqueeltr 46.475s linear 0s infinite normal none running;
+  }
+  .text_slide.right_left>span{
+    -webkit-animation: marqueertl 46.475s linear 0s infinite normal none running;
+    animation: marqueertl 46.475s linear 0s infinite normal none running;
+  }
+  @keyframes marqueertl {
+    0% {
+        transform: translate3d(0, 0, 0)
+    }
+    to {
+        transform: translate3d(-800px,0,0);
+    }
+  }
+  @keyframes marqueeltr {
+    0% {
+        transform: translate3d(-800px,0,0);
+    }
+    to {
+        transform: translate3d(0, 0, 0)
+    }
+  }
+  @media screen and (max-width: 768px){
+    .text_slide>span {
+      font-size: 3rem !important;
+      margin: 0 2rem;
+    } 
+  }
+  @media screen and (min-width: 750px) {
+    .section-{{ section.id }}-padding {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+{%- endstyle -%}
+  
+<div class="{{ section.settings.show_on }} {% unless section.settings.full_width %}page-width{% endunless %} section-{{ section.id }}-padding">
+  <div class="text_slide_content_wrapper" style="background-color: {{ section.settings.background_color }};">
+    <div class="text_slide {{ section.settings.text_direction }}">
+      {%- for i in (1..10) -%}
+        {%- for block in section.blocks -%}
+          <span {% if section.settings.paused %}class="slide_heading"{% endif %} style="color: {{ block.settings.text_color }}; font-size: {{ block.settings.font_size }}px;">
+            {{ block.settings.text }}
+          </span>
+        {%- endfor -%}
+      {%- endfor -%}
+    </div>
+  </div>
+</div>
+{% schema %}
+{
+  "name": "t:sections.text_slide.name",
+  "tag": "section",
+  "class": "section text_slide",
+  "disabled_on": {
+    "templates": ["password"],
+    "groups": ["header", "footer", "custom.popup"]
+  },
+  "settings": [
+    {
+        "type": "select",
+        "id": "show_on",
+        "label": "t:sections.all.show_on.name",
+        "options": [
+            {
+            "value": "small-hide",
+            "label": "t:sections.all.show_on.desktop"
+            },
+            {
+            "value": "large-up-hide medium-hide",
+            "label": "t:sections.all.show_on.mobile"
+            },
+            {
+            "value": "both",
+            "label": "t:sections.all.show_on.both"
+            }
+        ],
+        "default": "both"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "t:sections.text_slide.settings.background_color.label",
+      "default": "#ffffff"
+    },
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "default": true,
+      "label": "t:sections.text_slide.settings.full_width.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "paused",
+      "default": true,
+      "label": "t:sections.text_slide.settings.paused.label"
+    },
+    {
+      "type": "select",
+      "id": "text_direction",
+      "label": "t:sections.text_slide.settings.direction.label",
+      "options": [
+        {
+          "value": "left_right",
+          "label": "t:sections.text_slide.settings.direction.left_right"
+        },
+        {
+          "value": "right_left",
+          "label": "t:sections.text_slide.settings.direction.right_left"
+        }
+      ],
+      "default": "right_left"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.all.padding.section_padding_heading"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_top",
+      "default": 36
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_bottom",
+      "default": 36
+    }
+  ],
+  "blocks": [
+    {
+      "type": "text",
+      "name": "t:sections.text_slide.blocks.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.text_slide.blocks.text.label",
+          "default": "Text slide"
+        },
+        {
+          "type": "color",
+          "id": "text_color",
+          "label": "t:sections.text_slide.blocks.text_color.label",
+          "default": "#000000"
+        },
+        {
+          "type": "range",
+          "id": "font_size",
+          "min": 12,
+          "max": 110,
+          "step": 2,
+          "unit": "px",
+          "label": "t:sections.text_slide.blocks.font_size.label",
+          "default": 40
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.text_slide.presets.name",
+      "blocks": [
+        {
+          "type": "text"
+        },
+        {
+          "type": "text"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,282 @@
+{{ 'shop-the-look.css' |  asset_url |  stylesheet_tag: preload:true }}
+{{ 'component-deferred-media.css' | asset_url | stylesheet_tag }}
+{%- if section.settings.quick_add -%}
+  {{ 'quick-add.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'quick-add.js' | asset_url }}" defer="defer"></script>
+  <script src="{{ 'product-form.js' | asset_url }}" defer="defer"></script>
+{%- endif -%}
+{%- style -%}
+    .section-{{ section.id }}-padding {
+      padding-top: {{ section.settings.padding_top | times: 0.75 | round: 0 }}px;
+      padding-bottom: {{ section.settings.padding_bottom | times: 0.75 | round: 0 }}px;
+    }
+  
+    @media screen and (min-width: 750px) {
+      .section-{{ section.id }}-padding {
+        padding-top: {{ section.settings.padding_top }}px;
+        padding-bottom: {{ section.settings.padding_bottom }}px;
+      }
+    }
+{%- endstyle -%}
+<swiper-carousel class="slider_wrapper" data-section="shop-the-look">
+    <div id="shop_the_look-main_{{ section.id }}" class="shop_the_look-main {% if section.settings.full_width == true %} full__width {% else %}page-width {% endif %} {{ section.settings.show_on }} color-{{ section.settings.color_scheme }} gradient section-{{ section.id }}-padding">
+        <div class="shop__look_inner">
+            <div class="shop_the_look-content-wrappeer large-up-hide shop_the_look-content--{{ section.settings.text_alignment }}">
+                {%- if section.settings.heading != blank -%}
+                    <h2 class="title">{{ section.settings.heading }}</h2>
+                {%- endif -%}
+                {%- if section.settings.subheading != blank -%}
+                    <p class="shoplook-content">{{ section.settings.subheading }}</p>
+                {%- endif -%}
+            </div>
+            <div class="shop-look_wrapper">
+                <div class="shop-look_image_wrapper">
+                    {%- if section.settings.image != blank -%}
+                        {% assign alt = section.settings.image.alt | default: 'shopthelook image' %}
+                        {% assign title = section.settings.image.alt |  escape | default: 'shopthelook image' %}
+                        {{ section.settings.image |  image_url: width: section.settings.width |  image_tag: 
+                            loading: 'lazy',
+                            alt: alt,
+                            title: title,
+                            data-sizes: 'auto',
+                            class: 'shopThelook_img',
+                            widths: '246, 493, 600, 713, 823, 990, 1100, 1206, 1346, 1426, 1646, 1946, 2400'  }}
+                    {%- else -%}
+                        {{ 'collection-apparel-2' | placeholder_svg_tag: 'PlaceholderSvg' }}
+                    {%- endif -%}
+                    {%- for block in section.blocks -%}
+                        <shopthelook-dot data-section="{{ section.id }}_{{ forloop.index }}" data-sections="{{ section.id }}" class="shopthelook_dot_holder" style="left: {{ block.settings.product_horizontal_position }}%; top: {{ block.settings.product_vertical_position }}%;">
+                            <span class="swiper look_book-dot"></span>
+                        </shopthelook-dot>
+                    {%- endfor -%}
+                </div>
+            </div>
+        </div>
+        <div class="shop_look_contnet_product">
+            <div class="shop_the_look-content-wrappeer small-hide medium-hide shop_the_look-content--{{ section.settings.text_alignment }}">
+                {%- if section.settings.heading != blank -%}
+                    <h2 class="title">{{ section.settings.heading }}</h2>
+                {%- endif -%}
+                {%- if section.settings.subheading != blank -%}
+                    <p class="shoplook-content subheading">{{ section.settings.subheading }}</p>
+                {%- endif -%}
+            </div>
+                <div id="shopthelook__productlist_{{ section.id }}" class="shopthelook__productlist">
+                    <div class="shoplook_heading-icon large-up-hide">
+                        {%- if section.settings.heading != blank -%}
+                            <h2 class="title">{{ section.settings.heading }}</h2>
+                        {%- endif -%}
+                        <close-button class="shoplook_close" data-sections="{{ section.id }}">{%- render 'icon' with 'close' -%}</close-button>
+                    </div>
+                        <div class="product_slide-mobile">
+                            <div class="swiper-container" {% if request.locale.iso_code == "ar" %}dir="rtl" {% endif %}>
+                                <div class="swiper-wrapper">
+                                    {%- for block in section.blocks -%}
+                                        <div id="product_{{ section.id }}_{{ forloop.index }}" class="swiper-slide sholook__product_item  grid--1-col {% if forloop.index == 1 %}Dot_open{% endif %}">
+                                            {%- assign product = block.settings.product -%}
+                                            {%- capture currents -%}{%- cycle 1, 2, 3, 4 -%}{%- endcapture -%}
+                                            {%- assign placeholder_image = 'product-apparel-' | append: currents -%}
+                                            {%- render 'card-product',
+                                                card_product: product,
+                                                media_aspect_ratio: settings.image_ratio,
+                                                image_shape: section.settings.image_shape,
+                                                show_Video: section.settings.show_Video,
+                                                placeholder_image: placeholder_image,
+                                                section_id: section.id -%}
+                                        </div>
+                                    {%- endfor -%}
+                                </div>
+                            </div>
+                            <script type="application/json">
+                                {
+                                    "speed": 500,
+                                    "grabCursor": true,
+                                    "slidesPerView": 1.5,
+                                    "spaceBetween": 30,
+                                    "pagination": {
+                                        "el": ".swiper-pagination",
+                                        "type": "progressbar",
+                                        "clickable": true
+                                    },
+                                    "navigation": {
+                                        "nextEl": ".swiper-button-next",
+                                        "prevEl": ".swiper-button-prev"
+                                    }
+                                }                                
+                            </script>
+                        </div>
+                {% if section.blocks.size > 1 %}
+                    <div class="arrow_progressbar slide_arrow_animated">
+                        <button class="arrow_animated swiper-button-prev slider-button slider-button--prev prev-arrow" aria-label="Prev triger">
+                            <span class="arrow-button">
+                            {%- render 'icon' with 'caret-animate' -%}
+                            </span>
+                        </button>
+                        <div class="swiper-pagination swiper-pagination-tab  position-relative mt-4 mt-md-5"></div>  
+                        <button class="arrow_animated swiper-button-next slider-button slider-button--next next-arrow" aria-label="Next triger">
+                            <span class="arrow-button">
+                            {%- render 'icon' with 'caret-animate' -%}
+                            </span>
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</swiper-carousel>
+
+{% schema %}
+{
+    "name": "t:sections.shop_the_look.name",
+    "tag": "section",
+    "class": "section",
+    "disabled_on": {
+        "templates": ["password"],
+        "groups": ["header", "footer", "custom.popup"]
+    },
+    "settings": [
+        {
+        "type": "select",
+        "id": "show_on",
+        "label": "t:sections.all.show_on.name",
+        "options": [
+            {
+            "value": "small-hide",
+            "label": "t:sections.all.show_on.desktop"
+            },
+            {
+            "value": "large-up-hide medium-hide",
+            "label": "t:sections.all.show_on.mobile"
+            },
+            {
+            "value": "both",
+            "label": "t:sections.all.show_on.both"
+            }
+        ],
+        "default": "both"
+        },
+        {
+            "type": "image_picker",
+            "id": "image",
+            "label": "t:sections.shop_the_look.settings.image.label",
+            "info": "t:sections.shop_the_look.settings.image.info"
+        },
+        {
+            "type": "inline_richtext",
+            "id": "heading",
+            "label": "t:sections.shop_the_look.settings.heading.label",
+            "default": "Heading" 
+        },
+        {
+            "type": "inline_richtext",
+            "id": "subheading",
+            "label": "t:sections.shop_the_look.settings.subheading.label",
+            "default": "Subheading"
+        },
+        {
+            "type": "text_alignment",
+            "id": "text_alignment",
+            "default": "left",
+            "label": "t:sections.shop_the_look.settings.text_alignment.label",
+            "info": "t:sections.shop_the_look.settings.text_alignment.info"
+        },
+        {
+            "type": "checkbox",
+            "id": "full_width",
+            "label": "t:sections.featured-collection.settings.full_width.label",
+            "default": false
+        },
+        {
+            "type": "color_scheme",
+            "id": "color_scheme",
+            "label": "t:sections.all.colors.label",
+            "default": "scheme-1"
+        },
+        {
+            "type": "header",
+            "content": "t:sections.all.padding.section_padding_heading"
+        },
+        {
+            "type": "range",
+            "id": "padding_top",
+            "min": 0,
+            "max": 100,
+            "step": 4,
+            "unit": "px",
+            "label": "t:sections.all.padding.padding_top",
+            "default": 36
+        },
+        {
+            "type": "range",
+            "id": "padding_bottom",
+            "min": 0,
+            "max": 100,
+            "step": 4,
+            "unit": "px",
+            "label": "t:sections.all.padding.padding_bottom",
+            "default": 36
+        }
+    ],
+    "blocks": [
+        {
+            "type": "look",
+            "name": "t:sections.shop_the_look.blocks.name",
+            "settings": [
+                {
+                    "type": "product",
+                    "id": "product",
+                    "label": "t:sections.shop_the_look.blocks.settings.product.label"
+                },
+                {
+                    "type": "range",
+                    "id": "product_horizontal_position",
+                    "label": "t:sections.shop_the_look.blocks.settings.product_horizontal_position.label",
+                    "min": 10,
+                    "max": 80,
+                    "step": 1,
+                    "unit": "%",
+                    "default": 50
+                },
+                {
+                    "type": "range",
+                    "id": "product_vertical_position",
+                    "label": "t:sections.shop_the_look.blocks.settings.product_vertical_position.label",
+                    "min": 10,
+                    "max": 80,
+                    "step": 1,
+                    "unit": "%",
+                    "default": 50
+                }
+            ]
+        }
+    ],
+    "presets": [
+        {
+            "name": "t:sections.shop_the_look.presets.name",
+            "blocks": [
+                {
+                    "type": "look",
+                    "settings": {
+                        "product_horizontal_position": 10,
+                        "product_vertical_position": 10
+                    }
+                },
+                {
+                    "type": "look",
+                    "settings": {
+                        "product_horizontal_position": 50,
+                        "product_vertical_position": 50
+                    }
+                },
+                {
+                    "type": "look",
+                    "settings": {
+                        "product_horizontal_position": 80,
+                        "product_vertical_position": 80
+                    }
+                }
+            ]
+        }
+    ]
+}
+{% endschema %}

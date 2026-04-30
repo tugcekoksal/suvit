@@ -1,0 +1,30 @@
+{%- comment -%}
+  Renders the language picker for the localization form
+
+  Accepts:
+    - localPosition: pass in the position in which the form is coming up to create specific IDs
+{%- endcomment -%}
+
+<div class="disclosure">
+  <button type="button" class="disclosure__button localization-form__select localization-selector link link--text caption-large focus-offset"  tabindex="0" aria-expanded="false" aria-controls="{{ localPosition }}List" aria-describedby="{{ localPosition }}Label">
+    <span class="rte">{{ localization.language.endonym_name | capitalize }}</span>
+    {%- render 'icon' with 'caret' -%}
+  </button>
+  <div class="disclosure__list-wrapper language_selecter" open="false">
+    <button class="country-selector__close-button link" type="button" aria-label="{{ 'accessibility.close' | t }}">
+      {%- render 'icon' with 'close' -%}
+    </button>
+    <ul id="{{ localPosition }}List" role="list" class="disclosure__list list-unstyled">
+      {%- for language in localization.available_languages -%}
+        <li class="disclosure__item" tabindex="-1">
+          <a title="{{ language.endonym_name | capitalize }}" class="link link--text disclosure__link caption-large focus-inset {% if language.iso_code == localization.language.iso_code %} is-active{% endif %}" href="#" hreflang="{{ language.iso_code }}" lang="{{ language.iso_code }}" {% if language.iso_code == localization.language.iso_code %} aria-current="true" {% endif %} data-value="{{ language.iso_code }}">
+            <span>
+              {{ language.endonym_name | capitalize }}
+            </span>
+          </a>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
+</div>
+<input type="hidden" name="locale_code" value="{{ localization.language.iso_code }}">

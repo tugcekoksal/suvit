@@ -1,0 +1,51 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "type": "custom.popup",
+  "name": "Popups",
+  "sections": {
+    "popup": {
+      "type": "newsletter-popup",
+      "settings": {
+        "show_only_on_home": true,
+        "apparition_delay": 15,
+        "heading": "Für unseren Newsletter anmelden",
+        "content": "<p>Melden Sie sich für unseren Newsletter an und erhalten Sie 15 € Rabatt auf Ihre erste Bestellung.</p>",
+        "color_scheme": "scheme-4",
+        "view_all_style": "solid"
+      }
+    },
+    "age-verification-popup": {
+      "type": "age-verification-popup",
+      "disabled": true,
+      "settings": {
+        "test_mode": true,
+        "color_scheme": "scheme-83ddf89a-39d8-4939-8309-70b3a9ca32f0",
+        "verification_heading": "Confirm your age",
+        "verification_content": "Are you 18 years old or older?",
+        "declined_heading": "Confirm your age",
+        "declined_content": "Are you 18 years old or older?",
+        "return_button": "Opps! i entered incorrectly"
+      }
+    },
+    "cart-drawer": {
+      "type": "cart-drawer",
+      "settings": {
+        "show_cart_note": true,
+        "cart_color_scheme": "scheme-1"
+      }
+    }
+  },
+  "order": [
+    "popup",
+    "age-verification-popup",
+    "cart-drawer"
+  ]
+}

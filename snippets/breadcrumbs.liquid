@@ -1,0 +1,7 @@
+{%- unless template == 'index' or template == 'cart' -%}
+    <nav class="page-width collection_breadcrums" role="navigation" aria-label="breadcrumbs"> 
+        <a href="{{ routes.root_url }}" title="{{ 'breadcrumbs.label' | t }}" class="breadcrumbs_label">{{ 'breadcrumbs.label' | t }}</a> 
+        <span aria-hidden="true">&nbsp; | &nbsp;</span>
+        <span class="collection-breadcrumbs_title">{{ collection.title }}</span>
+    </nav>
+{%- endunless -%}

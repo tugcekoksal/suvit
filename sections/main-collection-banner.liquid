@@ -1,0 +1,258 @@
+{{ 'component-collection-hero.css' | asset_url | stylesheet_tag }}
+
+<div class="collections--banner_main{% if section.settings.show_collection_image and collection.image %} collection-image{% else %} page-width{% endif %}">
+  <div id="desktop_collection__count" class="{% if section.settings.show_collection_image and collection.image %} collection-hero--with-image{% endif %}">
+    <div class="collection-hero__inner {% unless section.settings.show_collection_image and collection.image %} collection-hero {% endunless %} {% if section.settings.show_collection_image and collection.image %}page-width {% endif %} {% if settings.animations_reveal_on_scroll %} scroll-trigger animate--fade-in{% endif %}" style="--overlay-image: {{ section.settings.overlay_color }}; --overlay_opacity: {{ section.settings.overlay_opacity | divided_by: 100.0 }}">
+      <div class="collection-hero__text-wrapper" style="--text-color: {{ section.settings.text_color }}">
+        <h2 class="collection-hero__title title">
+          <span class="visually-hidden">{{ 'sections.collection_template.title' | t }}: </span>
+          {{- collection.title | escape -}}
+        </h2>
+        {%- if section.settings.show_collection_description and collection.description -%}
+          <div class="collection-hero__description rte">{{ collection.description }}</div>
+        {%- endif -%}
+         <div class="sv-count-row">
+  <span class="collection-product_count">
+    {%- if collection.results_count -%}
+      {{ 'templates.search.results_with_count' | t: terms: collection.terms, count: collection.results_count }}
+    {%- elsif collection.products_count == collection.all_products_count -%}
+      {{ 'products.facets.product_count_simple' | t: count: collection.products_count }}
+    {%- else -%}
+      {{ 'products.facets.product_count' | t: product_count: collection.products_count, count: collection.all_products_count }}
+    {%- endif -%}
+  </span>
+</div>
+
+      </div>
+
+      {%- if section.settings.show_collection_image and collection.image -%}
+        <div class="collection-hero__image-container media gradient">
+          {%-  liquid 
+            assign height = collection.image.width | divided_by: collection.image.aspect_ratio | round
+            assign sizes = '100vw'
+            assign widths = '375, 550, 750, 1100, 1500, 1780, 2000, 3000, 3840' 
+          %}
+          {{ collection.image
+  | image_url: width: 2000
+  | image_tag:
+    loading: 'eager',
+    fetchpriority: 'high',
+    height: height,
+    sizes: sizes,
+    widths: widths,
+    alt: collection.image.alt | escape
+}}
+        </div>
+      {%- endif -%}
+    </div>
+    {%- render 'breadcrumbs' -%}
+  </div>
+</div>
+<style>
+  /* ===== SuVit: subtle collection banner polish (keeps Dawn structure) ===== */
+
+  /* Make the banner feel like a card (no shadow) */
+  .collections--banner_main .collection-hero__inner{
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,.08);
+  }
+
+  /* Improve text block spacing */
+  .collections--banner_main .collection-hero__text-wrapper{
+    padding-top: 6px;
+    padding-bottom: 6px;
+    max-width: 72ch;
+  }
+
+  /* Title: nicer scale and weight */
+  .collections--banner_main .collection-hero__title{
+    font-size: 32px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  /* Description: ensure it reads well */
+  .collections--banner_main .collection-hero__description{
+    margin-top: 10px;
+    opacity: .92;
+    line-height: 1.65;
+    max-width: 165ch;
+  }
+
+  /* Product count: true centered pill */
+.collections--banner_main .collection-product_count{
+  display: block;              /* ✅ critical */
+  width: fit-content;          /* ✅ shrink to pill width */
+  margin: 14px auto 0;         /* ✅ centers perfectly */
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  background: rgba(255,255,255,.16);
+  border: 1px solid rgba(255,255,255,.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+
+  /* If there is NO image, your banner can look a bit flat.
+     Give it a soft background that matches your site (no shadow). */
+  .collections--banner_main.page-width .collection-hero__inner{
+    background: #FAF1E7;
+  }
+
+  /* Improve image container cropping a bit */
+  .collections--banner_main .collection-hero__image-container img{
+    object-fit: cover;
+  }
+  /* Center text inside the banner */
+.collections--banner_main .collection-hero__text-wrapper{
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Center the product count pill */
+.collections--banner_main .collection-product_count{
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* FORCE TRUE CENTER (override theme margins) */
+.collections--banner_main .collection-product_count{
+  display: block !important;
+  width: fit-content !important;
+  margin: 14px auto 0 !important; /* overrides 321px margins */
+}
+
+
+  /* Breadcrumbs spacing (your breadcrumbs render outside inner) */
+  #desktop_collection__count .breadcrumbs{
+    margin-top: 10px;
+  }
+  /* Count row: always true center */
+.collections--banner_main .sv-count-row{
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Keep the pill look */
+.collections--banner_main .collection-product_count{
+  display: inline-flex;
+  align-items: center;
+  margin-top: 14px;          /* row handles centering */
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  background: rgba(255,255,255,.16);
+  border: 1px solid rgba(255,255,255,.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.collections--banner_main .collection-hero__inner {
+  min-height: 220px;
+}
+
+.collections--banner_main .collection-hero__image-container {
+  min-height: 220px;
+  aspect-ratio: 16 / 5;
+}
+
+.collections--banner_main .collection-hero__image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@media (min-width: 990px){
+  {% comment %} .collections--banner_main .page-width{
+    max-width: 1400px;
+  } {% endcomment %}
+
+  .collections--banner_main .collection-hero__text-wrapper{
+    max-width: 1100px;
+  }
+
+  .collections--banner_main .collection-hero__description{
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 749px) {
+  .collections--banner_main .collection-hero__inner {
+    min-height: 180px;
+  }
+
+  .collections--banner_main .collection-hero__image-container {
+    min-height: 180px;
+    aspect-ratio: 4 / 3;
+  }
+}
+
+
+ /* Desktop refinements */
+@media (min-width: 990px){
+  .collections--banner_main .collection-hero__text-wrapper{
+    max-width: 1100px;
+    width: 100%;
+  }
+
+  .collections--banner_main .collection-hero__description{
+    max-width: 100%;
+    font-size: 16px;
+  }
+}
+</style>
+
+{% schema %}
+{
+  "name": "t:sections.main-collection-banner.name",
+  "class": "section",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "t:sections.main-collection-banner.settings.paragraph.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_collection_description",
+      "default": true,
+      "label": "t:sections.main-collection-banner.settings.show_collection_description.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_collection_image",
+      "default": false,
+      "label": "t:sections.main-collection-banner.settings.show_collection_image.label",
+      "info": "t:sections.main-collection-banner.settings.show_collection_image.info"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "t:sections.main-collection-banner.settings.text_color.label",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "overlay_color",
+      "default": "#000000",
+      "label": "t:sections.main-collection-banner.settings.overlay_color.label"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "%",
+      "label": "t:sections.main-collection-banner.settings.overlay_opacity.label",
+      "default": 0
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,329 @@
+{{ 'logo-list.css' |  asset_url |  stylesheet_tag }}
+
+{%- style -%}
+    .section-{{ section.id }}-padding {
+      padding-top: {{ section.settings.padding_top | times: 0.75 | round: 0 }}px;
+      padding-bottom: {{ section.settings.padding_bottom | times: 0.75 | round: 0 }}px;
+    }
+  
+    @media screen and (min-width: 750px) {
+      .section-{{ section.id }}-padding {
+        padding-top: {{ section.settings.padding_top }}px;
+        padding-bottom: {{ section.settings.padding_bottom }}px;
+      }
+    }
+{%- endstyle -%}
+
+<div class="logo_list page-width color-{{ section.settings.color_scheme }} {{ section.settings.show_on }} gradient section-{{ section.id }}-padding">
+  <div class="logo-list-content__wrapper">
+    <div class="logo-list_heading">
+        {%- if section.settings.heading != blank -%}
+            <h2 class="inline-richtext title--inner {{ section.settings.heading_size }}">
+                {{ section.settings.heading }}
+            </h2>
+        {%- endif -%}
+    </div>
+    <div class="content--wrapper">
+        {%- if section.settings.subheading != blank -%}
+          <p class="subtitle-text_opacity content--text subheading">{{ section.settings.subheading }}</p>
+        {%- endif -%}
+        {%- if section.settings.button_label != blank -%}
+          <a {% if section.settings.button_link == blank %} role="link" aria-disabled="true"{%  else %} href="{{ section.settings.button_link }}"{% endif %}{% if section.settings.button_new_window %}target="_blank"{% endif %} class="logo-list_button {% if section.settings.view_all_style == 'link' %}link underlined-link cube-animation{% elsif section.settings.view_all_style == 'solid' %}button button--primary animated-button {% else %}button animated-button button--secondary{% endif %}" title="{{ section.settings.button_label | escape }}">
+            <div><span>{{ section.settings.button_label | escape }}</span></div>
+          </a>
+        {%- endif -%}
+    </div>
+  </div>
+  <div class="logo-list__slide">
+    <swiper-carousel>
+        <div class="swiper-container">
+            <div class="swiper-wrapper logo-list__inner">
+                {%- for block in section.blocks -%}
+                    <div class="swiper-slide">
+                        <div class="logo-list-slide__wrapper">
+                            {%- if block.settings.logo_url != blank -%}
+                                <a href="{{ block.settings.logo_url | default: routes.root_url }}" title="logo list" {% if block.settings.button_new_window1 %}target="_blank"{% endif %}>
+                            {%- endif -%}
+                                {%- if block.settings.image != blank -%}
+                                    <div class="logo-list_images">
+                                        {%- liquid  
+                                            assign height = block.settings.image.width | divided_by: block.settings.image.aspect_ratio | round    
+                                            assign sizes = '100vw'
+                                            assign widths = '420, 500, 540, 600' 
+                                        -%} 
+                                        {{ block.settings.image |  image_url: width: 500 |  image_tag: widths: widths, sizes: sizes, height: height }}
+                                    </div>
+                                {%- else -%}
+                                    <div class="images-placeholder_icon">
+                                        {{ 'hero-apparel-1' | placeholder_svg_tag: 'placeholder-svg' }}
+                                    </div>
+                                {%- endif -%}
+                                {%- if block.settings.logo != blank -%}
+                                    <div class="logo-list__logo">
+                                        <div class="brand--logo">
+                                            {%- liquid  
+                                                assign height = block.settings.logo.width | divided_by: block.settings.logo.aspect_ratio | round    
+                                                assign sizes = '100vw'
+                                                assign widths = '80, 100, 120, 200, 320' 
+                                            -%} 
+                                            {{ block.settings.logo |  image_url: width: 120 |  image_tag: widths: widths, sizes: sizes, height: height }}
+                                        </div>
+                                    </div>
+                                {%- else -%}
+                                    <div class="logo-placeholder_icon">
+                                        {{ 'logo' | placeholder_svg_tag: 'placeholder-svg' }}
+                                    </div>
+                                {%- endif -%}
+                            {%- if block.settings.logo_url != blank -%}
+                                </a>
+                            {%- endif -%}
+                        </div>
+                    </div>
+                {%- endfor -%}
+            </div>
+        </div>
+        <div class="arrow_progressbar slide_arrow_animated">
+            <button class="arrow_animated swiper-button-prev slider-button slider-button--prev prev-arrow" aria-label="Prev triger">
+                <span class="arrow-button">
+                {%- render 'icon' with 'caret-animate' -%}
+                </span>
+            </button>
+            <div class="swiper-pagination swiper-pagination-tab  position-relative mt-4 mt-md-5"></div>  
+            <button class="arrow_animated swiper-button-next slider-button slider-button--next next-arrow" aria-label="Next triger">
+                <span class="arrow-button">
+                {%- render 'icon' with 'caret-animate' -%}
+                </span>
+            </button>
+        </div>
+        <script type="application/json">
+            {         
+            "navigation": {
+                "nextEl": ".swiper-button-next",
+                "prevEl": ".swiper-button-prev"
+            },     
+            "speed": 700, 
+            "slidesPerColumnFill": "row",
+            "watchOverflow": true,
+            "slidesPerView": {{ section.settings.columns_desktop }},
+            "spaceBetween": {{ settings.spacing_grid_horizontal }}, 
+            "pagination": {
+                "el": ".swiper-pagination",
+                "type": "progressbar"
+            },
+            "breakpoints": {
+                "0": {
+                    "slidesPerView": 1.25,
+                    "spaceBetween": {{ settings.spacing_grid_horizontal | divided_by: 2 }}
+                },
+                "320": {
+                    "slidesPerView": 1.25,
+                    "spaceBetween": {{ settings.spacing_grid_horizontal | divided_by: 2 }}
+                },
+                "768": {
+                    "slidesPerView": {{ section.settings.columns_desktop }},
+                    "spaceBetween": {{ settings.spacing_grid_horizontal }}
+                },
+                "1200": {
+                    "slidesPerView": {{ section.settings.columns_desktop }},
+                    "spaceBetween": {{ settings.spacing_grid_horizontal }},
+                    "freeMode": false,
+                    "simulateTouch":false
+                }
+            }
+            }
+        </script>
+    </swiper-carousel>
+  </div>
+</div>
+
+{% schema %}
+{
+    "name": "t:sections.logo_list.name",
+    "tag": "section",
+    "class": "section",
+    "disabled_on": {
+        "templates": ["password"],
+        "groups": ["header", "footer", "custom.popup"]
+    },
+    "settings": [
+    {
+        "type": "select",
+        "id": "show_on",
+        "label": "t:sections.all.show_on.name",
+        "options": [
+            {
+                "value": "small-hide",
+                "label": "t:sections.all.show_on.desktop"
+            },
+            {
+                "value": "large-up-hide medium-hide",
+                "label": "t:sections.all.show_on.mobile"
+            },
+            {
+                "value": "both",
+                "label": "t:sections.all.show_on.both"
+            }
+        ],
+        "default":"both"
+    },
+    {
+        "type": "inline_richtext",
+        "id": "heading",
+        "default": "Heading",
+        "label": "t:sections.multicolumn.settings.title.label"
+    },
+    {
+        "type": "select",
+        "id": "heading_size",
+        "options": [
+            {
+                "value": "h2",
+                "label": "t:sections.all.heading_size.options__1.label"
+            },
+            {
+                "value": "h1",
+                "label": "t:sections.all.heading_size.options__2.label"
+            },
+            {
+                "value": "h0",
+                "label": "t:sections.all.heading_size.options__3.label"
+            }
+        ],
+        "default": "h1",
+        "label": "t:sections.all.heading_size.label"
+    },
+    {
+        "type": "inline_richtext",
+        "id": "subheading",
+        "default": "Subheading",
+        "label": "t:sections.multicolumn.settings.subheading.label"
+    },
+    {
+        "type": "range",
+        "id": "columns_desktop",
+        "min": 1,
+        "max": 4,
+        "step": 1,
+        "default": 4,
+        "label": "t:sections.multicolumn.settings.columns_desktop.label"
+    },
+    {
+        "type": "text",
+        "id": "button_label",
+        "default": "Button label",
+        "label": "t:sections.multicolumn.settings.button_label.label"
+    },
+    {
+        "type": "url",
+        "id": "button_link",
+        "label": "t:sections.multicolumn.settings.button_link.label"
+    },
+    {
+        "type": "checkbox",
+        "id": "button_new_window",
+        "label": "t:sections.image-text.blocks.content.settings.open_new_window.label",
+        "default": false
+    },
+    {
+        "type": "select",
+        "id": "view_all_style",
+        "label": "t:sections.all.view_all_style.label",
+        "options": [
+            {
+                "value": "link",
+                "label": "t:sections.all.view_all_style.options__1.label"
+            },
+            {
+                "value": "outline",
+                "label": "t:sections.all.view_all_style.options__2.label"
+            },
+            {
+                "value": "solid",
+                "label": "t:sections.all.view_all_style.options__3.label"
+            }
+        ],
+        "default": "solid"
+    },
+        {
+            "type": "color_scheme",
+            "id": "color_scheme",
+            "label": "t:sections.all.colors.label",
+            "default": "scheme-1"
+        },
+        {
+            "type": "header",
+            "content": "t:sections.all.padding.section_padding_heading"
+        },
+        {
+            "type": "range",
+            "id": "padding_top",
+            "min": 0,
+            "max": 100,
+            "step": 4,
+            "unit": "px",
+            "label": "t:sections.all.padding.padding_top",
+            "default": 36
+        },
+        {
+            "type": "range",
+            "id": "padding_bottom",
+            "min": 0,
+            "max": 100,
+            "step": 4,
+            "unit": "px",
+            "label": "t:sections.all.padding.padding_bottom",
+            "default": 36
+        }
+    ],
+    "blocks": [
+        {
+            "type": "logo_image",
+            "name": "t:sections.logo_list.blocks.name",
+            "settings": [
+                {
+                    "type": "image_picker",
+                    "id": "image",
+                    "label": "t:sections.logo_list.blocks.settings.image.label",
+                    "info": "t:sections.logo_list.blocks.settings.image.info"
+                },
+                {
+                    "type": "image_picker",
+                    "id": "logo",
+                    "label": "t:sections.logo_list.blocks.settings.logo.label",
+                    "info": "t:sections.logo_list.blocks.settings.logo.info"
+                },
+                {
+                    "type": "url",
+                    "id": "logo_url",
+                    "label": "t:sections.logo_list.blocks.settings.logo_url.label"
+                },
+                {
+                    "type": "checkbox",
+                    "id": "button_new_window1",
+                    "label": "t:sections.image-text.blocks.content.settings.open_new_window.label",
+                    "default": false
+                }
+            ]
+        }
+    ],
+    "presets": [
+      {
+        "name": "t:sections.logo_list.presets.name",
+        "blocks": [
+          {
+            "type": "logo_image"
+          },
+          {
+            "type": "logo_image"
+          },
+          {
+            "type": "logo_image"
+          },
+          {
+            "type": "logo_image"
+          }
+        ]
+      }
+    ]
+}
+{% endschema %}

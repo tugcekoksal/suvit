@@ -1,0 +1,71 @@
+.logo-list-content__wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+.logo-list_heading .title--inner {
+    margin: 0;
+}
+.logo_list .logo-list_button {
+    margin-top: 2rem;
+}
+.logo_list .logo-list_heading, .logo_list .content--wrapper {
+    max-width: 66rem;
+}
+.logo_list .logo-list__inner {
+    margin-top: 6rem;
+}
+.logo-list-slide__wrapper {
+    position: relative;
+}
+.logo_list .images-placeholder_icon, .logo_list .logo-list_images {
+    width: 100%;
+    position: relative;
+    padding-top: 70%;
+}
+.logo-list__logo img, .logo-placeholder_icon svg {
+    z-index: 1;
+    position: relative !important;
+}
+.logo-list__logo, .logo-placeholder_icon {
+    position: absolute;
+    width: 15rem;
+    height: 7.5rem;
+    background: #ffffff;
+    border-radius: 1rem;
+    bottom: 1rem;
+    left: 1rem;
+}
+.images-placeholder_icon svg, .logo-list_images img, .logo-placeholder_icon svg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--media-radius);
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+.logo-list__logo .brand--logo {
+    max-width: 8rem;
+    max-height: 7rem;
+    left: 50%;
+    top: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+}
+.logo-list__logo .brand--logo img{
+    max-height: 7rem;
+    max-width: 8rem;
+    object-fit: contain;
+    width: 100%;
+    height: 100%;
+    vertical-align: middle;
+}
+@media screen and (max-width: 749px) {
+    .logo-list-content__wrapper{
+        display: block;
+    }
+    .logo_list .logo-list__inner{
+        margin-top: 4rem;
+    }
+}

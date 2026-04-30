@@ -1,0 +1,109 @@
+.contact--content__main {
+  display: flex;
+  align-items: flex-start;
+  gap: 4.5rem;
+}
+.contact-form .contact__inner, .contact-form form {
+  width: 50%;
+}
+.contact-form {
+  border-radius: 2rem;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+.contact-form .form__message {
+  align-items: flex-start;
+}
+.contact-form .icon-success {
+  margin-top: 0.2rem;
+}
+.contact-form .field {
+  margin-bottom: 1.5rem;
+}
+.contact-form .field__input{
+  border: 0.1rem solid currentColor;
+}
+.contact-form .form__message{
+  margin: 1rem 0;
+}
+.contact-form__button {
+  margin-top: 3rem;
+}
+.contact-form .form__message--error-text{
+  background: #f3e6e6;
+  padding: 1rem 1.5rem;
+  border: 1px solid #e63131;
+  margin-bottom: 2rem;
+  border-radius: var(--inputs-radius);
+}
+.contact__field-error .form__message{
+  color: #e63131;
+}
+.contact-form .form-status-list {
+  padding: 0;
+  margin: 1.5rem 2rem;
+}
+.contact-form form .form-status{
+  font-size: 1.4rem;
+}
+@media screen and (max-width: 749px) {
+  .contact--content__main {
+    flex-direction: column;
+    align-items: center;
+    gap: 2.5rem;  
+  }
+  .contact-form .field--form {
+    margin-bottom: 1.5rem;
+  }
+  .contact-form .contact__inner, .contact-form form{
+    width: 100%;
+  }
+}
+@media screen and (min-width: 750px) {
+  .contact-form {
+    padding-left: 3.9rem;
+    padding-right: 3.9rem;
+  }
+  .contact__fields {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-column-gap: 2rem;
+  }
+  .contact__button {
+    margin-top: 4rem;
+  }
+  .contact-form .field--form {
+    margin-bottom: 2rem;
+  }
+  .contact--form__position--left{
+    flex-direction: row-reverse;
+  }
+  .contact--form__center .contact--content__main{
+    justify-content: center;
+  }
+  .contact--form__center .inline-richtext, .contact--form__center .contact__button{
+    text-align: center;
+  }
+  .contact--form__position--left .contact__inner{
+    padding: 0 4rem;
+  }
+}
+@media screen and (min-width: 990px) {
+  .contact-form {
+    padding-left: 6.9rem;
+    padding-right: 6.9rem;
+  }
+}
+@media screen and (min-width: 1124px) {
+  .contact-form {
+    padding-left: 11rem;
+    padding-right: 11rem;
+  }
+}
+@media screen and (min-width: 767px) {
+  .contact-form .contact__inner div {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 2.2rem;
+  }
+}

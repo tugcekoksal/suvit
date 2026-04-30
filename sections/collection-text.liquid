@@ -1,0 +1,140 @@
+{% comment %}
+  Collection Long Description
+  Uses: collection.metafields.custom.long_desc
+  Works for: Rich text or Multi-line text
+{% endcomment %}
+
+{% liquid
+  assign mf = blank
+  if collection
+    assign mf = collection.metafields.custom.long_desc
+  endif
+%}
+
+{% if mf != blank %}
+  <section class="collection-longdesc" id="collection-longdesc">
+    <div class="collection-longdesc__inner">
+      {% if section.settings.title != blank %}
+        <div class="collection-longdesc__header">
+          <h2 class="collection-longdesc__title">{{ section.settings.title }}</h2>
+
+          {% if section.settings.subtitle != blank %}
+            <div class="collection-longdesc__subtitle rte">
+              {{ section.settings.subtitle }}
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <div class="collection-longdesc__content rte">
+        {{ mf | metafield_tag }}
+      </div>
+    </div>
+  </section>
+
+  <style>
+    .collection-longdesc{
+      margin: 2.5rem 0;
+    }
+
+    .collection-longdesc__inner{
+      max-width: {{ section.settings.max_width }}px;
+      margin: 0 auto;
+      padding: 34px 26px;
+      border-radius: 18px;
+      background: {{ section.settings.bg_color }};
+      border: 1px solid rgba(0,0,0,.08);
+      box-shadow: 0 10px 30px rgba(0,0,0,.06);
+    }
+
+    .collection-longdesc__header{
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(0,0,0,.08);
+    }
+
+    .collection-longdesc__title{
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      font-size: clamp(20px, 2.2vw, 28px);
+      line-height: 1.15;
+    }
+
+    .collection-longdesc__subtitle{
+      margin-top: 8px;
+      opacity: .85;
+    }
+
+    .collection-longdesc__content{
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .collection-longdesc__content p{ margin: .85em 0; }
+    .collection-longdesc__content h2,
+    .collection-longdesc__content h3,
+    .collection-longdesc__content h4{
+      margin: 1.2em 0 .55em;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+    }
+
+    .collection-longdesc__content ul,
+    .collection-longdesc__content ol{
+      padding-left: 1.2em;
+      margin: .85em 0;
+    }
+
+    .collection-longdesc__content li{ margin: .35em 0; }
+
+    .collection-longdesc__content a{
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px;
+    }
+
+    @media (min-width: 768px){
+      .collection-longdesc__inner{
+        padding: 40px 42px;
+        border-radius: 22px;
+      }
+    }
+  </style>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Collection Content",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title (optional)",
+      "default": "Mehr Informationen"
+    },
+    {
+      "type": "richtext",
+      "id": "subtitle",
+      "label": "Subtitle (optional)"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#FAF1E7"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Max width (px)",
+      "min": 700,
+      "max": 1400,
+      "step": 50,
+      "default": 1100
+    }
+  ],
+  "presets": [
+    { "name": "Collection Content" }
+  ]
+}
+{% endschema %}

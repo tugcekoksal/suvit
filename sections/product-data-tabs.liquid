@@ -1,0 +1,638 @@
+{%- comment -%}
+  Section: Product Tabs (Desktop) + Mobile Accordions
+
+  Desktop:
+    - Tabs (Beschreibung / Technische Daten / Herstellerangaben / Dokumente)
+    - Empty sections are hidden automatically
+
+  Mobile:
+    - Accordions
+    - Empty sections are hidden automatically
+
+  Metafields used:
+   - product.description
+   - product.metafields.custom.technische_daten
+   - product.metafields.custom.technische_daten_heizung
+   - product.metafields.custom.manufacturer
+   - product.metafields.custom.documents
+{%- endcomment -%}
+
+{% assign tech_list = product.metafields.custom.technische_daten.value %}
+{% assign manufacturer = product.metafields.custom.manufacturer.value %}
+{% assign docs = product.metafields.custom.documents.value %}
+{% assign tech_heizung_list = product.metafields.custom.technische_daten_heizung.value %}
+
+{% assign has_tech_data = false %}
+{% if tech_list != blank or tech_heizung_list != blank %}
+  {% assign has_tech_data = true %}
+{% endif %}
+
+{% assign has_manufacturer = false %}
+{% if manufacturer != blank %}
+  {% assign has_manufacturer = true %}
+{% endif %}
+
+{% assign has_docs = false %}
+{% if docs != blank %}
+  {% assign has_docs = true %}
+{% endif %}
+
+{%- capture technical_data_rows -%}
+  {% for entry in tech_list %}
+    {% if entry.product %}
+      <tr><th>Product</th><td>{{ entry.product }}</td></tr>
+    {% endif %}
+
+    {% if entry.material %}
+      <tr><th>Material</th><td>{{ entry.material }}</td></tr>
+    {% endif %}
+
+    {% if entry.farben %}
+      <tr><th>Farben</th><td>{{ entry.farben }}</td></tr>
+    {% endif %}
+
+    {% if entry.breite %}
+      <tr><th>Breite</th><td>{{ entry.breite | metafield_text }}</td></tr>
+    {% endif %}
+
+    {% if entry.breiten %}
+      <tr><th>Breiten</th><td>{{ entry.breiten }}</td></tr>
+    {% endif %}
+
+    {% if entry.produktabmessungen %}
+      <tr><th>Produktabmessungen</th><td>{{ entry.produktabmessungen }}</td></tr>
+    {% endif %}
+
+    {% if entry.hohe %}
+      <tr><th>Höhe</th><td>{{ entry.hohe | metafield_text }}</td></tr>
+    {% endif %}
+
+    {% if entry.tiefe %}
+      <tr><th>Tiefe</th><td>{{ entry.tiefe | metafield_text }}</td></tr>
+    {% endif %}
+
+    {% if entry.art %}
+      <tr><th>Art</th><td>{{ entry.art }}</td></tr>
+    {% endif %}
+
+    {% if entry.gewicht %}
+      <tr><th>Gewicht</th><td>{{ entry.gewicht | metafield_text }}</td></tr>
+    {% endif %}
+
+    {% if entry.montageart %}
+      <tr><th>Montageart</th><td>{{ entry.montageart }}</td></tr>
+    {% endif %}
+
+    {% if entry.form %}
+      <tr><th>Form</th><td>{{ entry.form }}</td></tr>
+    {% endif %}
+
+    {% if entry.modell %}
+      <tr><th>Modell</th><td>{{ entry.modell }}</td></tr>
+    {% endif %}
+
+    {% if entry.integriertes_bidet %}
+      <tr><th>Integriertes Bidet</th><td>{{ entry.integriertes_bidet }}</td></tr>
+    {% endif %}
+
+    {% if entry.tragkraft_schubladen %}
+      <tr><th>Tragkraft Schubladen</th><td>{{ entry.tragkraft_schubladen }}</td></tr>
+    {% endif %}
+
+    {% if entry.tragkraft_wandmontage %}
+      <tr><th>Tragkraft Wandmontage</th><td>{{ entry.tragkraft_wandmontage }}</td></tr>
+    {% endif %}
+
+    {% if entry.spulmenge %}
+      <tr><th>Spülmenge</th><td>{{ entry.spulmenge }}</td></tr>
+    {% endif %}
+
+    {% if entry.spulbetatigung %}
+      <tr><th>Spülbetätigung</th><td>{{ entry.spulbetatigung }}</td></tr>
+    {% endif %}
+
+    {% if entry.armatur %}
+      <tr><th>Armatur</th><td>{{ entry.armatur }}</td></tr>
+    {% endif %}
+
+    {% if entry.wc_sitz %}
+      <tr><th>WC-Sitz</th><td>{{ entry.wc_sitz }}</td></tr>
+    {% endif %}
+
+    {% if entry.betatigungsplatte %}
+      <tr><th>Betätigungsplatte</th><td>{{ entry.betatigungsplatte }}</td></tr>
+    {% endif %}
+
+    {% if entry.schutzklasse_led %}
+      <tr><th>Schutzklasse LED</th><td>{{ entry.schutzklasse_led }}</td></tr>
+    {% endif %}
+
+    {% if entry.einsatzorte %}
+      <tr><th>Einsatzorte</th><td>{{ entry.einsatzorte }}</td></tr>
+    {% endif %}
+
+    {% if entry.tragfahigkeit %}
+      <tr><th>Tragfähigkeit</th><td>{{ entry.tragfahigkeit }}</td></tr>
+    {% endif %}
+
+    {% if entry.oberflache %}
+      <tr><th>Oberfläche</th><td>{{ entry.oberflache }}</td></tr>
+    {% endif %}
+
+    {% if entry.einsatzbereich %}
+      <tr><th>Einsatzbereich</th><td>{{ entry.einsatzbereich }}</td></tr>
+    {% endif %}
+
+    {% if entry.kompatibilitat %}
+      <tr><th>Kompatibilität</th><td>{{ entry.kompatibilitat }}</td></tr>
+    {% endif %}
+
+    {% if entry.norm %}
+      <tr><th>Norm</th><td>{{ entry.norm }}</td></tr>
+    {% endif %}
+
+    {% if entry.hersteller %}
+      <tr><th>Hersteller</th><td>{{ entry.hersteller }}</td></tr>
+    {% endif %}
+
+    {% if entry.modellnummer %}
+      <tr><th>Modellnummer</th><td>{{ entry.modellnummer }}</td></tr>
+    {% endif %}
+
+    {% if entry.lieferumfang %}
+      <tr><th>Lieferumfang</th><td>{{ entry.lieferumfang }}</td></tr>
+    {% endif %}
+
+    {% if entry.normen_prufungen %}
+      <tr><th>Normen / Prüfungen</th><td>{{ entry.normen_prufungen }}</td></tr>
+    {% endif %}
+
+    {% if entry.druckprufung %}
+      <tr><th>Druckprüfung</th><td>{{ entry.druckprufung }}</td></tr>
+    {% endif %}
+
+    {% if entry.eigenschaften %}
+      <tr><th>Eigenschaften</th><td>{{ entry.eigenschaften }}</td></tr>
+    {% endif %}
+
+    {% if entry.marke %}
+      <tr><th>Marke</th><td>{{ entry.marke }}</td></tr>
+    {% endif %}
+  {% endfor %}
+
+  {% if tech_heizung_list != blank %}
+    {% for h in tech_heizung_list %}
+      {% if h.nennmas %}
+        <tr><th>Nennmaß</th><td>{{ h.nennmas }}</td></tr>
+      {% endif %}
+
+      {% if h.sauerstoffbarriere %}
+        <tr><th>Sauerstoffbarriere</th><td>{{ h.sauerstoffbarriere }}</td></tr>
+      {% endif %}
+
+      {% if h.innere_schicht %}
+        <tr><th>Innere Schicht</th><td>{{ h.innere_schicht }}</td></tr>
+      {% endif %}
+
+      {% if h.ausere_schicht %}
+        <tr><th>Äußere Schicht</th><td>{{ h.ausere_schicht }}</td></tr>
+      {% endif %}
+
+      {% if h.temperaturbereich %}
+        <tr><th>Temperaturbereich</th><td>{{ h.temperaturbereich }}</td></tr>
+      {% endif %}
+
+      {% if h.ausrichtung %}
+        <tr><th>Ausrichtung</th><td>{{ h.ausrichtung }}</td></tr>
+      {% endif %}
+
+      {% if h.rohrdesign %}
+        <tr><th>Rohrdesign</th><td>{{ h.rohrdesign }}</td></tr>
+      {% endif %}
+
+      {% if h.betriebsdruck %}
+        <tr><th>Betriebsdruck</th><td>{{ h.betriebsdruck }}</td></tr>
+      {% endif %}
+
+      {% if h.warmeleistung %}
+        <tr><th>Wärmeleistung</th><td>{{ h.warmeleistung }}</td></tr>
+      {% endif %}
+
+      {% if h.anschluss %}
+        <tr><th>Anschluss</th><td>{{ h.anschluss }}</td></tr>
+      {% endif %}
+
+      {% if h.energieart %}
+        <tr><th>Energieart</th><td>{{ h.energieart }}</td></tr>
+      {% endif %}
+
+      {% if h.nicht_enthalten %}
+        <tr><th>Nicht enthalten</th><td>{{ h.nicht_enthalten }}</td></tr>
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{%- endcapture -%}
+
+{%- capture manufacturer_content -%}
+  {% if has_manufacturer %}
+    <div class="rte">
+      <p><strong>{{ manufacturer.name }}</strong></p>
+      {% if manufacturer.legal_name %}
+        <p><strong>{{ manufacturer.legal_name }}</strong></p>
+      {% endif %}
+
+      {% if manufacturer.street or manufacturer.postal_code or manufacturer.city or manufacturer.country %}
+        <p>
+          {% if manufacturer.street %}{{ manufacturer.street }}<br>{% endif %}
+          {% if manufacturer.postal_code %}{{ manufacturer.postal_code }} {% endif %}
+          {% if manufacturer.city %}{{ manufacturer.city }}<br>{% endif %}
+          {% if manufacturer.country %}{{ manufacturer.country }}{% endif %}
+        </p>
+      {% endif %}
+
+      {% if manufacturer.email or manufacturer.phone %}
+        <p>
+          {% if manufacturer.email %}
+            <a href="mailto:{{ manufacturer.email }}">{{ manufacturer.email }}</a><br>
+          {% endif %}
+          {% if manufacturer.phone %}
+            <a href="tel:{{ manufacturer.phone }}">{{ manufacturer.phone }}</a>
+          {% endif %}
+        </p>
+      {% endif %}
+
+      {% if manufacturer.eu_responsible_person_name or manufacturer.eu_responsible_person_address or manufacturer.eu_responsible_person_email %}
+        <hr>
+        <p><strong>EU-Verantwortliche Person</strong></p>
+        <p>
+          {% if manufacturer.eu_responsible_person_name %}{{ manufacturer.eu_responsible_person_name }}<br>{% endif %}
+          {% if manufacturer.eu_responsible_person_address %}{{ manufacturer.eu_responsible_person_address }}<br>{% endif %}
+          {% if manufacturer.eu_responsible_person_email %}
+            E-Mail:
+            <a href="mailto:{{ manufacturer.eu_responsible_person_email }}">{{ manufacturer.eu_responsible_person_email }}</a>
+          {% endif %}
+        </p>
+      {% endif %}
+    </div>
+  {% endif %}
+{%- endcapture -%}
+
+{%- capture documents_content -%}
+  {% if has_docs %}
+    <ul class="product-documents">
+      {% for doc in docs %}
+        {% assign file_name = doc.url | split: '/' | last | split: '?' | first | replace: '%20', ' ' %}
+        <li>
+          <a href="{{ doc.url }}" target="_blank" rel="noopener">
+            {{ file_name }}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{%- endcapture -%}
+
+<section class="product-tabs" data-product-tabs>
+  <div class="page-width product-tabs__inner">
+
+    <div class="product-tabs__desktop">
+      <div class="product-tabs__header" role="tablist" aria-label="Produktinformationen">
+        <button
+          type="button"
+          class="product-tabs__tab is-active"
+          role="tab"
+          aria-selected="true"
+          aria-controls="tab-desc"
+          id="tab-btn-desc"
+        >
+          Beschreibung
+        </button>
+
+        {% if has_tech_data %}
+          <button
+            type="button"
+            class="product-tabs__tab"
+            role="tab"
+            aria-selected="false"
+            aria-controls="tab-tech"
+            id="tab-btn-tech"
+          >
+            Technische Daten
+          </button>
+        {% endif %}
+
+        {% if has_manufacturer %}
+          <button
+            type="button"
+            class="product-tabs__tab"
+            role="tab"
+            aria-selected="false"
+            aria-controls="tab-manu"
+            id="tab-btn-manu"
+          >
+            Herstellerangaben
+          </button>
+        {% endif %}
+
+        {% if has_docs %}
+          <button
+            type="button"
+            class="product-tabs__tab"
+            role="tab"
+            aria-selected="false"
+            aria-controls="tab-docs"
+            id="tab-btn-docs"
+          >
+            Dokumente
+          </button>
+        {% endif %}
+      </div>
+
+      <div class="product-tabs__panes">
+        <div class="product-tabs__pane is-active" role="tabpanel" id="tab-desc" aria-labelledby="tab-btn-desc">
+          <div class="rte">
+            {{ product.description }}
+          </div>
+        </div>
+
+        {% if has_tech_data %}
+          <div class="product-tabs__pane" role="tabpanel" id="tab-tech" aria-labelledby="tab-btn-tech" hidden>
+            <table class="tech-data-table">
+              <tbody>
+                {{ technical_data_rows }}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+
+        {% if has_manufacturer %}
+          <div class="product-tabs__pane" role="tabpanel" id="tab-manu" aria-labelledby="tab-btn-manu" hidden>
+            {{ manufacturer_content }}
+          </div>
+        {% endif %}
+
+        {% if has_docs %}
+          <div class="product-tabs__pane" role="tabpanel" id="tab-docs" aria-labelledby="tab-btn-docs" hidden>
+            <div class="rte">
+              {{ documents_content }}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="product-tabs__mobile">
+      <details class="product-accordion" open>
+        <summary class="product-accordion__summary">Beschreibung</summary>
+        <div class="product-accordion__content rte">
+          {{ product.description }}
+        </div>
+      </details>
+
+      {% if has_tech_data %}
+        <details class="product-accordion">
+          <summary class="product-accordion__summary">Technische Daten</summary>
+          <div class="product-accordion__content">
+            <table class="tech-data-table">
+              <tbody>
+                {{ technical_data_rows }}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      {% endif %}
+
+      {% if has_manufacturer %}
+        <details class="product-accordion">
+          <summary class="product-accordion__summary">Herstellerangaben</summary>
+          <div class="product-accordion__content">
+            {{ manufacturer_content }}
+          </div>
+        </details>
+      {% endif %}
+
+      {% if has_docs %}
+        <details class="product-accordion">
+          <summary class="product-accordion__summary">Dokumente</summary>
+          <div class="product-accordion__content rte">
+            {{ documents_content }}
+          </div>
+        </details>
+      {% endif %}
+    </div>
+
+  </div>
+</section>
+
+<style>
+  .product-tabs {
+    padding: 40px 0 !important;
+  }
+
+  .product-tabs__inner {
+    padding-left: 35px;
+    padding-right: 35px;
+  }
+
+  .product-tabs__header {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, .18);
+  }
+
+  .product-tabs__tab {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: 14px 0;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(0, 0, 0, .65);
+    position: relative;
+  }
+
+  .product-tabs__tab::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 3px;
+    background: transparent;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .18s ease, background-color .18s ease;
+  }
+
+  .product-tabs__tab:hover {
+    color: rgba(0, 0, 0, .9);
+  }
+
+  .product-tabs__tab:hover::after {
+    background: rgba(0, 0, 0, .35);
+    transform: scaleX(1);
+  }
+
+  .product-tabs__tab.is-active {
+    color: #000;
+  }
+
+  .product-tabs__tab.is-active::after {
+    background: #b44;
+    transform: scaleX(1);
+  }
+
+  .product-tabs__pane[hidden] {
+    display: none;
+  }
+
+  .tech-data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .tech-data-table th,
+  .tech-data-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, .12);
+    vertical-align: top;
+  }
+
+  .tech-data-table th {
+    text-align: left;
+    width: 40%;
+    font-weight: 600;
+  }
+
+  .product-tabs__mobile {
+    display: none;
+  }
+
+  .product-accordion {
+    border-bottom: 1px solid rgba(0, 0, 0, .18);
+    padding: 12px 0;
+  }
+
+  .product-accordion__summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    font-size: 16px;
+    font-weight: 700;
+    background-color: #9e573c;
+    color: #fff;
+    border-radius: 8px;
+  }
+
+  .product-accordion__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .product-accordion__summary::after {
+    content: "";
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background-color: #FAF1E7;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%239e573c' d='M7 9l5 6 5-6z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 22px;
+    transition: transform 0.25s ease;
+  }
+
+  .product-accordion[open] .product-accordion__summary::after {
+    transform: rotate(180deg);
+  }
+
+  .product-accordion__content {
+    padding: 14px 4px 20px 4px;
+  }
+
+  .product-documents {
+    margin: 0;
+    padding-left: 18px;
+  }
+
+  .product-documents li + li {
+    margin-top: 8px;
+  }
+
+  @media (max-width: 768px) {
+    .product-tabs {
+      padding: 35px 0 !important;
+    }
+
+    .product-tabs__inner {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+
+    .product-tabs__desktop {
+      display: none;
+    }
+
+    .product-tabs__mobile {
+      display: block;
+    }
+  }
+</style>
+
+<script>
+  (function () {
+    var root = document.querySelector('[data-product-tabs]');
+    if (!root) return;
+
+    if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) return;
+
+    var tabs = root.querySelectorAll('.product-tabs__tab');
+    var panes = root.querySelectorAll('.product-tabs__pane');
+
+    function activate(id) {
+      tabs.forEach(function (btn) {
+        var isActive = btn.getAttribute('aria-controls') === id;
+        btn.classList.toggle('is-active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+
+      panes.forEach(function (pane) {
+        var isActive = pane.id === id;
+        pane.classList.toggle('is-active', isActive);
+        pane.hidden = !isActive;
+      });
+    }
+
+    tabs.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        activate(btn.getAttribute('aria-controls'));
+      });
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Produkt Tabs",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Hinweis"
+    },
+    {
+      "type": "paragraph",
+      "content": "Desktop: Tabs. Mobile: Akkordeon. Leere Bereiche werden automatisch ausgeblendet."
+    }
+  ],
+  "presets": [
+    {
+      "name": "Produkt Tabs"
+    }
+  ]
+}
+{% endschema %}

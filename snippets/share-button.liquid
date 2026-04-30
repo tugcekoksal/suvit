@@ -1,0 +1,29 @@
+{% comment %}
+  Renders share button.
+  Accepts:
+  - block: {Object} passes in the block information.
+  - share_link: {String} url to be added to the input the user will get/copy.
+
+  Usage:
+  {% render 'share-button',
+    block: block,
+    share_link: share_url
+  %}
+{% endcomment %}
+
+<div class="share-button quick-add-hidden">
+  <div class="share-button__button" type="button" tabindex="0">
+    <span>{{ block.settings.share_label | escape }}</span>
+  </div>
+  <div class="social-sharing list-social__item">
+    <a target="_blank" rel="noopener" href="//facebook.com/sharer.php?u={{ shop.url | append: product.url }}" class="social-sharing__link full-unstyled-link" title="{{ 'general.social.alt_text.share_on_facebook' | t }}">
+      {%- render 'icon' with 'facebook' -%}
+    </a>
+    <a target="_blank" rel="noopener" href="//twitter.com/share?text={{ share_title | url_param_escape }}&amp;url={{ shop.url | append: product.url }}" class="social-sharing__link full-unstyled-link" title="{{ 'general.social.alt_text.share_on_twitter' | t }}">
+      {%- render 'icon' with 'twitter' -%}
+    </a>
+    <a target="_blank" rel="noopener" href="//pinterest.com/pin/create/button/?url={{ shop.url | append: product.url }}&amp;media={{ product.featured_image | image_url: 'large' | prepend: 'https:' }}&amp;description={{ product.description | strip_html | truncatewords: 15 | url_param_escape }}" class="social-sharing__link full-unstyled-link" title="{{ 'general.social.alt_text.share_on_pinterest' | t }}">
+      {%- render 'icon' with 'pinterest' -%}
+    </a>
+  </div>
+</div>

@@ -1,0 +1,190 @@
+.newsletterPopupWindow {
+    position: fixed;
+    height: auto;
+    z-index: 8;
+    max-height: 40rem;
+    right: 1rem;
+    bottom: 1rem;
+    transition: all cubic-bezier(0.86, -0.09, 0.36, 1.12) .5s;
+    width: auto;
+    visibility: hidden;
+}
+.newsletterPopupWindow.open {
+    visibility: visible;
+}
+.newsletter_pop_content_inner {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    opacity: 0;
+    visibility: hidden;
+    position: relative;
+    z-index: 11;
+    transition: all cubic-bezier(0.86, -0.09, 0.36, 1.12) .5s;
+}
+.newsletter_image > img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+}
+.newsletterPopupWindow.open .newsletter_pop_content_inner {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: .45s;
+}
+.newslatter_division {
+    display: flex;
+    height: 40rem;
+    overflow: hidden;
+}
+.newsletter_pop_content{
+    padding: 4rem;
+    max-height: 40rem;
+    position: relative;
+    z-index: 4;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    margin: 1rem 0;
+}
+.newslatter_division.remove-border-left:after {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+.newslatter_division>img{
+    height: 100%;
+    max-height: 40rem;
+    object-fit: cover;
+}
+.newsletter-active:after {
+    content: "";
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    z-index: 7;
+    background: rgba(var(--color-foreground),.6);
+    cursor: var(--cursor-close-svg-url) 28 28, auto;
+    transition: background .2s ease-in-out;
+}
+.newsletter-active {
+    overflow: hidden;
+}
+.newsletterPopupWindow .newsletter-form__field-wrapper {
+    max-width: 42rem !important;
+}
+.NewsletterPopup__Close {
+    position: absolute;
+    top: 4%;
+    margin: 0;
+    right: 2%;
+    opacity: 0;
+    visibility: hidden;
+}
+.newsletterPopupWindow.open .NewsletterPopup__Close {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: .45s;
+}
+.NewsletterPopup__Close svg {
+    width: 2.2rem;
+    height: 2.2rem;
+}
+.NewsletterPopup__Heading {
+    text-align: left;
+    margin-top: 1rem;      
+}
+.NewsletterPopup__Content p {
+    font-size: 14px;
+    text-align: left;
+}
+.newsletter-form__field {
+    border: 1px solid rgb(var(--color-foreground));
+    border-radius: var(--inputs-radius);
+    padding: 0.5rem;
+    padding-right: 1rem;
+}
+.newslatter_division>*{
+    max-width: 40.8rem;
+    width: 100%;
+}
+#popup_email:focus-visible{
+    box-shadow: none;
+}
+.newsletter-popup-form__button {
+    margin-top: 1.9rem;
+}
+.NewsletterPopup__Content.subtitle {
+    color: rgba(var(--color-foreground), .5);
+}
+@media screen and (min-width: 841px) {
+    .newslatter_division:after {
+        content: "";
+        background: rgb(var(--color-background));
+        background: var(--gradient-background);
+        background-attachment: fixed;
+        position: absolute;
+        border-radius: var(--popup-corner-radius);
+        bottom: 0;
+        right: 0;
+        width: 0;
+        height: 100%;
+        z-index: 3;
+        transition: all cubic-bezier(0.86, -0.09, 0.36, 1.12) .5s;
+    }
+    .newsletterPopupWindow.open .newslatter_division:after {
+        width: 100%;
+    }
+    .newsletter_image {
+        position: absolute;
+        height: 40rem;
+        right: 0;
+        z-index: 2;
+        transition: all .5s;
+        border-radius: var(--popup-corner-radius);
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        overflow: hidden;
+        visibility: hidden;
+    }
+    .newsletterPopupWindow.open .newsletter_image {
+        visibility: visible;
+        right: 100%;
+        transition-delay: .5s;
+    }
+    .newslatter_division { 
+        background: transparent;
+    }
+}
+@media screen and (max-width: 840px) {
+    .newsletterPopupWindow {
+        max-height: 60rem;        
+        max-width: calc(100% - 2rem);
+        visibility: hidden;
+        height: 0;
+    }
+    .newsletterPopupWindow.open {
+        height: 100%;
+        visibility: visible;
+    }
+    .newslatter_division {
+        height: auto;
+        flex-direction: column;
+        overflow: auto;
+        max-height: 60rem;
+    }
+    .newsletter_image, .newsletter_image>img {
+        max-height: 30rem;
+    }
+    .newsletter_pop_content {
+        position: unset;
+        padding: 1rem 2rem;
+        height: auto;
+    }
+    .NewsletterPopup__Heading {
+        margin-bottom: 0;
+    }
+    .NewsletterPopup__Content p {
+        margin-top: 0;
+    }
+}

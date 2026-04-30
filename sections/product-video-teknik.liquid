@@ -1,0 +1,176 @@
+{% comment %}
+  Product Video (Teknik)
+  Shows only if product.metafields.custom.url is present.
+  Supports: YouTube, Vimeo, and direct MP4/WebM URLs.
+{% endcomment %}
+
+{% liquid
+  assign video_url = product.metafields.custom.url_teknik | default: product.metafields.custom.url_teknik
+%}
+
+{% if video_url != blank %}
+  <section class="product-video-teknik section-{{ section.id }}" id="product-video-teknik-{{ section.id }}">
+    <div class="page-width">
+      {% if section.settings.title != blank %}
+        <h2 class="product-video-teknik__title">{{ section.settings.title }}</h2>
+      {% endif %}
+
+      <div class="product-video-teknik__frame">
+        {% assign url = video_url | strip %}
+
+        {% if url contains "youtube.com" or url contains "youtu.be" %}
+          {%- comment -%} YouTube embed {%- endcomment -%}
+          {% assign yt_id = "" %}
+
+          {% if url contains "youtu.be/" %}
+            {% assign yt_id = url | split: "youtu.be/" | last | split: "?" | first %}
+          {% elsif url contains "watch?v=" %}
+            {% assign yt_id = url | split: "watch?v=" | last | split: "&" | first %}
+          {% elsif url contains "/embed/" %}
+            {% assign yt_id = url | split: "/embed/" | last | split: "?" | first %}
+          {% endif %}
+
+          {% if yt_id != blank %}
+            <iframe
+              src="https://www.youtube.com/embed/{{ yt_id }}"
+              title="{{ section.settings.title | escape }}"
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+            ></iframe>
+          {% else %}
+            <a href="{{ url }}" target="_blank" rel="noopener">Open video</a>
+          {% endif %}
+
+        {% elsif url contains "vimeo.com" %}
+          {%- comment -%} Vimeo embed {%- endcomment -%}
+          {% assign vimeo_id = url | split: "vimeo.com/" | last | split: "?" | first %}
+          <iframe
+            src="https://player.vimeo.com/video/{{ vimeo_id }}"
+            title="{{ section.settings.title | escape }}"
+            loading="lazy"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowfullscreen
+          ></iframe>
+
+       {% elsif url contains ".mp4" or url contains ".webm" or url contains ".ogg" %}
+  <video
+    controls
+    preload="metadata"
+    playsinline
+    {% if section.settings.autoplay %} autoplay muted {% endif %}
+  >
+    <source src="{{ url }}">
+    Your browser does not support the video tag.
+  </video>
+
+
+        {% else %}
+          {%- comment -%} Fallback: show link {%- endcomment -%}
+          <a href="{{ url }}" target="_blank" rel="noopener">Open video</a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <style>
+    .section-{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+      padding-right:15px;
+      padding-left:15px;
+    }
+
+    .product-video-teknik__title {
+      margin: 0 0 1rem;
+    }
+
+.product-video-teknik__frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+
+  /* ✅ yüksekliği kontrol et */
+  max-height: 620px;          /* masaüstü için ideal, istersen 420 yap */
+  margin: 0 auto;
+
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(0,0,0,0.06);
+}
+
+    .product-video-teknik__frame iframe,
+.product-video-teknik__frame video {
+  width: 100%;
+  height: 100%;
+  max-width: 100vw;   /* ✅ EKRANI GEÇMEZ */
+  max-height: 100vh;
+  object-fit: contain;
+  display: block;
+}
+@media (max-width: 749px) {
+  .product-video-teknik__frame {
+    max-height: 260px;        /* mobil daha küçük */
+    padding-right:0 !important;
+
+  }
+}
+/* Remove left/right padding on mobile ONLY for this section */
+@media (max-width: 749px) {
+  #product-video-teknik-{{ section.id }} .page-width {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* Optional: keep a tiny breathing space if needed */
+  #product-video-teknik-{{ section.id }} {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+  </style>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Product video (Teknik)",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Montage / Installation Video"
+    },
+    {
+      "type": "checkbox",
+      "id": "autoplay",
+      "label": "Autoplay (muted) for direct video files",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 24
+    }
+  ],
+  "presets": [
+    { "name": "Product video (Teknik)" }
+  ]
+}
+{% endschema %}

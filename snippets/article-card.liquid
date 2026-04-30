@@ -1,0 +1,149 @@
+{% comment %}
+  Renders an article card for a given blog with settings to either show the image or not.
+
+  Accepts:
+  - blog: {Object} Blog object
+  - article: {Object} Article object
+  - media_aspect_ratio: {String} The setting changes the aspect ratio of the article image, if shown
+  - media_height: {String} The setting changes the height of the article image. Overrides media_aspect_ratio.
+  - show_image: {String} The setting either show the article image or not. If it's not included it will show the image by default
+  - show_date: {String} The setting either show the article date or not. If it's not included it will not show the image by default
+  - show_author: {String} The setting either show the article author or not. If it's not included it will not show the author by default
+  - show_badge: {String} The setting either show the blog badge or not.
+  - lazy_load: {Boolean} Image should be lazy loaded. Default: true (optional)
+
+  Usage:
+  {% render 'article-card' blog: blog, article: article, show_image: section.settings.show_image %}
+{% endcomment %}
+
+{%- if article and article != empty -%}
+  {%- liquid
+    assign ratio = 1
+    if media_aspect_ratio != null
+      assign ratio = media_aspect_ratio
+    endif
+  -%}
+<div class="article-card-wrapper card-wrapper underline-links-hover">
+  <div class="card article-card card--{{ settings.blog_card_style }} {% if media_height and media_height != 'adapt' %} article-card__image--{{ media_height }}{% endif %}
+      {% if show_image %} card--media{% else %} card--text{% endif %} {% if settings.blog_card_style == 'card' %} color-{{ settings.blog_card_color_scheme }} gradient{% endif %}
+      {% if settings.blog_card_style == 'card' and media_height == nil and article.image == empty or show_image == false %} ratio{% endif %}" {% if show_image == true %}style="--ratio-percent: {{ 1 | divided_by: ratio | times: 100 }}%;"{% endif %}>
+      <div class="card__inner {% if settings.blog_card_style == 'standard' %} color-{{ settings.blog_card_color_scheme }} gradient{% endif %}{% if show_image or settings.blog_card_style == 'standard' %} ratio{% endif %}" {% if show_image == true %}style="--ratio-percent: {{ 1 | divided_by: ratio | times: 100 }}%;"{% endif %}>
+        {%- if show_image == true -%}
+          <div class="article-card__image-wrapper card__media">
+            <div class="article-card__image media"{% if section.settings.media_height == 'adapt' %}style="padding-bottom: {{ 1 | divided_by: article.image.aspect_ratio | times: 100 }}%;"{% endif %}>
+              {%- if article.image -%}
+                {%- liquid
+                  assign height = article.image.src.width | divided_by: article.image.src.aspect_ratio | round
+                  assign sizes = '100vw'
+                  assign widths = '165, 375, 550, 750, 1100, 1500, 1780, 2000, 3000, 3840'
+                  assign alt = article.image.src.alt | escape -%}
+                {{ article.image.src | image_url: width: 550 | image_tag: loading: 'lazy', height: height, sizes: sizes, widths: widths, alt: alt, class: 'motion-reduce' }}
+              {%- else -%}
+                {%- assign placeholder_image_index = forloop.index0 | modulo: 3 | plus: 1 -%}
+                {%- assign placeholder_image = 'blog-apparel-' | append: placeholder_image_index -%}
+                {{ placeholder_image | placeholder_svg_tag: 'blog-placeholder-svg' }}
+              {%- endif -%}
+            </div>
+          </div>
+        {%- endif -%}
+        {%- if settings.blog_card_style == 'card' and section.settings.show_image == false -%}
+          <div class="card__content">
+            <div class="card__information">
+                <h3 class="card__heading{% if show_excerpt %} h2{% endif %}">
+                  <a href="{{ article.url }}" title="{{ article.title }}" class="full-unstyled-link focus-inset">
+                    {{ article.title }}
+                  </a>
+                </h3>
+                {%- if show_excerpt -%}
+                  {%- if article.excerpt.size > 0 or article.content.size > 0 -%}
+                    <p class="article-card__excerpt rte-width">
+                      {%- if article.excerpt.size > 0 -%}
+                        {{ article.excerpt | strip_html | truncatewords: 30 }}
+                      {%- else -%}
+                        {{ article.content | strip_html | truncatewords: 30 }}
+                      {%- endif -%}
+                    </p>
+                  {%- endif -%}
+                  <div class="article-card__footer">
+                    {%- if article.comments_count > 0 and blog.comments_enabled? -%}
+                      <span>{{ 'blogs.article.comments' | t: count: article.comments_count }}</span>
+                    {%- endif -%}
+                  </div>
+                {%- endif -%}
+            </div>    
+          </div>
+        {%- endif -%}
+        {%- unless settings.blog_card_style == 'card' -%}
+          <div class="card__content">
+            <div class="card__information">
+              <h3 class="card__heading{% if show_excerpt %} h2{% endif %}">
+                <a href="{{ article.url }}" title="{{ article.title }}" class="full-unstyled-link focus-inset">
+                  {{ article.title }}
+                </a>
+              </h3>
+              {%- if show_excerpt -%}
+                {%- if article.excerpt.size > 0 or article.content.size > 0 -%}
+                  <p class="article-card__excerpt rte-width">
+                    {%- if article.excerpt.size > 0 -%}
+                      {{ article.excerpt | strip_html | truncatewords: 30 }}
+                    {%- else -%}
+                      {{ article.content | strip_html | truncatewords: 30 }}
+                    {%- endif -%}
+                  </p>
+                {%- endif -%}
+                <div class="article-card__footer">
+                  {%- if article.comments_count > 0 and blog.comments_enabled? -%}
+                    <span>{{ 'blogs.article.comments' | t: count: article.comments_count }}</span>
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
+            </div>
+            {%- if show_badge -%}
+              <div class="card__badge top right">
+                <span class="badge gradient color-{{ settings.color_schemes | first }}">{{ 'blogs.article.blog' | t }}</span>
+              </div>
+            {%- endif -%}
+          </div>
+        {%- endunless -%}
+        <div class="article-card__info caption-with-letter-spacing h5 {{ show_date }}">
+          {%- if show_date -%}
+            <span class="article-card_date">{{ article.published_at | time_tag: format: 'date' }}</span>
+          {%- endif -%}
+          {%- if show_author -%}
+            <span class="article-cad_author">{{ article.author }}</span>
+          {%- endif -%}
+        </div>
+      </div>
+      <div class="card__content disable__image--content">
+        <div class="card__information">
+          <h3 class="card__heading{% if show_excerpt %} h2{% endif %}">
+            <a href="{{ article.url }}" title="{{ article.title }}" class="full-unstyled-link focus-inset">
+              {{ article.title }}
+            </a>
+          </h3>
+          {%- if show_excerpt -%}
+            {%- if article.excerpt.size > 0 or article.content.size > 0 -%}
+              <p class="article-card__excerpt subtitle-text_opacity rte-width">
+                {%- if article.excerpt.size > 0 -%}
+                  {{ article.excerpt | strip_html | truncatewords: 30 }}
+                {%- else -%}
+                  {{ article.content | strip_html | truncatewords: 30 }}
+                {%- endif -%}
+              </p>
+            {%- endif -%}
+            <div class="article-card__footer">
+              {%- if article.comments_count > 0 and blog.comments_enabled? -%}
+                <span>{{ 'blogs.article.comments' | t: count: article.comments_count }}</span>
+              {%- endif -%}
+            </div>
+          {%- endif -%}
+        </div>
+        {%- if show_badge -%}
+          <div class="card__badge {{ settings.badge_position }}">
+            <span class="badge gradient  color-{{ settings.color_schemes | first }}">{{ 'blogs.article.blog' | t }}</span>
+          </div>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+{%- endif -%}

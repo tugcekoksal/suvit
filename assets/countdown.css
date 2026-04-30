@@ -1,0 +1,184 @@
+.countdown-section-layout--inline .countdown__layout-timer{
+    display: flex;
+    justify-content: space-between;
+}
+.countdown-section-layout--inline .countdown__layout-timer .countdown_timer-block .countdown_counter{
+    font-size: 3rem;
+    line-height: 1;
+    margin: 0;
+    font-style: italic;
+}
+.countdown-section-layout--inline .countdown__timer-text{
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.2rem;
+}
+.countdown-section-layout--inline .countdown_timer-block{
+    text-align: center;
+}
+.countdown-section-layout--inline .countdown--layout--content.countdown_content-alignmnet--left {
+    text-align: start;
+    margin: auto auto auto 0;
+}
+.countdown-section-layout--inline .countdown--layout--content.countdown_content-alignmnet--center {
+    text-align: center;
+    margin: 0 auto;
+}
+.countdown-section-layout--inline .countdown--layout--content.countdown_content-alignmnet--right {
+    text-align: end;
+    margin: auto 0 auto auto;
+}
+.countdown_inline_richtext{
+    color: rgba(var(--color-foreground), 0.6);
+}
+.countdown--layout--content .countdown_button {
+    margin-top: 3rem;
+}
+.countdown__timer-message{
+    text-align: center;
+    font-size: 2.4rem;
+    font-weight: 400;
+    font-style: italic;
+    opacity: 0.8;
+}
+/*hero */
+.countdown-section-layout--hero .countdown_content{
+    text-align: center;
+}
+.countdown-section-layout--hero .countdown__layout-timer{
+    display: flex;
+    justify-content: space-between;
+}
+.countdown-section-layout--hero .countdown_timer_wrapper .countdown_timer-block h2{
+    font-size: 4rem;
+    margin: 0;
+    font-weight: 300;
+    font-style: italic;
+}
+.countdown-section-layout--hero .countdown_timer_wrapper{
+    margin-top: 1.8rem;
+}
+.countdown-section-layout--hero .countdown--layout--content {
+    width: 100%;
+    max-width: 66rem;
+}
+.countdown-section-layout--hero .countdown--layout--content.countdown_content-alignmnet--left {
+    text-align: start;
+    margin: auto auto auto 0;
+}
+.countdown-section-layout--hero .countdown--layout--content.countdown_content-alignmnet--center {
+    text-align: center;
+    margin: 0 auto;
+}
+.countdown-section-layout--hero .countdown--layout--content.countdown_content-alignmnet--right {
+    text-align: end;
+    margin: auto 0 auto auto;
+}
+.countdown-section-layout--hero .countdown__timer-text{
+    font-weight: 700;
+}
+@media screen and (max-width: 749px) {
+    .countdown-section-layout--inline .countdown__layout-timer{
+        margin-top: 1.5rem;
+    }
+}
+@media screen and (min-width: 750px) {
+    .countdown-section-layout--inline .countdown_content{
+        display: flex;
+        gap: 4rem;
+        padding: 0 10rem;
+    }
+    .countdown-section-layout--inline .countdown_timer_wrapper{
+        width: 60%;
+    }
+    .countdown-section-layout--inline .countdown--layout--content {
+        width: 100%;
+        max-width: 40%;
+    }
+}
+@media screen and (min-width: 991px) {
+    .countdown-section-layout--inline .countdown_timer_wrapper .countdown_timer-block .countdown_counter{
+        font-size: 4rem;
+    }
+    .countdown-section-layout--inline .countdown__timer-text{
+        font-size: 1rem;
+    }
+}
+@media screen and (min-width: 1024px) {
+    .countdown-section-layout--inline .countdown_timer_wrapper .countdown_timer-block .countdown_counter{
+        font-size: 5rem;
+    }
+    .countdown-section-layout--inline .countdown__timer-text{
+        font-size: 1.3rem;
+    }
+}
+@media screen and (min-width: 1200px) {
+    .countdown-section-layout--inline .countdown_timer_wrapper .countdown_timer-block .countdown_counter{
+        font-size: 6rem;
+    }
+    .countdown-section-layout--inline .countdown__timer-text{
+        font-size: 1.5rem;
+    }
+}
+@media screen and (min-width: 1680px) {
+    .countdown-section-layout--inline .countdown_timer_wrapper .countdown_timer-block .countdown_counter{
+        font-size: 8rem;
+    }
+    .countdown-section-layout--inline .countdown__timer-text{
+        font-size: 2rem;
+    }
+}
+@media screen and (min-width: 750px) {
+    .countdown-section-layout--hero .countdown_timer_wrapper .countdown_timer-block h2{
+        font-size: 7rem;
+    }
+    .countdown-section-layout--hero .countdown__timer-text{
+        font-size: 1.5rem;
+    }
+    .countdown-section-layout--hero .countdown__timer-text{
+        letter-spacing: 0.3rem;
+        font-size: 1.1rem;
+        position: absolute;
+        width: 100%;
+        top: 50%;
+        left: 55%;
+        transform: translate(-50%, -50%);
+        font-weight: 700;
+    }
+    .countdown-section-layout--hero .countdown_timer-block{
+        position: relative;
+        width: 22%;
+    }
+}
+@media screen and (min-width: 991px) {
+    .countdown-section-layout--hero .countdown_timer_wrapper .countdown_timer-block h2{
+        font-size: 9rem;
+    }
+    .countdown-section-layout--hero .countdown__timer-text{
+        font-size: 1.7rem;
+    }
+}
+@media screen and (min-width: 1024px) {
+    .countdown-section-layout--hero .countdown_timer_wrapper .countdown_timer-block h2{
+        font-size: 12rem;
+    }
+    .countdown-section-layout--hero .countdown__timer-text{
+        font-size: 1.9rem;
+    }
+}
+@media screen and (min-width: 1200px) {
+    .countdown-section-layout--hero .countdown_timer_wrapper .countdown_timer-block h2{
+        font-size: 14rem;
+    }
+    .countdown-section-layout--hero .countdown__timer-text{
+        font-size: 2rem;
+    }
+}
+@media screen and (min-width: 1680px) {
+    .countdown-section-layout--hero .countdown_timer_wrapper .countdown_timer-block h2{
+        font-size: 17rem;
+    }
+    .countdown-section-layout--hero .countdown__timer-text{
+        font-size: 3rem;
+    }
+}

@@ -1,0 +1,653 @@
+{% doc %}
+  @prompt
+    Create a Shopify custom product section with two tabs: the first tab displays the product description using {{ product.description }} (rendered as HTML), and the second tab displays “Technische Daten” sourced from the product metafield custom.technische_daten, which is a list of metaobject references of type technische_daten. In the technical data tab, loop through product.metafields.custom.technische_daten.value, then for each metaobject entry dynamically iterate over all its fields, rendering only non-empty fields as a list (<ul><li>), showing the human-readable field label and its value without hardcoding field names or parsing text. Handle field types correctly: render text fields normally and dimension fields (e.g. width, height, depth, weight) using metafield_tag or metafield_text so units display properly. Do not assume the metafield is text, do not use “Label: Value” parsing, and implement basic tab switching inside the section with the Description tab active by default., technische data should have those :{% if product.metafields.custom.technische_daten.value %}
+      <table class="tech-data-table">
+        <tbody>
+          {% for entry in product.metafields.custom.technische_daten.value %}
+            
+            {% if entry.product %}
+              <tr>
+                <th>Product</th>
+                <td>{{ entry.product }}</td>
+              </tr>
+            {% endif %}
+    
+            {% if entry.material %}
+              <tr>
+                <th>Material</th>
+                <td>{{ entry.material }}</td>
+              </tr>
+            {% endif %}
+    
+       
+    
+            {% if entry.farben %}
+              <tr>
+                <th>Farben</th>
+                <td>{{ entry.farben }}</td>
+              </tr>
+            {% endif %}
+    
+            {% if entry.breite %}
+              <tr>
+                <th>Breite</th>
+                <td>{{ entry.breite | metafield_text }}</td>
+              </tr>
+            {% endif %}
+    
+            {% if entry.breiten %}
+              <tr>
+                <th>Breiten</th>
+                <td>{{ entry.breiten }}</td>
+              </tr>
+            {% endif %}
+     {% if entry.produktabmessungen%}
+              <tr>
+                <th> Produktabmessungen</th>
+                <td>{{ entry.produktabmessungen }}</td>
+              </tr>
+            {% endif %}
+    
+            {% if entry.hohe %}
+              <tr>
+                <th>Höhe</th>
+                <td>{{ entry.hohe | metafield_text }}</td>
+              </tr>
+            {% endif %}
+    
+            {% if entry.tiefe %}
+              <tr>
+                <th>Tiefe</th>
+                <td>{{ entry.tiefe | metafield_text }}</td>
+              </tr>
+            {% endif %}
+    
+            {% if entry.art %}
+              <tr>
+                <th>Art</th>
+                <td>{{ entry.art }}</td>
+              </tr>
+            {% endif %}
+    
+            {% if entry.gewicht %}
+              <tr>
+                <th>Gewicht</th>
+                <td>{{ entry.gewicht | metafield_text }}</td>
+              </tr>
+            {% endif %}
+    
+            {% if entry.montageart %}
+              <tr>
+                <th>Montageart</th>
+                <td>{{ entry.montageart }}</td>
+              </tr>
+            {% endif %}
+    
+            {% if entr, add those as well: {% if entry.form %}
+              <tr>
+                <th>Form</th>
+                <td>{{ entry.form }}</td>
+              </tr>
+            {% endif %}
+    
+            {% if entry.modell %}
+              <tr>
+                <th>Modell</th>
+                <td>{{ entry.modell }}</td>
+              </tr>
+            {% endif %}
+    
+            {% if entry.integriertes_bidet %}
+              <tr>
+                <th>Integriertes Bidet</th>
+                <td>{{ entry.integriertes_bidet }}</td>
+              </tr>
+            {% endif %}
+    
+            {% if entry.tragkraft_schubladen %}
+              <tr>
+                <th>Tragkraft Schubladen</th>
+                <td>{{ entry.tragkraft_schubladen }}</td>
+              </tr>
+            {% endif %}
+    
+            {% if entry.tragkraft_wandmontage %}
+              <tr>
+                <th>Tragkraft Wandmontage</th>
+                <td>{{ entry.tragkraft_wandmontage }}</td>
+              </tr>
+            {% endif %}
+    {% if entry.spulmenge%}
+              <tr>
+                <th> Spülmenge</th>
+                <td>{{ entry.spulmenge }}</td>
+              </tr>
+            {% endif %}
+    {% if entry.betatigungsplatte%}
+              <tr>
+                <th> Betätigungsplatte</th>
+                <td>{{ entry.betatigungsplatte }}</td>
+              </tr>
+            {% endif %}
+    
+    
+            {% if entry.schutzklasse_led %}
+              <tr>
+                <th>Schutzklasse LED</th>
+                <td>{{ entry.schutzklasse_led }}</td>
+              </tr>
+            {% endif %}
+       {% if entry.hersteller%}
+              <tr>
+                <th> Hersteller</th>
+                <td>{{ entry.hersteller }}</td>
+              </tr>
+            {% endif %}
+     {% if entry.modellnummer%}
+              <tr>
+                <th> Modellnummer</th>
+                <td>{{ entry.modellnummer }}</td>
+              </tr>
+            {% endif %}
+    
+     {% if entry.lieferumfang%}
+              <tr>
+                <th> Lieferumfang</th>
+                <td>{{ entry.lieferumfang }}</td>
+              </tr>
+            {% endif %}
+    
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}, add some paddings inside the section
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-product-tabs-{{ ai_gen_id }} {
+    display: block;
+    width: 100%;
+    margin: 40px 0;
+    padding: {{ block.settings.section_padding }}px;
+    background-color: {{ block.settings.background_color }};
+    border-radius: {{ block.settings.border_radius }}px;
+  }
+
+  .ai-product-tabs__nav-{{ ai_gen_id }} {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid {{ block.settings.border_color }};
+    margin-bottom: 24px;
+  }
+
+  .ai-product-tabs__button-{{ ai_gen_id }} {
+    background: none;
+    border: none;
+    padding: 16px 24px;
+    font-size: {{ block.settings.tab_font_size }}px;
+    color: {{ block.settings.inactive_tab_color }};
+    cursor: pointer;
+    position: relative;
+    transition: color 0.3s ease;
+    font-family: inherit;
+  }
+
+  .ai-product-tabs__button-{{ ai_gen_id }}:hover {
+    color: {{ block.settings.active_tab_color }};
+  }
+
+  .ai-product-tabs__button-{{ ai_gen_id }}.active {
+    color: {{ block.settings.active_tab_color }};
+  }
+
+  .ai-product-tabs__button-{{ ai_gen_id }}.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: {{ block.settings.active_tab_color }};
+  }
+
+  .ai-product-tabs__content-{{ ai_gen_id }} {
+    display: none;
+    padding: 24px 0;
+  }
+
+  .ai-product-tabs__content-{{ ai_gen_id }}.active {
+    display: block;
+  }
+
+  .ai-product-tabs__description-{{ ai_gen_id }} {
+    color: {{ block.settings.text_color }};
+    font-size: {{ block.settings.content_font_size }}px;
+    line-height: 1.6;
+  }
+
+  .ai-product-tabs__description-{{ ai_gen_id }} p {
+    margin-bottom: 16px;
+  }
+
+  .ai-product-tabs__description-{{ ai_gen_id }} p:last-child {
+    margin-bottom: 0;
+  }
+
+  .ai-product-tabs__tech-data-{{ ai_gen_id }} {
+    color: {{ block.settings.text_color }};
+  }
+
+  .ai-product-tabs__table-{{ ai_gen_id }} {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: {{ block.settings.content_font_size }}px;
+  }
+
+  .ai-product-tabs__table-{{ ai_gen_id }} tbody tr {
+    border-bottom: 1px solid {{ block.settings.border_color }};
+  }
+
+  .ai-product-tabs__table-{{ ai_gen_id }} tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .ai-product-tabs__table-{{ ai_gen_id }} th {
+    text-align: left;
+    padding: 12px 16px 12px 0;
+    font-weight: 600;
+    vertical-align: top;
+    width: 40%;
+  }
+
+  .ai-product-tabs__table-{{ ai_gen_id }} td {
+    padding: 12px 0;
+    vertical-align: top;
+  }
+
+  .ai-product-tabs__empty-{{ ai_gen_id }} {
+    color: {{ block.settings.inactive_tab_color }};
+    font-style: italic;
+    padding: 24px 0;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-product-tabs-{{ ai_gen_id }} {
+      padding: {{ block.settings.section_padding | times: 0.6 }}px;
+    }
+
+    .ai-product-tabs__button-{{ ai_gen_id }} {
+      padding: 12px 16px;
+      font-size: calc({{ block.settings.tab_font_size }}px * 0.9);
+    }
+
+    .ai-product-tabs__table-{{ ai_gen_id }} th,
+    .ai-product-tabs__table-{{ ai_gen_id }} td {
+      display: block;
+      width: 100%;
+      padding: 8px 0;
+    }
+
+    .ai-product-tabs__table-{{ ai_gen_id }} th {
+      padding-bottom: 4px;
+    }
+
+    .ai-product-tabs__table-{{ ai_gen_id }} td {
+      padding-top: 0;
+      padding-bottom: 12px;
+    }
+  }
+{% endstyle %}
+
+<product-tabs-{{ ai_gen_id }} class="ai-product-tabs-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-product-tabs__nav-{{ ai_gen_id }}">
+    <button
+      class="ai-product-tabs__button-{{ ai_gen_id }} active"
+      data-tab="description"
+      aria-selected="true"
+      role="tab"
+    >
+      {{ block.settings.description_tab_label }}
+    </button>
+    <button
+      class="ai-product-tabs__button-{{ ai_gen_id }}"
+      data-tab="technical"
+      aria-selected="false"
+      role="tab"
+    >
+      {{ block.settings.technical_tab_label }}
+    </button>
+  </div>
+
+  <div class="ai-product-tabs__content-{{ ai_gen_id }} active" data-content="description" role="tabpanel">
+    {% if product.description != blank %}
+      <div class="ai-product-tabs__description-{{ ai_gen_id }}">
+        {{ product.description }}
+      </div>
+    {% else %}
+      <div class="ai-product-tabs__empty-{{ ai_gen_id }}">
+        Keine Produktbeschreibung verfügbar.
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="ai-product-tabs__content-{{ ai_gen_id }}" data-content="technical" role="tabpanel">
+    <div class="ai-product-tabs__tech-data-{{ ai_gen_id }}">
+      {% if product.metafields.custom.technische_daten.value != blank %}
+        <table class="ai-product-tabs__table-{{ ai_gen_id }}">
+          <tbody>
+            {% for entry in product.metafields.custom.technische_daten.value %}
+              {% if entry.product %}
+                <tr>
+                  <th>Product</th>
+                  <td>{{ entry.product }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.material %}
+                <tr>
+                  <th>Material</th>
+                  <td>{{ entry.material }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.farben %}
+                <tr>
+                  <th>Farben</th>
+                  <td>{{ entry.farben }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.breite %}
+                <tr>
+                  <th>Breite</th>
+                  <td>{{ entry.breite | metafield_text }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.breiten %}
+                <tr>
+                  <th>Breiten</th>
+                  <td>{{ entry.breiten }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.produktabmessungen %}
+                <tr>
+                  <th>Produktabmessungen</th>
+                  <td>{{ entry.produktabmessungen }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.hohe %}
+                <tr>
+                  <th>Höhe</th>
+                  <td>{{ entry.hohe | metafield_text }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.tiefe %}
+                <tr>
+                  <th>Tiefe</th>
+                  <td>{{ entry.tiefe | metafield_text }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.art %}
+                <tr>
+                  <th>Art</th>
+                  <td>{{ entry.art }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.gewicht %}
+                <tr>
+                  <th>Gewicht</th>
+                  <td>{{ entry.gewicht | metafield_text }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.montageart %}
+                <tr>
+                  <th>Montageart</th>
+                  <td>{{ entry.montageart }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.form %}
+                <tr>
+                  <th>Form</th>
+                  <td>{{ entry.form }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.modell %}
+                <tr>
+                  <th>Modell</th>
+                  <td>{{ entry.modell }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.integriertes_bidet %}
+                <tr>
+                  <th>Integriertes Bidet</th>
+                  <td>{{ entry.integriertes_bidet }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.tragkraft_schubladen %}
+                <tr>
+                  <th>Tragkraft Schubladen</th>
+                  <td>{{ entry.tragkraft_schubladen }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.tragkraft_wandmontage %}
+                <tr>
+                  <th>Tragkraft Wandmontage</th>
+                  <td>{{ entry.tragkraft_wandmontage }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.spulmenge %}
+                <tr>
+                  <th>Spülmenge</th>
+                  <td>{{ entry.spulmenge }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.betatigungsplatte %}
+                <tr>
+                  <th>Betätigungsplatte</th>
+                  <td>{{ entry.betatigungsplatte }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.schutzklasse_led %}
+                <tr>
+                  <th>Schutzklasse LED</th>
+                  <td>{{ entry.schutzklasse_led }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.hersteller %}
+                <tr>
+                  <th>Hersteller</th>
+                  <td>{{ entry.hersteller }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.modellnummer %}
+                <tr>
+                  <th>Modellnummer</th>
+                  <td>{{ entry.modellnummer }}</td>
+                </tr>
+              {% endif %}
+
+              {% if entry.lieferumfang %}
+                <tr>
+                  <th>Lieferumfang</th>
+                  <td>{{ entry.lieferumfang }}</td>
+                </tr>
+              {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="ai-product-tabs__empty-{{ ai_gen_id }}">
+          Keine technischen Daten verfügbar.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</product-tabs-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class ProductTabs{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.buttons = this.querySelectorAll('.ai-product-tabs__button-{{ ai_gen_id }}');
+        this.contents = this.querySelectorAll('.ai-product-tabs__content-{{ ai_gen_id }}');
+        
+        this.buttons.forEach(button => {
+          button.addEventListener('click', () => this.switchTab(button));
+        });
+      }
+
+      switchTab(clickedButton) {
+        const targetTab = clickedButton.getAttribute('data-tab');
+        
+        this.buttons.forEach(button => {
+          button.classList.remove('active');
+          button.setAttribute('aria-selected', 'false');
+        });
+        
+        this.contents.forEach(content => {
+          content.classList.remove('active');
+        });
+        
+        clickedButton.classList.add('active');
+        clickedButton.setAttribute('aria-selected', 'true');
+        
+        const targetContent = this.querySelector(`[data-content="${targetTab}"]`);
+        if (targetContent) {
+          targetContent.classList.add('active');
+        }
+      }
+    }
+
+    customElements.define('product-tabs-{{ ai_gen_id }}', ProductTabs{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Product tabs",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Tab labels"
+    },
+    {
+      "type": "text",
+      "id": "description_tab_label",
+      "label": "Description tab label",
+      "default": "Beschreibung"
+    },
+    {
+      "type": "text",
+      "id": "technical_tab_label",
+      "label": "Technical data tab label",
+      "default": "Technische Daten"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "section_padding",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "label": "Section padding",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "Style"
+    },
+    {
+      "type": "range",
+      "id": "tab_font_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Tab font size",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "content_font_size",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Content font size",
+      "default": 14
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "active_tab_color",
+      "label": "Active tab color",
+      "default": "#353535"
+    },
+    {
+      "type": "color",
+      "id": "inactive_tab_color",
+      "label": "Inactive tab color",
+      "default": "#999999"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#353535"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Border color",
+      "default": "#e0e0e0"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Product tabs"
+    }
+  ]
+}
+{% endschema %}

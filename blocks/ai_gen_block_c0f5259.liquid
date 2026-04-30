@@ -1,0 +1,299 @@
+{% doc %}
+  @prompt
+    CAN YOU CREATE A SECTION WHERE I CAN USE MY METAFIELDS WITH RICH TEXT?
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-metafield-richtext-{{ ai_gen_id }} {
+    display: block;
+    width: 100%;
+    padding: {{ block.settings.padding_top }}px {{ block.settings.padding_horizontal }}px {{ block.settings.padding_bottom }}px;
+    background-color: {{ block.settings.background_color }};
+  }
+
+  .ai-metafield-richtext__container-{{ ai_gen_id }} {
+    max-width: {{ block.settings.container_width }}px;
+    margin: 0 auto;
+  }
+
+  .ai-metafield-richtext__heading-{{ ai_gen_id }} {
+    color: {{ block.settings.heading_color }};
+    font-size: {{ block.settings.heading_size }}px;
+    margin: 0 0 {{ block.settings.heading_spacing }}px;
+    text-align: {{ block.settings.text_alignment }};
+  }
+
+  .ai-metafield-richtext__content-{{ ai_gen_id }} {
+    color: {{ block.settings.text_color }};
+    font-size: {{ block.settings.text_size }}px;
+    line-height: {{ block.settings.line_height }};
+    text-align: {{ block.settings.text_alignment }};
+  }
+
+  .ai-metafield-richtext__content-{{ ai_gen_id }} p {
+    margin: 0 0 1em;
+  }
+
+  .ai-metafield-richtext__content-{{ ai_gen_id }} p:last-child {
+    margin-bottom: 0;
+  }
+
+  .ai-metafield-richtext__content-{{ ai_gen_id }} h1,
+  .ai-metafield-richtext__content-{{ ai_gen_id }} h2,
+  .ai-metafield-richtext__content-{{ ai_gen_id }} h3,
+  .ai-metafield-richtext__content-{{ ai_gen_id }} h4,
+  .ai-metafield-richtext__content-{{ ai_gen_id }} h5,
+  .ai-metafield-richtext__content-{{ ai_gen_id }} h6 {
+    margin: 1.5em 0 0.5em;
+    color: {{ block.settings.heading_color }};
+  }
+
+  .ai-metafield-richtext__content-{{ ai_gen_id }} h1:first-child,
+  .ai-metafield-richtext__content-{{ ai_gen_id }} h2:first-child,
+  .ai-metafield-richtext__content-{{ ai_gen_id }} h3:first-child,
+  .ai-metafield-richtext__content-{{ ai_gen_id }} h4:first-child,
+  .ai-metafield-richtext__content-{{ ai_gen_id }} h5:first-child,
+  .ai-metafield-richtext__content-{{ ai_gen_id }} h6:first-child {
+    margin-top: 0;
+  }
+
+  .ai-metafield-richtext__content-{{ ai_gen_id }} ul,
+  .ai-metafield-richtext__content-{{ ai_gen_id }} ol {
+    margin: 0 0 1em;
+    padding-left: 1.5em;
+  }
+
+  .ai-metafield-richtext__content-{{ ai_gen_id }} li {
+    margin-bottom: 0.5em;
+  }
+
+  .ai-metafield-richtext__content-{{ ai_gen_id }} a {
+    color: {{ block.settings.link_color }};
+    text-decoration: underline;
+  }
+
+  .ai-metafield-richtext__content-{{ ai_gen_id }} a:hover {
+    color: {{ block.settings.link_hover_color }};
+  }
+
+  .ai-metafield-richtext__content-{{ ai_gen_id }} strong {
+    font-weight: 600;
+  }
+
+  .ai-metafield-richtext__content-{{ ai_gen_id }} em {
+    font-style: italic;
+  }
+
+  .ai-metafield-richtext__empty-{{ ai_gen_id }} {
+    padding: 40px 20px;
+    text-align: center;
+    color: #999;
+    font-style: italic;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-metafield-richtext-{{ ai_gen_id }} {
+      padding: {{ block.settings.padding_top | times: 0.7 }}px {{ block.settings.padding_horizontal | times: 0.7 }}px {{ block.settings.padding_bottom | times: 0.7 }}px;
+    }
+
+    .ai-metafield-richtext__heading-{{ ai_gen_id }} {
+      font-size: {{ block.settings.heading_size | times: 0.8 }}px;
+    }
+
+    .ai-metafield-richtext__content-{{ ai_gen_id }} {
+      font-size: {{ block.settings.text_size | times: 0.9 }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-metafield-richtext-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-metafield-richtext__container-{{ ai_gen_id }}">
+    {% if block.settings.heading != blank %}
+      <h2 class="ai-metafield-richtext__heading-{{ ai_gen_id }}">
+        {{ block.settings.heading }}
+      </h2>
+    {% endif %}
+
+    {% if block.settings.metafield_content != blank %}
+      <div class="ai-metafield-richtext__content-{{ ai_gen_id }}">
+        {{ block.settings.metafield_content }}
+      </div>
+    {% else %}
+      <div class="ai-metafield-richtext__empty-{{ ai_gen_id }}">
+        Next, add your metafield content in the block settings
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Metafield rich text",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading"
+    },
+    {
+      "type": "richtext",
+      "id": "metafield_content",
+      "label": "Rich text content"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "container_width",
+      "min": 600,
+      "max": 1400,
+      "step": 50,
+      "unit": "px",
+      "label": "Container width",
+      "default": 1000
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding top",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding bottom",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "padding_horizontal",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Padding horizontal",
+      "default": 20
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "min": 16,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "label": "Heading size",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "heading_spacing",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Heading spacing",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Text size",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "line_height",
+      "min": 1,
+      "max": 2,
+      "step": 0.1,
+      "label": "Line height",
+      "default": 1.6
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading",
+      "default": "#353535"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text",
+      "default": "#353535"
+    },
+    {
+      "type": "color",
+      "id": "link_color",
+      "label": "Link",
+      "default": "#9e573c"
+    },
+    {
+      "type": "color",
+      "id": "link_hover_color",
+      "label": "Link hover",
+      "default": "#353535"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Metafield rich text"
+    }
+  ]
+}
+{% endschema %}

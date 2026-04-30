@@ -1,0 +1,88 @@
+{%- if settings.cart_drawer_collection != blank or settings.product_list != blank -%}
+  <swiper-carousel id="cross-sell-product" class="cross-sell-product">
+     <div class="cart-drawer__collection">
+      {%- if settings.cart_recommended_heading != blank -%}
+        <h4 class="collection-heading">{{ settings.cart_recommended_heading }}</h4>
+      {%- endif -%}
+      <div class="swiper-container" {% if request.locale.iso_code == "ar" %}dir="rtl" {% endif %}>
+        <div class="swiper-wrapper"> 
+          {%- liquid
+            if settings.product_list != blank
+              assign collection = settings.product_list
+            else 
+              assign collection = collections[settings.cart_drawer_collection].products
+            endif 
+          -%}
+          {%- if collection.size == 0 %}
+            {{ 'sections.cart.collections_emplty' | t }}
+          {%- else %}
+            {%- for product in collection -%}
+              <div class="swiper-slide cart_productUpsell">
+                {%- render 'card-product', 
+                card_product: product, 
+                media_aspect_ratio: settings.image_ratio, 
+                image_shape: settings.image_shape,
+                show_quick_add: settings.enable_quick_add,
+                cart_drawerButton: true,
+                show_variant: false,
+                show_badge:false,
+                section_id: section.id, 
+                card_collection: settings.cart_drawer_collection, columns: 1 -%}
+              </div>
+            {%- endfor -%}
+          {%- endif -%}
+        </div>
+      </div>
+      {%- if collection.size != 0 -%}
+        <div class="arrow_progressbar slide_arrow_animated">
+          <button class="arrow_animated swiper-button-prev slider-button slider-button--prev prev-arrow" aria-label="Prev triger">
+            <span class="arrow-button">
+              {%- render 'icon' with 'caret-animate' -%}
+            </span>
+          </button>
+          <div class="swiper-pagination swiper-pagination-tab  position-relative mt-4 mt-md-5"></div>  
+          <button class="arrow_animated swiper-button-next slider-button slider-button--next next-arrow" aria-label="Next triger">
+            <span class="arrow-button">
+              {%- render 'icon' with 'caret-animate' -%}
+            </span>
+          </button>
+        </div>
+      {%- endif -%}
+      <script type="application/json">
+        {
+          "spaceBetween": {{ settings.spacing_grid_horizontal }},
+          "slidesPerView": 1,
+          "draggable": true,
+          "preventClicks": true,
+          "speed": 700,
+          "pagination": {
+            "el": ".swiper-pagination",
+            "type": "progressbar"
+          },
+          "navigation": {
+            "nextEl": ".swiper-button-next",
+            "prevEl": ".swiper-button-prev"
+          },
+          "breakpoints": {
+            "1148": {
+              "slidesPerView": 1.5,
+              "spaceBetween": {{ settings.spacing_grid_horizontal }}
+            },
+            "990":{
+              "slidesPerView": 3,
+              "spaceBetween": {{ settings.spacing_grid_horizontal }}
+            },
+            "600": {
+              "slidesPerView": 2,
+              "spaceBetween": {{ settings.spacing_grid_horizontal }}
+            },
+            "318": {
+              "slidesPerView": 1.5,
+              "spaceBetween": {{ settings.spacing_grid_horizontal | divided_by: 2 }}
+            }
+          }
+        }
+      </script>
+    </div>
+  </swiper-carousel>
+{%- endif -%}

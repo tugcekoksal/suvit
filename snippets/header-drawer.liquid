@@ -1,0 +1,117 @@
+{% comment %}
+  Renders a header drawer menu for mobile and desktop.
+
+  Usage:
+  {% render 'header-drawer' %}
+{% endcomment %}
+
+<header-drawer data-breakpoint="{% if section.settings.menu_type_desktop == 'drawer' %}desktop{% else %}tablet{% endif %}">
+  <div id="Details-menu-drawer-container" class="menu-drawer-container">
+    <div id="hammer-icon" class="menu-opening header__icon header__icon--menu header__icon--summary link focus-inset">
+      <span>
+        {%- render 'icon' with 'hamburger' -%}
+        {%- render 'icon' with 'close' -%}
+      </span>
+    </div>
+    <div id="menu-drawer" class="menu-drawer motion-reduce">
+      <div class="menu-drawer__inner-container">
+        <div class="menu-drawer__navigation-container color-{{ section.settings.menu_color_scheme }}">
+          <nav class="menu-drawer__navigation">
+            <ul class="menu-drawer__menu has-submenu list-menu menu-level-0" role="list">
+              {%- for link in section.settings.menu.links -%}
+                <li id="HeaderDrawer-{{ link.handle }}" class="menu-level-0-item drawer-list-menu__item {% if link.links != blank %} menu-drawer__menu-item{% endif %}">
+                  {%- if link.links != blank -%}
+                    <span class="navigation-menu large-up-hide">
+                      <span class="menu-title">{{ link.title | escape }}</span>
+                      <span class="icon-caret">{%- render 'icon' with 'down-caret' -%}</span>
+                    </span>
+                    <span class="navigation-menu medium-hide small-hide arrow_animated">
+                      <span class="menu-title">{{ link.title | escape }}</span>
+                      <span class="arrow-button icon-caret" for="HeaderDrawer-{{ link.handle }}">{% render 'icon' with 'caret-animate' %}</span>
+                    </span>
+                    <div id="link-{{ link.handle | escape }}" class="color-{{ section.settings.menu_color_scheme }} menu-drawer__submenu has-submenu motion-reduce menu-level-1" tabindex="-1" aria-expanded="false">
+                      <div class="menu-drawer__inner-submenu">
+                        <ul class="menu-drawer__menu list-menu" role="list" tabindex="-1">
+                          {%- for childlink in link.links -%}
+                            <li id="HeaderDrawer-{{ link.handle }}-{{ childlink.handle }}" class="menu-level-1-item drawer-list-menu__item {% if childlink.links != blank %} menu-drawer__menu-item {%- endif -%}">
+                              {%- if childlink.links == blank -%}
+                                <a id="HeaderDrawer-{{ link.handle }}-{{ childlink.handle }}" title="{{ childlink.title | escape }}" href="{{ childlink.url }}" class="menu-drawer__menu-item link link--text focus-inset{% if childlink.current %} menu-drawer__menu-item--active{% endif %}" {% if childlink.current %} aria-current="page"{% endif %}>
+                                  {{ childlink.title | escape }}
+                                </a>
+                              {%- else -%}
+                                <span class="navigation_submenu large-up-hide">
+                                  <span class="menu-title">{{ childlink.title | escape }}</span>
+                                  <span class="icon-caret">{% render 'icon' with 'down-caret' %}</span>
+                                </span>
+                                <span class="navigation-menu medium-hide small-hide arrow_animated">
+                                  <span class="menu-title">{{ link.title | escape }}</span>
+                                  <span class="arrow-button icon-caret" for="HeaderDrawer-{{ link.handle }}">{% render 'icon' with 'caret-animate' %}</span>
+                                </span>
+                                <div id="childlink-{{ childlink.handle | escape }}" class="color-{{ section.settings.menu_color_scheme }} menu-drawer__submenu has-submenu  motion-reduce menu-level-2" aria-expanded="false">
+                                  <ul class="menu-drawer__menu list-menu" role="list" tabindex="-1">
+                                    {%- for grandchildlink in childlink.links -%}
+                                      <li id="HeaderDrawer-{{ link.handle }}-{{ childlink.handle }}-{{ grandchildlink.handle }}" class="menu-level-2-item drawer-list-menu__item">
+                                        <a href="{{ grandchildlink.url }}" title="{{ grandchildlink.title | escape }}" class="menu-drawer__menu-item link link--text focus-inset{% if grandchildlink.current %} menu-drawer__menu-item--active{% endif %}"{% if grandchildlink.current %}aria-current="page"{% endif %}>
+                                          {{ grandchildlink.title | escape }}
+                                        </a>
+                                      </li>
+                                    {%- endfor -%}
+                                  </ul>
+                                </div>
+                              {%- endif -%}
+                            </li>
+                          {%- endfor -%}
+                        </ul>
+                      </div>
+                    </div>
+                  {%- else -%}
+                    <a id="HeaderDrawer-{{ link.handle }}" title="{{ link.title | escape }}" href="{{ link.url }}" class="menu-drawer__menu-item link link--text focus-inset{% if link.current %} menu-drawer__menu-item--active{% endif %}"{% if link.current %} aria-current="page"{% endif %}>
+                      {{ link.title | escape }}
+                    </a>
+                  {%- endif -%}
+                </li>
+              {%- endfor -%}
+                <li>
+                  {%- if shop.customer_accounts_enabled -%}
+                    <a title="{{ 'customer.log_in' | t }}" href="{%- if customer -%}{{ routes.account_url }}{%- else -%}{{ routes.account_login_url }}{%- endif -%}" class="menu-drawer__menu-item list-menu__item link link--text focus-inset">
+                      {%- liquid
+                        if customer
+                          echo 'customer.account_fallback' | t
+                        else
+                          echo 'customer.log_in' | t
+                        endif
+                      -%}
+                    </a>
+                  {%- endif -%}
+                </li>
+                <li>
+                  <div class="top--bar__info large-up-hide">
+                    {%- if section.settings.contact != blank -%}
+                      <a href="tel: {{ section.settings.contact }}" title="tel: {{ section.settings.contact }}" class="contact">
+                        {%- render 'icon' with 'phone' -%}
+                        <span class="rte">{{ section.settings.contact }}</span>
+                      </a>
+                      {%- endif -%}
+                      {%- if section.settings.email != blank -%}
+                        <a href="mailto: {{ section.settings.email }}" title="mailto: {{ section.settings.email }}" class="email">
+                          {%- render 'icon' with 'email' -%}
+                          <span class="rte">{{ section.settings.email }}</span>
+                        </a>
+                      {%- endif -%}
+                  </div>
+                </li>
+              </ul>
+            </nav>
+            <div class="menu-drawer__utility-links">
+              {%- render 'social-icons', class: 'header_drawer_social_icon' -%}
+            </div>
+          <div class="closeicon">
+            <span class="closeMenu">
+              {%- render 'icon' with 'close' -%}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header-drawer>

@@ -1,0 +1,245 @@
+{{ 'age-verification-popup.css' |  asset_url |  stylesheet_tag }}
+
+<age-verification-popup id="AgeVerificationPopup-age-verification-popupge-verification-popup" class="age-verification-popup model" data-section="shopify-section-{{ section.id }}" data-test-mode="{{ section.settings.test_mode }}" tabindex="-1">
+  <div class="age_verification_popup_division {% if section.settings.image %}remove-border-left{% endif %}  color-{{ section.settings.color_scheme }} gradient global-settings-popup">
+    <div class="age__division">
+      <div class="age_verification_image">
+        {%- if section.settings.image != blank -%}
+          {% assign alt = section.settings.image.alt | escape %}
+          {% assign title = section.settings.image.alt | escape %}
+          {{ section.settings.image | image_url: width: section.settings.image.width | image_tag:
+              loading: 'lazy',
+              data-wow-offset: "80",
+              alt: alt,
+              title: title,
+              class: 'Image--lazyLoad',
+              widths: '246, 493, 600, 713, 823, 990, 1100, 1206, 1346, 1426, 1646, 1946, 2400' }}
+        {%- endif -%}
+      </div>
+      <div class="age-verification-popup__content-wrapper">
+        <div class="age-verification-popup__content" data-age-verification-popup-content="" tabindex="-1">
+          <h2 class="age-veriication_heading">{{ section.settings.verification_heading }}</h2>
+          <div class="rte">
+            <div class="enlarge-text">
+              <p class="age-verifiationpopup__Content subtitle-text_opacity">{{ section.settings.verification_content }}</p>
+            </div>
+          </div>
+          <div class="age-verification-popup__btns-wrapper">
+            <button id="button_closepopup" class="button button--primary age-verification_button__closepopup animated-button " data-age-verification-popup-exit-button=""><div><span>{{ 'age-verification.button_label' | t }}</span></div></button>
+            <button class="button button--secondary animated-button ageverificationpopup_close" data-age-verification-popup-decline-button=""><div><span>{{ 'newsletter.nothanks' | t }}</span></div></button>
+          </div>
+        </div>
+        <div class="age-verification-popup__decline-content age-verification-popup__decline-content--inactive" data-age-verification-popup-decline-content="" tabindex="-1">
+          <h2 class="popup_heading age_verification_return_heading">{{ section.settings.declined_heading }}</h2>
+          <div class="rte">
+            <div class="enlarge-text">
+              <p class="subtitle-text_opacity">{{ section.settings.declined_content }}</p>
+            </div>
+          </div>
+          <button class="link ageverificationpopup_close age_verification_return_close link--text--hover" data-age-verification-popup-return-button="">{{ section.settings.return_button }}</button>
+        </div>
+      </div>
+    </div> 
+  </div>
+</age-verification-popup>
+<script>
+  
+class AgeVerificationPopup extends HTMLElement {
+  constructor() {
+    super();
+    this.cookieName = this.id;
+    this.cookie = this.getCookie(this.cookieName);
+    var now = new Date();
+    var time = now.getTime();
+    var expireTime = time + 30 * 24 * 60 * 60 * 1000;
+    now.setTime(expireTime);
+    this.expireTime = now.toUTCString();
+    this.classes = {
+      activeContent: 'age-verification-popup__content--active',
+      inactiveContent: 'age-verification-popup__content--inactive',
+      inactiveDeclineContent: 'age-verification-popup__decline-content--inactive',
+      activeDeclineContent: 'age-verification-popup__decline-content--active',
+    }
+    this.declineButton = this.querySelector('[data-age-verification-popup-decline-button]');
+    this.declineContent = this.querySelector('[data-age-verification-popup-decline-content]');
+    this.content = this.querySelector('[data-age-verification-popup-content]');
+    this.returnButton = this.querySelector('[data-age-verification-popup-return-button]');
+    this.exitButton = this.querySelector('[data-age-verification-popup-exit-button]');
+    this.backgroundImage = this.querySelector('[data-background-image]');
+    this.mobileBackgroundImage = this.querySelector('[data-mobile-background-image]');
+
+    document.addEventListener('shopify:section:load', (event) => {
+      if (this.dataset.testMode === 'false') {
+        document.cookie = this.cookieName+'=entered;expires='+this.expireTime+';path=/';
+      }else{
+        document.cookie = this.cookieName+'=entered;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';
+      }
+    });
+
+    if((this.cookie) && this.dataset.testMode === 'false'){
+      document.getElementById('AgeVerificationPopup-age-verification-popupge-verification-popup').remove();
+      document.querySelector('body').classList.remove("overflow-hidden");
+    } else {
+      document.getElementById("button_closepopup").addEventListener('click', (event) =>{
+        document.body.classList.remove("ageverification-active");
+      });
+      document.addEventListener('shopify:section:select', (event) => {
+        if(event.target.id === `${this.dataset.section}`) {
+          this.init();
+        }
+      });
+    
+      document.addEventListener('shopify:section:deselect', (event) => {
+        if(event.target.id === `${this.dataset.section}`) {
+          this.classList.remove('open');
+          document.body.classList.remove("ageverification-active");
+          document.querySelector('body').classList.remove("overflow-hidden");
+        }
+      });
+
+      document.addEventListener('shopify:inspector:activate', () => {
+        if(event.target.id === `${this.dataset.section}`) {
+          this.init();
+        }
+      });
+      this.init();
+    }
+  }
+  
+  init() {
+    this.classList.add('open');
+    document.querySelector('body').classList.add("overflow-hidden");
+    document.querySelector('body').classList.add("ageverification-active");
+    setTimeout(() => {
+      trapFocus(this.querySelector('.age-verification-popup__content'));
+    },1500);
+
+    if (this.declineButton) {
+      this.declineButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showDeclineContent();
+        // If in editor, save to session storage to indicate that user has moved on to the second view
+        // Allows view to persist while making changes in the editor
+        if (Shopify.designMode) {
+          sessionStorage.setItem(this.id, 'second-view');
+        }
+        trapFocus(this.querySelector('.age-verification-popup__decline-content'));
+      });
+    }
+    if (this.returnButton) {
+      this.returnButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.hideDeclineContent();
+        const secondViewVisited = sessionStorage.getItem(this.id);
+        if (Shopify.designMode && secondViewVisited) {
+          sessionStorage.removeItem(this.id);
+        }
+        trapFocus(this.querySelector('.age-verification-popup__content'));
+      })
+    }
+    if (this.exitButton) {
+      this.exitButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        /* We don't want to set a cookie if in test mode */
+        if (this.dataset.testMode === 'false')
+          document.cookie = this.cookieName+'=entered;expires='+this.expireTime+';path=/';
+        document.getElementById('AgeVerificationPopup-age-verification-popupge-verification-popup').remove();
+        document.querySelector('body').classList.remove("overflow-hidden");
+      });
+    }
+  }
+  showDeclineContent() {
+    this.declineContent.classList.remove(this.classes.inactiveDeclineContent);
+    this.declineContent.classList.add(this.classes.activeDeclineContent);
+    this.content.classList.add(this.classes.inactiveContent);
+    this.content.classList.remove(this.classes.activeContent);
+  }
+  hideDeclineContent() {
+    this.declineContent.classList.add(this.classes.inactiveDeclineContent);
+    this.declineContent.classList.remove(this.classes.activeDeclineContent);
+    this.content.classList.remove(this.classes.inactiveContent);
+    this.content.classList.add(this.classes.activeContent);
+  }
+  getCookie(cname) {
+    let name = cname + "=";
+    let decodedCookie = decodeURIComponent(document.cookie);
+    var pairs = decodedCookie.split(";");
+    for (var i = 0; i < pairs.length; i++) {
+      let c = pairs[i];
+      while (c.charAt(0) == ' ') {
+        c = c.substring(1);
+      }
+      if (c.indexOf(name) == 0) {
+        return c.substring(name.length, c.length);
+      }
+    }
+  }
+}
+customElements.define('age-verification-popup', AgeVerificationPopup);
+</script>
+
+{% schema %}
+{
+  "name": "t:sections.age_verification_popup.name",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "test_mode",
+      "label": "t:sections.age_verification_popup.settings.test_mode.label",
+      "info": "t:sections.age_verification_popup.settings.test_mode.info",
+      "default": false
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.all.colors.label",
+      "default": "background-1"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:sections.newsletter-popup.settings.image.label",
+      "info": "t:sections.newsletter-popup.settings.image.info"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.age_verification_popup.settings.header.label"
+    },
+    {
+      "type": "text",
+      "id": "verification_heading",
+      "label": "t:sections.age_verification_popup.settings.verification_heading.label",
+      "default": "Are you 18+?"
+    },
+    {
+      "type": "text",
+      "id": "verification_content",
+      "label": "t:sections.age_verification_popup.settings.verification_content.label",
+      "default": "Join and get to know about exciting offers, our latest products and the latest updates."
+    },
+    {
+      "type": "header",
+      "content": "t:sections.age_verification_popup.settings.header1.content",
+      "info": "t:sections.age_verification_popup.settings.header1.info"
+    },
+    {
+      "type": "text",
+      "id": "declined_heading",
+      "label": "t:sections.age_verification_popup.settings.declined_heading.label",
+      "default": "Confirm your age"
+    },
+    {
+      "type": "text",
+      "id": "declined_content",
+      "label": "t:sections.age_verification_popup.settings.declined_content.label",
+      "default": "Are you 18 years old or older?"
+    },
+    {
+      "type": "text",
+      "id": "return_button",
+      "label": "t:sections.age_verification_popup.settings.return_button.label",
+      "default": "Opps, I entered incorrectly"
+    }
+  ]
+}
+{% endschema %}

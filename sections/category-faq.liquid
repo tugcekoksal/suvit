@@ -1,0 +1,197 @@
+{% comment %}
+  Collection FAQs powered by Metaobjects (list)
+  - Collection metafield references metaobject type faq_category (list)
+  - Metaobject fields: question, answer
+{% endcomment %}
+
+{% liquid
+  assign mf_path = section.settings.faq_metafield
+  if mf_path == blank
+    assign mf_path = "custom.faq"
+  endif
+
+  assign parts = mf_path | split: "."
+  assign mf_namespace = parts[0]
+  assign mf_key = parts[1]
+
+  assign mf = blank
+  if collection and mf_namespace != blank and mf_key != blank
+    assign mf = collection.metafields[mf_namespace][mf_key]
+  endif
+
+  assign faqs = blank
+  if mf != blank
+    assign faqs = mf.value
+  endif
+%}
+
+{% if faqs != blank %}
+  <section class="product-faqs" id="collection-faqs">
+    {% if section.settings.title != blank %}
+      <h2 class="product-faqs__title">{{ section.settings.title }}</h2>
+    {% endif %}
+
+    {% if section.settings.subtitle != blank %}
+      <div class="product-faqs__subtitle rte">
+        {{ section.settings.subtitle }}
+      </div>
+    {% endif %}
+
+    <div class="product-faqs__items">
+      {% for item in faqs %}
+        {% assign q = item.question.value %}
+        {% assign a = item.answer.value %}
+
+        {% if q != blank and a != blank %}
+          <details class="product-faqs__item" {% if section.settings.open_first and forloop.first %}open{% endif %}>
+            <summary class="product-faqs__question">
+              <span>{{ q }}</span>
+              <span class="product-faqs__icon" aria-hidden="true"></span>
+            </summary>
+
+            <div class="product-faqs__answer">
+              {{ a }}
+            </div>
+          </details>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+
+  <style>
+  .product-faqs {
+    background-color: #FAF1E7;
+    margin: 2.5rem auto;             /* ✅ center + same vertical spacing */
+    max-width: {{ section.settings.max_width }}px; /* ✅ same container width */
+    padding: 34px 26px;              /* ✅ same padding as long desc */
+    border-radius: 18px;             /* ✅ match card look */
+    border: 1px solid rgba(0,0,0,.08);
+    box-shadow: 0 10px 30px rgba(0,0,0,.06);
+  }
+
+  .product-faqs__title {
+    margin: 0 0 0.75rem;
+    padding-bottom: 18px;
+    border-bottom: 1px solid rgba(0,0,0,.08); /* ✅ match header divider */
+  }
+
+  .product-faqs__subtitle {
+    margin: 12px 0 1.25rem;
+    opacity: .85;
+  }
+
+  .product-faqs__items {
+    display: grid;
+    gap: .75rem;
+  }
+
+  .product-faqs__item {
+    border: 1px solid rgba(0,0,0,.12);
+    border-radius: 12px;
+    padding: .25rem 0;
+    background: rgba(255,255,255,.35);
+  }
+
+  .product-faqs__question {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.9rem 26px;  /* ✅ align with container side padding */
+    font-weight: 600;
+  }
+
+  .product-faqs__question::-webkit-details-marker {
+    display: none;
+  }
+
+  .product-faqs__icon {
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+    margin-left: 12px;
+  }
+
+  details[open] .product-faqs__icon {
+    transform: rotate(-135deg);
+  }
+
+  .product-faqs__answer {
+    padding: 0 26px 1rem 26px; /* ✅ align with question padding */
+    line-height: 1.7;
+  }
+
+  @media (min-width: 768px){
+    .product-faqs{
+      padding: 40px 42px;     /* ✅ same as long desc desktop */
+      border-radius: 22px;
+    }
+    .product-faqs__question{
+      padding-left: 42px;
+      padding-right: 42px;
+    }
+    .product-faqs__answer{
+      padding-left: 42px;
+      padding-right: 42px;
+    }
+  }
+</style>
+
+
+  <script>
+    (function () {
+      var root = document.getElementById('collection-faqs');
+      if (!root) return;
+
+      var singleOpen = {{ section.settings.single_open | json }};
+      if (!singleOpen) return;
+
+      var items = root.querySelectorAll('details.product-faqs__item');
+      items.forEach(function (d) {
+        d.addEventListener('toggle', function () {
+          if (!d.open) return;
+          items.forEach(function (other) {
+            if (other !== d) other.removeAttribute('open');
+          });
+        });
+      });
+    })();
+  </script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Collection FAQs",
+  "settings": [
+    { "type": "text", "id": "title", "label": "Title", "default": "Häufige Fragen" },
+    { "type": "richtext", "id": "subtitle", "label": "Subtitle (optional)" },
+    {
+      "type": "text",
+      "id": "faq_metafield",
+      "label": "Collection metafield (namespace.key)",
+      "default": "custom.faq",
+      "info": "Example: custom.faq"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Max width (px)",
+      "min": 700,
+      "max": 1400,
+      "step": 50,
+      "default": 1100
+    },
+    { "type": "checkbox", "id": "open_first", "label": "Open first item by default", "default": false },
+    { "type": "checkbox", "id": "single_open", "label": "Only one item open at a time", "default": true }
+  ],
+  "presets": [
+    { "name": "Collection FAQs" }
+  ]
+}
+{% endschema %}
+

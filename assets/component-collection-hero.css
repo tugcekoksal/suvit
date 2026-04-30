@@ -1,0 +1,95 @@
+.collection-hero--with-image .collection-hero__inner {
+  position: relative;
+  margin-bottom: 0;
+  padding-bottom: 2rem;
+  margin-top: 2rem;
+}
+.collection-hero__title {
+  color: var(--text-color);
+  text-align: center;
+}
+.collection-hero__description, .collection-product_count {
+  color: var(--text-color);
+}
+.collections--banner_main{
+  margin-top: 2rem;
+}
+.collection-hero--with-image .collection-hero__title {
+  margin: 0;
+}
+.collection-hero__image-container {
+  border: var(--media-border-width) solid rgba(var(--color-foreground), var(--media-border-opacity));
+  border-radius: var(--media-radius);
+  box-shadow: var(--media-shadow-horizontal-offset) var(--media-shadow-vertical-offset) var(--media-shadow-blur-radius) rgba(var(--color-shadow), var(--media-shadow-opacity));
+}
+.collection-hero--with-image .collection-hero__inner:before {
+  content: '';
+  position: absolute;
+  height: calc(100% - 2rem);
+  width: calc(100% - 4rem);
+  background: var(--overlay-image);
+  z-index: 1;
+  opacity: var(--overlay_opacity);
+  border-radius: var(--media-radius);
+}
+.breadcrumbs_label{
+  color: rgb(var(--color-foreground));
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.collection-breadcrumbs_title{
+  color: rgba(var(--color-foreground), 0.8);
+  text-transform: uppercase;
+}
+.collection-hero {
+  display: block;
+  text-align: center;
+  background: rgba(var(--color-foreground), 0.3);
+  border-radius: var(--media-radius);
+  padding: 1.5rem 0;
+}
+.collection-hero--with-image .collection-hero__text-wrapper {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  max-width: 76.5rem;
+  margin: 0 auto;
+}
+@media screen and (max-width: 749px) {
+  .collection-hero__image-container {
+    height: 25rem;
+  }
+  .collection-hero__description{
+    line-height: 1.4;
+    padding-right: 1rem;
+  }
+  .collection-hero .collection-product_count, .collection_breadcrums{
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+  .collection-hero--with-image .collection-hero__text-wrapper{
+    width: 100%;
+    padding: 0 3rem;
+  }
+}
+@media screen and (max-width:330px) {
+  .collection-hero__image-container {
+    height: 30rem;
+  }
+}
+@media screen and (min-width: 750px) {
+  .collection-hero .collection-product_count, .collection_breadcrums{
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+  .collection-hero__image-container {
+    min-height: 35.8rem;
+  }
+}

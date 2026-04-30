@@ -1,0 +1,192 @@
+.quick-add {
+  position: relative;
+  grid-row-start: 4;
+  z-index: 1;
+}
+.card--card .quick-add {
+  margin: 0 1.3rem 1rem;
+}
+.quick-add-modal {
+  box-sizing: border-box;
+  opacity: 0;
+  position: fixed;
+  visibility: hidden;
+  z-index: -1;
+  margin: 0 auto;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.quick-add-modal[open] {
+  opacity: 1;
+  visibility: visible;
+  z-index: 101;
+}
+.quick-add-modal .scroll-trigger.scroll-trigger {
+  animation: none;
+  opacity: 1;
+}
+.quick-add-modal__content {
+  width: calc(100% - 5rem);
+  max-width: 62rem;
+  position: fixed;
+  z-index: 6;
+  top: 1rem;
+  overflow-y: auto;
+  bottom: 1rem;
+  right: 1rem;
+  margin: 0;
+  border-radius: 1rem;
+  transition: transform var(--duration-default) ease;
+  --modal-height-offset: 3.2rem;
+  overflow: hidden;
+}
+.quick-add-modal__content img {
+  max-width: 100%;
+}
+.quick-add-modal__content-info {
+  --modal-padding: 2.5rem;
+  display: flex;
+  height: 100%;
+}
+.quick-add-modal__content-info > * {
+  height: auto;
+  margin: 0 auto;
+  max-width: 100%;
+  width: 100%;
+}
+quick-add-modal .product--columns .product__media-item:first-child {
+  max-width: 100% !important;
+  width: 100%;
+}
+quick-add-modal .product--columns .product__media-item:not(:first-child){
+  display: none;
+}
+.quick-add-modal__toggle {
+  position: sticky;
+  top: 0;
+  right: 0rem;
+  background: transparent;
+  text-align: end;
+  width: 100%;
+  margin-top: 1rem;
+  cursor: pointer;
+  z-index: 5;
+  border: 0;
+}
+.quick-add-modal__toggle .icon {
+  height: 2.5rem;
+  margin: 0;
+  width: 2.5rem;
+}
+quick-add-modal .product:not(.featured-product) .product__view-details {
+  display: block;
+  text-align: center;
+  margin: 0;
+  padding-bottom: 1rem;
+}
+quick-add-modal .quick-add-hidden, quick-add-modal .product__modal-opener:not(.product__modal-opener--image) {
+  display: none !important;
+}
+quick-add-modal .slider.slider--mobile {
+  overflow: visible;
+}
+quick-add-modal .product__column-sticky .product__media-list {
+  margin-bottom: 0;
+}
+quick-add-modal .product__media-list .deferred-media {
+  display: block;
+  width: 100%;
+}
+quick-add-modal .product__column-sticky {
+  top: 0;
+  position: relative;
+}
+quick-add-modal .page-width {
+  padding: 0;
+}
+quick-add-modal .product__title > h1 {
+  display: none;
+}
+quick-add-modal .product__title > a {
+  display: block;
+  text-decoration: none;
+}
+quick-add-modal .product-form__buttons {
+  max-width: initial;
+}
+quick-add-modal .product-media-container.constrain-height {
+  --viewport-offset: calc((var(--modal-height-offset) + var(--modal-padding) + var(--popup-border-width)) * 2);
+}
+.quick-add-modal__content{
+  overflow-y: auto;
+}
+.quick-add-modal .main_product .product{
+  display: block;
+  width: 100%;
+}
+quick-add-modal .main_product .product__media-wrapper, quick-add-modal .product__info-wrapper{
+  max-width: 60rem !important;
+  width: 100% !important;
+  padding: 0 1.5rem !important;
+}
+quick-add-modal .quick-add .button:focus-visible:focus-visible, quick-add-modal .quick-add-modal__content:focus-visible{
+  box-shadow: none;
+  outline: 0;
+}
+quick-add-modal .product-form__buttons{
+  display: flex;
+  flex-direction: column;
+}
+quick-add-modal .product-form__buttons>button, quick-add-modal .product-form__buttons>div{
+  width: 100%;
+}
+quick-add-modal .quick-add-modal__content .product-media-container .media{
+  padding-top: 72%;
+}
+quick-add-modal .shopify-payment-button__more-options{
+  margin-bottom: -1rem;
+}
+quick-add-modal:before{
+  content: "";
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 4;
+  display: block;
+  background-color: rgba(var(--color-foreground), .6);
+  cursor: var(--cursor-close-svg-url) 28 28, auto;
+}
+@media screen and (min-width: 750px) {
+  quick-add-modal .product-media-container.constrain-height {
+    --constrained-min-height: 400px;
+  }
+  quick-add-modal .product-form__buttons{
+    gap: 1rem;
+  }
+}
+@media screen and (max-width:367px) {
+  .card--card .quick-add{
+    margin-left: 0;
+  }
+}
+@media screen and (max-width: 749px) {
+  quick-add-modal .slider .product__media-item.grid__item {
+    margin-left: 1.5rem;
+    margin-right: 1.5rem;
+  }
+  .quick-add-modal__content {
+    width: calc(100% - 2rem);
+    left: 1rem;
+    bottom: var(--modal-height-offset);
+  }
+  .quick-add-modal__content-info > * {
+    max-height: 100%;
+  }
+  quick-add-modal .product--mobile-columns .product__media-item {
+    width: calc(100% - 3rem - var(--grid-mobile-horizontal-spacing));
+  }
+}

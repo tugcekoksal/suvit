@@ -1,0 +1,23 @@
+{% for group in robots.default_groups %}
+  {{ group.user_agent }}
+  {% for rule in group.rules %}
+    {{ rule }}
+  {% endfor %}
+  {% if group.sitemap != blank %}
+    {{ group.sitemap }}
+  {% endif %}
+{% endfor %}
+
+User-agent: *
+Disallow: /tr/checkout
+Disallow: /tr/login
+Disallow: /tr/account
+Disallow: /tr/cart
+
+Disallow: /*/checkout
+Disallow: /*/login
+Disallow: /*/account
+Disallow: /*/cart
+
+# Block atom feeds
+Disallow: /*.atom

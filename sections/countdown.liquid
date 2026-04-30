@@ -1,0 +1,795 @@
+{{ 'countdown.css' |  asset_url |  stylesheet_tag }}
+
+{%  style  %} 
+    .section-{{ section.id }}-padding {
+        padding-top: {{ section.settings.padding_top | times: 0.75 | round: 0 }}px;
+        padding-bottom: {{ section.settings.padding_bottom | times: 0.75 | round: 0 }}px;
+    }
+    @media screen and (min-width: 750px) {
+    .section-{{ section.id }}-padding {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+ {% endstyle %}
+
+<div class="{{ section.settings.show_on }}">
+    <div class="countdown-wrapper countdown_{{ section.id }} gradient  section-{{ section.id }}-padding color-{{ section.settings.color_scheme }} page-width countdown-section-layout--{{ section.settings.section_layout }}">
+        <div class="countdown_content">
+            {%- for block in section.blocks -%}
+                {%- case block.type -%}
+                    {% when 'text' %}
+                        <div class="countdown--layout--content countdown_content-alignmnet--{{ block.settings.text_alignment }}">
+                            <div class="countdown__text_wrapper">
+                                {%- if block.settings.heading != blank -%}
+                                    <div class="countdown__heading">
+                                      <h2 class="title">{{ block.settings.heading }}</h2>
+                                    </div>
+                                {%- endif -%}
+                                {%- if block.settings.text != blank -%}
+                                    <div class="countdown__subheading inline-richtext subtitle-text_opacity subheading">
+                                      {{ block.settings.text }}
+                                    </div>              
+                                  {%- endif -%}
+                                <div class="countdown_button">
+                                    {%- if block.settings.button_label != blank -%}
+                                        <a {% if block.settings.button_link == blank %} role="link" aria-disabled="true"{%  else %} href="{{ block.settings.button_link }}"{% endif %}{% if block.settings.button_new_window %}target="_blank"{% endif %} title="{{ block.settings.button_label | escape }}" class="{% if block.settings.view_all_style == 'link' %}link underlined-link cube-animation{% elsif block.settings.view_all_style == 'solid' %}button button--primary animated-button {% else %}button  animated-button button--secondary{% endif %}">
+                                         <div><span>{{ block.settings.button_label | escape }}</span></div>
+                                        </a>
+                                    {%- endif -%}  
+                                </div>
+                            </div>
+                        </div>
+                    {%- when 'timer' -%}
+                        <div class="countdown_timer_wrapper">
+                            <countdown-timer data-year="{{ block.settings.year }}" data-month="{{ block.settings.month }}" data-day="{{ block.settings.day }}" data-hour="{{ block.settings.hour }}" data-minute="{{ block.settings.minute }}" data-timer-hide="true" data-message-done="{% if block.settings.complete_message != blank %}{{ block.settings.complete_message }}{% else %} {{ 'countdown.complate_massage' | t }}{% endif %}">
+                                <div class="countdown__layout-timer" data-time-display>
+                                    <div class="countdown_timer-block">
+                                        <h2 class="rte countdown_counter" style="color: rgb({{ block.settings.timer_color.red }}, {{ block.settings.timer_color.green }}, {{ block.settings.timer_color.blue }}, 0.25);" date-days-placeholder>00</h2>
+                                        <span class="countdown__timer-text" style="color: rgb({{ block.settings.timer_color.red }}, {{ block.settings.timer_color.green }}, {{ block.settings.timer_color.blue }});">{{ 'sections.countdown.days' | t }}</span>
+                                    </div>
+                                    <div class="countdown_timer-block">
+                                        <h2 class="rte countdown_counter" style="color: rgb({{ block.settings.timer_color.red }}, {{ block.settings.timer_color.green }}, {{ block.settings.timer_color.blue }}, 0.25);"  date-hours-placeholder>00</h2>
+                                        <span class="countdown__timer-text" style="color: rgb({{ block.settings.timer_color.red }}, {{ block.settings.timer_color.green }}, {{ block.settings.timer_color.blue }});">{{ 'sections.countdown.hours' | t }}</span>
+                                    </div>
+                                    <div class="countdown_timer-block">
+                                        <h2 class="rte countdown_counter" style="color: rgb({{ block.settings.timer_color.red }}, {{ block.settings.timer_color.green }}, {{ block.settings.timer_color.blue }}, 0.25);" date-minutes-placeholder>00</h2>
+                                        <span class="countdown__timer-text" style="color: rgb({{ block.settings.timer_color.red }}, {{ block.settings.timer_color.green }}, {{ block.settings.timer_color.blue }});">{{ 'sections.countdown.minutes' | t }}</span>
+                                    </div>
+                                    <div class="countdown_timer-block">
+                                        <h2 class="rte countdown_counter" style="color: rgb({{ block.settings.timer_color.red }}, {{ block.settings.timer_color.green }}, {{ block.settings.timer_color.blue }}, 0.25);" date-seconds-placeholder>00</h2>
+                                        <span class="countdown__timer-text" style="color: rgb({{ block.settings.timer_color.red }}, {{ block.settings.timer_color.green }}, {{ block.settings.timer_color.blue }});">{{ 'sections.countdown.seconds' | t }}</span>
+                                    </div>
+                                </div>
+                                <div class="countdown__timer-message" data-message-placeholder></div>
+                            </countdown-timer>
+                        </div>
+                {%- endcase -%}
+            {%- endfor -%}
+        </div>
+    </div>
+</div>
+
+{% schema %}  
+{
+    "name": "t:sections.countdown.name",
+    "tag": "section",
+    "class": "section",
+    "disabled_on": {
+    "templates": ["password"],
+        "groups": ["header", "footer", "custom.popup"]
+    },
+    "settings": [
+        {
+            "type": "select",
+            "id": "show_on",
+            "label": "t:sections.all.show_on.name",
+            "options": [
+                {
+                "value": "small-hide",
+                "label": "t:sections.all.show_on.desktop"
+                },
+                {
+                "value": "large-up-hide medium-hide",
+                "label": "t:sections.all.show_on.mobile"
+                },
+                {
+                "value": "both",
+                "label": "t:sections.all.show_on.both"
+                }
+            ],
+            "default": "both"
+        },
+        {
+            "type": "select",
+            "id": "section_layout",
+            "label": "t:sections.countdown.settings.section_layout.label",
+            "info": "t:sections.countdown.settings.section_layout.info",
+            "options": [
+                {
+                    "value": "hero",
+                    "label": "t:sections.countdown.settings.section_layout.hero.label"
+                },
+                {
+                    "value": "inline",
+                    "label": "t:sections.countdown.settings.section_layout.inline.label"
+                }
+            ],
+            "default": "hero"
+        },
+        {
+            "type": "color_scheme",
+            "id": "color_scheme",
+            "label": "t:sections.all.colors.label",
+            "default": "scheme-1"
+        },
+        {
+            "type": "range",
+            "id": "padding_top",
+            "min": 0,
+            "max": 100,
+            "step": 4,
+            "unit": "px",
+            "label": "t:sections.all.padding.padding_top",
+            "default": 24
+        },
+        {
+            "type": "range",
+            "id": "padding_bottom",
+            "min": 0,
+            "max": 100,
+            "step": 4,
+            "unit": "px",
+            "label": "t:sections.all.padding.padding_bottom",
+            "default": 24
+        }
+    ],
+    "blocks": [
+        {
+        "type": "text",
+        "name": "Countdown",
+        "limit": 1,
+        "settings": [
+            {
+                "type": "text",
+                "id": "heading",
+                "default": "Countdown",
+                "label": "t:sections.countdown.blocks.text.heading.label"
+            },
+            {
+                "type": "inline_richtext",
+                "id": "text",
+                "default": "We ensure our customers have the best shopping experience",
+                "label": "t:sections.countdown.blocks.text.text.label"
+            },
+            {
+                "type": "text",
+                "id": "button_label",
+                "default": "Button label",
+                "label": "t:sections.countdown.blocks.button.button_label.label",
+                "info": "t:sections.countdown.blocks.button.button_label.info"
+            },
+            {
+                "type": "url",
+                "id": "button_link",
+                "label": "t:sections.countdown.blocks.button.button_link.label"
+            },
+            {
+                "type": "checkbox",
+                "id": "button_new_window",
+                "label": "t:sections.all.open-in-new-tab.label",
+                "default": false
+            },
+            {
+                "type": "select",
+                "id": "view_all_style",
+                "label": "t:sections.all.view_all_style.label",
+                "options": [
+                    {
+                    "value": "link",
+                    "label": "t:sections.all.view_all_style.options__1.label"
+                    },
+                    {
+                    "value": "outline",
+                    "label": "t:sections.all.view_all_style.options__2.label"
+                    },
+                    {
+                    "value": "solid",
+                    "label": "t:sections.all.view_all_style.options__3.label"
+                    }
+                ],
+                "default": "solid"
+            },
+            {
+                "type": "text_alignment",
+                "id": "text_alignment",
+                "label": "t:sections.image-text.blocks.content.settings.content_alignment.label",
+                "default": "center"
+            }
+        ]
+    },
+    {
+        "type": "timer",
+        "name": "t:sections.countdown.blocks.timer.name",
+        "limit": 1,
+        "settings": [
+            {
+            "type": "color",
+            "id": "timer_color",
+            "default": "#000000",
+            "label": "Text color"
+            },
+            {
+                "type": "text",
+                "id": "year",
+                "label": "t:sections.countdown.blocks.timer.year.label",
+                "default": "2025"
+            },
+            {
+                "type": "select",
+                "id": "month",
+                "label": "t:sections.countdown.blocks.timer.month.label",
+                "options": [
+                {
+                    "value": "01",
+                    "label": "t:sections.countdown.blocks.timer.month.january"
+                },
+                {
+                    "value": "02",
+                    "label": "t:sections.countdown.blocks.timer.month.february"
+                },
+                {
+                    "value": "03",
+                    "label": "t:sections.countdown.blocks.timer.month.march"
+                },
+                {
+                    "value": "04",
+                    "label": "t:sections.countdown.blocks.timer.month.april"
+                },
+                {
+                    "value": "05",
+                    "label": "t:sections.countdown.blocks.timer.month.may"
+                },
+                {
+                    "value": "06",
+                    "label": "t:sections.countdown.blocks.timer.month.june"
+                },
+                {
+                    "value": "07",
+                    "label": "t:sections.countdown.blocks.timer.month.july"
+                },
+                {
+                    "value": "08",
+                    "label": "t:sections.countdown.blocks.timer.month.august"
+                },
+                {
+                    "value": "09",
+                    "label": "t:sections.countdown.blocks.timer.month.september"
+                },
+                {
+                    "value": "10",
+                    "label": "t:sections.countdown.blocks.timer.month.october"
+                },
+                {
+                    "value": "11",
+                    "label": "t:sections.countdown.blocks.timer.month.november"
+                },
+                {
+                    "value": "12",
+                    "label": "t:sections.countdown.blocks.timer.month.december"
+                }
+                ],
+                "default": "04"
+            },
+            {
+                "type": "select",
+                "id": "day",
+                "label": "t:sections.countdown.blocks.timer.day.label",
+                "options": [
+                {
+                    "value": "1",
+                    "label": "t:sections.countdown.blocks.timer.day.1"
+                },
+                {
+                    "value": "2",
+                    "label": "t:sections.countdown.blocks.timer.day.2"
+                },
+                {
+                    "value": "3",
+                    "label": "t:sections.countdown.blocks.timer.day.3"
+                },
+                {
+                    "value": "4",
+                    "label": "t:sections.countdown.blocks.timer.day.4"
+                },
+                {
+                    "value": "5",
+                    "label": "t:sections.countdown.blocks.timer.day.5"
+                },
+                {
+                    "value": "6",
+                    "label": "t:sections.countdown.blocks.timer.day.6"
+                },
+                {
+                    "value": "7",
+                    "label": "t:sections.countdown.blocks.timer.day.7"
+                },
+                {
+                    "value": "8",
+                    "label": "t:sections.countdown.blocks.timer.day.8"
+                },
+                {
+                    "value": "9",
+                    "label": "t:sections.countdown.blocks.timer.day.9"
+                },
+                {
+                    "value": "10",
+                    "label": "t:sections.countdown.blocks.timer.day.10"
+                },
+                {
+                    "value": "11",
+                    "label": "t:sections.countdown.blocks.timer.day.11"
+                },
+                {
+                    "value": "12",
+                    "label": "t:sections.countdown.blocks.timer.day.12"
+                },
+                {
+                    "value": "13",
+                    "label": "t:sections.countdown.blocks.timer.day.13"
+                },
+                {
+                    "value": "14",
+                    "label": "t:sections.countdown.blocks.timer.day.14"
+                },
+                {
+                    "value": "15",
+                    "label": "t:sections.countdown.blocks.timer.day.15"
+                },
+                {
+                    "value": "16",
+                    "label": "t:sections.countdown.blocks.timer.day.16"
+                },
+                {
+                    "value": "17",
+                    "label": "t:sections.countdown.blocks.timer.day.17"
+                },
+                {
+                    "value": "18",
+                    "label": "t:sections.countdown.blocks.timer.day.18"
+                },
+                {
+                    "value": "19",
+                    "label": "t:sections.countdown.blocks.timer.day.19"
+                },
+                {
+                    "value": "20",
+                    "label": "t:sections.countdown.blocks.timer.day.20"
+                },
+                {
+                    "value": "21",
+                    "label": "t:sections.countdown.blocks.timer.day.21"
+                },
+                {
+                    "value": "22",
+                    "label": "t:sections.countdown.blocks.timer.day.22"
+                },
+                {
+                    "value": "23",
+                    "label": "t:sections.countdown.blocks.timer.day.23"
+                },
+                {
+                    "value": "24",
+                    "label": "t:sections.countdown.blocks.timer.day.24"
+                },
+                {
+                    "value": "25",
+                    "label": "t:sections.countdown.blocks.timer.day.25"
+                },
+                {
+                    "value": "26",
+                    "label": "t:sections.countdown.blocks.timer.day.26"
+                },
+                {
+                    "value": "27",
+                    "label": "t:sections.countdown.blocks.timer.day.27"
+                },
+                {
+                    "value": "28",
+                    "label": "t:sections.countdown.blocks.timer.day.28"
+                },
+                {
+                    "value": "29",
+                    "label": "t:sections.countdown.blocks.timer.day.29"
+                },
+                {
+                    "value": "30",
+                    "label": "t:sections.countdown.blocks.timer.day.30"
+                },
+                {
+                    "value": "31",
+                    "label": "t:sections.countdown.blocks.timer.day.31"
+                }
+                ],
+                "default": "10"
+            },
+            {
+                "type": "select",
+                "id": "hour",
+                "label": "t:sections.countdown.blocks.timer.hour.label",
+                "options": [
+                    {
+                    "value": "00",
+                    "label": "t:sections.countdown.blocks.timer.hour.12_am"
+                    },
+                    {
+                    "value": "01",
+                    "label": "t:sections.countdown.blocks.timer.hour.1_am"
+                    },
+                    {
+                    "value": "02",
+                    "label": "t:sections.countdown.blocks.timer.hour.2_am"
+                    },
+                    {
+                    "value": "03",
+                    "label": "t:sections.countdown.blocks.timer.hour.3_am"
+                    },
+                    {
+                    "value": "04",
+                    "label": "t:sections.countdown.blocks.timer.hour.4_am"
+                    },
+                    {
+                    "value": "05",
+                    "label": "t:sections.countdown.blocks.timer.hour.5_am"
+                    },
+                    {
+                    "value": "06",
+                    "label": "t:sections.countdown.blocks.timer.hour.6_am"
+                    },
+                    {
+                    "value": "07",
+                    "label": "t:sections.countdown.blocks.timer.hour.7_am"
+                    },
+                    {
+                    "value": "08",
+                    "label": "t:sections.countdown.blocks.timer.hour.8_am"
+                    },
+                    {
+                    "value": "09",
+                    "label": "t:sections.countdown.blocks.timer.hour.9_am"
+                    },
+                    {
+                    "value": "10",
+                    "label": "t:sections.countdown.blocks.timer.hour.10_am"
+                    },
+                    {
+                    "value": "11",
+                    "label": "t:sections.countdown.blocks.timer.hour.11_am"
+                    },
+                    {
+                    "value": "12",
+                    "label": "t:sections.countdown.blocks.timer.hour.12_pm"
+                    },
+                    {
+                    "value": "13",
+                    "label": "t:sections.countdown.blocks.timer.hour.1_pm"
+                    },
+                    {
+                    "value": "14",
+                    "label": "t:sections.countdown.blocks.timer.hour.2_pm"
+                    },
+                    {
+                    "value": "15",
+                    "label": "t:sections.countdown.blocks.timer.hour.3_pm"
+                    },
+                    {
+                    "value": "16",
+                    "label": "t:sections.countdown.blocks.timer.hour.4_pm"
+                    },
+                    {
+                    "value": "17",
+                    "label": "t:sections.countdown.blocks.timer.hour.5_pm"
+                    },
+                    {
+                    "value": "18",
+                    "label": "t:sections.countdown.blocks.timer.hour.6_pm"
+                    },
+                    {
+                    "value": "19",
+                    "label": "t:sections.countdown.blocks.timer.hour.7_pm"
+                    },
+                    {
+                    "value": "20",
+                    "label": "t:sections.countdown.blocks.timer.hour.8_pm"
+                    },
+                    {
+                    "value": "21",
+                    "label": "t:sections.countdown.blocks.timer.hour.9_pm"
+                    },
+                    {
+                    "value": "22",
+                    "label": "t:sections.countdown.blocks.timer.hour.10_pm"
+                    },
+                    {
+                    "value": "23",
+                    "label": "t:sections.countdown.blocks.timer.hour.11_pm"
+                    }
+                ],
+                "default": "10"
+            },
+            {
+                "type": "select",
+                "id": "minute",
+                "label": "t:sections.countdown.blocks.timer.minute.label",
+                "info": "t:sections.countdown.blocks.timer.minute.info",
+                "options": [
+                    {
+                        "value": "00",
+                        "label": "t:sections.countdown.blocks.timer.minute.00"
+                    },
+                    {
+                        "value": "01",
+                        "label": "t:sections.countdown.blocks.timer.minute.01"
+                    },
+                    {
+                        "value": "02",
+                        "label": "t:sections.countdown.blocks.timer.minute.02"
+                    },
+                    {
+                        "value": "03",
+                        "label": "t:sections.countdown.blocks.timer.minute.03"
+                    },
+                    {
+                        "value": "04",
+                        "label": "t:sections.countdown.blocks.timer.minute.04"
+                    },
+                    {
+                        "value": "05",
+                        "label": "t:sections.countdown.blocks.timer.minute.05"
+                    },
+                    {
+                        "value": "06",
+                        "label": "t:sections.countdown.blocks.timer.minute.06"
+                    },
+                    {
+                        "value": "07",
+                        "label": "t:sections.countdown.blocks.timer.minute.07"
+                    },
+                    {
+                        "value": "08",
+                        "label": "t:sections.countdown.blocks.timer.minute.08"
+                    },
+                    {
+                        "value": "09",
+                        "label": "t:sections.countdown.blocks.timer.minute.09"
+                    },
+                    {
+                        "value": "10",
+                        "label": "t:sections.countdown.blocks.timer.minute.10"
+                    },
+                    {
+                        "value": "11",
+                        "label": "t:sections.countdown.blocks.timer.minute.11"
+                    },
+                    {
+                        "value": "12",
+                        "label": "t:sections.countdown.blocks.timer.minute.12"
+                    },
+                    {
+                        "value": "13",
+                        "label": "t:sections.countdown.blocks.timer.minute.13"
+                    },
+                    {
+                        "value": "14",
+                        "label": "t:sections.countdown.blocks.timer.minute.14"
+                    },
+                    {
+                        "value": "15",
+                        "label": "t:sections.countdown.blocks.timer.minute.15"
+                    },
+                    {
+                        "value": "16",
+                        "label": "t:sections.countdown.blocks.timer.minute.16"
+                    },
+                    {
+                        "value": "17",
+                        "label": "t:sections.countdown.blocks.timer.minute.17"
+                    },
+                    {
+                        "value": "18",
+                        "label": "t:sections.countdown.blocks.timer.minute.18"
+                    },
+                    {
+                        "value": "19",
+                        "label": "t:sections.countdown.blocks.timer.minute.19"
+                    },
+                    {
+                        "value": "20",
+                        "label": "t:sections.countdown.blocks.timer.minute.20"
+                    },
+                    {
+                        "value": "21",
+                        "label": "t:sections.countdown.blocks.timer.minute.21"
+                    },
+                    {
+                        "value": "22",
+                        "label": "t:sections.countdown.blocks.timer.minute.22"
+                    },
+                    {
+                        "value": "23",
+                        "label": "t:sections.countdown.blocks.timer.minute.23"
+                    },
+                    {
+                        "value": "24",
+                        "label": "t:sections.countdown.blocks.timer.minute.24"
+                    },
+                    {
+                        "value": "25",
+                        "label": "t:sections.countdown.blocks.timer.minute.25"
+                    },
+                    {
+                        "value": "26",
+                        "label": "t:sections.countdown.blocks.timer.minute.26"
+                    },
+                    {
+                        "value": "27",
+                        "label": "t:sections.countdown.blocks.timer.minute.27"
+                    },
+                    {
+                        "value": "28",
+                        "label": "t:sections.countdown.blocks.timer.minute.28"
+                    },
+                    {
+                        "value": "29",
+                        "label": "t:sections.countdown.blocks.timer.minute.29"
+                    },
+                    {
+                        "value": "30",
+                        "label": "t:sections.countdown.blocks.timer.minute.30"
+                    },
+                    {
+                        "value": "31",
+                        "label": "t:sections.countdown.blocks.timer.minute.31"
+                    },
+                    {
+                        "value": "32",
+                        "label": "t:sections.countdown.blocks.timer.minute.32"
+                    },
+                    {
+                        "value": "33",
+                        "label": "t:sections.countdown.blocks.timer.minute.33"
+                    },
+                    {
+                        "value": "34",
+                        "label": "t:sections.countdown.blocks.timer.minute.34"
+                    },
+                    {
+                        "value": "35",
+                        "label": "t:sections.countdown.blocks.timer.minute.35"
+                    },
+                    {
+                        "value": "36",
+                        "label": "t:sections.countdown.blocks.timer.minute.36"
+                    },
+                    {
+                        "value": "37",
+                        "label": "t:sections.countdown.blocks.timer.minute.37"
+                    },
+                    {
+                        "value": "38",
+                        "label": "t:sections.countdown.blocks.timer.minute.38"
+                    },
+                    {
+                        "value": "39",
+                        "label": "t:sections.countdown.blocks.timer.minute.39"
+                    },
+                    {
+                        "value": "40",
+                        "label": "t:sections.countdown.blocks.timer.minute.40"
+                    },
+                    {
+                        "value": "41",
+                        "label": "t:sections.countdown.blocks.timer.minute.41"
+                    },
+                    {
+                        "value": "42",
+                        "label": "t:sections.countdown.blocks.timer.minute.42"
+                    },
+                    {
+                        "value": "43",
+                        "label": "t:sections.countdown.blocks.timer.minute.43"
+                    },
+                    {
+                        "value": "44",
+                        "label": "t:sections.countdown.blocks.timer.minute.44"
+                    },
+                    {
+                        "value": "45",
+                        "label": "t:sections.countdown.blocks.timer.minute.45"
+                    },
+                    {
+                        "value": "46",
+                        "label": "t:sections.countdown.blocks.timer.minute.46"
+                    },
+                    {
+                        "value": "47",
+                        "label": "t:sections.countdown.blocks.timer.minute.47"
+                    },
+                    {
+                        "value": "48",
+                        "label": "t:sections.countdown.blocks.timer.minute.48"
+                    },
+                    {
+                        "value": "49",
+                        "label": "t:sections.countdown.blocks.timer.minute.49"
+                    },
+                    {
+                        "value": "50",
+                        "label": "t:sections.countdown.blocks.timer.minute.50"
+                    },
+                    {
+                        "value": "51",
+                        "label": "t:sections.countdown.blocks.timer.minute.51"
+                    },
+                    {
+                        "value": "52",
+                        "label": "t:sections.countdown.blocks.timer.minute.52"
+                    },
+                    {
+                        "value": "53",
+                        "label": "t:sections.countdown.blocks.timer.minute.53"
+                    },
+                    {
+                        "value": "54",
+                        "label": "t:sections.countdown.blocks.timer.minute.54"
+                    },
+                    {
+                        "value": "55",
+                        "label": "t:sections.countdown.blocks.timer.minute.55"
+                    },
+                    {
+                        "value": "56",
+                        "label": "t:sections.countdown.blocks.timer.minute.56"
+                    },
+                    {
+                        "value": "57",
+                        "label": "t:sections.countdown.blocks.timer.minute.57"
+                    },
+                    {
+                        "value": "58",
+                        "label": "t:sections.countdown.blocks.timer.minute.58"
+                    },
+                    {
+                        "value": "59",
+                        "label": "t:sections.countdown.blocks.timer.minute.59"
+                    },
+                    {
+                        "value": "60",
+                        "label": "t:sections.countdown.blocks.timer.minute.60"
+                    }
+                    ],
+            "default": "10"
+            },
+            {
+                "type": "text",
+                "id": "complete_message",
+                "label": "t:sections.countdown.blocks.timer.complete_message.label"
+            }
+        ]
+    }
+],
+"presets": [
+    {
+        "name": "t:sections.countdown.presets.name",
+        "blocks": [
+            {
+                "type": "text"
+            },
+            {
+                "type": "timer"
+            }
+        ]
+    }
+]
+}
+{% endschema %}

@@ -1,0 +1,193 @@
+{{ 'newsletter-popup.css' | asset_url | stylesheet_tag }}
+      
+{%- unless section.settings.show_only_on_home and template != 'index' -%}
+  <newsletter-popup class="newsletterPopupWindow" data-section="{{ section.id }}" data-apparition_delay="{{ section.settings.apparition_delay }}000" role="dialog">       
+    <div class="newslatter_division {% if section.settings.image %}remove-border-left{% endif %} color-{{ section.settings.color_scheme }} gradient global-settings-popup"> 
+      {%- if section.settings.image -%}
+        <div class="newsletter_image">
+          {%  liquid  
+            assign height = section.settings.image.width | divided_by: section.settings.image.aspect_ratio | round    
+            assign sizes = '100vw'
+            assign widths = '375, 400, 550, 750' 
+            assign alt = section.settings.image.alt | default: 'Newsletter image'
+          %} 
+          {{ section.settings.image |  image_url: width: 400 |  image_tag: widths: widths, sizes: sizes, height: height, alt: alt, title: alt }}
+        </div>
+      {%- endif -%}
+
+    <div class="newsletter_pop_content" tabindex="-1">
+      <button id="closebtn_newsletterpopup" class="NewsletterPopup__Close link underlined-link focus-inset" aria-label="close popup" tabindex="0">
+        {%-  render 'icon' with 'close' -%}
+      </button>
+      <div class="newsletter_pop_content_inner">
+        <div class="newsletter_header">
+          {%- if section.settings.heading != blank -%}
+            <h2 class="NewsletterPopup__Heading">{{ section.settings.heading | escape }}</h2>
+          {%- endif -%}  
+          {%- if section.settings.content != blank -%}
+            <span class="NewsletterPopup__Content inline-richtext subheading">{{ section.settings.content }}</span>
+          {%- endif -%}
+        </div>
+          <div class="form_newslatter">
+            {%- form 'customer', id: 'newsletter-popup', class: 'NewsletterPopup__Form' -%}
+              <div class="newsletter-form__field-wrapper newsletter_popup">
+                <div class="field">
+                  <input type="hidden" name="contact[tags]" value="newsletter">
+                  <input type="email" id="popup_email" name="contact[email]" class="field__input focus-offset" tabindex="0" required="required" aria-label="Email"  placeholder="Email">
+                  <label class="field__label hidden" for="popup_email">{{ 'newsletter.email' | t }}</label>
+                </div>
+                <button type="submit" class="animated-button newsletter-popup-form__button focus-inset {% if section.settings.view_all_style == 'link' %}link underlined-link{% elsif section.settings.view_all_style == 'solid' %}button button--primary {% else %}button animated-button button--secondary{% endif %}" name="commit" aria-label="{{ 'newsletter.button_label' | t }}" tabindex="0">
+                  <div><span>{{ 'newsletter.button_label' | t }}</span></div>
+                </button>
+              </div>
+              {%- if form.posted_successfully? -%}
+                <h3 class="newsletter-form__message newsletter-form__message--success form__message" id="ContactFooter-success" tabindex="-1" autofocus>
+                {%- render 'icon' with 'success' -%}
+                  {{- 'newsletter.success' | t -}}
+                </h3>
+              {%- endif -%}
+            {%- endform -%}
+          </div>
+        </div>
+      </div>
+    </div>
+  </newsletter-popup>
+{% endunless %}
+<script>
+class newsletterPopup extends HTMLElement {
+  constructor() {
+    super();
+    window.addEventListener('load', (event) => {
+      var cookieName = "newsletter_subscribe";
+      document.getElementById("popup_email").addEventListener('keyup', (event) => {
+        var cookieValue = document.getElementById("popup_email").value;
+        document.cookie = cookieName + "=" + cookieValue + ";"   
+      });
+
+      let cookie_consent = getCookie(cookieName);
+      if(cookie_consent != "" && cookie_consent != undefined){
+        this.classList.remove('open');
+      } else {
+        setTimeout(() => {
+          this.classList.add('open');
+          document.body.classList.add("newsletter-active");
+        }, `${this.dataset.apparition_delay}`);
+        
+        setTimeout(() => {
+          const focusElement = this.querySelector('.newsletter_pop_content') || this.querySelector('.NewsletterPopup__Close');
+          trapFocus(this.querySelector('.newsletter_pop_content'),focusElement);
+        }, `${this.dataset.apparition_delay + 500}`);
+      }  
+
+      function getCookie(cookieName){
+        let name = cookieName + "=";
+        let decodedCookie = decodeURIComponent(document.cookie);
+        var pairs = decodedCookie.split(";");
+        for (var i=0; i<pairs.length; i++){
+          let c = pairs[i];
+            while (c.charAt(0) == ' ') {
+              c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+              return c.substring(name.length, c.length);
+            }
+        }
+      }      
+    });
+
+    document.getElementById("closebtn_newsletterpopup").addEventListener('click', (event) => {
+      this.classList.remove('open');
+      document.body.classList.remove("newsletter-active");
+    });
+    
+    document.querySelector("body").addEventListener('click', (event) => {
+      if(event.target == event.currentTarget &&  !document.querySelector("body").classList.contains('ageverification-active')){
+        this.classList.remove('open');
+        document.body.classList.remove("newsletter-active");
+      }
+    });
+  
+    document.addEventListener('shopify:section:select', () => {
+      if(event.detail.sectionId === `${this.dataset.section}`) {
+        this.classList.add('open');
+        document.body.classList.add("newsletter-active");
+      }
+    });
+  
+    document.addEventListener('shopify:section:deselect', () => {
+      if(event.detail.sectionId === `${this.dataset.section}`) {
+        this.classList.remove('open');
+        document.body.classList.remove("newsletter-active");
+      }
+    });
+  }
+}
+window.customElements.get("newsletter-popup") || window.customElements.define("newsletter-popup", newsletterPopup);
+</script>
+{% schema %}
+  {
+    "name": "t:sections.newsletter-popup.name",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "t:sections.newsletter-popup.settings.paragraph.content"
+      },
+      {
+        "type": "checkbox",
+        "id": "show_only_on_home",
+        "label": "t:sections.newsletter-popup.settings.show_only_on_home.label",
+        "default": true
+      },
+      {
+        "type": "range",
+        "id": "apparition_delay",
+        "min": 0,
+        "max": 15,
+        "step": 1,
+        "unit": "sec",
+        "label": "t:sections.newsletter-popup.settings.apparition_delay.label",
+        "default": 7
+      },
+      {
+        "type": "image_picker",
+        "id": "image",
+        "label": "t:sections.newsletter-popup.settings.image.label",
+        "info": "t:sections.newsletter-popup.settings.image.info"
+      },
+      {
+        "type": "text",
+        "id": "heading",
+        "label": "t:sections.newsletter-popup.settings.heading.label",
+        "default": "Newsletter form"
+      },
+      {
+        "type": "richtext",
+        "id": "content",
+        "label": "t:sections.newsletter-popup.settings.content.label",
+        "default": "<p>You can use this popup to display some useful information to your customers.</p>"
+      },
+      {
+        "type": "color_scheme",
+        "id": "color_scheme",
+        "label": "t:sections.all.colors.label",
+        "default": "background-1"
+      },
+      {
+        "type": "select",
+        "id": "view_all_style",
+        "label": "t:sections.all.view_all_style.label",
+        "options": [
+          {
+            "value": "outline",
+            "label": "t:sections.all.view_all_style.options__2.label"
+          },
+          {
+            "value": "solid",
+            "label": "t:sections.all.view_all_style.options__3.label"
+          }
+        ],
+        "default": "solid"
+      }
+    ]
+  }
+{% endschema %}

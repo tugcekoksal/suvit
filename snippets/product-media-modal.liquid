@@ -1,0 +1,116 @@
+{% comment %}
+  Renders a product media modal. Also see 'product-media-gallery'
+
+  Accepts:
+  - product: {Object} Product liquid object
+  - variant_images: {Array} Product images associated with a variant
+
+  Usage:
+  {% render 'product-media-modal' %}
+{% endcomment %}
+
+<product-modal id="ProductModal-{{ section.id }}" class="product-media-modal media-modal">
+  <div
+    class="product-media-modal__dialog color-{{ section.settings.color_scheme }} gradient"
+    role="dialog"
+    aria-label="{{ 'products.modal.label' | t }}"
+    aria-modal="true"
+    tabindex="-1"
+  >
+    <button
+      id="ModalClose-{{ section.id }}"
+      type="button"
+      class="product-media-modal__toggle"
+      aria-label="{{ 'accessibility.close' | t }}"
+    >
+      {%- render 'icon' with 'close' -%}
+    </button>
+
+    <div
+      class="product-media-modal__content product-media-modal__content--slider color-{{ section.settings.color_scheme }} gradient"
+      role="document"
+      aria-label="{{ 'products.modal.label' | t }}"
+      tabindex="0"
+    >
+      {%- liquid
+        if product.selected_or_first_available_variant.featured_media != null
+          assign media = product.selected_or_first_available_variant.featured_media
+        endif
+      -%}
+
+      {%- if product.selected_or_first_available_variant.featured_media != null -%}
+        <div class="product-media-modal__slide" data-media-id="{{ media.id }}">
+          {%- render 'product-media',
+            media: media,
+            loop: section.settings.enable_video_looping,
+            variant_image: section.settings.hide_variants
+          -%}
+        </div>
+      {%- endif -%}
+
+      {%- for media in product.media -%}
+        {%- liquid
+          if section.settings.hide_variants and variant_images contains media.src or variant_images contains media.id
+            assign variant_image = true
+          else
+            assign variant_image = false
+          endif
+        -%}
+
+        {%- unless media.id == product.selected_or_first_available_variant.featured_media.id -%}
+          <div class="product-media-modal__slide" data-media-id="{{ media.id }}">
+            {%- render 'product-media',
+              media: media,
+              loop: section.settings.enable_video_looping,
+              variant_image: variant_image
+            -%}
+          </div>
+        {%- endunless -%}
+      {%- endfor -%}
+    </div>
+  </div>
+  <script>
+  (function () {
+    const modalId = 'ProductModal-{{ section.id }}';
+
+    document.addEventListener('click', function (event) {
+      const opener = event.target.closest('.product__modal-opener[data-media-id]');
+      if (!opener) return;
+
+      const mediaId = opener.getAttribute('data-media-id');
+      if (!mediaId) return;
+
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+
+      modal.dataset.activeMediaId = mediaId;
+    });
+
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+
+    const observer = new MutationObserver(() => {
+      const mediaId = modal.dataset.activeMediaId;
+      if (!mediaId) return;
+
+      const slider = modal.querySelector('.product-media-modal__content--slider');
+      const target = modal.querySelector('.product-media-modal__slide[data-media-id="' + mediaId + '"]');
+
+      if (!slider || !target) return;
+
+      const previousBehavior = slider.style.scrollBehavior;
+      slider.style.scrollBehavior = 'auto';
+      slider.scrollLeft = target.offsetLeft;
+      slider.style.scrollBehavior = previousBehavior || '';
+
+      modal.dataset.activeMediaId = '';
+    });
+
+    observer.observe(modal, {
+      attributes: true,
+      subtree: true,
+      childList: true
+    });
+  })();
+</script>
+</product-modal>

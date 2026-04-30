@@ -1,0 +1,341 @@
+.header__icon--menu {
+  position: initial;
+}
+#menu-drawer {
+  position: fixed;
+  transform: translateX(-100%);
+  visibility: hidden;
+  z-index: 3;
+  left: 0;
+  top: 0;
+  max-width: 375px;
+  padding: 1.5rem 0 1.5rem 1.5rem;
+  height: calc(100% - 6rem);
+  transition: all 0.5s ease-in-out;
+}
+#menu-drawer[open]{
+  transform: translateX(0%);
+  visibility: visible;
+}
+.js .menu-drawer__navigation .submenu-open {
+  visibility: hidden;
+}
+.menu-drawer__inner-container {
+  position: relative;
+  height: 100%;
+}
+.menu-drawer__navigation-container {
+  display: grid;
+  height: 96.5vh;
+  grid-template-rows: 1fr auto;
+  align-content: space-between;
+  border-radius: 1.5rem;
+  transition: all 0.5s ease-in-out;
+  transition-timing-function: ease-in-out;
+}
+.menu-drawer__navigation-container .drawer-inner_wrapper{
+  padding: 1rem 0;
+}
+.menu-drawer__navigation {
+  overflow: auto;
+  height: 100%;
+  width: 100%;
+}
+.menu-drawer__navigation li.drawer-list-menu__item span{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  line-height: calc(1 + 0.3);
+  gap: 0.8rem;
+}
+.navigation_submenu .menu-title {
+  color: rgba(var(--color-foreground),0.75);
+}
+#menu-drawer[open] .menu-drawer__navigation-container .menu-drawer__navigation li.menu-level-0{
+  opacity: 1;
+  visibility: visible;
+}
+.menu-drawer__menu-item {
+  padding: 1rem 2rem;
+  text-transform: uppercase;
+  word-break: break-all;
+  font-size: 1.6rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+.menu-drawer__utility-links {
+  padding: 0;
+  position: relative;
+}
+.header--has-social .menu-drawer__utility-links {
+  padding: 3.5rem 3rem;
+}
+.menu-drawer__account {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  padding: 1rem 0;
+  font-size: 1.4rem;
+  color: rgb(var(--color-foreground));
+  margin-bottom: 0;
+}
+.menu-drawer__utility-links:has(.menu-drawer__localization) .menu-drawer__account {
+  margin: 0;
+}
+.menu-drawer__account .icon-account {
+  height: 2rem;
+  width: 2rem;
+  margin-right: 1rem;
+}
+.menu-drawer__account:hover .icon-account {
+  transform: scale(1.07);
+}
+.menu-drawer .list-social {
+  justify-content: center;
+}
+.menu-drawer .list-social:empty {
+  display: none;
+}
+.menu-drawer .list-social__link {
+  padding: 1.1rem 1.1rem;
+}
+.header__icon--menu[aria-expanded=true]:before {
+  content: "";
+  top: 100%;
+  left: 0;
+  height: calc(var(--viewport-height, 100vh) -(var(--header-bottom-position, 100%)));
+  width: 100%;
+  display: block;
+  position: absolute;
+  background: rgba(var(--color-foreground), .5);
+}
+header-drawer .icon-hamburger{
+  visibility: visible;
+  opacity: 1;
+}
+header-drawer .icon-close{
+  visibility: hidden;
+  opacity: 0;
+  transition: 0.5s;
+}
+header-drawer[open] .icon-hamburger{
+  visibility: hidden;
+  opacity: 0;
+}
+header-drawer[open] .icon-close{
+  visibility: visible;
+  opacity: 1;
+}
+.menu-drawer__navigation .menu-drawer__menu li ul{
+  padding: 0;
+}
+.drawer-list-menu__item .has-submenu ul.menu-drawer__menu{
+  height: 100%;
+  overflow-y: auto;
+}
+@media screen and (max-width: 990px) {
+  #menu-drawer{
+    position: absolute;
+    top: 100%;
+    transform: unset;
+    height: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+  #menu-drawer[open] {
+    visibility: visible;
+    width: 100%;
+    height: 87vh;
+    padding: 1.5rem;
+    background: #ffffff;
+  }
+  .menu-drawer__navigation-container{
+    height: 0;
+    transition: all 0.5s ease-in-out;
+    transition-delay: 0.5s;
+    transform: unset;
+  }
+  #menu-drawer[open] .menu-drawer__navigation-container{
+    height: 100%;
+  }
+  #menu-drawer[open] .menu-drawer__navigation, #menu-drawer[open] .menu-drawer__utility-links{
+    visibility: visible;
+    opacity: 1;
+    transition-delay: 0.6s;
+  }
+  .menu-drawer__navigation{
+    visibility: hidden;
+    opacity: 0;
+    margin: 1rem 0; 
+    transition: all 0.45s;
+  }
+  .menu-drawer__utility-links{
+    visibility: hidden;
+    opacity: 0;
+  }
+  .menu-drawer__navigation li.menu-level-0{
+    opacity: 0;
+    visibility: hidden;
+    transition: all 1s;
+    transition-delay: 2s;
+  }
+  .menu-drawer__navigation .menu-drawer__menu ul li{
+    justify-content: space-between;
+    padding-right: 0;
+  }
+  div.menu-drawer__submenu, div.menu-drawer__submenu[aria-expanded="false"] {
+    height: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.5s ease-in-out;
+  }
+  div.menu-drawer__submenu[aria-expanded="true"] {
+    opacity: 1;
+    visibility: visible;
+    height: 100%;
+    padding-left: 2rem;
+  }
+  .menu-level-0-item[open] .navigation-menu svg{
+    transform: rotate(180deg);
+    transition: all 0.3s;
+  }
+  .menu-level-1-item[open] svg{
+    transform: rotate(180deg);
+    transition: all 0.3s;
+  }
+  .menu-drawer__navigation{
+    width: 100%;
+  }
+  .closeicon{
+    display: none;
+  }
+ .menu-drawer__menu-item .navigation-menu .icon-caret, .menu-drawer__navigation .navigation_submenu .icon-caret {
+    width: 3.5rem;
+    height: 3.5rem;
+    display: flex;
+    align-items: center;
+    background-color: rgb(var(--color-button));
+    justify-content: center;
+    border-radius: 100%;
+    transition: all 0.3s;
+ }
+ .menu-drawer__menu-item[open] .navigation-menu .icon-caret, .menu-drawer__navigation .menu-drawer__submenu .menu-level-1-item[open] .navigation_submenu .icon-caret{
+    background-color: rgb(var(--color-solid-button-hover-background));
+  }
+  .menu-drawer__menu-item[open] .navigation-menu .icon-caret svg path, .menu-drawer__navigation .menu-drawer__submenu .menu-level-1-item[open] .navigation_submenu .icon-caret svg path{
+    stroke: rgb(var(--color-solid-label-hover));
+  }
+  .navigation-menu .menu-title{
+    width: 85%;
+  }
+  .menu-drawer__navigation ul li .menu-drawer__submenu .menu-drawer__menu li .menu-drawer__menu-item{
+    color: rgba(var(--color-foreground),0.75);
+  }
+}
+@media screen and (max-width: 989px) {
+  .header--has-localizations:where(:not(.header--has-social)) .menu-drawer__utility-links {
+    padding: 2rem 3rem;
+  }
+}
+@media screen and (min-width: 991px) {
+  .header__icon--menu::before {
+    content: '';
+    top: 0;
+    left: 0;
+    z-index: 3;
+    opacity: 0;
+    visibility: hidden;
+    height: 100%;
+    transition: all .35s;
+    transition-delay: .1s;
+    -webkit-backdrop-filter: blur(17px);
+    backdrop-filter: blur(17px);
+    background-color: rgba(18, 18, 18, .5);
+    cursor: var(--cursor-close-svg-url) 28 28, auto;
+    width: 100%;
+    display: block;
+    position: fixed;
+  }
+  body[drawer-open] .header__icon--menu::before{
+    opacity: 1;
+    visibility: visible;
+  }
+  .menu-drawer__navigation li.menu-level-0-item > div.menu-level-1{
+    transform: translateX(0%);
+    z-index: -1;
+    visibility: hidden;
+    opacity: 0;
+  }
+  .menu-drawer__navigation li.menu-level-1-item > div.menu-level-2{
+    z-index: -1;
+    width: 0;
+  }
+  .menu-drawer__navigation li.menu-level-0-item:hover > div.menu-level-1{
+    transform: translateX(84%);
+    visibility: visible;
+    opacity: 1;
+  }
+  .menu-drawer__navigation li.menu-level-1-item:hover > div.menu-level-2 {
+    left: 91%;
+    width: 100%;
+  }
+  .menu-drawer__navigation li.menu-level-1-item > div.menu-level-2 ul{
+    opacity: 0;
+    visibility: hidden;
+    transition-delay: 0s;
+  }
+  .menu-drawer__navigation li.menu-level-1-item:hover > div.menu-level-2 ul{
+    opacity: 1;
+    visibility: visible;
+    transition-delay: .4s;
+  }
+  .menu-drawer__navigation li.menu-level-1-item > div.menu-level-2{
+    z-index: -2;
+  }
+  div.menu-drawer__submenu{
+    position: absolute;
+    top: 0;
+    padding: 0;
+    width: 100%;
+    height: 96.5vh;
+    border-radius: 1.5rem;
+    padding: 3rem 0 3rem 2rem;
+    transition: 0.5s;
+  }
+  .menu-level-1 .has-submenu{
+    width: 100%;
+  }
+  .closeicon{
+    position: absolute;
+    left: 0;
+    top: 0;
+    padding: 1rem 2rem;
+  }
+  .closeMenu {
+    height: 2.5rem;
+    width: 2.5rem;
+    position: relative;
+    display: block;
+    cursor: pointer;
+  }
+  .menu-drawer__utility-links{
+    display: none;
+  }
+  .menu-drawer .menu-drawer__menu li .icon-caret > svg{
+    transform: rotate(-90deg);
+  }
+  .menu-drawer__navigation-container{
+    padding: 3rem 0;
+  }
+}
+@media screen and (min-width: 1024px) and (max-width: 1399px) {
+  div.menu-drawer__submenu,
+  .menu-drawer__navigation-container{
+    height: 93vh;
+  }
+}
+@media screen and (min-width: 1250px){
+  .menu-drawer__navigation li.menu-level-0-item:hover > div.menu-level-1{
+    transform: translateX(90%);
+  }
+}

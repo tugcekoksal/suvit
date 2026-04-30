@@ -1,0 +1,133 @@
+<section class="page-heading-section">
+  <div class="page-heading-container">
+    {% if section.settings.subheading != blank %}
+      <p class="page-heading-subtitle">{{ section.settings.subheading }}</p>
+    {% endif %}
+
+    {% if section.settings.heading != blank %}
+      <h1 class="page-heading-title">{{ section.settings.heading }}</h1>
+    {% endif %}
+
+    {% if section.settings.text != blank %}
+      <div class="page-heading-text">
+        {{ section.settings.text }}
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<style>
+  .page-heading-section {
+    padding: 60px 20px;
+    background: {{ section.settings.bg_color }};
+    text-align: {{ section.settings.alignment }};
+  }
+
+  .page-heading-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .page-heading-subtitle {
+    margin: 0 0 12px;
+    font-size: 14px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: {{ section.settings.subheading_color }};
+  }
+
+  .page-heading-title {
+    margin: 0 0 16px;
+    font-size: 42px;
+    line-height: 1.2;
+    color: {{ section.settings.heading_color }};
+  }
+
+  .page-heading-text {
+    max-width: 700px;
+    margin: 0 auto;
+    font-size: 18px;
+    line-height: 1.6;
+    color: {{ section.settings.text_color }};
+  }
+
+  @media screen and (max-width: 768px) {
+    .page-heading-section {
+      padding: 40px 16px;
+    }
+
+    .page-heading-title {
+      font-size: 30px;
+    }
+
+    .page-heading-text {
+      font-size: 16px;
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "Page Heading",
+  "settings": [
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Alt başlık",
+      "default": "Welcome"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Başlık",
+      "default": "Sayfa Başlığı"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "Açıklama",
+      "default": "<p>Buraya kısa bir açıklama ekleyebilirsiniz.</p>"
+    },
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "Hizalama",
+      "options": [
+        { "value": "left", "label": "Sol" },
+        { "value": "center", "label": "Orta" },
+        { "value": "right", "label": "Sağ" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Arka plan rengi",
+      "default": "#f5f5f5"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Başlık rengi",
+      "default": "#111111"
+    },
+    {
+      "type": "color",
+      "id": "subheading_color",
+      "label": "Alt başlık rengi",
+      "default": "#777777"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Metin rengi",
+      "default": "#444444"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Page Heading"
+    }
+  ]
+}
+{% endschema %}
