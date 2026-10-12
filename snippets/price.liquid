@@ -41,6 +41,25 @@
   if target == product and product.price_varies
     assign money_price = 'products.product.price.from_price_html' | t: price: money_price
   endif
+
+  # ✅ B2B: compute NET prices (catalog prices are NET × 1.19, divide back to show net)
+  if customer.b2b?
+    assign net_price = price | times: 100 | divided_by: 119 | round
+    assign net_price_min = price_min | times: 100 | divided_by: 119 | round
+    assign net_price_max = price_max | times: 100 | divided_by: 119 | round
+    if settings.currency_code_enabled
+      assign money_price = net_price | money_with_currency
+      assign money_price_min = net_price_min | money_with_currency
+      assign money_price_max = net_price_max | money_with_currency
+    else
+      assign money_price = net_price | money_without_trailing_zeros
+      assign money_price_min = net_price_min | money_without_trailing_zeros
+      assign money_price_max = net_price_max | money_without_trailing_zeros
+    endif
+    if target == product and product.price_varies
+      assign money_price = 'products.product.price.from_price_html' | t: price: money_price
+    endif
+  endif
 -%}
 
 
@@ -105,5 +124,8 @@
     <span class="badge price__badge-sold-out color-{{ settings.sold_out_badge_color_scheme }}">
       {{ 'products.product.sold_out' | t }}
     </span>
+  {%- endif -%}
+  {%- if customer.b2b? -%}
+    <small class="b2b-tax-note" style="display:block;font-size:0.75em;color:#666;margin-top:2px;">zzgl. 19% MwSt</small>
   {%- endif -%}
 </div>
