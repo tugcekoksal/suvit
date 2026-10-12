@@ -1,0 +1,105 @@
+{%- if is_link -%}
+  <div
+    class="toggle-menu absolute z-30 background-header top-full w-48 xl:w-60 shadow-header transition-all duration-header-menu delay-header-menu ease-in-out opacity-0 rounded-corners"
+    x-init="setPosition($el,1); resizeWindow($el,1)"
+    inert
+  >
+    <ul class="pt-7.5 pb-7.5">
+      {% assign level = 0 %}
+      {%- for link in link.links -%}
+        {%- liquid
+          assign is_link = false
+          if link.links != blank
+            assign is_link = true
+          endif
+          if link.levels > level
+            assign level = link.levels
+          endif
+        -%}
+        <li
+          x-data="{ openSub: false }"
+          class="relative pl-7.5 pr-7.5 font-normal"
+          {% if desktop_motion == 'hover' %}
+            @mouseover="openSub = true; $el.classList.add('is-focus-child');"
+            @mouseleave="$el.classList.remove('is-focus-child');"
+            @mouseover.away="openSub = false"
+            @focusin="$el.classList.add('is-focus-child');"
+            @focusout="$el.classList.remove('is-focus-child');"
+          {% else %}
+            @mouseover="$el.classList.add('is-focus-child');"
+            @mouseleave="$el.classList.remove('is-focus-child');"
+            @focusin="$el.classList.add('is-focus-child');"
+            @focusout="$el.classList.remove('is-focus-child');"
+            @click.outside="openSub = false"
+          {% endif %}
+        >
+          <div class="sub-menu flex items-center{% unless forloop.first %} pt-3{% endunless %}">
+            <span class="flex-1">
+              <a
+                href="{{ link.url }}"
+                class="link relative x-break-words justify-between{% if is_link %} menu-parent-link flex items-center gap-2.5 {% else %} inline-block w-full{% endif %} duration-200 transition {% if link.current or link.child_active %} active{% endif %}"
+                {% if desktop_motion == 'click' and is_link %}
+                  @click="
+                    () => {
+                      if (openSub) {
+                        return;
+                      };
+                      $event.preventDefault();
+                      openSub = true;
+                    }
+                  "
+                {% endif %}
+              >
+                <span class="link-animation relative">{{ link.title | escape }}</span>
+                {%- if is_link -%}
+                  <span
+                    class="icon-child z-10 w-5 h-5 shrink-0 p-1 rounded-full block align-end -rotate-90 "
+                    @keyup.enter="openSub=!openSub"
+                    tabindex="0"
+                  >
+                    {%- render 'icon-all', icon: 'icon-caret' -%}
+                  </span>
+                {%- endif -%}
+              </a>
+            </span>
+          </div>
+          {%- if is_link -%}
+            <div
+              class="child absolute{% if forloop.first %} -top-5{% else %} -top-2{% endif %} left-full w-full duration-150 shadow-header rounded-corners overflow-hidden"
+              :class="openSub ? 'opacity-1 visible' : 'opacity-0 invisible -z-1' "
+              @focusin="openSub = true; $el.classList.add('is-focus-child');"
+              @focusout="openSub = false; $el.classList.remove('is-focus-child');"
+            >
+              <span
+                class="absolute background-header top-0 left-0 right-0 bottom-0 duration-200 origin-left"
+                :class="!openSub && 'scale-x-0'"
+              ></span>
+              <ul class="pt-7.5 pb-7.5">
+                {%- for childlink in link.links -%}
+                  <li class="relative pl-7.5 pr-7.5">
+                    <div class="flex items-center{% unless forloop.first %} pt-3{% endunless %}">
+                      <span class="flex-1">
+                        <a
+                          href="{{ childlink.url }}"
+                          class="link-animation link inline-block x-break-words relative w-full {% if childlink.current or request.path == childlink %} active{% endif %}"
+                        >
+                          <span>{{ childlink.title | escape }}</span>
+                        </a>
+                      </span>
+                    </div>
+                  </li>
+                {%- endfor -%}
+              </ul>
+            </div>
+          {%- endif -%}
+        </li>
+      {%- endfor -%}
+    </ul>
+    {% if level > 0 %}
+      <div
+        class="hidden {{ level }}"
+        x-init="setPosition($el,{{ level | plus: 1 }}); resizeWindow($el,{{ level | plus: 1 }})"
+      ></div>
+    {% endif %}
+  </div>
+{%- endif -%}

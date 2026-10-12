@@ -1,0 +1,15 @@
+{%- style -%}
+  {{ settings.heading_font | font_face: font_display: 'swap' }}
+  {{ settings.body_font | font_face: font_display: 'swap' }}
+  {{ settings.menu_font | font_face: font_display: 'swap' }}
+  {{ settings.button_font | font_face: font_display: 'swap' }}
+
+  {{ settings.body_font | font_modify: 'weight', 'bold' | font_face: font_display: 'swap' }}
+  {{ settings.body_font | font_modify: 'style', 'italic' | font_face: font_display: 'swap' }}
+  {{ settings.body_font | font_modify: 'weight', 'bold' | font_modify: 'style', 'italic' | font_face: font_display: 'swap' }}
+  {{ settings.menu_font | font_modify: 'weight', '400' | font_face: font_display: 'swap' }}
+  {{ settings.heading_font | font_modify: 'weight', '400' | font_face: font_display: 'swap' }}
+  {%- if template.name contains '404' -%}
+    {{ settings.heading_font | font_modify: 'style', 'normal' | font_modify: 'weight', 'bold' | font_face: font_display: 'swap' }}
+  {%- endif -%}
+{%- endstyle -%}

@@ -1,0 +1,467 @@
+{% if block.settings.text != blank %}
+  {% style %}
+    .block-{{ block.id }} {
+      --pad-top: {{ block.settings.desktop_padding_top }}px;
+      --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+      --pad-left: {{ block.settings.desktop_padding_left }}px;
+      --pad-right: {{ block.settings.desktop_padding_right }}px;
+      --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+      --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+      --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+      --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+      {% if block.settings.text_size == 'custom' %}
+        font-size: {{ block.settings.mobile_font_size }}px;
+        line-height: {{ block.settings.line_height }}%;
+        --line-height-heading: {{ block.settings.line_height | divided_by: 100.0 }};
+      {% endif %}
+    }
+    {% if block.settings.text_size == 'custom' %}
+      @media (min-width: 768px) {
+        .block-{{ block.id }} {
+          font-size: {{ block.settings.desktop_font_size }}px;
+        }
+      }
+    {% endif %}
+  {% endstyle %}
+
+  <div 
+    class="block-text block-padding maximize-block block-{{ block.id }} z-10 p-break-words{% if block.settings.text-size != 'custom' %} text-{{ block.settings.text_size }}{% endif %}" 
+    data-block-id="{{ block.id }}"
+    {{ block.shopify_attributes }}
+  >
+    {% liquid
+      assign number_of_lines_shown = block.settings.number_of_lines_shown
+      assign block_id = block.id
+      assign content = block.settings.text
+      assign read_more_label = block.settings.read_more_label
+      assign see_less_label = block.settings.see_less_label
+      assign highlight_effect = block.settings.highlight_effect
+      assign text_transform = block.settings.text_transform
+    %}
+
+    {% liquid
+      if settings.lang_direction contains request.locale.iso_code
+        assign is_rtl = true
+      else
+        assign is_rtl = false
+      endif
+
+      assign max_height_mobile = "50px"
+      assign max_height_desktop = "70px"
+      if number_of_lines_shown == "large"
+        assign max_height_mobile = "130px"
+        assign max_height_desktop = "150px"
+      elsif number_of_lines_shown == "medium"
+        assign max_height_mobile = "90px"
+        assign max_height_desktop = "100px"
+      endif
+    %}
+
+    {% comment %} Handle highlight text in content {% endcomment %}
+    {% if highlight_effect != blank %}
+      {% if text_transform != 'none' %}
+        {% style %}
+          .highlight-text-transform-{{ block_id }} {
+            {% if text_transform == 'italic' %}
+              font-style: italic;
+            {% elsif text_transform == 'uppercase' %}
+              text-transform: uppercase;
+            {% else %}
+              text-transform: uppercase;
+              font-style: italic;
+            {% endif %}
+          }
+        {% endstyle %}
+      {% endif %}
+
+      {% capture icon_highlight %}
+        {% if highlight_effect == "underline" %}
+          <svg class="svg-highlight-{{ block_id }} text-svg-underline absolute left-[6%] top-auto bottom-0 w-4/5 h-[15%] rtl:rotate-180"
+            xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 12" fill="none" preserveAspectRatio="none"
+          >
+            <path d="M447.927 2.35583C338.059 -1.20265 110.867 1.8394 6.15217 2.51143C3.52318 2.5283 1.37007 4.83214 1.46495 7.41709C1.54483 9.59366 3.27775 11.2031 5.494 11.159L447.927 2.35583Z" fill="currentColor" stroke="currentColor"/>
+          </svg>
+        {% endif %}
+      {% endcapture %}
+
+      {% liquid
+        case highlight_effect
+          when 'underline'
+            assign heading_highlight = '<span class="inline-block highlight-text-transform-' | append: block_id | append: ' relative heading-highlight-underline" data-highlight-class="heading-highlight-underline--active" data-highlight-delay="700">'
+          when 'marker'
+            assign heading_highlight = '<span class="inline-block highlight-text-transform-' | append: block_id | append: ' heading-highlight-marker" data-highlight-class="heading-highlight-marker--active" data-highlight-delay="700">'
+          when 'text-color-change'
+            assign heading_highlight = '<span class="inline-block highlight-text-transform-' | append: block_id | append: ' heading-highlight-color-change" data-highlight-class="heading-highlight-color-change--active" data-highlight-delay="700">'
+          when 'shadow'
+            assign heading_highlight = '<span class="inline-block highlight-text-transform-' | append: block_id | append: ' heading-highlight-shadow" data-highlight-class="heading-highlight-shadow--active" data-highlight-delay="700">'
+        endcase
+
+        assign icon_highlight = icon_highlight | append: "</span>"
+      %}
+
+      {% liquid
+        if content contains '[' and content contains ']'
+          if content contains '<a' and content contains '</a>'
+            assign parts = content | split: '<a'
+            for part in parts
+              assign new_part = part
+              if part contains '</a>' and part contains '">'
+                assign a_tag_attributes = part | split: '">' | first
+                if a_tag_attributes contains '[' and content contains ']'
+                  assign a_tag_attributes_new = a_tag_attributes | replace: '[', 'replace-to-&#91;' | replace: ']', 'replace-to-&#93;'
+                  assign new_part = part | replace: a_tag_attributes, a_tag_attributes_new
+                endif
+              endif
+
+              if new_part != part
+                assign content = content | replace: part, new_part
+              endif
+            endfor
+          endif
+
+          assign content = content | replace: '[', heading_highlight | replace: ']', icon_highlight
+          if content contains 'replace-to-&#91;' and content contains 'replace-to-&#93;'
+            assign content = content | replace: 'replace-to-&#91;', '[' | replace: 'replace-to-&#93;', ']'
+          endif
+        endif
+      %}
+    {% endif %}
+
+    {% comment %} Handle read more / see less feature {% endcomment %}
+    {%- if number_of_lines_shown == 'small' or number_of_lines_shown == 'medium' or number_of_lines_shown == 'large' -%}
+      {%- style -%}
+        .line-clamp-{{ block_id }} {
+          max-height: {{ max_height_mobile }};
+        }
+        @media (min-width: 768px) {
+          .line-clamp-{{ block_id }} {
+            max-height: {{ max_height_desktop }};
+          }
+        }
+      {%- endstyle -%}
+      <div class="block-text__truncate truncate-container ltr{% unless disable_animation %} anm-fade-element{% endunless -%}"
+        {%- unless disable_animation %}data-fade-on-intersect {% endunless -%}
+        x-data="xTruncateText"
+      >
+        <div class="block-text__truncate-content truncate-text relative {{ class_truncate_text }} line-clamp-{{ block_id }} overflow-hidden"
+          x-intersect.once="$nextTick(() => { setTruncate($el); load($el) });"
+        >
+          <div class="block-text__content text-truncate truncate-inner relative rte{% if is_rtl %} rtl{% endif %}">
+            {{ content | replace: '<iframe ', '<iframe loading="lazy" ' }}
+          </div>
+          <div class="block-text__gradient gradient block" :class="expanded ? 'hidden' : 'block'"></div>
+        </div>
+        <template x-if="truncatable" x-show="truncatable">
+          <div class="block-text__toggle text-link relative inline mt-4 mb-2"
+            x-init="label = '{{ read_more_label | escape }}'"
+            x-transition
+            @click.prevent="truncated ? open($el, '{{ see_less_label | escape }}') : close($el, '{{ read_more_label | escape }}', '{{ quick_view }}');"
+            @keydown.enter.prevent="truncated ? open($el, '{{ see_less_label | escape }}') : close($el, '{{ read_more_label | escape }}', '{{ quick_view }}');"
+            @keyup.space.prevent="truncated ? open($el, '{{ see_less_label | escape }}') : close($el, '{{ read_more_label | escape }}', '{{ quick_view }}');"
+            :class="truncated || 'text-link-expand'"
+            x-text="label"
+            tabindex="0"
+            role="button"
+            :aria-expanded="truncated ? 'true' : 'false'"
+            style="font-family: inherit;"
+          ></div>
+        </template>
+      </div>
+    {% else %}
+      <div class="block-text__content truncate-text {% unless disable_animation %} anm-fade-element{% endunless %} {{ class_truncate_text }}"
+        {% unless disable_animation %} data-fade-on-intersect{% endunless %}
+      >
+        <div class="rte">
+          {{ content | replace: '<iframe ', '<iframe loading="lazy" ' }}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Text",
+  "tag": null,
+  "settings": [
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "t:global.text.text",
+      "default": "<p>This is a sample text block. You can use it to highlight key information, share details about your product, or add a short message for your customers.</p>"
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "select",
+      "id": "text_size",
+      "label": "Font size",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:global.size.small"
+        },
+        {
+          "value": "medium",
+          "label": "t:global.size.medium"
+        },
+        {
+          "value": "large",
+          "label": "t:global.size.large"
+        },
+        {
+          "value": "custom",
+          "label": "Custom"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "range",
+      "id": "desktop_font_size",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Desktop font size",
+      "default": 14,
+      "visible_if": "{{ block.settings.text_size == 'custom' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_font_size",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Mobile font size",
+      "default": 14,
+      "visible_if": "{{ block.settings.text_size == 'custom' }}"
+    },
+    {
+      "type": "range",
+      "id": "line_height",
+      "min": 100,
+      "max": 300,
+      "step": 5,
+      "unit": "%",
+      "label": "Line height",
+      "default": 140,
+      "visible_if": "{{ block.settings.text_size == 'custom' }}"
+    },
+    {
+      "type": "header",
+      "content": "Highlight",
+      "info": "t:global.text.highlight_info"
+    },
+    {
+      "type": "select",
+      "id": "highlight_effect",
+      "label": "t:global.text.highlight_effect.label",
+      "options": [
+        {
+          "value": "underline",
+          "label": "t:global.text.highlight_effect.option_1"
+        },
+        {
+          "value": "marker",
+          "label": "t:global.text.highlight_effect.option_2"
+        },
+        {
+          "value": "text-color-change",
+          "label": "t:global.text.highlight_effect.option_3"
+        },
+        {
+          "value": "shadow",
+          "label": "t:global.text.highlight_effect.option_4"
+        }
+      ],
+      "default": "underline"
+    },
+    {
+      "type": "select",
+      "id": "text_transform",
+      "label": "t:global.text.transform.label",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:global.text.transform.none"
+        },
+        {
+          "value": "italic",
+          "label": "t:global.text.transform.italic"
+        },
+        {
+          "value": "uppercase",
+          "label": "t:global.text.transform.uppercase"
+        },
+        {
+          "value": "both",
+          "label": "t:global.text.transform.italic_and_uppercase"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "header",
+      "content": "Appearance"
+    },
+    {
+      "type": "select",
+      "id": "number_of_lines_shown",
+      "label": "t:global.text.default_content_height.label",
+      "info": "t:global.text.default_content_height.info",
+      "default": "none",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:global.text.default_content_height.show_full"
+        },
+        {
+          "value": "small",
+          "label": "t:global.size.small"
+        },
+        {
+          "value": "medium",
+          "label": "t:global.size.medium"
+        },
+        {
+          "value": "large",
+          "label": "t:global.size.large"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "read_more_label",
+      "default": "Read more",
+      "label": "t:global.text.read_more_label",
+      "visible_if": "{{ block.settings.number_of_lines_shown != 'none' }}"
+    },
+    {
+      "type": "text",
+      "id": "see_less_label",
+      "default": "See less",
+      "label": "t:global.text.see_less_label",
+      "visible_if": "{{ block.settings.number_of_lines_shown != 'none' }}"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "select",
+      "id": "spacing_choose_device",
+      "label": "Choose device",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "Desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "Mobile"
+        }
+      ],
+      "default": "desktop",
+      "info": "Desktop and Mobile settings are configured separately."
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Text",
+      "category": "Basic"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,21 @@
+.motion-before-image {
+  height: var(--motion-image-height);
+  width: calc(var(--motion-image-height) * 1.77);
+}
+.image-size-large {
+  --motion-image-height: calc(var(--heading-font-size-large) * 1.4);
+}
+.image-size-extra-large {
+  --motion-image-height: calc(var(--heading-font-size-extra-large) * 1.4);
+}
+.image-section-wrapper {
+  width: var(--motion-after-image-width);
+  height: var(--motion-after-image-height);
+  will-change: heigth, width;
+}
+.motion-after-wrapper.finished-scrolling  .motion-after-content {
+  display: flex;
+}
+.top-sticky-after-image {
+  top: calc(var(--top-header, 0px) + var(--announcement-height, 0px));
+}

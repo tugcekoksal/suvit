@@ -1,0 +1,114 @@
+{% liquid
+  assign is_rtl = false
+  if settings.text_direction == 'rtl'
+    assign is_rtl = true
+  endif
+
+  assign is_rounded_corners = false
+  if settings.edges_type == 'rounded_corners'
+    assign is_rounded_corners = true
+  endif
+%}
+
+<div
+  x-intersect.once.margin.200px="$store.xProductRecommendations.load($el, '{{ section.id }}', '{{ product.id }}', '{{ block.settings.max_product_show }}', 'complementary')"
+  class="product-recommendations recommendation__main-product w-full"
+  {{ block.shopify_attributes }}
+>
+  {% render 'complementary-product',
+    product: product,
+    section: section,
+    block: block,
+    product_per_page: block.settings.number_product_per_page,
+    enable_carousel_mobile: block.settings.enable_carousel_mobile,
+    enable_carousel_desktop: block.settings.enable_carousel_desktop,
+    is_rtl: is_rtl,
+    is_rounded_corners: is_rounded_corners
+  %}
+</div>
+
+{% schema %}
+{
+  "name": "Complementary Products",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Pairs well with"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_tab",
+      "default": true,
+      "label": "t:main_product.blocks.complementary.settings.show_tab"
+    },
+    {
+      "type": "range",
+      "id": "max_product_show",
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "label": "t:main_product.blocks.complementary.settings.max_product_show",
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "number_product_per_page",
+      "min": 1,
+      "max": 3,
+      "step": 1,
+      "label": "t:main_product.blocks.complementary.settings.number_product_per_page",
+      "info": "t:main_product.blocks.complementary.settings.number_product_per_page_info",
+      "default": 3
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_carousel_desktop",
+      "default": false,
+      "label": "t:global.carousel.enable_carousel_on_desktop"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_carousel_mobile",
+      "default": true,
+      "label": "t:global.carousel.enable_swipe_on_mobile"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.product_cards"
+    },
+    {
+      "type": "select",
+      "id": "media_ratio",
+      "options": [
+        { "value": "natural", "label": "t:global.ratio.natural" },
+        { "value": "1/1", "label": "t:global.ratio.square" },
+        { "value": "4/3", "label": "t:global.ratio.landscape" },
+        { "value": "2/3", "label": "t:global.ratio.portrait" },
+        { "value": "16/9", "label": "t:global.ratio.wide" }
+      ],
+      "default": "natural",
+      "label": "t:global.ratio.image_ratio"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_vendor",
+      "default": false,
+      "label": "t:global.product.show_vendor"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_product_rating",
+      "default": false,
+      "label": "t:global.product.show_rating"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_background",
+      "default": false,
+     "label": "Show background"
+    }
+  ]
+}
+{% endschema %}

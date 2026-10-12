@@ -1,0 +1,203 @@
+{%- if login_hide_price == null -%}
+  {%- capture login_hide_price -%}{%- render 'can-hide-price', product: closest.product -%}{%- endcapture -%}
+  {%- assign login_hide_price = login_hide_price | strip -%}
+{%- endif -%}
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block.settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block.settings.desktop_padding_left }}px;
+    --pad-right: {{ block.settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+  }
+{% endstyle %}
+{% unless settings.hide_cart or login_hide_price == 'true' %}
+  <div
+    class="block-quantity block-{{ block.id }} block-padding product-info__quantity-wrapper maximize-block flex flex-col gap-1.5"
+    data-block-id="{{ block.id }}"
+    x-data="xQuantitySelector('{{ section.id }}', '{{ current_variant.id }}', '{{ closest.product.url }}', {% if closest.product.quantity_price_breaks_configured? %}true{% else %}false{% endif %}, {{ current_variant.quantity_rule.min | default: 1 }}, {{ current_variant.quantity_rule.max | default: 'null' }}, {{ current_variant.quantity_rule.increment | default: 1 }})"
+    {% if closest.product.quantity_price_breaks_configured? %}
+      x-init="handleInit()"
+    {% else %}
+      x-intersect.once.margin.200px="handleInit()"
+    {% endif %}
+    {{ block.shopify_attributes }}
+  >
+    <div
+      class="block-quantity__controls relative flex h-full w-fit items-center color-text-[rgba(var(--color-heading),0.8)] border color-border-[rgba(var(--color-text),0.2)] rounded-corners-md"
+    >
+      <div
+        class="block-quantity__button block-quantity__button--minus flex justify-center items-center cursor-pointer pt-3 pb-3 bg-transparent select-none px-4 md:p-4"
+        :class="atMin ? 'cursor-not-allowed opacity-60 pointer-events-none' : 'cursor-pointer'"
+        :aria-disabled="atMin"
+        name="minus"
+        @click.prevent="minus(1)"
+        @mousedown.prevent
+        @keyup.enter="minus(1)"
+        tabindex="0"
+        role="button"
+        aria-label="{{ "accessibility.minus" | t }}"
+      >
+        <span class="block-quantity__icon w-3.5 h-3.5 flex color-text-[rgba(var(--color-text))]">{% render 'icon-all', icon: 'icon-minus' %}</span>
+      </div>
+      <input
+        class="block-quantity__input outer-spin-button color-text-[rgba(var(--color-text))] focus:outline-none text-medium text-center bg-transparent py-2.5 md:py-3 w-8 quick-view:w-7"
+        type="number"
+        name="quantity"
+        id="Quantity-{{ block.id }}"
+        min="{{ current_variant.quantity_rule.min | default: 1 }}"
+        {%- if current_variant.quantity_rule.max %} max="{{ current_variant.quantity_rule.max }}"{% endif %}
+        step="{{ current_variant.quantity_rule.increment | default: 1 }}"
+        :min="min"
+        :max="max"
+        :step="increment"
+        form="{{ product_form_id }}"
+        x-model="qty"
+        x-on:blur="normalizeOnLeave($el)"
+        x-on:keydown.enter.prevent="validateNow($el)"
+        x-ref="quantity_input"
+        aria-label="{{ "products.product.quantity.label" | t }}"
+      >
+      <div
+        class="block-quantity__button block-quantity__button--plus flex justify-center items-center cursor-pointer pt-3 pb-3 bg-transparent select-none px-4 md:p-4"
+        :class="atMax ? 'cursor-not-allowed opacity-60 pointer-events-none' : 'cursor-pointer'"
+        :aria-disabled="atMax"
+        name="plus"
+        @click.prevent="plus(1)"
+        @mousedown.prevent
+        @keyup.enter="plus(1)"
+        tabindex="0"
+        role="button"
+        aria-label="{{ "accessibility.plus" | t }}"
+      >
+        <span class="block-quantity__icon w-3.5 h-3.5 flex color-text-[rgba(var(--color-text))]">{% render 'icon-all', icon: 'icon-plus' %}</span>
+      </div>
+    </div>
+  </div>
+{% endunless %}
+{% schema %}
+{
+  "name": "t:main_product.blocks.qty_selector.block_name",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "select",
+      "id": "device_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:main_product.blocks.qty_selector.block_name",
+      "category": "t:global.product.product"
+    }
+  ]
+}
+{% endschema %}

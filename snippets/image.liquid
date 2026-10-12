@@ -1,0 +1,87 @@
+{% doc %}
+  Renders an image tag with responsive srcset and lazy-loading options.
+
+  @param {string} [img_class] - CSS class for the image tag
+  @param {image} img - Image object
+  @param {image} [image_mobile] - Mobile image object to use for smaller screens
+  @param {string} [alt] - ALT description
+  @param {number} [aspect_ratio=3] - Aspect ratio used to calculate image height
+  @param {number} [img_width] - Image width
+  @param {string} [attributes] - List of extra HTML attributes
+  @param {boolean} [eager_loading=false] - Whether to eager load the image
+  @param {string} [sizes] - Sizes attribute for the image
+  @param {boolean} [use_focal_point=false] - Apply image's focal point as object-position
+
+  @example
+  {% render 'image', img: product.featured_image, img_class: 'product-image' %}
+{% enddoc %}
+{%- capture sizes -%}{% render 'media-sizes-design-mode', sizes: sizes %}{%- endcapture -%}
+{%- assign sizes = sizes | strip -%}
+{% liquid
+  assign aspect_ratio = aspect_ratio | default: 3
+
+  if img_width == null
+    assign img_width = img.width
+  else
+    assign img_width = img_width | default: 800
+  endif
+
+  assign target_mobile = image_mobile | default: img
+
+  capture srcset
+    if img_width > 150
+      echo target_mobile | image_url: width: 150 | append: ' 150w,'
+    endif
+    if img_width > 200
+      echo target_mobile | image_url: width: 200 | append: ' 200w,'
+    endif
+    if img_width > 300
+      echo target_mobile | image_url: width: 300 | append: ' 300w,'
+    endif
+    if img_width > 400
+      echo target_mobile | image_url: width: 400 | append: ' 400w,'
+    endif
+    if img_width > 480
+      echo target_mobile | image_url: width: 480 | append: ' 480w,'
+    endif
+    if img_width > 550
+      echo target_mobile | image_url: width: 550 | append: ' 550w,'
+    endif
+    if img_width > 768
+      echo img | image_url: width: 768 | append: ' 768w,'
+    endif
+    if img_width > 1024
+      echo img | image_url: width: 1024 | append: ' 1024w,'
+    endif
+    if img_width > 1280
+      echo img | image_url: width: 1280 | append: ' 1280w,'
+    endif
+  endcapture
+
+  assign default_image_alt = 'accessibility.default_alt' | t
+%}
+
+<img
+  class="{{ img_class | escape }}"
+  src="{{ img | image_url }}"
+  alt="{{ alt | default: default_image_alt | escape }}"
+  width="{{ img_width | default: 1100 }}"
+  height="{{ img_width | divided_by: aspect_ratio | ceil }}"
+  {% if eager_loading %}
+    loading="eager"
+    fetchpriority="high"
+    decoding="sync"
+  {% else %}
+    loading="lazy"
+  {% endif %}
+  {{ attributes }}
+  {% if srcset != blank %}
+    srcset="{{ srcset }}"
+  {% endif %}
+  {% if sizes != blank %}
+    sizes="{{ sizes }}"
+  {% endif %}
+  {% if use_focal_point %}
+    style="object-position: {{ img.presentation.focal_point }}"
+  {% endif %}
+>

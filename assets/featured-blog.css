@@ -1,0 +1,116 @@
+.article-1 {
+  display: flex;
+  flex-direction: column;
+}
+
+.content-article-bg-1 {
+  padding-left: 1.75rem;
+  padding-right: 1.75rem;
+  padding-top: 0.75rem;
+  padding-bottom: 1.5rem;
+}
+
+.content-article-bg-2 {
+  width: 66.666667%;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  padding-right: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .content-article-bg-2 {
+    padding-left: 1.25rem;
+    padding-bottom: 0;
+    padding-top: 0.25rem;
+  }
+}
+
+.article-bg-1,
+.article-bg-2 {
+  background-color: rgba(var(--color-text-no-alpha) / 0.05);
+}
+
+.content-article-spacing-1,
+.content-article-spacing-2 {
+  background-color: rgba(var(--color-text-no-alpha) / 0.05);
+}
+
+.content-article-spacing-1 {
+  padding: 1.75rem;
+}
+
+.content-article-spacing-2 {
+  width: 100%;
+  padding: 1.75rem;
+}
+
+.blog-image-desktop-top .article-layout-2,
+.blog-image-desktop-left .article-layout-2,
+.blog-image-desktop-top .article-layout-rtl-2,
+.blog-image-desktop-left .article-layout-rtl-2 {
+  width: 33.333333%;
+}
+
+.blog-image-desktop-top .article-layout-2::before,
+.blog-image-desktop-left .article-layout-2::before,
+.blog-image-desktop-top .article-layout-rtl-2::before,
+.blog-image-desktop-left .article-layout-rtl-2::before {
+  height: 0;
+  display: block;
+  content: '';
+}
+
+.blog-image-desktop-top .article-layout-2,
+.blog-image-desktop-left .article-layout-2 {
+  float: left;
+}
+
+@media (min-width: 768px) {
+  .blog-image-desktop-top .article-layout-2,
+  .blog-image-desktop-left .article-layout-2 {
+    width: 100%;
+    float: none;
+  }
+}
+
+.blog-image-desktop-top .article-layout-rtl-2,
+.blog-image-desktop-left .article-layout-rtl-2 {
+  float: right;
+}
+
+@media (min-width: 768px) {
+  .blog-image-desktop-top .article-layout-rtl-2,
+  .blog-image-desktop-left .article-layout-rtl-2 {
+    width: 100%;
+    float: none;
+  }
+}
+
+.blog-image-desktop-top .content-article-2,
+.blog-image-desktop-left .content-article-2 {
+  float: left;
+}
+
+@media (min-width: 768px) {
+  .blog-image-desktop-top .content-article-2,
+  .blog-image-desktop-left .content-article-2 {
+    width: auto;
+    float: none;
+  }
+}
+
+.article-layout-1 {
+  width: 100%;
+}
+
+.blog-position-right {
+  flex-direction: row-reverse;
+}
+
+.blog-position-left .list-blog {
+  padding-left: 1.25rem;
+}
+
+.blog-position-right .list-blog {
+  padding-right: 1.25rem;
+}

@@ -1,0 +1,438 @@
+<div>
+  {% liquid
+    assign current_variant = product.selected_or_first_available_variant
+    assign swatch_natural = false
+    if settings.swatch_style == 'natural'
+      assign swatch_natural = true
+    endif
+    
+    assign text_option_name = settings.pc_swatch_text_option_name | split: ';'
+    assign swatch_option_name = settings.swatch_option_name | split: ';'
+    assign settings_show_swatch = false
+    if settings.pc_swatches_type == 'color' or settings.pc_swatches_type == 'both_text_and_color'
+      assign settings_show_swatch = true
+      assign list_swatch_option_values = settings.swatch_option_values | newline_to_br | strip_newlines | split: '<br />'
+    endif
+
+    assign best_match_variant = nil
+    assign best_match_available_variant = nil
+    
+    comment
+      Pre-compute which option positions are visible (swatch/text displayed on card).
+      This avoids re-evaluating visibility inside the variant loop for every single variant.
+    endcomment
+    assign visible_option_positions = ''
+    assign visible_option_selected = ''
+    for opt in product.options_with_values
+      assign opt_is_visible = false
+
+      if settings_show_swatch
+        if swatch_option_name contains opt.name
+          assign opt_is_visible = true
+        else
+          assign has_swatch = opt.values | where: 'swatch' | first
+          if has_swatch
+            assign opt_is_visible = true
+          endif
+        endif
+      endif
+
+      if settings.pc_swatches_type == 'text' or settings.pc_swatches_type == 'both_text_and_color'
+        unless opt_is_visible
+          if text_option_name contains opt.name
+            assign opt_is_visible = true
+          endif
+        endunless
+      endif
+
+      if opt_is_visible
+        assign opt_idx = opt.position | minus: 1
+        assign visible_option_positions = visible_option_positions | append: opt_idx | append: ','
+        assign visible_option_selected = visible_option_selected | append: opt.selected_value | append: '|||'
+      endif
+    endfor
+
+    assign visible_positions_arr = visible_option_positions | split: ','
+    assign visible_selected_arr = visible_option_selected | split: '|||'
+
+    comment
+      Use Liquid's where filter to find matching variants instead of looping through all variants.
+      This is much more performant and avoids Liquid loop iteration limits for products with many variants.
+    endcomment
+    assign match_variants = product.variants
+
+    for pos in visible_positions_arr
+      if pos == blank
+        continue
+      endif
+      
+      assign pos_num = pos | plus: 0
+      assign expected_value = visible_selected_arr[forloop.index0]
+      
+      if pos_num == 0
+        assign match_variants = match_variants | where: 'option1', expected_value
+      elsif pos_num == 1
+        assign match_variants = match_variants | where: 'option2', expected_value
+      elsif pos_num == 2
+        assign match_variants = match_variants | where: 'option3', expected_value
+      endif
+    endfor
+
+    assign best_match_variant = match_variants | first
+    assign best_match_available_variant = match_variants | where: 'available', true | first
+
+    comment
+      Prioritize the available match. If no available match exists, fallback to the first match found.
+    endcomment
+    if best_match_available_variant != nil
+      assign current_variant = best_match_available_variant
+    elsif best_match_variant != nil
+      assign current_variant = best_match_variant
+    endif
+  %}
+  {% capture list_metafield_label %}
+    {% liquid
+      assign metafield_label_list = settings.label_and_badge_mtf | newline_to_br | strip_newlines | split: '<br />'
+      for metafield_key in metafield_label_list
+        assign list_key = metafield_key | split: "."
+        assign data_metafield = current_variant.metafields[list_key[0]][list_key[1]]
+        if data_metafield == blank or data_metafield.type != "single_line_text_field"
+          assign data_metafield = product.metafields[list_key[0]][list_key[1]]
+          if data_metafield.type != "single_line_text_field"
+            assign data_metafield = ""
+          endif 
+        endif 
+        if data_metafield
+          echo '{"' | append: metafield_key | append: '": ' | append: '"' | append: data_metafield | append: '"},'
+        endif
+      endfor
+    %}
+  {% endcapture %}
+  {% liquid
+    assign list_metafield_label = list_metafield_label | remove_last: ','
+    assign list_metafield_label = '[' | append: list_metafield_label | append: ']'
+  %}
+  {%- capture data_for_label -%}
+    {
+    {% if settings.label_and_badge_mtf != blank %}
+      "metafield_label": {{ list_metafield_label }}
+    {% endif %}
+    }
+  {%- endcapture %}
+
+  <div id="product-swatch" data-metafield-label="{{ data_for_label |  escape }}">
+    {% for product_option in product.options_with_values %}
+      {% liquid
+        comment
+          Determine if this specific option should be rendered as a color swatch or plain text.
+        endcomment
+        assign show_color_swatch = false
+        if settings_show_swatch
+          if swatch_option_name contains product_option.name
+            assign show_color_swatch = "color-setting"
+          else
+            assign has_option_swatch = product_option.values | where: 'swatch' | first
+            if has_option_swatch
+              assign show_color_swatch = "category-mtf"
+            endif
+          endif
+        endif
+
+        if settings.pc_swatches_type == 'text' or settings.pc_swatches_type == 'both_text_and_color'
+          unless show_color_swatch == "color-setting"
+            if text_option_name contains product_option.name
+              assign show_color_swatch = false
+            endif
+          endunless
+        endif
+
+        assign product_option_position = product_option.position
+        assign product_option_index = product_option_position | minus: 1
+      %}
+      <div class="variant-picker__product-option">
+        {% for option_value in product_option.values %}
+          {% liquid
+            assign is_selected_option = false
+            if current_variant.options[product_option_index] == option_value.name
+              assign is_selected_option = true
+            endif
+
+            assign option_id = section.id | append: '-' | append: option_value.id | append: choose_option_id
+            assign data_position = product_option.position | append: '-' | append: forloop.index0 | append: '-' | append: product.id
+          %}
+
+          {% liquid
+            if option_value.available
+              assign option_disabled = false
+            else
+              assign option_disabled = true
+            endif
+          %}
+
+          {% if show_color_swatch %}
+            {% liquid
+              assign swatch_value_option = null
+              assign multi_colors = null
+              assign image_url = false
+
+              if show_color_swatch == "color-setting"
+                for swatch_option in list_swatch_option_values
+                  assign swatch_item_key = swatch_option | split: ':' | first
+                  assign swatch_item_value = swatch_option | split: ':' | last | strip
+                  if swatch_item_key == option_value
+                    assign swatch_value_option = swatch_item_value
+                    break
+                  endif
+                endfor
+              endif
+
+              assign swatch_value = option_value.name | downcase
+              assign swatch_option_style = 'color'
+              if option_value.swatch.image != blank
+                assign swatch_option_style = 'image'
+                assign image_url = option_value.swatch.image | image_url: width: 40
+                assign swatch_value = 'url(' | append: image_url | append: ')'
+              elsif option_value.swatch.color
+                assign swatch_value = 'rgba(' | append: option_value.swatch.color.rgba | append: ')'
+              endif
+
+              if swatch_value_option
+                if swatch_value_option contains '.'
+                  assign swatch_option_style = 'image'
+                  assign image_url = swatch_value_option | file_img_url: '50x50'
+                  assign swatch_value = 'url(' | append: image_url | append: ')'
+                else
+                  assign multi_colors = swatch_value_option | remove_first: '#' | split: '#'
+                  assign swatch_value = swatch_value_option
+                  assign swatch_option_style = 'color'
+                endif
+              endif
+            %}
+            {% capture linear_background %}
+              {% if multi_colors.size == 3 %}
+                linear-gradient(45deg, {{ '#' | append: multi_colors[0] }}, {{ '#' | append: multi_colors[0] }} 33.3%, {{ '#' | append: multi_colors[1] }} 33.3%, {{ '#' | append: multi_colors[1] }} 66.6%, {{ '#' | append: multi_colors[2] }} 66.6%, {{ '#' | append: multi_colors[2] }});
+              {% elsif multi_colors.size == 2 %}
+                linear-gradient(45deg, {{ '#' | append: multi_colors[0] }}, {{ '#' | append: multi_colors[0] }} 50%, {{ '#' | append: multi_colors[1] }} 50%, {{ '#' | append: multi_colors[1] }});
+              {% endif %}
+            {% endcapture %}
+            {% liquid
+              if multi_colors.size > 1
+                assign swatch_value = linear_background
+                assign swatch_option_style = 'image'
+              endif
+              if settings.replace_color_with_variant_images
+                assign variant_of_option_value = option_value.variant
+                if variant_of_option_value.featured_media.preview_image != blank
+                  assign image_url = variant_of_option_value.featured_media.preview_image | image_url: width: 40
+                elsif product.featured_media.preview_image != blank
+                  assign image_url = product.featured_media.preview_image | image_url: width: 40
+                endif
+                if image_url != blank
+                  assign swatch_option_style = 'image'
+                  assign swatch_value = 'url(' | append: image_url | append: ')'
+                endif
+              endif
+
+              if forloop.first
+                assign ratio_image = 1
+                if swatch_option_style == 'image'
+                  assign ratio_image = 1 | divided_by: image_url.aspect_ratio
+                endif
+              endif
+            %}
+            {%- capture inline_style -%}
+              {%- if swatch_value -%}
+                {%- if swatch_option_style == 'color' -%}
+                  --swatch-color-value: {{ swatch_value }};
+                {%- elsif swatch_option_style == 'image' -%}
+                  --swatch-image-value: {{ swatch_value }}; --swatch-color-value: {{ option_value.name | downcase }}
+                {%- endif -%}
+              {%- endif -%}
+            {%- endcapture -%}
+            <input
+              class="swatch-option__value variant-option {% if option_disabled %} disabled{% endif %} {% if is_selected_option %} selected{% endif %}"
+              type="radio"
+              id="{{ option_id }}"
+              name="VariantSelect-{{ product_option.name }}"
+              data-option-value-id="{{ option_value.id }}"
+            >
+            <label
+              class="swatch-option__label variant-option__label {% if swatch_natural %} swatch-option__natural{% endif %}"
+              style="{% if swatch_natural %}--swatch-option-ratio: {{ ratio_image }};{% endif %} {{ inline_style }}"
+              data-position="{{ data_position }}"
+            >
+            </label>
+          {% else %}
+            <input
+              class="swatch-option__value variant-option {% if option_disabled %} disabled{% endif %} {% if is_selected_option %} selected{% endif %}"
+              type="radio"
+              data-option-value-id="{{ option_value.id }}"
+            >
+            <label
+              class="swatch-option__label"
+              data-swatch-type="text"
+              data-position="{{ data_position }}"
+            >
+              {{ option_value | escape }}
+            </label>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+  <div class="estimate-delivery-card-msg">
+    {% liquid
+      comment
+        Determine if the product/variant is eligible for pre-order based on inventory and settings.
+      endcomment
+      assign is_show_preorder = false
+      assign is_apply_preorder = false
+      if settings.applied_products_preorder == blank and settings.applied_collections_preorder == blank
+        assign is_apply_preorder = true
+      else
+        assign list_product = settings.applied_products_preorder | map: 'id' | join: ';'
+        for collec in settings.applied_collections_preorder
+          assign collec_ids = collec.products | map: 'id' | join: ';'
+          assign list_product = list_product | append: ';' | append: collec_ids
+        endfor
+        if list_product contains product.id
+          assign is_apply_preorder = true
+        endif
+      endif
+      if is_apply_preorder
+        if settings.preorder_show == 'yes'
+          if current_variant.inventory_management == null
+            assign is_show_preorder = true
+          else
+            if current_variant.inventory_quantity > 0
+              assign is_show_preorder = true
+            elsif current_variant.inventory_policy == 'continue' and current_variant.inventory_management != null
+              assign is_show_preorder = true
+            endif
+          endif
+        elsif settings.preorder_show == 'on_back_ordered'
+          if current_variant.inventory_policy == 'continue' and current_variant.inventory_quantity < 1 and current_variant.inventory_management != null
+            assign is_show_preorder = true
+          endif
+        endif
+      endif
+
+      assign is_out_of_stock = false
+      if current_variant.inventory_management == 'shopify'
+        if current_variant.inventory_quantity <= 0 and current_variant.inventory_policy != 'continue'
+          assign is_out_of_stock = true
+        endif
+      endif
+    %}
+    {% liquid
+      assign enable_cart_edt = true
+      if is_show_preorder and settings.pc_hide_when_pre_order
+        assign enable_cart_edt = false
+      elsif is_out_of_stock 
+        assign enable_cart_edt = false    
+      endif
+    %}
+    {%- if enable_cart_edt -%}
+      {%- render 'estimate-delivery-product-card', product: product, variant: current_variant -%}
+    {%- endif -%}
+  </div>
+  {% liquid
+    assign img = current_variant.featured_media
+    if current_variant.featured_media == blank
+      assign img = product.featured_media
+    endif
+    assign card_preview_image = img.preview_image
+  %}
+  {% liquid
+    assign attributes_first_image = 'data-media-id="' | append: img.id | append: '"'
+  %}
+  {% render 'image', img_class: 'product-card__image', img: card_preview_image, alt: product.featured_media.alt, img_width: 500, attributes: attributes_first_image, sizes: sizes, eager_loading: eager_loading %}
+  {%- capture _estimate_shipping_message -%}
+    {%- render 'estimate-shipping-message', product: product, variant: current_variant -%}
+  {%- endcapture -%}
+  {% liquid
+    assign name_edt = settings.name_edt
+    if settings.name_edt == blank
+      assign name_edt = 'general.estimate_delivery' | t
+    endif
+
+    assign message_preorder = 'general.preorder.message_preorder' | t
+    if settings.message_preorder_cart != blank
+      assign message_preorder = settings.message_preorder_cart
+    endif
+  %}
+  {% assign estimate_shipping_message = _estimate_shipping_message | strip %}
+  <div class="current-variant hidden">
+    {{ current_variant | json }}
+  </div>
+  <script
+    type="application/json"
+    data-type="current-bundle-item"
+  >
+    {
+      "id": {{ current_variant.id }},
+      "product_id": {{ product.id }},
+      "title": {{ product.title | json }},
+      "option": {% if product.has_only_default_variant %} "" {% else %} {{ current_variant.title | json }} {% endif %},
+      "featured_image": 
+        {%- if current_variant.featured_image.src != blank -%}{{ current_variant.featured_media | image_url: width: 200 | json -}}{% else -%}
+          {%- if product.featured_image.src != blank -%}{{ product.featured_media | image_url: width: 200 | json }}{% else %}""{% endif -%}{% endif -%},
+      "featured_image_alt": {{ current_variant.featured_media.alt | default: product.featured_media.alt | json }},
+      "quantity": 1,
+      {%- if customer != blank and customer.b2b? -%}
+      "quantity_rule": {{ current_variant.quantity_rule | json }},
+      {%- endif -%}
+      "price": {{ current_variant.price | default: 0 }},
+      "product_url": "{{ product.url | within: collection | split: '?' | first | append: "?variant=" | append: current_variant.id }}",
+      "properties": {
+        {% if is_show_preorder %}
+          "{{ 'general.preorder.name' | t }}": {{ message_preorder | json }}
+          {% if estimate_shipping_message != blank and settings.estimate_show_in_cart == 'show_item' %},{% endif %}
+        {% endif %}
+        {% if estimate_shipping_message != blank and settings.estimate_show_in_cart == 'show_item' %}
+          "{{ name_edt }}": {{ estimate_shipping_message | json }}
+        {% endif %}
+      }
+    }
+  </script>
+  {% if is_apply_preorder %}
+    <script
+      type="application/json"
+      data-type="current-variant-additional-info"
+      class="product-card-variant-inventory"
+    >
+      {
+        "id": {{ current_variant.id |  default: false }},
+        "inventory_policy": "{{ current_variant.inventory_policy }}",
+        "inventory_quantity": {{ current_variant.inventory_quantity | default: false }},
+        "inventory_management": "{{ current_variant.inventory_management }}"
+      }
+    </script>
+  {% endif %}
+  <div class="product-card__properties-group hidden">
+    {% if estimate_shipping_message != blank and settings.estimate_show_in_cart == 'show_item' %}
+      {% liquid
+        assign name_edt = settings.name_edt
+        if settings.name_edt == blank
+          assign name_edt = 'general.estimate_delivery' | t
+        endif
+      %}
+      <input
+        type="hidden"
+        name="properties[{{ name_edt }}]"
+        value="{{ estimate_shipping_message }}"
+        class="product-card__form__estimate-delivery hidden"
+      >
+    {% endif %}
+
+    <input
+      type="hidden"
+      class="product-card__form__preorder hidden"
+      name="properties[{{ 'general.preorder.name' | t }}]"
+      value="{{ message_preorder }}"
+      {% unless is_show_preorder %}
+        disabled
+      {% endunless %}
+    >
+  </div>
+</div>

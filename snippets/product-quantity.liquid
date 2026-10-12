@@ -1,0 +1,94 @@
+{%- if login_hide_price == null -%}
+  {%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+  {%- assign login_hide_price = login_hide_price | strip -%}
+{%- endif -%}
+{%- unless login_hide_price == 'true' -%}
+  <div
+    class="product-info__quantity-wrapper {{ content_center_class }} {% if current_variant == blank %} is-unavailable{% endif %}"
+    data-block-id="{{ block.id }}"
+  >
+    <div
+      class="flex flex-col gap-1.5 h-full{% unless block_buy_buttons %} mb-[var(--padding-bottom-product-template-block)]{% endunless %}"
+      x-data="xQuantitySelector('{{ section.id }}', '{{ current_variant.id }}', '{{ product.url }}', {% if product.quantity_price_breaks_configured? %}true{% else %}false{% endif %}, {{ current_variant.quantity_rule.min | default: 1 }}, {{ current_variant.quantity_rule.max | default: 'null' }}, {{ current_variant.quantity_rule.increment | default: 1 }})"
+      {% if product.quantity_price_breaks_configured? %}
+        x-init="handleInit()"
+      {% else %}
+        x-intersect.once.margin.200px="handleInit()"
+      {% endif %}
+    >
+      <label
+        class="quantity-selector__label__{{ section.id }} h5 md:h6{% if block_buy_buttons %} hidden{% endif %}"
+        for="Quantity-{{ block_id }}"
+      >
+        <span>{{ 'products.product.quantity.label' | t }} </span>
+      </label>
+      <div class="w-full h-full relative flex{% if show_content_center %} justify-center{% endif %}">
+        <div
+          class="
+            flex color-text-[rgba(var(--color-heading),0.8)] w-fit items-center
+            {%- if settings.edges_type == 'rounded_corners' %} rounded-md{% endif -%}
+            {%- if block_buy_buttons %} border color-border-[rgba(var(--color-text),0.2)]{% else %} outline outline-1 color-outline-[rgba(var(--color-text),0.2)]{% endif -%}
+          "
+        >
+          <div
+            class="
+              flex justify-center items-center cursor-pointer pt-3 pb-3 bg-transparent select-none
+              {%- if block_buy_buttons %} px-4 md:p-4{% else %} pl-5 pr-5 quick-view:pr-3 quick-view:pl-3{% endif -%}
+            "
+            :class="atMin ? 'cursor-not-allowed opacity-60 pointer-events-none' : 'cursor-pointer'"
+            :aria-disabled="atMin"
+            name="minus"
+            @click.prevent="minus(1)"
+            @keyup.enter="minus(1)"
+            tabindex="0"
+            role="button"
+            aria-label="{{ "accessibility.minus" | t }}"
+          >
+            <span class="w-3 h-3 flex color-text-[rgba(var(--color-text))]">{% render 'icon-all', icon: 'icon-minus' %}</span>
+          </div>
+          <input
+            class="outer-spin-button color-text-[rgba(var(--color-text))] focus:outline-none text-medium text-center bg-transparent rounded-corners py-2.5 md:py-3 w-8 quick-view:w-7"
+            type="number"
+            {% if block_id == last_block_has_qty_box %}
+              name="quantity"
+            {% endif %}
+            id="Quantity-{{ block_id }}"
+            {% comment %}
+              Liquid seeds the rule for the first paint; the Alpine bindings keep the native
+              validation attributes in step with the rule after a variant change (an
+              unavailable option resets to increment 1).
+            {% endcomment %}
+            min="{{ current_variant.quantity_rule.min | default: 1 }}"
+            {%- if current_variant.quantity_rule.max %} max="{{ current_variant.quantity_rule.max }}"{% endif %}
+            step="{{ current_variant.quantity_rule.increment | default: 1 }}"
+            :min="min"
+            :max="max"
+            :step="increment"
+            form="{{ product_form_id }}"
+            x-model="qty"
+            x-on:blur="normalizeOnLeave($el)"
+            x-on:keydown.enter.prevent="validateNow($el)"
+            x-ref="quantity_input"
+            aria-label="{{ "products.product.quantity.label" | t }}"
+          >
+          <div
+            class="
+              flex justify-center items-center cursor-pointer pt-3 pb-3 bg-transparent select-none
+              {%- if block_buy_buttons %} px-4 md:p-4{% else %} pl-5 pr-5 quick-view:pr-3 quick-view:pl-3{% endif -%}
+            "
+            :class="atMax ? 'cursor-not-allowed opacity-60 pointer-events-none' : 'cursor-pointer'"
+            :aria-disabled="atMax"
+            name="plus"
+            @click.prevent="plus(1)"
+            @keyup.enter="plus(1)"
+            tabindex="0"
+            role="button"
+            aria-label="{{ "accessibility.plus" | t }}"
+          >
+            <span class="flex h-3 w-3 color-text-[rgba(var(--color-text))]">{% render 'icon-all', icon: 'icon-plus' %}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{%- endunless -%}

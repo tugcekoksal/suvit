@@ -1,0 +1,211 @@
+{% liquid
+assign is_show_custom_accordion = false
+assign is_show_custom_field = false
+if settings.show_cart_custom_field and settings.cart_custom_field_label != blank
+  assign is_show_custom_field = true
+endif
+
+if settings.cart_show_note or is_show_custom_field or settings.cart_enable_featured_discount or settings.enable_share_cart
+  assign is_show_custom_accordion = true
+endif
+%}
+
+{% if is_show_custom_accordion %}
+  <div class="main-cart__custom-accordion-wrapper border-b border-solid">
+    {%- if settings.cart_show_note -%}
+      <div class="main-cart__note pb-2.5" x-data="{isOpen: false}">
+        <div 
+          @click.prevent="isOpen = !isOpen"
+          @keyup.enter="isOpen = !isOpen"
+          class="main-cart__note__header flex items-center relative gap-x-2.5 w-full cursor-pointer h5 md:h6"
+          tabindex="0"
+        >
+          <span class="flex-auto ">{{- 'general.cart.note' | t -}}</span>
+          <span class="w-2.5 min-w-[10px] inline-block duration-500"
+            :class="isOpen ? 'rotate-180' : 'rotate-0'">
+            {% render 'icon-all', icon: 'icon-caret' %}
+          </span>
+        </div>
+        <div x-collapse x-cloak x-show="isOpen">
+          <textarea 
+            id="x-cart-note" form="{{ main_cart_form_id }}" rows="4" cols="50"
+            class="w-full text-small mt-1.5 pl-4 pr-4 pt-4 pb-4 border border-solid color-border-[rgba(var(--color-heading),0.06)] bg-transparent focus-within:outline-none placeholder:text-current placeholder:opacity-60{% if is_rounded_conner %} rounded-md{% endif %}"
+            placeholder="{{ 'sections.cart.note' | t }}"
+            @change="$store.xCartHelper.updateCartNote($el.value, 'cart', $el)"
+          >
+            {{- cart.note -}}
+          </textarea>
+          <label for="x-cart-note" class="hidden">
+            {{- 'general.cart.note' | t -}}
+          </label>
+        </div>
+      </div>
+    {%- endif -%}
+
+    {%- if settings.cart_enable_featured_discount -%}
+      <div class="main-cart__discount-code pb-2.5">
+        <div 
+          @click.prevent="$store.xCartHelper.isOpenDiscountCodeMainCart = !$store.xCartHelper.isOpenDiscountCodeMainCart"
+          @keyup.enter="$store.xCartHelper.isOpenDiscountCodeMainCart = !$store.xCartHelper.isOpenDiscountCodeMainCart"
+          tabindex="0"
+          class="main-cart__discount-code__header flex items-center relative gap-x-2.5 w-full cursor-pointer h5 md:h6"
+        >
+          <span class="flex-auto">{{ 'general.cart.discount_code' | t }}</span>
+          <span 
+            class="w-2.5 min-w-[10px] inline-block duration-500"
+            :class="$store.xCartHelper.isOpenDiscountCodeMainCart ? 'rotate-180' : 'rotate-0'"
+          >
+            {% render 'icon-all', icon: 'icon-caret' %}
+          </span>
+        </div>
+        <div x-collapse x-cloak x-show="$store.xCartHelper.isOpenDiscountCodeMainCart">
+          <div
+            class="flex mt-1.5 pt-1 pb-1 pr-1 pl-1 border border-solid color-border-[rgba(var(--color-heading),0.06)]{% if is_rounded_conner %} rounded-md{% endif %}"
+            x-data="xCouponCode"
+          >
+            <div class="grow inline-flex">
+              <label class="hidden" for="Cart__DiscountField">
+                {{- 'general.cart.discount_code' | t -}}
+              </label>
+              <input 
+                id="Cart__DiscountField" type="text"
+                class="text-small w-full px-3 py-2 focus:outline-none focus-within:outline-none focus:border-0 bg-transparent placeholder:text-current placeholder:opacity-60{% if is_rounded_conner %} rounded-md{% endif %}"
+                placeholder="{{ 'general.cart.placeholder_discount' | t }}" 
+                @change="onChange()"
+                @keyup.enter="applyDiscountToCart('{{ section.id }}')"
+              >
+            </div>
+            <custom-button>
+              <button 
+                @click.prevent="applyDiscountToCart('{{ section.id }}')"
+                class="button button-primary h7 inline-block empty:hidden border-none px-5 py-2 break-normal{% if is_rounded_conner %} rounded-md{% endif %}"
+              >
+                <span :class="{ 'lg:block opacity-0 is-focus-button' : loading }">
+                  {% assign button_label = 'general.cart.apply' | t %}
+                  {% render 'button-label', button_label: button_label, show_button_style: 'primary' %}
+                </span>
+  
+                <div
+                  class="lg:inline-block animate-spin w-4 h-4 md:w-5 md:h-5 absolute top-[calc(50%-8px)] left-[calc(50%-8px)] md:top-[calc(50%-10px)] md:left-[calc(50%-10px)]"
+                  x-show="loading" x-cloak
+                >
+                  {% render 'icon-all', icon: 'icon-loading' %}
+                </div>
+              </button>
+            </custom-button>
+          </div>
+
+          <p x-show="$store.xCouponCodeDetail.discountFailed" x-cloak class="flash-message error-message mt-2">
+            {{ 'general.cart.discount_wrong' | t }}
+          </p>
+          <p x-show="$store.xCouponCodeDetail.discountApplied" x-cloak class="flash-message error-message mt-2">
+            {{ 'general.cart.discount_applied' | t }}
+          </p>
+          <p x-show="$store.xCouponCodeDetail.discountCorrect" x-cloak class="flash-message success-message mt-2">
+            {{ 'general.cart.discount_correct' | t }}
+          </p>
+        </div>
+      </div>
+
+      <script src="{{ 'coupon-code.js' | asset_url }}" defer></script>
+    {% endif %}
+
+    {% if settings.enable_share_cart %}
+      <div class="main-cart__share-cart pb-2.5" x-data="{isOpen: false}">
+        <div
+          @click.prevent="isOpen = !isOpen; setTimeout(() => {if (!isOpen) {$store.xCartHelper.isCopiedCart = false;}}, 300)"
+          @keyup.enter="isOpen = !isOpen; setTimeout(() => {if (!isOpen) {$store.xCartHelper.isCopiedCart = false;}}, 300)"
+          tabindex="0"
+          class="main-cart__share-cart__header flex items-center relative gap-x-2.5 w-full cursor-pointer h5 md:h6"
+        >
+          <span class="flex-auto">{{ 'general.cart.share_cart' | t }}</span>
+          <span 
+            class="w-2.5 min-w-[10px] inline-block duration-500"
+            :class="isOpen ? 'rotate-180' : 'rotate-0'"
+          >
+            {% render 'icon-all', icon: 'icon-caret' %}
+          </span>
+        </div>
+        <div x-collapse x-cloak x-show="isOpen">
+          <div
+            class="flex mt-1.5 pt-1 pb-1 pl-1 pr-1 border border-solid color-border-[rgba(var(--color-heading),0.06)] items-center{% if is_rounded_conner %} rounded-md{% endif %}"
+          >
+            <div class="grow inline-flex">
+              <label for="cart-share" class="hidden">
+                {{- 'general.cart.copy' | t -}}
+              </label>
+              <input type="text" placeholder="cart/?=" autocorrect="off" autocapitalize="off" id="cart-share"
+                class="w-full px-3 py-2 text-small focus:outline-none focus-within:outline-none bg-transparent placeholder:text-current placeholder:opacity-60"
+                x-intersect.once.margin.200px.once="$store.xCartHelper.generateUrl()"
+                :value="$store.xCartHelper.cartShareUrl"
+              >
+            </div>
+            <custom-button>
+              <button 
+                @click.prevent="$store.xCartHelper.copyURL($el)"
+                class="button button-primary h7 inline-block border-none empty:hidden px-5 py-2 cursor-pointer pointer-events-auto whitespace-nowrap{% if is_rounded_conner %} rounded-md{% endif %}"
+                x-text="$store.xCartHelper.isCopiedCart ? '{{ 'general.cart.copied' | t }}' : '{{ 'general.cart.copy' | t }}'">
+              </button>
+            </custom-button>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if is_show_custom_field %}
+      <div 
+        class="main-cart__custom-field pb-2.5" x-data="{isOpen: false}"
+        @maximize:cart:show-custom-field.document="isOpen = true"
+      >
+        <div 
+          @click.prevent="isOpen = !isOpen"
+          @keyup.enter="isOpen = !isOpen"
+          class="main-cart__custom-field__header flex items-center relative gap-x-2.5 w-full cursor-pointer h5 md:h6"
+          tabindex="0"
+        >
+          <span class="flex-auto">
+            {{ settings.cart_custom_field_label }}{% if settings.cart_custom_field_required %}<span class="label-required"> *</span>{% endif %}
+          </span>
+          <span 
+            class="w-2.5 min-w-[10px] inline-block rtl:right-auto duration-500"
+            :class="isOpen ? 'rotate-180' : 'rotate-0'"
+          >
+            {% render 'icon-all', icon: 'icon-caret' %}
+          </span>
+        </div>
+        <div x-collapse x-cloak x-show="isOpen">
+          {%- capture cart_field_data -%}
+            {
+              "custom_field_label": "{{ settings.cart_custom_field_label | escape }}",
+              "custom_field_required": {{ settings.cart_custom_field_required | default: false }},
+              "custom_field_pattern": "{{ settings.cart_custom_field_pattern | escape }}"
+            }
+          {%- endcapture %}
+          <div x-data="xCartFields($el)" class="mt-1.5" data-cart-custom-field="{{ cart_field_data | escape }}">
+            <label class="hidden" for="MainCart__CustomField">
+              {{- settings.cart_custom_field_label -}}
+            </label>
+            <input id="MainCart__CustomField" type="text" {% if settings.cart_custom_field_required %}
+              :class="customFieldError && 'color-border-[rgba(var(--error-message-color))]'" {% endif %}
+              class="text-small w-full px-4 py-3 border border-solid color-border-[rgba(var(--color-heading),0.06)] bg-transparent focus-within:outline-none placeholder:text-current placeholder:opacity-60 {% if is_rounded_conner %} rounded-md{% endif %}"
+              placeholder="{{ settings.cart_custom_field_label }}" @change="handleChangeInput($event)"
+              x-model="customField"
+            >
+            {% if settings.cart_custom_field_required %}
+              <p 
+                x-cloak x-show="customFieldError"
+                class="main-cart__custom-field__error flash-message error-message mt-2 anm-fade-element"
+                data-fade-on-intersect
+              >
+                {{ 'sections.cart.required_cart_note' | t }}
+                {{ settings.cart_custom_field_label }}
+              </p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <script src="{{ 'cart-fields.js' | asset_url }}" defer></script>
+    {% endif %}
+  </div>
+{% endif %}

@@ -1,0 +1,114 @@
+{%- comment -%}
+  Data endpoint for the Quick order list block — never placed in a template. Fetched per group by
+  assets/quick-order-list.js as {{ product.url }}?section_id=quick-order-list-variants&page=N.
+
+  The row (variant-order-row.liquid, shared with the B2B order view) has no block context here,
+  so it always renders every part of itself; blocks/_quick-order-list.liquid hides what's off via
+  scoped CSS instead.
+{%- endcomment -%}
+{%- if product != blank -%}
+  {%- liquid
+    assign is_apply_preorder = false
+    if settings.applied_products_preorder == blank and settings.applied_collections_preorder == blank
+      assign is_apply_preorder = true
+    else
+      assign qol_product_list = ''
+      for prod in settings.applied_products_preorder
+        assign qol_product_list = qol_product_list | append: ';' | append: prod.id
+      endfor
+      for collec in settings.applied_collections_preorder
+        for prod in collec.products
+          assign qol_product_list = qol_product_list | append: ';' | append: prod.id
+        endfor
+      endfor
+      if qol_product_list contains product.id
+        assign is_apply_preorder = true
+      endif
+    endif
+
+    assign message_preorder = 'general.preorder.message_preorder' | t
+    if settings.message_preorder_cart != blank
+      assign message_preorder = settings.message_preorder_cart
+    endif
+  -%}
+  {%- capture qol_variants_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+  {%- assign qol_variants_hide_price = qol_variants_hide_price | strip -%}
+
+  {%- comment -%}
+    Hoisted once per fetch — variant-order-row.liquid can render up to 250x here.
+  {%- endcomment -%}
+  {%- liquid
+    capture qol_icon_minus
+      render 'icon-all', icon: 'icon-minus'
+    endcapture
+    capture qol_icon_plus
+      render 'icon-all', icon: 'icon-plus'
+    endcapture
+    capture qol_icon_loading
+      render 'icon-all', icon: 'icon-loading'
+    endcapture
+    assign qol_lbl_sku = 'products.product.sku' | t
+    assign qol_lbl_minus = 'accessibility.minus' | t
+    assign qol_lbl_plus = 'accessibility.plus' | t
+    assign qol_lbl_qty = 'products.product.quantity.label' | t
+    assign qol_lbl_inc = 'bulk_order.rule.inc' | t
+    assign qol_lbl_min = 'bulk_order.rule.min' | t
+    assign qol_lbl_max = 'bulk_order.rule.max' | t
+    assign qol_money_with_currency = settings.currency_code_enable
+    assign qol_zero_money = 0 | money
+
+    assign qol_is_b2b = false
+    if customer != blank and customer.b2b?
+      assign qol_is_b2b = true
+    endif
+
+    assign qol_rounded = false
+    if settings.edges_type == 'rounded_corners'
+      assign qol_rounded = true
+    endif
+  -%}
+
+  <div class="variant-loader-inner" data-product-id="{{ product.id }}">
+    {%- paginate product.variants by 250 -%}
+      {%- comment -%} The rows scroll; the pager below them does not. {%- endcomment -%}
+      <div class="qol-variant-rows variant-rows-scroll scrollbar-body scrollbar-visible">
+        {%- for variant in product.variants -%}
+          {%- liquid
+            assign is_last_variant = false
+            if forloop.last
+              assign is_last_variant = true
+            endif
+          -%}
+          {%- render 'variant-order-row',
+            variant: variant,
+            product: product,
+            is_apply_preorder: is_apply_preorder,
+            message_preorder: message_preorder,
+            hide_price: qol_variants_hide_price,
+            is_last_variant: is_last_variant,
+            index: forloop.index,
+            icon_minus: qol_icon_minus,
+            icon_plus: qol_icon_plus,
+            icon_loading: qol_icon_loading,
+            lbl_sku: qol_lbl_sku,
+            lbl_minus: qol_lbl_minus,
+            lbl_plus: qol_lbl_plus,
+            lbl_qty: qol_lbl_qty,
+            lbl_inc: qol_lbl_inc,
+            lbl_min: qol_lbl_min,
+            lbl_max: qol_lbl_max,
+            money_with_currency: qol_money_with_currency,
+            zero_money: qol_zero_money,
+            is_b2b: qol_is_b2b,
+            rounded: qol_rounded,
+            image_width: 45,
+            row_class: 'p-2 flex-nowrap'
+          -%}
+        {%- endfor -%}
+      </div>
+      {%- if paginate.pages > 1 -%}
+        {%- render 'variant-pagination', paginate: paginate -%}
+      {%- endif -%}
+    {%- endpaginate -%}
+  </div>
+{%- endif -%}

@@ -1,0 +1,109 @@
+{% liquid 
+  assign single_rate = 'shipping.single_rate' | t
+  assign multi_rate = 'shipping.multiple_rates' | t
+  assign no_rate = 'shipping.no_rates' | t
+  assign default_country = localization.country.name
+  if customer.default_address 
+   assign default_country = customer.default_address.country
+  endif 
+  if customer.default_address.province 
+   assign default_province = customer.default_address.province
+  endif 
+  if customer.default_address.zip 
+   assign default_zip = customer.default_address.zip
+  endif
+%}
+
+<div 
+  class="estimate-shipping-cart__wrapper"
+  data-cart-type="{% if is_cart_drawer %}cart-drawer{% else %}main-cart{% endif %}"
+  x-data="xEstimateShipping($el,`{{ single_rate }}`,`{{ multi_rate }}`, `{{ no_rate }}`)"
+>
+  {% unless is_cart_drawer %}
+    <div 
+      class="estimate-shipping-cart__header relative md:pt-4 md:pb-4 text-medium cursor-pointer md:pointer-events-none flex flex-col color-text-[rgba(var(--color-heading))] font-base-heading"
+      @click.prevent="if (window.innerWidth < MIN_DEVICE_WIDTH.tablet) {isOpen = !isOpen}"
+      @keyup.enter="if (window.innerWidth < MIN_DEVICE_WIDTH.tablet) {isOpen = !isOpen}"
+      :tabindex="(window.innerWidth < MIN_DEVICE_WIDTH.tablet) ? 0 : -1"
+    >
+      <span class="flex-auto">{{ 'shipping.estimate' | t }}</span>
+      <span
+        class="w-2.5 inline-block absolute right-2 rtl:left-2 rtl:right-auto top-1/2 -translate-y-1/2 duration-500 md:hidden"
+        :class="isOpen ? 'rotate-180' : 'rotate-0'"
+      >
+        {% render 'icon-all', icon: 'icon-caret' %}
+      </span>
+    </div>
+  {% endunless %}
+  
+  <div class="estimate-shipping-cart__container flex {% if is_cart_drawer %} flex-col{% else %} flex-col md:flex-row{% endif %} gap-4"
+       {% unless is_cart_drawer %}
+         x-show="isOpen || window.innerWidth >= MIN_DEVICE_WIDTH.tablet"
+         x-collapse
+         x-cloak
+       {% endunless %}
+  >
+    <div class="estimate-shipping-cart__country-wrapper w-full text-small" x-intersect.once="load()">
+      <label class="block mb-2" for="cart-shipping-country">{{ 'shipping.country' | t }}</label>
+      <div class="relative">
+        <select 
+          id="cart-shipping-country" 
+          data-default="{{ default_country }}" 
+          class="country-select shipping-rate w-full pl-5 pr-10 rtl:pr-5 rtl:pl-10 py-[11px] appearance-none border color-border-[rgba(var(--color-line-and-border))] border-solid color-bg-gradient-[var(--gradient-background)] rounded-corners-md" 
+          name="country"
+          autocomplete="country"
+        >
+          {{ country_option_tags }}
+        </select>
+        <span class="absolute top-1/2 -translate-y-1/2 w-2.5 right-5 rtl:right-auto rtl:left-5 cursor-pointer pointer-events-none">{% render 'icon-all', icon: 'icon-caret' %}</span>
+      </div>
+    </div>
+    
+    <div class="estimate-shipping-cart__province-wrapper w-full province-container text-small" {% unless default_province %} hidden {% endunless %}>
+      <label class="block mb-2" for="cart-shipping-province">{{ 'shipping.province' | t }}</label>
+      <div class="relative">
+        <select 
+          id="cart-shipping-province" {% if default_province %} data-default="{{ default_province }}"{% endif %} 
+          class="province-select shipping-rate w-full pl-5 pr-10 rtl:pr-5 rtl:pl-10 py-[11px] appearance-none border border-solid color-border-[rgba(var(--color-line-and-border))] color-bg-gradient-[var(--gradient-background)] rounded-corners-md" 
+          name="province"
+          autocomplete="address-level1"
+        >
+        </select>
+        <span class="absolute top-1/2 -translate-y-1/2 w-2.5 right-5 rtl:right-auto rtl:left-5 cursor-pointer pointer-events-none">{% render 'icon-all', icon: 'icon-caret' %}</span>
+      </div>
+    </div>
+    
+    <div class="estimate-shipping-cart__zip-wrapper w-full text-small">
+      <label class="block mb-2" for="cart-shipping-zip">{{ 'shipping.zip' | t }}</label>
+      <input 
+        id="cart-shipping-zip" 
+        class="zip-input w-full pl-5 pr-5 py-[11px] border bg-transparent border-solid color-border-[rgba(var(--color-line-and-border))] focus:outline-none rounded-corners-md" 
+        type="text" 
+        {% if default_zip %} value="{{ default_zip }}"{% endif %}
+        autocomplete="postal-code"
+      >
+    </div>
+    
+    <div class="estimate-shipping-cart__calculate-wrapper w-full flex flex-col justify-end">
+      <custom-button>
+        <button class="button button-primary h6 w-full pt-3 pb-3 pl-5 pr-5 relative rounded-corners-md" @click="submit($event)">
+          {% assign button_label = 'shipping.calculate' | t %}
+          <span :class="loadingShipping && 'opacity-0'" class="flex items-center justify-center text-small">
+            {% render 'button-label', button_label: button_label, show_button_style: 'primary' %}
+          </span>
+          <span class="inline-block w-5 h-5 animate-spin absolute top-[calc(50%-10px)] left-[calc(50%-10px)]" x-show="loadingShipping" x-cloak class="">{% render 'icon-all', icon: 'icon-loading' %}</span>
+        </button>
+      </custom-button>
+    </div>
+  </div>
+
+  <div class="rates hidden flash-message success-message mt-2.5">
+    <div x-text="rates_heading" class="rates-heading"></div>
+    <div x-html="rates_text" class="rates-text"></div>
+  </div>
+
+  <div class="errors hidden flash-message error-message mt-2.5">
+    <div x-html="errors_message" class="errors-text"></div>
+  </div>
+</div>
+

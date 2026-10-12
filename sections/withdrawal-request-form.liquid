@@ -1,0 +1,814 @@
+{% liquid
+  assign form_id = 'WithdrawalForm-' | append: section.id
+  assign class_form = 'w-full'
+  assign check_content = false
+  if section.settings.image != blank
+    assign check_content = 'image'
+    assign class_form = 'w-full lg:w-1/2'
+  endif
+
+  if section.settings.image_position == 'right'
+    assign class_form = class_form | append: ' form-align-left'
+  else
+    assign class_form = class_form | append: ' order-2 form-align-right'
+  endif
+
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  else
+    assign is_rtl = false
+  endif
+
+  assign has_block_email = false
+  assign has_block_request_type = false
+  if section.blocks.size > 0
+    assign has_block_email = section.blocks | where: 'type', 'email'
+  endif
+  if section.blocks.size > 0
+    assign has_block_request_type = section.blocks | where: 'type', 'request_type'
+  endif
+%}
+
+{%- liquid
+  assign block_has_required = section.blocks | map: 'settings' | find: 'mark_as_required', true
+  assign has_required = false
+  if has_block_email != blank or block_has_required != blank 
+    assign has_required = true
+  endif
+%}
+
+{%- style -%}
+  .section--{{ section.id }} {
+    padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+    padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+  }
+  .section--{{ section.id }} .request-type_note {
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+  }
+
+  .section--{{ section.id }} textarea.description-form__block:focus ~ .request-type_note,
+  .section--{{ section.id }} textarea.description-form__block:not(:placeholder-shown) ~ .request-type_note {
+    opacity: 0;
+    visibility: hidden;
+  }
+  @media (min-width: 768px) {
+    .section--{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+{%- endstyle -%}
+
+{% render 'section-divider' %}
+
+<div class="section--{{ section.id }} color-{{ section.settings.color_scheme_light.id }} dark-color-{{ section.settings.color_scheme_dark.id }} {{ section.settings.section_width }} rounded-corners-container">
+  <div class="{% if check_content %}contact-has-{{ check_content }} w-full {% else %} max-w-xl md:mx-auto{% endif %}">
+    <div
+      class="
+        contact-form-{{ section.id }} flex flex-col gap-5 md:gap-10 md:gap-y-0 md:flex-row w-full gap-y-7
+        {%- if is_rtl %} ltr{% endif -%}
+        {%- unless check_content %}{% if section.settings.image_position == "right" %} pb-7 lg:pb-0{% else %} pt-7 lg:pt-0{% endif %}{% endunless -%}
+        {%- if section.settings.image == blank %} md:gap-x-[4%]{% endif -%}
+        {%- if section.settings.section_width != "full-width" and settings.edges_type == 'rounded_corners' %} rounded-[10px]{% endif -%}
+      "
+    >
+      <div class="{% if is_rtl %}rtl {% endif %}contact-form-container flex md:sticky sticky-top md:h-fit md:px-5 {{ class_form }} {% if section.settings.image %} flex-col gap-y-7 md:gap-y-0{% if section.settings.image_position == "left" %} md:items-end rtl:md:items-start{% else %} md:items-start rtl:md:items-end{% endif %}{% endif %}{% if section.settings.image_position == "right" %} pb-7 md:pb-0{% endif %}">
+        <div
+          class="contact-form w-full {% if settings.section_width == 'page-width' %} max-w-[{{ settings.page_width | divided_by: 2 }}px]{% endif %}"
+          x-data="xContactForm('{{ form_id }}')"
+          @input.debounce.300ms="validateForm()"
+          @change="validateForm()"
+        >
+          <div class="heading-form text-{{ section.settings.form_content_alignment }}{% if section.settings.heading != blank or section.settings.text != blank %} heading-content-spacing{%- endif -%}">
+            {%- if section.settings.heading != blank -%}
+              <{{ section.settings.heading_tag }}
+                class="heading-{{ section.settings.heading_size }} block mt-2 leading-tight anm-fade-element"
+                data-fade-on-intersect
+              >
+                {{ section.settings.heading }}
+              </{{ section.settings.heading_tag }}>
+            {%- endif -%}
+            {% if section.settings.text != blank %}
+              <div
+                class="rte mt-2 lg:mt-4 anm-fade-element"
+                data-fade-on-intersect
+              >
+                {{ section.settings.text }}
+              </div>
+            {% endif %}
+          </div>
+          {%- form 'contact', id: form_id, class: 'maximize' -%}
+            {%- if form.posted_successfully? -%}
+              <div
+                class="flex items-center pl-4 pr-4 pt-3.5 pb-3.5 mb-3 message-success selection:color-bg-[rgba(var(--success-message-color),0.4)] focus:outline-none {% if settings.edges_type == 'rounded_corners' %}rounded-[4px]{% endif %}"
+                tabindex="-1"
+                autofocus
+              >
+                {%- if section.settings.success_message != blank -%}
+                  <p class="leading-tight flex-1">{{ section.settings.success_message }}</p>
+                {%- else -%}
+                  {{ 'templates.contact.form.post_success' | t }}
+                {%- endif -%}
+              </div>
+            {%- elsif form.errors -%}
+              <p
+                class="flex items-center pl-4 pr-4 pt-3 pb-3 mb-3 color-bg-[rgba(var(--error-message-color),0.2)] selection:color-bg-[rgba(var(--error-message-color),0.4)]"
+                tabindex="-1"
+                autofocus
+              >
+                <span class="color-text-[rgba(var(--error-message-color))] inline-block w-5 mr-2">{% render 'icon-all', icon: 'icon-error' %} </span>
+                {{ form.errors.translated_fields.email | capitalize }}
+                {{ form.errors.messages.email }}
+              </p>
+            {%- endif -%}
+            {%- unless form.posted_successfully? -%}
+              <input
+                type="hidden"
+                name="contact[{{ 'templates.contact.form.form_type' | t }}]"
+                value="{{ 'templates.contact.form.withdrawal_request' | t }}"
+              >
+              <div class="contact__fields flex flex-wrap gap-2">
+                {% if has_block_email %}
+                  <div
+                    id="WithdrawalFormEmail-{{ section.id }}__validation"
+                    class="contact-form__email-error-{{ form_id }} hidden flash-message error-message mb-1"
+                  >
+                  </div>
+                {% endif %}
+                {%- for block in section.blocks -%}
+                  {%- case block.type -%}
+                    {%- when 'order_id' -%}
+                      <div
+                        class="text-field__wrapper {%- if block.settings.width_block == 'w-1/2' %} w-full md:w-[calc(50%-0.25rem)]{%- else %} {{ block.settings.width_block }}{% endif -%}"
+                        {{ block.shopify_attributes }}
+                      >
+                        <input
+                          type="text"
+                          id="WithdrawalFormOrderID-{{ section.id }}"
+                          class="text-field__input"
+                          name="contact[{%- if block.settings.label != blank -%}{{ block.settings.label }}{%- else -%}order_id{% endif %}]"
+                          value="{% if form.order_id %}{{ form.order_id }}{% elsif customer %}{{ customer.order_id }}{% endif %}"
+                          autocapitalize="words"
+                          placeholder="{{ 'customer.enter_text' | t }}"
+                          {% if block.settings.mark_as_required %}
+                            required
+                          {% endif %}
+                        >
+                        <label
+                          class="text-field__label"
+                          for="WithdrawalFormOrderID-{{ section.id }}"
+                        >
+                          {{- block.settings.label }}
+                          {% if block.settings.mark_as_required %}
+                            <span aria-hidden="true">*</span>
+                          {%- endif %}
+                        </label>
+                      </div>
+                    {%- when 'email' -%}
+                      <div
+                        class="text-field__wrapper {%- if block.settings.width_block == 'w-1/2' %} w-full md:w-[calc(50%-0.25rem)]{%- else %} {{ block.settings.width_block }}{% endif -%}"
+                        {{ block.shopify_attributes }}
+                      >
+                        <input
+                          type="email"
+                          id="WithdrawalFormEmail-{{ section.id }}"
+                          class="text-field__input"
+                          name="contact[email]"
+                          autocomplete="email"
+                          autocapitalize="off"
+                          autocorrect="off"
+                          value="{% if form.email %}{{ form.email }}{% elsif customer %}{{ customer.email }}{% endif %}"
+                          placeholder="{{ 'customer.email' | t }}"
+                          required
+                        >
+                        <label
+                          class="text-field__label"
+                          for="WithdrawalFormEmail-{{ section.id }}"
+                        >
+                          {{- block.settings.label }}
+                          <span aria-hidden="true">*</span>
+                        </label>
+                      </div>
+                    {%- when 'request_type' -%}
+                      <div
+                        class="{%- if block.settings.width_block == 'w-1/2' %} w-full md:w-[calc(50%-0.25rem)]{%- else %} {{ block.settings.width_block }}{% endif -%}"
+                        {{ block.shopify_attributes }}
+                      >
+                        <p class="mb-2 text-sm font-medium">
+                          {{- block.settings.label }}
+                        </p>
+
+                        <div class="flex gap-4 md:gap-8">
+                          <div class="flex items-center cursor-pointer">
+                            <input
+                              type="radio"
+                              id="WithdrawalFormRequestType-Return-{{ section.id }}"
+                              name="contact[{%- if block.settings.label != blank -%}{{ block.settings.label }}{%- else -%}request-type{% endif %}]"
+                              value="Return"
+                              class="request-type-radio input-radio w-5.5 h-5.5 mr-2 rtl:mr-0 rtl:ml-2 h-w-5.5 min-w-5.5"
+                              checked
+                              {% if block.settings.mark_as_required %}required{% endif %}
+                            >
+                            <label
+                              for="WithdrawalFormRequestType-Return-{{ section.id }}"
+                              class="flex-1 cursor-pointer bg-transparent"
+                            >
+                              {{ 'templates.withdrawal_request_form.blocks.request_type.option_1' | t }}
+                            </label>
+                            <br>
+                          </div>
+
+                          <div class="flex items-center cursor-pointer">
+                            <input
+                              type="radio"
+                              id="WithdrawalFormRequestType-Cancel-{{ section.id }}"
+                              name="contact[{%- if block.settings.label != blank -%}{{ block.settings.label }}{%- else -%}request-type{% endif %}]"
+                              value="Cancel"
+                              class="request-type-radio input-radio w-5.5 h-5.5 mr-2 rtl:mr-0 rtl:ml-2 h-w-5.5 min-w-5.5"
+                              {% if block.settings.mark_as_required %}required{% endif %}
+                            >
+                            <label
+                              for="WithdrawalFormRequestType-Cancel-{{ section.id }}"
+                              class="flex-1 cursor-pointer bg-transparent"
+                            >
+                              {{ 'templates.withdrawal_request_form.blocks.request_type.option_2' | t }}
+                            </label>
+                            <br>
+                          </div>
+                        </div>
+                      </div>
+                    {%- when 'description' -%}
+                      <div
+                        class="text-area__wrapper field-container w-full"
+                        {{ block.shopify_attributes }}
+                      >
+                        <label
+                          class="text-area__label field-label--static"
+                          for="WithdrawalFormDescription-{{ section.id }}"
+                        >
+                          {{- block.settings.label -}}
+                          {% if block.settings.mark_as_required %}
+                            <span aria-hidden="true">*</span>
+                          {%- endif -%}
+                        </label>
+
+                        <textarea
+                          id="WithdrawalFormDescription-{{ section.id }}"
+                          class="text-field__input description-form__block field-textarea--borderless"
+                          rows="4"
+                          name="contact[{%- if block.settings.label != blank -%}{{ block.settings.label }}{%- else -%}description{% endif %}]"
+                          placeholder="{{ 'templates.withdrawal_request_form.blocks.description.paragraph' | t }}"
+                          {% if block.settings.mark_as_required %}
+                            required
+                          {% endif -%}
+                        >{{- form.description -}}</textarea>
+
+                        {% if has_block_request_type %}
+                          <span
+                            class="request-type_note text-xs color-text-[rgba(var(--color-text),0.6)] absolute bottom-2 left-3 rtl:right-3 w-fit p-break-words italic pointer-events-none"
+                            data-return-text="{{ block.settings.return_helper_text | escape }}"
+                            data-cancel-text="{{ block.settings.cancel_helper_text | escape }}"
+                          ></span>
+                        {% endif %}
+                      </div>
+                  {%- endcase -%}
+                {%- endfor -%}
+              </div>
+              <div class="button-submit__contact-form md:mt-4 mt-3">
+                <custom-button>
+                  <button
+                    type="submit"
+                    class="button button-{{ section.settings.button_style }} w-full cursor-pointer empty:hidden pointer-events-auto {{ section.settings.button_size }}"
+                    {% if has_required %}disabled{% endif %}
+                    :disabled="!isFormValid"
+                  >
+                    {%- if section.settings.button_label != blank -%}
+                      {% assign button_label = section.settings.button_label | remove: '<' | remove: '>' | escape %}
+                    {%- else -%}
+                      {% assign button_label = 'templates.contact.form.send' | t %}
+                    {%- endif -%}
+                    {% render 'button-label', button_label: button_label, show_button_style: section.settings.button_style %}
+                  </button>
+                </custom-button>
+              </div>
+            {%- endunless -%}
+          {%- endform -%}
+        </div>
+      </div>
+      {% if section.settings.image != blank %}
+        {%- style -%}
+          .mobile-{{ section.id }}-natural {
+            padding-bottom: {{ 1 | divided_by: section.settings.image.aspect_ratio | times: 100 }}%;
+          }
+          @media screen and (min-width: 768px) {
+            .desktop-{{ section.id }}-natural {
+              padding-bottom: {{ 1 | divided_by: section.settings.image.aspect_ratio | times: 100 }}%;
+              height: 100%;
+            }
+          }
+        {%- endstyle -%}
+        {% if section.index == 1 and section.location == 'template' %}
+          <div class="hidden">
+            {{ section.settings.image | image_url: width: 3840 | image_tag: widths: '450, 750, 900, 1100, 1500, 1780, 2000, 3000, 3840', preload: true, loading: 'lazy' }}
+          </div>
+        {% endif %}
+        {% assign default_image_alt = 'accessibility.default_alt' | t %}
+        <div class="w-full lg:w-1/2 contact-image md:sticky sticky-top md:h-fit {% if section.settings.form_content_alignment == 'left' %}align-right{% else %}order-1 align-left{% endif %}">
+          <div class="relative md:h-full overflow-hidden{% if section.settings.image %} promotion relative{% if section.settings.mobile_height != 'natural' %} h-[{{ section.settings.mobile_height }}] md:h-auto{% else %} mobile-{{ section.id }}-natural{% endif %}{% if section.settings.desktop_height != 'natural' %} md:promotion:h-[{{ section.settings.desktop_height }}] md:promotion:pb-0{% else %} desktop-{{ section.id }}-natural{% endif %}{% endif %} {% if section.settings.section_width != "full-width" and settings.edges_type == 'rounded_corners' %}rounded-[10px]{% endif %}">
+            <div class="overflow-hidden h-full w-full absolute top-0 left-0">
+              <parallax-image class="h-full w-full">
+                <parallax-movement>
+                  <img
+                    class="md:h-full h-full w-full lg:absolute top-0 left-0 object-cover"
+                    srcset="
+                      {{ section.settings.image | image_url: width: 450 }} 450w,
+                      {{ section.settings.image | image_url: width: 750 }} 750w,
+                      {{ section.settings.image | image_url: width: 900 }} 900w,
+                      {{ section.settings.image | image_url: width: 1100 }} 1100w,
+                      {{ section.settings.image | image_url: width: 1500 }} 1500w,
+                      {{ section.settings.image | image_url }} {{ section.settings.image.width }}w
+                    "
+                    src="{{ section.settings.image | image_url: width: 1500 }}"
+                    alt="{{ section.settings.image.alt | default: default_image_alt | escape }}"
+                    {% if section.index == 1 and section.location == 'template' %}
+                      loading="eager"
+                      fetchpriority="high"
+                      decoding="sync"
+                    {% else %}
+                      loading="lazy"
+                    {% endif %}
+                    sizes="(min-width: 1024px){% if section.settings.section_width == "full-width" %} 35vw{% else %} {{ settings.page_width | divided_by: 2 }}px{% endif %}, (min-width: 768px) 50vw, 100vw"
+                    width="{{ section.settings.image.width }}"
+                    height="{{ section.settings.image.height }}"
+                    style="object-position: {{ section.settings.image.presentation.focal_point }}"
+                  >
+                </parallax-movement>
+              </parallax-image>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% schema %}
+{
+  "name": "t:withdrawal_request_form.name",
+  "tag": "section",
+  "class": "maximize-section withdrawal-request-form",
+  "disabled_on": {
+    "groups": ["header", "footer", "aside"]
+  },
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "t:withdrawal_request_form.settings.paragraph"
+    },
+    {
+      "type": "header",
+      "content": "t:withdrawal_request_form.settings.form"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "default": "Withdrawal request form",
+      "label": "t:global.text.heading"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "t:global.text.heading_size",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:global.size.small"
+        },
+        {
+          "value": "medium",
+          "label": "t:global.size.medium"
+        },
+        {
+          "value": "large",
+          "label": "t:global.size.large"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "default": "h2",
+      "label": "t:global.text.heading_tag",
+      "options": [
+        {
+          "value": "h1",
+          "label": "H1"
+        },
+        {
+          "value": "h2",
+          "label": "H2"
+        },
+        {
+          "value": "h3",
+          "label": "H3"
+        },
+        {
+          "value": "h4",
+          "label": "H4"
+        },
+        {
+          "value": "h5",
+          "label": "H5"
+        },
+        {
+          "value": "h6",
+          "label": "H6"
+        },
+        {
+          "value": "p",
+          "label": "p"
+        }
+      ]
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "t:global.form.form_input_type.text",
+      "default": "<p>Log in to return or cancel your order faster in Order page, or fill in the form below.</p>"
+    },
+    {
+      "type": "select",
+      "id": "form_content_alignment",
+      "default": "center",
+      "label": "t:withdrawal_request_form.settings.form_content_alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:global.position.left"
+        },
+        {
+          "value": "center",
+          "label": "t:global.position.center"
+        },
+        {
+          "value": "right",
+          "label": "t:global.position.right"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "default": "Send request",
+      "label": "t:global.button.button_label"
+    },
+    {
+      "type": "select",
+      "id": "button_size",
+      "default": "button-medium",
+      "label": "t:global.button.button_size",
+      "options": [
+        {
+          "value": "button-small",
+          "label": "t:global.size.small"
+        },
+        {
+          "value": "button-medium",
+          "label": "t:global.size.medium"
+        },
+        {
+          "value": "button-large",
+          "label": "t:global.size.large"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "button_style",
+      "options": [
+        {
+          "value": "primary",
+          "label": "t:global.button.style.primary"
+        },
+        {
+          "value": "secondary",
+          "label": "t:global.button.style.secondary"
+        }
+      ],
+      "label": "t:global.button.style.label",
+      "default": "primary"
+    },
+    {
+      "type": "text",
+      "id": "success_message",
+      "default": "Thank you! Your request has been received. We'll get back to you as soon as possible.",
+      "label": "t:contact_form.settings.success_message"
+    },
+    {
+      "type": "header",
+      "content": "t:global.image.image"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:global.image.image"
+    },
+    {
+      "type": "select",
+      "id": "image_position",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:global.position.left"
+        },
+        {
+          "value": "right",
+          "label": "t:global.position.right"
+        }
+      ],
+      "default": "right",
+      "label": "t:product_components.settings.section_layout.image_position",
+      "visible_if": "{{ section.settings.image != blank }}"
+    },
+    {
+      "type": "select",
+      "id": "desktop_height",
+      "options": [
+        {
+          "value": "450px",
+          "label": "450px"
+        },
+        {
+          "value": "550px",
+          "label": "550px"
+        },
+        {
+          "value": "650px",
+          "label": "650px"
+        },
+        {
+          "value": "750px",
+          "label": "750px"
+        },
+        {
+          "value": "natural",
+          "label": "t:global.image.natural"
+        },
+        {
+          "value": "100vh",
+          "label": "t:global.image.fullscreen"
+        }
+      ],
+      "default": "550px",
+      "label": "t:global.image.desktop_image_height",
+      "visible_if": "{{ section.settings.image != blank }}"
+    },
+    {
+      "type": "select",
+      "id": "mobile_height",
+      "options": [
+        {
+          "value": "250px",
+          "label": "250px"
+        },
+        {
+          "value": "300px",
+          "label": "300px"
+        },
+        {
+          "value": "400px",
+          "label": "400px"
+        },
+        {
+          "value": "500px",
+          "label": "500px"
+        },
+        {
+          "value": "natural",
+          "label": "t:global.ratio.natural"
+        },
+        {
+          "value": "100vh",
+          "label": "t:global.image.fullscreen"
+        }
+      ],
+      "default": "400px",
+      "label": "t:global.image.mobile_image_height",
+      "visible_if": "{{ section.settings.image != blank }}"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "select",
+      "label": "t:global.section.section_width.label",
+      "id": "section_width",
+      "options": [
+        {
+          "label": "t:global.section.section_width.option_1",
+          "value": "page-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_2",
+          "value": "full-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_3",
+          "value": "full-width-padded"
+        }
+      ],
+      "default": "page-width"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.top_padding",
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.bottom_padding",
+      "default": 28
+    },
+    {
+      "type": "checkbox",
+      "id": "show_section_divider",
+      "label": "t:global.section.show_section_divider",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.colors"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "order_id",
+      "name": "t:withdrawal_request_form.blocks.order_id.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "default": "Order ID",
+          "label": "t:global.text.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "mark_as_required",
+          "default": true,
+          "label": "t:global.form.mark_as_req"
+        },
+        {
+          "type": "select",
+          "id": "width_block",
+          "options": [
+            {
+              "value": "w-1/2",
+              "label": "t:global.section.width_option.option_1"
+            },
+            {
+              "value": "w-full",
+              "label": "t:global.section.width_option.option_2"
+            }
+          ],
+          "default": "w-full",
+          "label": "t:product_showcase.media_gallery.desktop_width"
+        }
+      ]
+    },
+    {
+      "type": "email",
+      "name": "t:global.form.email",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "default": "Email",
+          "label": "t:global.text.label",
+          "info": "t:contact_form.blocks.email.settings.email_info"
+        },
+        {
+          "type": "select",
+          "id": "width_block",
+          "options": [
+            {
+              "value": "w-1/2",
+              "label": "t:global.section.width_option.option_1"
+            },
+            {
+              "value": "w-full",
+              "label": "t:global.section.width_option.option_2"
+            }
+          ],
+          "default": "w-full",
+          "label": "t:product_showcase.media_gallery.desktop_width"
+        }
+      ]
+    },
+    {
+      "type": "request_type",
+      "name": "t:withdrawal_request_form.blocks.request_type.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "default": "Request type",
+          "label": "t:global.text.label"
+        },
+        {
+          "type": "select",
+          "id": "width_block",
+          "options": [
+            {
+              "value": "w-1/2",
+              "label": "t:global.section.width_option.option_1"
+            },
+            {
+              "value": "w-full",
+              "label": "t:global.section.width_option.option_2"
+            }
+          ],
+          "default": "w-full",
+          "label": "t:product_showcase.media_gallery.desktop_width"
+        }
+      ]
+    },
+    {
+      "type": "description",
+      "name": "t:global.text.description",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "default": "Description",
+          "label": "t:global.text.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "mark_as_required",
+          "default": false,
+          "label": "t:global.form.mark_as_req"
+        },
+        {
+          "type": "text",
+          "id": "return_helper_text",
+          "default": "Please list the item(s) you want to return and the reason (e.g. wrong size, damaged, changed mind). You can return part or all of your order.",
+          "label": "t:withdrawal_request_form.settings.return_helper_text"
+        },
+        {
+          "type": "text",
+          "id": "cancel_helper_text",
+          "default": "Please describe the reason why you want to cancel this order.",
+          "label": "t:withdrawal_request_form.settings.cancel_helper_text"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:withdrawal_request_form.name",
+      "category": "t:global.category.forms",
+      "blocks": [
+        {
+          "type": "order_id"
+        },
+        {
+          "type": "email"
+        },
+        {
+          "type": "request_type"
+        },
+        {
+          "type": "description"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

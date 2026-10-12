@@ -1,0 +1,153 @@
+custom-button {
+  display: contents;
+}
+
+custom-button:has(.skip-to-content) {
+  display: flex;
+  opacity: 0;
+  position: absolute;
+}
+
+custom-button:has(.skip-to-content):focus-within {
+  opacity: 1;
+  z-index: 50;
+}
+
+.button-secondary,
+.button-primary,
+.shopify-payment-button .shopify-payment-button__button--unbranded {
+  position: relative;
+  overflow: hidden;
+}
+
+.button-secondary,
+.button-primary {
+  border: none;
+  box-shadow: none;
+}
+.button-primary {
+  background: rgba(var(--color-button));
+  color: rgba(var(--color-button-text));
+}
+.button-primary[disabled], .button-primary[aria-disabled=true], .button-primary.disable-button-compare {
+  opacity: 1;
+  color: rgba(var(--color-button-text-no-alpha) / 0.7);
+}
+.button-secondary {
+  background: rgba(var(--color-secondary-button));
+  color: rgba(var(--color-secondary-button-text));
+}
+.button-secondary[disabled], .button-secondary[aria-disabled=true], .button-secondary.disable-button-compare {
+  opacity: 1;
+  color: rgba(var(--color-secondary-button-text-no-alpha) / 0.7);
+}
+.shopify-payment-button .shopify-payment-button__button--unbranded:hover:not([disabled]) {
+  background: rgba(var(--color-button));
+}
+@media (min-width: 1024px) {
+  .slider-nav.anm-button-secondary,
+  #ProductComparisonWidgetButton .button-primary {
+    position: absolute;
+  }
+}
+
+
+  @media (min-width: 1024px) {
+    .anm-button-primary, .anm-button-secondary { 
+      position: relative;
+      overflow: hidden;
+    }
+    .anm-button-primary:not([aria-disabled="true"]):not([disabled]),
+    .anm-button-secondary:not([aria-disabled="true"]):not([disabled]),
+    .shopify-payment-button .shopify-payment-button__button--unbranded,
+    .button-primary:not([aria-disabled="true"]):not([disabled]),
+    .button-secondary:not([aria-disabled="true"]):not([disabled]) {
+      --mouse-in-button-x: 0px;
+      --mouse-in-button-y: 0px;
+      isolation: isolate;
+    }
+
+    .anm-button-primary:not([aria-disabled="true"]):not([disabled])::before,
+    .anm-button-secondary:not([aria-disabled="true"]):not([disabled])::before,
+    .shopify-payment-button .shopify-payment-button__button--unbranded::before,
+    .button-primary:not([aria-disabled="true"]):not([disabled])::before,
+    .button-secondary:not([aria-disabled="true"]):not([disabled])::before {
+      content: "";
+      position: absolute;
+      left: var(--mouse-in-button-x);
+      top: var(--mouse-in-button-y);
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: rgba(var(--color-anm-button-hover));
+      border-radius: 999px;
+      transform-origin: center;
+      transition: transform var(--button-animation-duration) ease;
+      z-index: -1;
+      pointer-events: none;
+      transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+      --tw-translate-x: -50%;
+      --tw-translate-y: -50%;
+      --tw-scale-x: 0;
+      --tw-scale-y: 0;
+    }
+
+    .anm-button-primary:not([aria-disabled="true"]):not([disabled]).is-hover,
+    .anm-button-secondary:not([aria-disabled="true"]):not([disabled]).is-hover,
+    .shopify-payment-button .shopify-payment-button__button--unbranded.is-hover,
+    .button-primary:not([aria-disabled="true"]):not([disabled]).is-hover,
+    .button-secondary:not([aria-disabled="true"]):not([disabled]).is-hover,
+    .slider-nav.slider-nav__button-arrow.anm-button-secondary:not([aria-disabled="true"]):not([disabled]).is-hover {
+      color: rgba(var(--color-anm-button-text-hover));
+    }
+
+    .anm-button-primary:not([aria-disabled="true"]):not([disabled]).is-hover::before,
+    .anm-button-secondary:not([aria-disabled="true"]):not([disabled]).is-hover::before,
+    .shopify-payment-button .shopify-payment-button__button--unbranded.is-hover::before,
+    .button-primary:not([aria-disabled="true"]):not([disabled]).is-hover::before,
+    .button-secondary:not([aria-disabled="true"]):not([disabled]).is-hover::before {
+      --tw-scale-x: 3;
+      --tw-scale-y: 3;
+    }
+
+    .anm-button-primary:not([aria-disabled="true"]):not([disabled]),
+    .shopify-payment-button .shopify-payment-button__button--unbranded,
+    .button-primary:not([aria-disabled="true"]):not([disabled]) {
+      --color-anm-button-hover: var(--color-button-hover);
+    }
+
+    .anm-button-primary:not([aria-disabled="true"]):not([disabled]).is-hover,
+    .shopify-payment-button .shopify-payment-button__button--unbranded.is-hover,
+    .button-primary:not([aria-disabled="true"]):not([disabled]).is-hover {
+      --color-anm-button-text-hover: var(--color-button-text-hover);
+    }
+
+    .anm-button-secondary:not([aria-disabled="true"]):not([disabled]),
+    .button-secondary:not([aria-disabled="true"]):not([disabled]) {
+      --color-anm-button-hover: var(--color-secondary-button-hover);
+    }
+
+    .anm-button-secondary:not([aria-disabled="true"]):not([disabled]).is-hover,
+    .button-secondary:not([aria-disabled="true"]):not([disabled]).is-hover {
+      --color-anm-button-text-hover: var(--color-secondary-button-text-hover);
+    }
+
+    .scroll-to-top__button.-rotate-90::before{
+      --tw-rotate: 90deg;
+    }
+
+    .collection-link__button.anm-button-secondary.is-hover {
+      --color-heading: var(--color-anm-button-text-hover);
+    }
+
+    /* [Safari fix] When a button transitions from disabled/aria-disabled → enabled,
+       Safari recreates the ::before pseudo-element and plays its transition from
+       transform:none → scale(0), causing an unwanted shrink animation.
+       .is-variant-changing is applied to suppress this for the 2 frames during the transition. */
+    .anm-button-primary.is-variant-changing::before,
+    .anm-button-secondary.is-variant-changing::before,
+    .button-primary.is-variant-changing::before,
+    .button-secondary.is-variant-changing::before {
+      transition: none !important;
+    }
+  }
+

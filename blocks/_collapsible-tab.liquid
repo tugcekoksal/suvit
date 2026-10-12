@@ -1,0 +1,386 @@
+{% assign settings = block.settings %}
+
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block.settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block.settings.desktop_padding_left }}px;
+    --pad-right: {{ block.settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+  }
+
+  .collapsible-tab__wrapper--{{ block.id }} {
+    padding: {{ settings.inner_padding_vertical_mobile }}px {{ settings.inner_padding_horizontal_mobile }}px;
+  }
+
+  @media screen and (min-width: 768px) {
+    .collapsible-tab__wrapper--{{ block.id }} {
+      padding: {{ settings.inner_padding_vertical_desktop }}px {{ settings.inner_padding_horizontal_desktop }}px;
+    }
+  }
+{% endstyle %}
+<collapsible-tab
+  class="block-collapsible-tab block-padding block-{{ block.id }} maximize-block w-full h-full rounded-corners z-10 color-{{ settings.color_scheme_light }} dark-color-{{ settings.color_scheme_dark }}"
+  data-block-id="{{ block.id }}"
+  data-open-by-default="{{ settings.open_by_default | default: false }}"
+  {{ block.shopify_attributes }}
+>
+  {% capture static_header %}
+    {% content_for 'block', id: 'static_header', type: '_group' %}
+  {% endcapture %}
+  {% capture static_content %}
+    {% content_for 'block', id: 'static_content', type: '_group' %}
+  {% endcapture %}
+
+  <div 
+    class="collapsible-tab__wrapper collapsible-tab__wrapper--{{ block.id }} rounded-corners p-2
+      {%- if settings.show_border %} border border-solid color-border-[rgba(var(--color-line-and-border), 0.12)]{% endif -%}
+      {%- if is_rounded_corners %} rounded-md{% endif -%}"
+    data-collapsible-tab-container
+  >
+    <div class="collapsible-tab__container">
+      <div
+        class="collapsible-tab__header w-full cursor-pointer"
+        tabindex="0"
+        data-collapsible-tab-header
+      >
+        <div class="flex flex-row relative items-center gap-2.5">
+          {{ static_header }}
+          <div
+            class="collapsible-header__header__caret shrink-0 w-3 h-3 flex duration-500 transition-transform will-change-transform rotate-0"
+            data-collapsible-tab-caret
+          >
+            {% render 'icon-all', icon: 'icon-caret' %}
+          </div>
+        </div>
+      </div>
+      <div
+        class="collapsible-tab__content h-0 overflow-hidden transition-[height] duration-300 ease-out {% unless settings.open_by_default %} hidden{% endunless %}"
+        data-collapsible-tab-content
+      >
+        <div>
+          {{ static_content }}
+        </div>
+      </div>
+       {% content_for 'blocks' %}
+    </div>
+  </div>
+</collapsible-tab>
+
+{% schema %}
+{
+  "name": "Group",
+  "tag": null,
+  "blocks": [
+    {
+      "type": "subheading"
+    },
+    {
+      "type": "heading"
+    },
+    {
+      "type": "text"
+    },
+    {
+      "type": "button"
+    },
+    {
+      "type": "icon"
+    },
+    {
+      "type": "image"
+    },
+    {
+      "type": "video"
+    },
+    {
+      "type": "_group"
+    },
+    {
+      "type": "counter"
+    },
+    {
+      "type": "countdown-timer"
+    },
+    {
+      "type": "_items-list"
+    }
+  ],
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "open_by_default",
+      "default": false,
+      "label": "t:main_product.blocks.description.open_by_default"
+    },
+    {
+      "type": "header",
+      "content": "Inner Spacing"
+    },
+    {
+      "type": "select",
+      "id": "device_inner_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_vertical_desktop",
+      "label": "Inner vertical",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 10,
+      "visible_if": "{{ block.settings.device_inner_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_horizontal_desktop",
+      "label": "Inner horizontal",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 10,
+      "visible_if": "{{ block.settings.device_inner_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_vertical_mobile",
+      "label": "Inner vertical",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 6,
+      "visible_if": "{{ block.settings.device_inner_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_horizontal_mobile",
+      "label": "Inner horizontal",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 6,
+      "visible_if": "{{ block.settings.device_inner_padding == 'mobile' }}"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "select",
+      "id": "spacing_choose_device",
+      "label": "Choose device",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "Desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "Mobile"
+        }
+      ],
+      "default": "desktop",
+      "info": "Desktop and Mobile settings are configured separately."
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "header",
+      "content": "Style"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_border",
+      "label": "t:product_details.blocks.rich_text.show_border",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Collapsible tab",
+      "category": "Layout",
+      "blocks": {
+        "static_header": {
+          "type": "_group",
+          "name": "Header",
+          "static": true,
+          "settings": {
+            "desktop_direction": "row",
+            "mobile_direction": "row",
+            "gap": 10,
+            "width": "custom",
+            "desktop_group_width": 100,
+            "mobile_group_width": 100
+          },
+          "blocks": {
+            "header_icon": {
+              "type": "icon",
+              "name": "Icon",
+              "settings": {
+                "icon_style": "icon",
+                "icon": "authentic",
+                "desktop_icon_size": 20,
+                "mobile_icon_size": 20
+              }
+            },
+            "header_heading": {
+              "type": "text",
+              "name": "Text",
+              "settings": {
+                "text": "<p>Additional Information</p>"
+              }
+            }
+          },
+          "block_order": [
+            "header_icon",
+            "header_heading"
+          ]
+        },
+        "static_content": {
+          "type": "_group",
+          "name": "Content",
+          "static": true,
+          "settings": {
+            "desktop_direction": "col",
+            "mobile_direction": "col",
+            "gap": 20,
+            "width": "custom",
+            "desktop_group_width": 100,
+            "mobile_group_width": 100,
+            "desktop_padding_top": 10,
+            "mobile_padding_top": 10
+          },
+          "blocks": {
+            "text": {
+              "type": "text",
+              "name": "Text",
+              "settings": {
+                "text": "<p>Share information about your brand with your customers. Describe a product, make announcements, or welcome customers to your store.</p>"
+              }
+            }
+          },
+          "block_order": ["text"]
+        }
+      }
+    }
+  ]
+}
+{% endschema %}

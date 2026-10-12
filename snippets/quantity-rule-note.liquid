@@ -1,0 +1,64 @@
+{% doc %}
+  Renders the inline quantity-rule note shown under the variant picker on the product
+  page — "Increments of 3 . Minimum of 3 . Maximum of 99" — listing only the rules that
+  actually apply. Renders nothing when the variant uses the default rule.
+
+  The separator sits BETWEEN parts only. It used to be hard-coded in front of the maximum,
+  so a variant whose only rule was a maximum rendered a stray leading ". ".
+
+  @param variant {Variant} - The variant whose quantity_rule to describe. Required.
+  @param class {String} - Extra classes for the wrapper. Optional.
+  @param wrapper_class {String} - REPLACES the default `product-info__quantity-rule` wrapper class.
+    Pass it when rendering outside the product page's own note slot — the variant picker toggles
+    `is-unavailable` (display: none) on every `.product-info__quantity-rule` inside the section, so
+    keeping that class would let it hide this text in places it was never meant to reach, such as
+    inside the quantity-rule tooltip. Optional.
+
+  @example
+  {%- render 'quantity-rule-note', variant: current_variant, class: 'mb-1 md:mb-2.5' -%}
+{% enddoc %}
+
+{%- liquid
+  assign qr = variant.quantity_rule
+  assign separator = ' . '
+  assign rule_text = ''
+
+  if qr.increment > 1
+    assign rule_text = 'products.product.quantity_rule.increment' | t: count: qr.increment
+  endif
+
+  if qr.min > 1
+    assign minimum_text = 'products.product.quantity_rule.minimum' | t: count: qr.min
+    if rule_text == ''
+      assign rule_text = minimum_text
+    else
+      assign rule_text = rule_text | append: separator | append: minimum_text
+    endif
+  endif
+
+  if qr.max != blank
+    assign maximum_text = 'products.product.quantity_rule.maximum' | t: count: qr.max
+    if rule_text == ''
+      assign rule_text = maximum_text
+    else
+      assign rule_text = rule_text | append: separator | append: maximum_text
+    endif
+  endif
+-%}
+
+{%- assign note_wrapper_class = wrapper_class | default: 'product-info__quantity-rule' -%}
+{%- comment -%}
+  Always emit the wrapper in the product-page slot (no wrapper_class) so the variant
+  picker's innerHTML swap has both endpoints and can clear/insert the note when moving
+  between a rule variant and a default-rule variant. Callers passing wrapper_class
+  (e.g. the tooltip) keep the render-nothing-when-blank behavior.
+{%- endcomment -%}
+{%- if rule_text != blank or wrapper_class == blank -%}
+  <div class="{{ note_wrapper_class }}{% if class != blank %} {{ class }}{% endif %}">
+    {%- if rule_text != blank -%}
+      <div class="quantity-rule-note text-x-small color-text-[rgba(var(--color-text))]">
+        {{- rule_text -}}
+      </div>
+    {%- endif -%}
+  </div>
+{%- endif -%}

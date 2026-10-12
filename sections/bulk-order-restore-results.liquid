@@ -1,0 +1,7 @@
+{%- if product -%}
+  <script type="application/json" id="bulk-order-restore-data">
+    [
+      {%- render 'bulk-order-variant-json', product: product -%}
+    ]
+  </script>
+{%- endif -%}

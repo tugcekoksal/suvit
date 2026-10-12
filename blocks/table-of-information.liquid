@@ -1,0 +1,416 @@
+{% assign settings = block.settings %}
+{% assign product = closest.product %}
+{% assign current_variant = product.selected_or_first_available_variant %}
+{% style %}
+	.block-{{ block.id }} {
+		{% if settings.subheading_size == 'custom' %}
+			font-size: {{ settings.mobile_font_size }}px;
+			line-height: {{ settings.line_height }}%;
+		{% endif %}
+		--pad-top: {{ settings.desktop_padding_top }}px;
+		--pad-bottom: {{ settings.desktop_padding_bottom }}px;
+		--pad-left: {{ settings.desktop_padding_left }}px;
+		--pad-right: {{ settings.desktop_padding_right }}px;
+		--pad-top-m: {{ settings.mobile_padding_top }}px;
+		--pad-bottom-m: {{ settings.mobile_padding_bottom }}px;
+		--pad-left-m: {{ settings.mobile_padding_left }}px;
+		--pad-right-m: {{ settings.mobile_padding_right }}px;
+	}
+
+	.table-of-information__content__{{ block.id }} {
+		padding: {{ settings.inner_padding_vertical_mobile }}px {{ settings.inner_padding_horizontal_mobile }}px;
+	}
+
+	{% if settings.background_color_light.alpha != 0 or settings.text_color_light.alpha != 0 %}
+    .maximize-theme:not(.dark) .table-of-information__content__{{ block.id }} {
+      {% if settings.background_color_light.alpha != 0 %}
+        --color-background: {{ settings.background_color_light.red }}, {{ settings.background_color_light.green }}, {{ settings.background_color_light.blue }};
+      {% endif %}
+      {% if settings.text_color_light.alpha != 0 %}
+        --color-text: {{ settings.text_color_light.red }}, {{ settings.text_color_light.green }}, {{ settings.text_color_light.blue }};
+      {% endif %}
+    }
+  {% endif %}
+
+	{% if settings.background_color_dark.alpha != 0 or settings.text_color_dark.alpha != 0 %}
+		.maximize-theme.dark .table-of-information__content__{{ block.id }} {
+			{% if settings.background_color_dark.alpha != 0 %}
+				--color-background: {{ settings.background_color_dark.red }}, {{ settings.background_color_dark.green }}, {{ settings.background_color_dark.blue }};
+			{% endif %}
+			{% if settings.text_color_dark.alpha != 0 %}
+				--color-text: {{ settings.text_color_dark.red }}, {{ settings.text_color_dark.green }}, {{ settings.text_color_dark.blue }};
+			{% endif %}
+		}
+	{% endif %}
+
+	@media screen and (min-width: 768px) {
+		{% if settings.subheading_size == 'custom' %}
+			.block-{{ block.id }} {
+				font-size: {{ settings.desktop_font_size }}px;
+				line-height: {{ settings.line_height }}%;
+			}
+		{% endif %}
+
+		.table-of-information__content__{{ block.id }} {
+			padding: {{ settings.inner_padding_vertical_desktop }}px {{ settings.inner_padding_horizontal_desktop }}px;
+		}
+	}
+{% endstyle %}
+
+<div
+	class="table-of-information__block block-padding maximize-block z-10 block-{{ block.id }} w-full"
+	data-block-id="{{ block.id }}"
+	{{ block.shopify_attributes }}
+>
+	{%- if settings.left_label != blank or settings.right_label != blank or settings.details != blank or settings.extra_details != blank -%}
+		<div class="table-of-information__content table-of-information__content__{{ block.id }} color-bg-[rgba(var(--color-background))] color-text-[rgba(var(--color-text))] rounded-corners {% if settings.show_border %} border border-solid color-border-[rgba(var(--color-line-and-border))]{% endif %}">
+      {% if settings.left_label != blank or settings.right_label != blank %}
+        <div
+          class="table-info-label flex justify-between pt-2 pb-2 font-semibold italic border-b border-solid color-border-[rgba(var(--color-text),0.12)] anm-fade-element"
+          data-fade-on-intersect
+        >
+          <div>{{ settings.left_label }}</div>
+          <div class="text-right rtl:text-left">{{ settings.right_label }}</div>
+        </div>
+      {% endif %}
+      {% liquid
+        if settings.details != blank
+          assign details = settings.details | remove: '<li>'
+          assign details = details | remove: '<ol>'
+          assign details = details | remove: '<p>'
+          assign details = details | remove: '<ul>'
+          assign details = details | replace: '</li>', '<br>'
+          assign details = details | replace: '</ul>', '<br>'
+          assign details = details | replace: '</p>', '<br>'
+          assign details = details | newline_to_br | split: '<br>'
+        endif
+      %}
+      {% style %}
+        .table-of-information__detail p:empty {
+          display: none;
+        }
+        .table-of-information__detail ol {
+          width: 100%;
+          list-style: auto;
+        }
+        .table-of-information__details {
+          list-style: auto;
+        }
+      {% endstyle %}
+
+      {% for table in details %}
+        {% if request.design_mode %}
+          {% if forloop.last and table contains '<!-- END setting: ' %}
+            {% break %}
+          {% endif %}
+        {% endif %}
+        <ul class="table-of-information__detail{% if settings.extra_details != blank %} pb-5{% endif %}">
+          {% liquid
+            assign rows = table | strip_newlines | newline_to_br | split: '<br/>'
+          %}
+          {% for row in rows %}
+            {% if row != blank %}
+            	<li
+                class="table-content__row flex w-full justify-between pt-2 pb-2 anm-fade-element gap-4
+                {% unless forloop.last %} border-b border-solid color-border-[rgba(var(--color-text),0.12)]{% endunless %}"
+                data-fade-on-intersect
+            	>
+                {% liquid
+                  assign row_split = row | split: ':'
+                  assign first_charactor = row_split | first | slice: 0, 1
+                  assign right_label_of_row  = row_split | last
+                  assign row_length = row_split | size
+                %}
+                <div class="table-content__row__first rte{% if first_charactor == '-' %} pl-4 rtl:pl-0 rtl:pr-4{% endif %}">
+                  {{ row | strip_html | split: ':' | first | remove_first: '-' }}
+                </div>
+                {% if row_length > 1 %}
+                  <div class="table-content__row__last rte text-right rtl:text-left">
+                    {% render 'product-metafield-table',
+                      right_label_of_row: right_label_of_row,
+                      product: product,
+                      current_variant: current_variant,
+                      text_empty: block.settings.text_empty_field,
+                      is_bullet_list: true
+                    %}
+                  </div>
+                {% endif %}
+              </li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+      {% endfor %}
+
+      {% if settings.extra_details != blank %}
+        <div
+          class="table-content__row__last extra-details rte anm-fade-element text-left rtl:text-right"
+          data-fade-on-intersect
+        >
+          {% render 'product-metafield-table',
+            product: product,
+            current_variant: current_variant,
+            text_empty: block.settings.text_empty_field,
+            is_bullet_list: false,
+            right_label_of_row: block.settings.extra_details
+        	%}
+        </div>
+      {% endif %}
+
+		</div>
+	{%- endif -%}
+</div>
+
+{% schema %}
+{
+	"name": "Table of information",
+	"tag": null,
+	"settings": [
+		{
+			"type": "text",
+			"id": "left_label",
+			"default": "Sort",
+			"label": "t:main_product.blocks.table_information.settings.left_column_label"
+		},
+		{
+			"type": "text",
+			"id": "right_label",
+			"default": "Values",
+			"label": "t:main_product.blocks.table_information.settings.right_column_label"
+		},
+		{
+			"type": "richtext",
+			"id": "details",
+			"label": "t:main_product.blocks.table_information.settings.details",
+			"default": "<p>Weight: 100g<br/>-Dimension: 16mm<br/><br/>-Size: Small<br/>Condition: Excellent<br/>Usage: Daily use<br/>Price range: Budget-friendly</p>",
+			"info": "t:main_product.blocks.table_information.settings.details_info"
+		},
+		{
+			"type": "richtext",
+			"id": "extra_details",
+			"label": "t:main_product.blocks.table_information.settings.extra_details",
+			"default": "<p>Add further details to enrich you product information.</p>",
+			"info": "t:main_product.blocks.table_information.settings.extra_details_info"
+		},
+		{
+			"type": "text",
+			"id": "text_empty_field",
+			"label": "t:comparison_overlay.settings.grid.text_empty_field",
+			"default": "-"
+		},
+		{
+      "type": "header",
+      "content": "Inner Spacing"
+    },
+    {
+      "type": "select",
+      "id": "device_inner_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_vertical_desktop",
+      "label": "Inner vertical",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 16,
+      "visible_if": "{{ block.settings.device_inner_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_horizontal_desktop",
+      "label": "Inner horizontal",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 16,
+      "visible_if": "{{ block.settings.device_inner_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_vertical_mobile",
+      "label": "Inner vertical",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 16,
+      "visible_if": "{{ block.settings.device_inner_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_horizontal_mobile",
+      "label": "Inner horizontal",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 16,
+      "visible_if": "{{ block.settings.device_inner_padding == 'mobile' }}"
+    },
+		{
+			"type": "header",
+			"content": "Padding"
+		},
+		{
+			"type": "select",
+			"id": "spacing_choose_device",
+			"label": "Choose device",
+			"options": [
+				{
+					"value": "desktop",
+					"label": "Desktop"
+				},
+				{
+					"value": "mobile",
+					"label": "Mobile"
+				}
+			],
+			"default": "desktop",
+			"info": "Desktop and Mobile settings are configured separately."
+		},
+		{
+			"type": "range",
+			"id": "desktop_padding_top",
+			"min": 0,
+			"max": 100,
+			"step": 1,
+			"unit": "px",
+			"label": "Top",
+			"default": 0,
+			"visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+		},
+		{
+			"type": "range",
+			"id": "desktop_padding_bottom",
+			"min": 0,
+			"max": 100,
+			"step": 1,
+			"unit": "px",
+			"label": "Bottom",
+			"default": 0,
+			"visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+		},
+		{
+			"type": "range",
+			"id": "desktop_padding_left",
+			"min": 0,
+			"max": 100,
+			"step": 1,
+			"unit": "px",
+			"label": "Left",
+			"default": 0,
+			"visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+		},
+		{
+			"type": "range",
+			"id": "desktop_padding_right",
+			"min": 0,
+			"max": 100,
+			"step": 1,
+			"unit": "px",
+			"label": "Right",
+			"default": 0,
+			"visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+		},
+		{
+			"type": "range",
+			"id": "mobile_padding_top",
+			"min": 0,
+			"max": 100,
+			"step": 1,
+			"unit": "px",
+			"label": "Top",
+			"default": 0,
+			"visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+		},
+		{
+			"type": "range",
+			"id": "mobile_padding_bottom",
+			"min": 0,
+			"max": 100,
+			"step": 1,
+			"unit": "px",
+			"label": "Bottom",
+			"default": 0,
+			"visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+		},
+		{
+			"type": "range",
+			"id": "mobile_padding_left",
+			"min": 0,
+			"max": 100,
+			"step": 1,
+			"unit": "px",
+			"label": "Left",
+			"default": 0,
+			"visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+		},
+		{
+			"type": "range",
+			"id": "mobile_padding_right",
+			"min": 0,
+			"max": 100,
+			"step": 1,
+			"unit": "px",
+			"label": "Right",
+			"default": 0,
+			"visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+		},
+		{
+      "type": "header",
+      "content": "t:global.header.style"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_border",
+      "label": "Show border",
+      "default": true
+    },
+		{
+			"type": "color",
+			"id": "background_color_light",
+			"default": "rgba(0,0,0,0)",
+			"label": "t:global.colors.background_light"
+		},
+		{
+			"type": "color",
+			"id": "text_color_light",
+			"default": "rgba(0,0,0,0)",
+			"label": "t:global.colors.text_light"
+		},
+		{
+			"type": "color",
+			"id": "background_color_dark",
+			"default": "rgba(0,0,0,0)",
+			"label": "t:global.colors.background_dark"
+		},
+		{
+			"type": "color",
+			"id": "text_color_dark",
+			"default": "rgba(0,0,0,0)",
+			"label": "t:global.colors.text_dark"
+		}
+	],
+	"presets": [
+		{
+			"name": "Table of information",
+			"category": "Basic"
+		}
+	]
+}
+{% endschema %}

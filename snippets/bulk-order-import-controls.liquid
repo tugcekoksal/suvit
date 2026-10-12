@@ -1,0 +1,86 @@
+{%- doc -%}
+Renders the Bulk Order CSV import dropzone (Upload CSV file / Import), plus the Phase 1 validate messages (file-level error, row errors, or the pre-handle success preview) nested inside that same dropzone. Rendered twice from `sections/bulk-order.liquid` — once inside the empty-state "getting
+started" panel, once as the compact bar under the search input once the table has items — both inside the same `xBulkOrderImport` Alpine scope, so this partial only needs to reference its state/methods.
+{%- enddoc -%}
+
+<div
+  class="bulk-order__csv-dropzone rounded-corners"
+  :class="{ 'is-drag-over': isDragOver }"
+  @dragover.prevent="isDragOver = true"
+  @dragleave.prevent="isDragOver = false"
+  @drop.prevent="onFileDropped($event)"
+>
+  <div class="bulk-order__csv-controls-actions">
+    <div
+      class="bulk-order__csv-controls-upload rounded-corners"
+      role="button"
+      tabindex="0"
+      :class="{ 'pointer-events-none': isProcessing }"
+      :aria-disabled="isProcessing"
+      @click="$refs.importFileInput.click()"
+      @keydown.enter="$refs.importFileInput.click()"
+      @keydown.space.prevent="$refs.importFileInput.click()"
+    >
+      <span class="bulk-order__csv-controls-upload-icon w-5 h-5 shrink-0">{%- render 'icon-all', icon: 'icon-file-upload' -%}</span>
+      <span
+        class="h6 md:h7 font-semibold text-nowrap truncate"
+        x-text="selectedFile ? selectedFile.name : _strings.upload_button"
+      ></span>
+    </div>
+
+    <custom-button>
+      <button
+        type="button"
+        class="button button-primary button-small relative w-full"
+        :class="{ 'pointer-events-none': isProcessing }"
+        :disabled="!canImport"
+        :aria-disabled="!canImport"
+        @click="onImportClick()"
+      >
+        <span
+          class="button-text text-nowrap"
+          :class="{ 'opacity-0': isProcessing }"
+          x-text="isProcessing ? _strings.importing_label : _strings.import_label"
+        ></span>
+        <span
+          class="inline-block w-4 h-4 animate-spin absolute top-[calc(50%-8px)] left-[calc(50%-8px)]"
+          x-show="isProcessing"
+          x-cloak
+        >
+          {%- render 'icon-all', icon: 'icon-loading' -%}
+        </span>
+      </button>
+    </custom-button>
+  </div>
+
+  <div
+    class="bulk-order__csv-controls-messages"
+    x-show="fileError || rowErrorLines.length > 0 || previewMessage"
+    x-cloak
+  >
+    <div
+      class="bulk-order__csv-controls-error-summary flash-message error-message flex flex-col"
+      x-show="fileError || rowErrorLines.length > 0"
+      x-cloak
+    >
+      <template
+        x-for="(line, index) in rowErrorLines"
+        :key="index"
+      >
+        <span x-text="line"></span>
+      </template>
+      <span
+        x-show="fileError"
+        x-cloak
+        x-text="fileError"
+      ></span>
+    </div>
+
+    <p
+      class="bulk-order__csv-controls-preview-message flash-message success-message"
+      x-show="previewMessage"
+      x-cloak
+      x-text="previewMessage"
+    ></p>
+  </div>
+</div>

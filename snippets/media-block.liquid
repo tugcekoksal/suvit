@@ -1,0 +1,227 @@
+{% liquid
+  assign media_style = settings.media_style
+  assign media_ratio = settings.media_ratio
+  if block.settings.media_ratio == "auto"
+    assign media_ratio = 100
+  endif
+  assign class_ratio = 'aspect-' | append: media_ratio
+
+  assign desktop_media_width = settings.desktop_media_width
+  assign mobile_media_width = settings.mobile_media_width
+%}
+<div class="media__wrapper relative">
+  <div class="media__container">
+    {% if media_style == 'image' %}
+      {% liquid
+        assign mobile_image = settings.mobile_image
+        assign desktop_image = settings.desktop_image
+
+        if mobile_image == blank
+          assign mobile_image = desktop_image
+        endif
+        if desktop_image == blank
+          assign desktop_image = mobile_image
+        endif
+      %}
+      {% if desktop_image == blank and mobile_image == blank %}
+        <div class="media__image__placeholder rounded-corners {{ class_ratio }}">
+          {% render 'placeholder-image', image_type: 'image' %}
+        </div>
+      {% else %}
+        <div class="media__image__wrapper relative rounded-corners w-full h-full {{ class_ratio }}">
+          <picture class="w-full h-full overflow-hidden absolute rounded-corners">
+            <source
+              media="(max-width: 767px)"
+              srcset="
+                {{ mobile_image | image_url: width: '400x' }} 400w,
+                {{ mobile_image | image_url: width: '600x' }} 600w,
+                {{ mobile_image | image_url: width: '800x' }} 800w
+              "
+              width="{{ mobile_image.width }}"
+              height="{{ mobile_image.height }}"
+            >
+            {{- desktop_image | image_url: width: desktop_image.width | image_tag: loading: 'lazy', widths: '720,900,1080,1200,1400,1600,1800,2000,2200', is: 'lazy-image', class: 'media__image w-full h-full object-cover', sizes: '(max-width: 767px) 100vw, (max-width: 1200px) 50vw, 600px' -}}
+          </picture>
+        </div>
+      {% endif %}
+    {% else %}
+      {% liquid
+        assign video_source = settings.video_source
+        assign video_upload = settings.video_upload
+        assign video_url = settings.video_url
+        assign show_controls = settings.show_controls
+        assign show_sound_control = settings.show_sound_control_button
+        assign show_button_play = settings.show_button_play
+        assign enable_video_autoplay = settings.enable_video_autoplay
+
+        assign video_type = false
+        assign video_id = nil
+
+        if video_source == 'upload'
+          assign video_type = 'video_select'
+        elsif video_url.type == 'youtube'
+          assign video_type = 'youtube'
+          assign video_id = video_url.id
+        elsif video_url.type == 'vimeo'
+          assign video_type = 'vimeo'
+          assign video_id = video_url.id
+        endif
+
+        assign desktop_cover_image = settings.desktop_cover_image
+        assign mobile_cover_image = settings.mobile_cover_image
+
+        if mobile_cover_image == blank and desktop_cover_image == blank
+          if video_source == 'upload'
+            if video_upload != blank
+              assign mobile_cover_image = video_upload.preview_image
+              assign desktop_cover_image = video_upload.preview_image
+              assign have_cover = true
+            else
+              assign have_cover = false
+            endif
+          else
+            assign have_cover = false
+          endif
+        else
+          if mobile_cover_image == blank
+            assign mobile_cover_image = desktop_cover_image
+          endif
+          if desktop_cover_image == blank
+            assign desktop_cover_image = mobile_cover_image
+          endif
+          assign have_cover = true
+        endif
+        if enable_video_autoplay
+          assign have_cover = false
+        endif
+
+        assign img_alt = 'accessibility.default_alt' | t
+        assign poster_element = '<img loading="' | append: loading | append: '" hidden alt="' | append: img_alt | append: '"'
+      %}
+
+      {% capture buttons_video %}
+        <div class="buttons-video__wrapper bottom-0 justify-end">
+          {% if show_sound_control %}
+            <button
+              class="button-sound-control video__button pointer-events-auto is-muted anm-hover-button"
+              {% unless enable_video_autoplay %}
+                tabindex="-1"
+              {% endunless %}
+              data-action="mute"
+              aria-label="button sound control"
+            >
+              <span class="icon-unmute video__button-icon">
+                {% render 'icon-media', icon: 'icon-unmute' %}
+              </span>
+              <span class="icon-mute video__button-icon">
+                {% render 'icon-media', icon: 'icon-mute' %}
+              </span>
+            </button>
+          {% endif %}
+
+          {% comment %} Button play / pause {% endcomment %}
+          {% if show_button_play %}
+            <button
+              class="button-play video__button pointer-events-auto anm-hover-button{% if enable_video_autoplay %} is-playing started-video{% endif %}"
+              aria-label="button play"
+              data-action="play"
+            >
+              <span class="icon-play video__button-icon">
+                {% render 'icon-media', icon: 'icon-play' %}
+              </span>
+              <span class="icon-pause video__button-icon">
+                {% render 'icon-media', icon: 'icon-pause' %}
+              </span>
+            </button>
+          {% endif %}
+        </div>
+      {% endcapture %}
+
+      {% capture video_config %}
+        {
+          "type":{{ video_type | json }},
+          "source":{{ video_source | json }},
+          "id":{{ video_id | json }},
+          "alt":{{ video_alt | json }},
+          "autoplay":{{ enable_video_autoplay | json }},
+          "controls":{{ show_controls | json }}
+        }
+      {% endcapture %}
+
+      <custom-video
+        class="flex relative w-full {{ class_ratio }}"
+        data-config='{{ video_config | json }}'
+        data-video-status="{% if enable_video_autoplay %}play{% else %}pause{% endif %}"
+        data-paused-by-leave="false"
+        data-is-active="{% if is_active %}true{% else %}false{% endif %}"
+        tabindex="{% if show_controls %}0{% else %}-1{% endif %}"
+      >
+        <div class="video-wrapper absolute h-full w-full overflow-hidden rounded-corners">
+          {% if show_controls == false and show_button_play or show_sound_control %}
+            {{ buttons_video }}
+          {% endif %}
+
+          {% if have_cover %}
+            <picture class="w-full h-full overflow-hidden absolute rounded-corners video-cover">
+              <source
+                media="(max-width: 767px)"
+                srcset="
+                  {{ mobile_cover_image | image_url: width: '400x' }} 400w,
+                  {{ mobile_cover_image | image_url: width: '600x' }} 600w,
+                  {{ mobile_cover_image | image_url: width: '800x' }} 800w
+                "
+                width="{{ mobile_cover_image.width }}"
+                height="{{ mobile_cover_image.height }}"
+              >
+              {{- desktop_cover_image | image_url: width: desktop_cover_image.width | image_tag: loading: 'lazy', widths: '720,900,1080,1200,1400,1600,1800,2000,2200', is: 'lazy-image', class: 'media__video__cover-image w-full h-full' -}}
+            </picture>
+          {% else %}
+            <div class="media__media__placeholder rounded-corners {{ class_ratio }}">
+              {% render 'placeholder-image', image_type: 'image' %}
+            </div>
+          {% endif %}
+          {% comment %}{% elsif video_source == 'external_url' %}{% endcomment %}
+            {% comment %}{% if video_type == 'youtube' %}{% endcomment %}
+              {% comment %}<source{% endcomment %}
+                {% comment %}type="image/webp"{% endcomment %}
+                {% comment %}srcset="{{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/maxresdefault.webp' }}"{% endcomment %}
+              {% comment %}>{% endcomment %}
+              {% comment %}<source{% endcomment %}
+                {% comment %}type="image/jpeg"{% endcomment %}
+                {% comment %}srcset="{{ video_id | prepend: 'https://i.ytimg.com/vi/' | append: '/maxresdefault.jpg' }}"{% endcomment %}
+              {% comment %}>{% endcomment %}
+              {% comment %}<img{% endcomment %}
+                {% comment %}src="{{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/maxresdefault.webp' }}"{% endcomment %}
+                {% comment %}loading="{{ loading }}"{% endcomment %}
+                {% comment %}class="object-cover h-full w-full"{% endcomment %}
+                {% comment %}alt="{{ video_alt | default: default_image_alt }}"{% endcomment %}
+                {% comment %}width="1280"{% endcomment %}
+                {% comment %}height="890"{% endcomment %}
+              {% comment %}>{% endcomment %}
+            {% comment %}{% elsif video_type == 'vimeo' %}{% endcomment %}
+              {% comment %}<div class="vimeo-thumbnail-skeleton w-full h-full bg-skeleton"></div>{% endcomment %}
+            {% comment %}{% endif %}{% endcomment %}
+          {% comment %}{% endif %}{% endcomment %}
+
+          <div class="video-container {% if have_cover %} hidden{% endif %} rounded-corners">
+            {% if video_source == 'upload' %}
+              {{ video_upload | video_tag:
+                autoplay: enable_video_autoplay,
+                loop: true,
+                controls: show_controls,
+                preload: video_preload,
+                class: "video absolute top-0 left-0 w-full h-full object-cover",
+                alt: video_alt,
+                poster: '' | replace: '<img ', poster_element
+              }}
+            {% endif %}
+          </div>
+        </div>
+      </custom-video>
+
+      <script src="{{ 'custom-video.js' | asset_url }}" defer></script>
+    {% endif %}
+  </div>
+
+  <div class="overlay-image absolute scheme-image-overlay transition-opacity top-0 left-0 right-0 bottom-0 opacity-{{ settings.overlay_opacity }} pointer-events-none"></div>
+</div>

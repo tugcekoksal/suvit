@@ -1,0 +1,93 @@
+{% comment %}
+  Renders a snippet showing product social sharing icons.
+
+  Accepts:
+  - product: {Object} Product Liquid object (optional)
+  - share_title: {String} The title to be shared. Default: product.title
+  - share_permalink: {String} The permalink to be shared. Default: product.url
+  - share_image: {Object} The image to be shared. Default: product.featured_image
+  - social_icon_size: {String} Additional class for social icon size. Default: ''
+  Usage:
+  {% render 'social-sharing', product: product, share_title: product.title, share_permalink: product.url, share_image: product, social_icon_size: 'w-5 h-5' %}
+{% endcomment %}
+{% assign social_icon_size = social_icon_size | default: 'w-5 h-5' %}
+<ul class="social-sharing__container flex flex-wrap">
+  {%- if settings.share_facebook -%}
+    <li class="social-sharing__facebook p-1 toc:m-0 toc:w-9 toc:h-9">
+      <div class="p-2 toc:p-1 lg:hover:color-text-[rgba(var(--color-link))] cursor-pointer"
+        aria-label="{{ 'general.social.alt_text.share_on_facebook' | t }}"
+        role="link"
+        @click.prevent="window.open('//www.facebook.com/sharer.php?u={{ shop.url | append: share_permalink }}', '', `width=700, height=500, left=${(window.screen.width - 700)/2}, top=${(window.screen.height - 500)/2}`)"
+        tabindex="0"
+        @keyup.enter="$el.click()"
+      >
+        <div aria-hidden="true" class="{{ social_icon_size }}">{% render 'icon-media', icon: 'icon-facebook' %}</div>
+      </div>
+    </li>
+  {% endif %}
+  {%- if settings.share_twitter -%}
+    <li class="social-sharing__twitter p-1 toc:m-0 toc:w-9 toc:h-9">
+      <div class="p-2 toc:p-1 lg:hover:color-text-[rgba(var(--color-link))] cursor-pointer"
+        aria-label="{{ 'general.social.alt_text.share_on_twitter' | t }}"
+        role="link"
+        @click.prevent="window.open('//twitter.com/intent/tweet?text={{ share_title | url_encode }}&amp;url={{ shop.url | append: share_permalink }}', '', `width=700, height=500, left=${(window.screen.width - 700)/2}, top=${(window.screen.height - 500)/2}`)"
+        tabindex="0"
+        @keyup.enter="$el.click()"
+      >
+        <div aria-hidden="true" class="{{ social_icon_size }}">{% render 'icon-media', icon: 'icon-twitter' %}</div>
+      </div>
+    </li>
+  {% endif %}
+  {%- if settings.share_email -%}
+    <li class="social-sharing__email p-1 toc:m-0 toc:w-9 toc:h-9">
+      <button class="p-2 toc:p-1 lg:hover:color-text-[rgba(var(--color-link))] cursor-pointer"
+        aria-label="{{ 'general.social.alt_text.share_on_email' | t }}"
+        role="link"
+        @click.prevent="if(window.screen.width >= 1024) window.open('//mail.google.com/mail/?view=cm&fs=1&su={{ share_title | url_encode }}&body={{ shop.url | append: share_permalink }}', '', `width=700, height=500, left=${(window.screen.width - 700)/2}, top=${(window.screen.height - 500)/2}`); else { window.open('mailto:?subject={{ share_title | url_encode }}&amp;body={{ shop.url | append: share_permalink }}', '', `width=700, height=500, left=${(window.screen.width - 700)/2}, top=${(window.screen.height - 500)/2}`) }"
+        tabindex="0"
+        @keyup.enter="$el.click()"
+      >
+        <div aria-hidden="true" class="{{ social_icon_size }}">{% render 'icon-media', icon: 'icon-email' %}</div>
+      </button>
+    </li>
+  {%- endif -%}
+  {%- if settings.share_pinterest -%}
+    <li class="social-sharing__pinterest p-1 toc:m-0 toc:w-9 toc:h-9">
+      <div class="p-2 toc:p-1 lg:hover:color-text-[rgba(var(--color-link))] cursor-pointer"
+        aria-label="{{ 'general.social.alt_text.share_on_pinterest' | t }}"
+        role="link"
+        @click.prevent="window.open('//pinterest.com/pin/create/button/?url={{ shop.url | append: share_permalink }}&amp;media={{ share_image | image_url: width: 1024 }}&amp;description={{ share_title | url_encode }}', '', `width=700, height=500, left=${(window.screen.width - 700)/2}, top=${(window.screen.height - 500)/2}`)"
+        tabindex="0"
+        @keyup.enter="$el.click()"
+      >
+        <div aria-hidden="true" class="{{ social_icon_size }}">{% render 'icon-media', icon: 'icon-pinterest' %}</div>
+      </div>
+    </li>
+  {%- endif -%}
+  {%- if settings.share_whatsapp -%}
+    <li class="social-sharing__whatsapp p-1 toc:m-0 toc:w-9 toc:h-9">
+      <div class="p-2 toc:p-1 lg:hover:color-text-[rgba(var(--color-link))] cursor-pointer"
+        aria-label="{{ 'general.social.alt_text.share_on_whatsapp' | t }}"
+        role="link"
+        @click.prevent="window.open('//wa.me/?text={{ share_title | url_encode }} {{ shop.url | append: share_permalink }}', '', `width=700, height=500, left=${(window.screen.width - 700)/2}, top=${(window.screen.height - 500)/2}`)"
+        tabindex="0"
+        @keyup.enter="$el.click()"
+      >
+        <div aria-hidden="true" class="{{ social_icon_size }}">{% render 'icon-media', icon: 'icon-whatsapp' %}</div>
+      </div>
+    </li>
+  {%- endif -%}
+  {%- if settings.share_sms -%}
+    <li class="social-sharing__sms p-1 toc:m-0 toc:w-9 toc:h-9">
+      <div class="p-2 toc:p-1 lg:hover:color-text-[rgba(var(--color-link))] cursor-pointer"
+        aria-label="{{ 'general.social.alt_text.share_on_sms' | t }}"
+        role="link"
+        @click.prevent="window.open('sms:?body={{ share_title | url_encode }} {{ shop.url | append: share_permalink }}', '', `width=700, height=500, left=${(window.screen.width - 700)/2}, top=${(window.screen.height - 500)/2}`)"
+        tabindex="0"
+        @keyup.enter="$el.click()"
+      >
+        <div aria-hidden="true" class="{{ social_icon_size }}">{% render 'icon-media', icon: 'icon-sms' %}</div>
+      </div>
+    </li>
+  {%- endif -%}
+</ul>

@@ -1,0 +1,328 @@
+/* Expand surface */
+
+.variant-expand-surface {
+  background-color: rgba(var(--color-text-no-alpha) / 0.04);
+}
+
+/* Composites over the same base instead of being transparent, so the opaque badge doesn't
+   read as a mismatched patch. */
+.variant-expand-surface .quantity-rule-tooltip {
+  background-color: rgba(var(--color-background));
+  background-image: linear-gradient(rgba(var(--color-text-no-alpha) / 0.04), rgba(var(--color-text-no-alpha) / 0.04));
+}
+
+/* Variant loader — the spinner veils the rows it is replacing instead of pushing them down. */
+
+.variant-loader {
+  position: relative;
+}
+
+.variant-loader .variant-loader-spinner:not([hidden]) {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(var(--color-background-no-alpha) / 0.6);
+}
+
+/* First expand: nothing underneath to veil, so it takes space of its own. */
+.variant-loader .variant-loader-body:empty ~ .variant-loader-spinner:not([hidden]) {
+  position: static;
+  padding: 1rem 0;
+  background-color: transparent;
+}
+
+/* Variant scroll */
+
+.variant-rows-scroll {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+/* Toggle icon */
+
+/* icon-caret points down, so closed is the rotated state. */
+.row-toggle-icon {
+  transform: rotate(-90deg);
+  transition: transform 0.2s ease;
+}
+
+[dir="rtl"] .row-toggle-icon {
+  transform: rotate(90deg);
+}
+
+.qol-group--open .row-toggle-icon,
+order-view-card.is-open .row-toggle-icon {
+  transform: rotate(180deg);
+}
+
+@media (hover: hover) {
+  .qol-group:not(.qol-group--open) .qol-group__header:hover .row-toggle-icon,
+  .order-view__card:not(.is-open):hover .row-toggle-icon {
+    transform: rotate(0deg);
+  }
+}
+
+.order-view__card:not(.is-open) .order-view__toggle:focus-visible .row-toggle-icon {
+  transform: rotate(0deg);
+}
+
+/* Bulk order's toggle isn't a .row-toggle-icon (its rest/open rotation is Alpine-bound, not
+   class-driven off .row-group--open) — this only adds the missing hover "about to open" hint,
+   rotating halfway toward the open (-180deg) state, without touching its existing rest/open values. */
+@media (hover: hover) {
+  .bulk-order__dropdown-group:not(.row-group--open) .bulk-order__dropdown-row--parent:hover .bulk-order__group-toggle,
+  .bulk-order__table-group:not(.row-group--open) .bulk-order__table-row--group-header:hover .bulk-order__group-toggle {
+    transform: rotate(-90deg);
+  }
+}
+
+/* Stack wrapper — used by both callers' variant/parent rows. Desktop `display: contents`
+   drops each stack cell into its own grid column of the shared .qol-row/.order-view__row grid. */
+.order-row__stack {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* All three surfaces leave the stacked layout for their table grid at 1024 — seven columns
+   were cramped any narrower. Kept as separate rules per surface (not a shared selector list)
+   so each can move independently if a surface's breakpoint changes again later. */
+@media screen and (min-width: 1024px) {
+  .bulk-order__dropdown-row .order-row__stack,
+  .bulk-order__table-row .order-row__stack {
+    display: contents;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .order-view__row .order-row__stack,
+  .qol-row .order-row__stack {
+    display: contents;
+  }
+}
+
+/* Title/total — shared visual treatment for both callers' rows (variant row + OV parent row);
+   QOL's own title/total (.qol-group__title, .qol-group__total) stay in quick-order-list.css. */
+.order-row__title.title-link {
+  display: block;
+  max-width: 100%;
+}
+
+.order-row__cell--total {
+  color: rgba(var(--color-price));
+}
+
+.order-row__price-each {
+  color: rgba(var(--color-price));
+}
+
+.order-row__cell--price:has(.order-row__compare-price) .order-row__price-each {
+  color: rgba(var(--color-sale-price));
+}
+
+.order-row__compare-price {
+  color: rgba(var(--color-price));
+}
+
+.order-row__cells {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+@media screen and (min-width: 1024px) {
+  .order-row__cells {
+    display: contents;
+  }
+}
+
+.qol-row,
+.order-view__row--variant {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.order-row__error {
+  cursor: pointer;
+}
+
+@media screen and (min-width: 1024px) {
+  .order-row__error {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Mobile stack order: product, status, price, qty — stock state reads before price. */
+.stack-cell--product {
+  order: 1;
+}
+
+.stack-cell--status {
+  order: 2;
+}
+
+.stack-cell--price {
+  order: 3;
+}
+
+.stack-cell--qty {
+  order: 4;
+}
+
+@media screen and (min-width: 1024px) {
+  .bulk-order__dropdown-row .stack-cell--product,
+  .bulk-order__dropdown-row .stack-cell--status,
+  .bulk-order__dropdown-row .stack-cell--price,
+  .bulk-order__dropdown-row .stack-cell--qty,
+  .bulk-order__table-row .stack-cell--product,
+  .bulk-order__table-row .stack-cell--status,
+  .bulk-order__table-row .stack-cell--price,
+  .bulk-order__table-row .stack-cell--qty {
+    order: 0;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .order-view__row .stack-cell--product,
+  .order-view__row .stack-cell--status,
+  .order-view__row .stack-cell--price,
+  .order-view__row .stack-cell--qty,
+  .qol-row .stack-cell--product,
+  .qol-row .stack-cell--status,
+  .qol-row .stack-cell--price,
+  .qol-row .stack-cell--qty {
+    order: 0;
+  }
+}
+
+/* Row group border/hover/open — added alongside each caller's own classes, not a replacement. */
+
+.row-group {
+  overflow: hidden;
+}
+
+.row-group__header,
+.row-group__row {
+  border-color: transparent;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.row-group__header {
+  border-width: 1px;
+  background-color: rgba(var(--color-text-no-alpha) / 0.02);
+}
+
+.row-group__row {
+  border-width: 0px 1px 1px 1px;
+  background-color: rgba(var(--color-text-no-alpha) / 0.04);
+}
+
+/* A flat/single-variant/no-variant product renders only this row, no .row-group__header sibling
+   above it to supply the top line — give it one of its own so the box isn't left open on top. */
+.row-group__row:only-child {
+  border-top-width: 1px;
+}
+
+/* .row-group__row too — a flat/single-variant product never renders a .row-group__header
+   (see bulk-order.liquid's group.isFlat / isSingleVariant) and never gets .row-group--open,
+   so without this its own row would get no hover accent at all. */
+@media (hover: hover) {
+  .row-group:not(.row-group--open):hover .row-group__header,
+  .row-group:not(.row-group--open):hover .row-group__row {
+    border-inline-start-color: rgba(var(--color-text-no-alpha) / 0.2);
+  }
+}
+
+.row-group--open .row-group__header {
+  border-top-color: rgba(var(--color-text-no-alpha) / 0.2);
+  background-color: transparent;
+}
+
+/* Wrappers are named one by one rather than matched through `.row-group`, so each feature keeps
+   the breakpoint its own table switches at — see .order-row__stack above. */
+@media screen and (min-width: 1024px) {
+  .bulk-order__dropdown-group.row-group--open .row-group__row,
+  .bulk-order__table-group.row-group--open .row-group__row {
+    border-inline-start-color: rgba(var(--color-text-no-alpha) / 0.2);
+  }
+
+  .bulk-order__dropdown-group.row-group--open .row-group__header,
+  .bulk-order__table-group.row-group--open .row-group__header {
+    border-top-color: rgba(var(--color-text-no-alpha) / 0.06);
+    border-inline-start-color: rgba(var(--color-text-no-alpha) / 0.2);
+    background-color: transparent;
+    border-bottom-width: 0px;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .order-view__card.row-group--open .row-group__row,
+  .qol-group.row-group--open .row-group__row {
+    border-inline-start-color: rgba(var(--color-text-no-alpha) / 0.2);
+  }
+
+  .order-view__card.row-group--open .row-group__header,
+  .qol-group.row-group--open .row-group__header {
+    border-top-color: rgba(var(--color-text-no-alpha) / 0.06);
+    border-inline-start-color: rgba(var(--color-text-no-alpha) / 0.2);
+    background-color: transparent;
+    border-bottom-width: 0px;
+  }
+}
+
+/* Hovering a row narrows the accent to just that row — header and siblings dim back down. */
+@media (hover: hover) {
+  .row-group--open:has(.row-group__row:hover) .row-group__header,
+  .row-group--open:has(.row-group__row:hover) .row-group__row:not(:hover) {
+    border-color: rgba(var(--color-text-no-alpha) / 0.06);
+  }
+}
+
+@media screen and (max-width: 1023px) {
+  .bulk-order__dropdown-group .row-group__header,
+  .bulk-order__dropdown-group .row-group__row:only-child,
+  .bulk-order__table-group .row-group__header,
+  .bulk-order__table-group .row-group__row:only-child {
+    border-width: 2px 1px 1px 1px;
+    border-top-style: solid;
+    padding-top: 8px;
+  }
+}
+
+@media screen and (max-width: 1023px) {
+  .order-view__card .row-group__header,
+  .order-view__card .row-group__row:only-child,
+  .qol-group .row-group__header,
+  .qol-group .row-group__row:only-child {
+    border-width: 2px 1px 1px 1px;
+    border-top-style: solid;
+    padding-top: 8px;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .bulk-order__dropdown-group .row-group__header,
+  .bulk-order__dropdown-group .row-group__row,
+  .bulk-order__table-group .row-group__header,
+  .bulk-order__table-group .row-group__row {
+    border-inline-start-width: 2px;
+    border-inline-start-style: solid;
+    padding-inline-start: 8px;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .order-view__card .row-group__header,
+  .order-view__card .row-group__row,
+  .qol-group .row-group__header,
+  .qol-group .row-group__row {
+    border-inline-start-width: 2px;
+    border-inline-start-style: solid;
+    padding-inline-start: 8px;
+  }
+}

@@ -1,0 +1,36 @@
+{%- if settings.theme_mode_enabled -%}
+  {%- if settings.theme_mode_mode == 'switch' -%}
+    <div class="toggle-theme-mode will-change-transform">
+      <label
+        id="darkLabel-{{ device }}"
+        class="relative rounded-full block border px-0.5 py-0.5 cursor-pointer {% if device == "mobile" %} color-border-[rgba(var(--color-button-text),0.12)]{% endif %}"
+        :class="$store.xDarkMode.isToggling ? 'pointer-events-none' : ''"
+        tabindex="0"
+        @keyup.enter="$el.click()"
+      >
+        <input
+          @change="$store.xDarkMode.toggleThemeMode(); $store.xHeaderMenu.handleChangeThemeMode();"
+          type="checkbox"
+          id="check-mode-{{ device }}"
+          class="input-check-mode absolute top-0 left-0 w-full h-full invisible"
+        >
+        <span class="toggle-body block overflow-hidden">
+          <span class="toggle-body-inner">
+            <span class="toggle-handle take-on justify-start flex w-full px-0.5 py-0.5 icon items-center">
+              {%- render 'icon-all', icon: 'icon-dark' -%}
+            </span>
+            <span class="toggle-handle take-off justify-end flex w-full px-0.5 py-0.5 icon items-center">
+              {%- render 'icon-all', icon: 'icon-light' -%}
+            </span>
+
+            <span class="icon-toggle-theme-mode-loading">
+              <span class="animate-spin block icon">
+                {% render 'icon-all', icon: 'icon-loading' %}
+              </span>
+            </span>
+          </span>
+        </span>
+      </label>
+    </div>
+  {%- endif -%}
+{%- endif -%}

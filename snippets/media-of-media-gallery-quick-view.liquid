@@ -1,0 +1,205 @@
+{% doc %} 
+  Documentation: Media of media gallery
+
+  Renders a single media item (image, video, model, etc.) within the product's media gallery.
+
+  @param product - {Product} Product Liquid object
+  @param media - {Media} The individual media object to render (image, video, external_video, model)
+  @param sizes - {String} The 'sizes' attribute for responsive images
+  @param index0 - {Number} Zero-based index of the media in the gallery
+  @param show_sound_control - {Boolean} Show volume/mute controls for videos
+  @param [is_active_media] - {Boolean} True if this media is the currently active
+
+  @example
+  {%- render 'media-of-media-gallery-quick-view',
+    product: product,
+    media: media,
+    sizes: '100vw',
+    index0: 0,
+    show_sound_control: true,
+    is_active_media: true
+  -%}
+{% enddoc %}
+
+{%- liquid
+  assign loading = 'loading="lazy"'
+  if index0 == 0
+    assign loading = 'loading="eager" fetchpriority="high" decoding="sync"'
+  endif
+  assign media_alt = media.alt | default: product.title
+  assign buttons_position = 'bottom-0 justify-end'
+
+  assign show_controls = false
+-%}
+{%- if media.media_type == 'video' or media.media_type == 'external_video' -%}
+  {%- capture buttons_video -%}
+    {% liquid
+      assign video_type = media.host
+      if media.media_type == 'video'
+        assign video_type = 'video_select'
+      endif
+    %}
+    <div 
+      class="buttons-video__wrapper {{ buttons_position }}{% if show_controls %} show-controls{% endif %}"
+      x-cloak
+    >
+      {% comment %} Button sound control {% endcomment %}
+      {% if show_controls == false and show_sound_control == true %}
+        <button
+          class="button-sound-control video__button pointer-events-auto is-muted anm-hover-button"
+          @click.prevent.stop="$store.xVideo.toggleMute($el)"
+          @keyup.enter.stop="$store.xVideo.toggleMute($el)"
+          @keydown.enter.prevent
+          aria-label="button sound control"
+        >
+          <span class="icon-unmute video__button-icon">
+            {% render 'icon-media', icon: 'icon-unmute' %}
+          </span>
+          <span class="icon-mute video__button-icon">
+            {% render 'icon-media', icon: 'icon-mute' %}
+          </span>
+        </button>
+      {% endif %}
+      
+      {% comment %} Button play / pause {% endcomment %}
+      <button
+        class="button-play video__button pointer-events-auto anm-hover-button"
+        @click.prevent.stop="$store.xVideo.handleClickButtonPlay($el, '{{ video_type }}', '{{ media.external_id }}', 'video-product', {{ show_controls }})"
+        @keyup.enter.stop="$store.xVideo.handleClickButtonPlay($el, '{{ video_type }}', '{{ media.external_id }}', 'video-product', {{ show_controls }})"
+        @keydown.enter.prevent
+        aria-label="button play"
+      >
+        <span class="icon-play video__button-icon">
+          {% render 'icon-media', icon: 'icon-play' %}
+        </span>
+        <span class="icon-pause video__button-icon">
+          {% render 'icon-media', icon: 'icon-pause' %}
+        </span>
+      </button>
+    </div>
+  {%- endcapture -%}
+{%- endif -%}
+{% case media.media_type %}
+  {% when 'image' %}
+    <img
+      src="{{ media.preview_image | image_url: width: 1780 }}"
+      srcset="
+        {{ media.preview_image | image_url: width: 150 }} 150w,
+        {{ media.preview_image | image_url: width: 200 }} 200w,
+        {{ media.preview_image | image_url: width: 250 }} 250w,
+        {{ media.preview_image | image_url: width: 300 }} 300w,
+        {{ media.preview_image | image_url: width: 400 }} 400w
+      "
+      sizes="{{ sizes }}"
+      alt="{{ media_alt | default: product.title | escape }}"
+      {{ loading }}
+      width="{{ media.preview_image.width }}"
+      height="{{ media.preview_image.width | divided_by: media.preview_image.aspect_ratio }}"
+      class="media-gallery-item__media media-gallery__item__image focus-visible:-outline-offset-1 object-cover w-full h-full absolute rounded-corners"
+      data-index="{{ index0 }}"
+    >
+  {% when 'video' %}
+    <div class="media-gallery__item__video external-video w-full h-full md:absolute md:inset-0"
+         data-media-host="{{ media.host }}"
+         data-video-auto-play="false"
+         data-video-status="pause"
+         data-paused-by-leave="false"
+         data-is-active="true"
+         x-intersect:leave="$store.xVideo.pause($el, true)"
+         x-intersect.once="$store.xVideo.mp4Listen($el);"
+    >
+      {{ buttons_video }}
+      <div class="video-container">
+        <img
+          src="{{ media.preview_image | image_url: width: 1780 }}"
+          alt="{{ media.preview_image.alt | default: product.title | escape }}"
+          srcset="
+            {{ media.preview_image | image_url: width: 150 }} 150w,
+            {{ media.preview_image | image_url: width: 200 }} 200w,
+            {{ media.preview_image | image_url: width: 250 }} 250w,
+            {{ media.preview_image | image_url: width: 300 }} 300w,
+            {{ media.preview_image | image_url: width: 400 }} 400w
+          "
+          sizes="{{ sizes }}"
+          {{ loading }}
+          width="{{ media.preview_image.width }}"
+          height="{{ media.preview_image.height }}"
+          @click.prevent.stop="$store.xVideo.mp4Thumbnail($el, {{ show_controls }})"
+          class="media-gallery-item__img-thumbnail img-thumbnail duration-300 absolute w-full h-full object-cover cursor-pointer z-10"
+        >
+        {{ media | media_tag: image_size: '1024x',
+          autoplay: false,
+          muted: true,
+          loop: false,
+          controls: show_controls,
+          loading: 'lazy',
+          tabindex: '-1',
+          alt: media.alt,
+          class: 'video-mp4 video w-full h-full absolute video top-1/2 -translate-y-1/2 focus-visible:-outline-offset-1',
+          is: "custom-video"
+        }}
+      </div>
+    </div>
+    <script
+        src="{{ 'video.js' | asset_url }}"
+        defer
+    ></script>
+  {% when 'external_video' %}
+    <div class="media-gallery__item__external-video external-video w-full h-full md:absolute md:inset-0"
+         data-media-host="{{ media.host }}"
+         data-video-auto-play="false"
+         data-video-status="pause"
+         data-paused-by-leave="false"
+         data-is-active="true"
+         x-intersect:leave="$store.xVideo.pause($el, true)"
+         tabindex="-1"
+         @keyup.enter="$store.xVideo.togglePlay($el)"
+         @keyup.space="$store.xVideo.togglePlay($el)"
+         @keydown.space.prevent
+    >
+      {{ buttons_video }}
+      <div class="video-container">
+        {%- if media.host == 'youtube' -%}
+          {% comment %}theme-check-disable RemoteAsset{% endcomment %}
+          <picture 
+            class="media-gallery-item__img-thumbnail w-full h-full absolute cursor-pointer"
+            @click.prevent.stop="$store.xVideo.externalLoad($el, '{{ media.host }}', '{{ media.external_id }}', false, 'video-product', {{ show_controls }})"
+          >
+            <source type="image/webp" srcset="{{ media.external_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/sddefault.webp' }}">
+            <source type="image/jpeg" srcset="{{ media.external_id | prepend: 'https://i.ytimg.com/vi/' | append: '/sddefault.jpg' }}">
+            <img src="{{ media.external_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/sddefault.webp' }}" loading="lazy" class="w-full h-full object-cover" alt="{{ media.alt | default: product.title | escape }}" width="640" height="480"/>
+          </picture>
+          {% comment %}theme-check-enable RemoteAsset{% endcomment %}
+        {%- else -%}
+          {%- capture options -%}
+            {
+            'alt': '{{ media.preview_image | default: product.title | escape }}',
+            'width': 640
+            }
+          {%- endcapture -%}
+          <div class="media-gallery-item__img-thumbnail absolute w-full h-full cursor-pointer"
+                x-init="$store.xVideo.renderVimeoFacade($el, '{{ media.external_id }}', {{ options }})"
+                x-intersect:leave="$store.xVideo.pause($el, true)"
+                @click.prevent.stop="$store.xVideo.externalLoad($el, '{{ media.host }}', '{{ media.external_id }}', false, 'video-product', {{ show_controls }})"
+          >
+            <div class="vimeo-thumbnail-skeleton w-full h-full bg-skeleton"></div>
+          </div>
+        {%- endif -%}
+      </div>
+    </div>
+    <script
+        src="{{ 'video.js' | asset_url }}"
+        defer
+    ></script>
+  {% when 'model' %}
+    <div class="media-gallery__item__model relative w-full h-full rounded-corners"
+        data-media-id="{{ media.id }}"
+        x-data="xMediaModel()"
+        x-intersect.once.margin.200px="waitScrollEndedOnDesktop(() => { handleInit(); handleLoadModel() })"
+        x-intersect:leave="handlePauseViewer();"
+    >
+      <template>
+        {{ media | media_tag: image_size: '2048x', toggleable: true }}
+      </template>
+    </div>
+{% endcase %}

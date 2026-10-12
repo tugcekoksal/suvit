@@ -1,0 +1,136 @@
+{% doc %}
+  Renders ONLY the inner content of a quantity-rule tooltip: the rule note
+  (min / max / increment) and the volume-pricing price-break table. Returns nothing
+  when the variant has neither a non-default rule nor price breaks.
+
+  The rule note takes one of two shapes. Alongside a price-break table it is a single sentence
+  ("Increments of 3 . Minimum of 3 . Maximum of 99") so the table stays the focus; on its own it
+  expands into one label/value row per rule.
+
+  Shared by `quantity-rule-tooltip` (product/card contexts) and the bulk-order search
+  results (server-rendered HTML injected into an Alpine tooltip).
+
+  @param variant {Variant} - The variant. Required.
+  @param product {Product} - Resolves `login_hide_price` when the caller doesn't pass it. Optional.
+  @param login_hide_price {String} - When 'true', hides the volume-pricing table. Optional.
+  @param disabled_volume_pricing {Boolean} - When true, hides the volume-pricing table. Optional.
+  @param disabled_rule_note {Boolean} - When true, drops the min/max/increment note and leaves only
+    the volume-pricing table — so the tooltip renders nothing at all for a variant that has a rule
+    but no price breaks. For layouts that already state the rule in the open, next to the quantity
+    box: bulk order does this with `ruleSummary()`. Optional.
+{% enddoc %}
+
+{%- comment -%}
+  Resolve the price-visibility flag here too, so a caller that forgets to pass it cannot leak
+  volume pricing to a customer who may not see prices. Same pattern as product-quantity.
+{%- endcomment -%}
+{%- if login_hide_price == null -%}
+  {%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+  {%- assign login_hide_price = login_hide_price | strip -%}
+{%- endif -%}
+
+{%- liquid
+  assign qr = variant.quantity_rule
+
+  assign has_rule = false
+  if qr.min > 1 or qr.increment > 1 or qr.max != blank
+    assign has_rule = true
+  endif
+  if disabled_rule_note
+    assign has_rule = false
+  endif
+
+  assign has_breaks = false
+  if variant.quantity_price_breaks.size > 0 and login_hide_price != 'true' and disabled_volume_pricing != true
+    assign has_breaks = true
+  endif
+-%}
+
+{%- if has_rule or has_breaks -%}
+  <div class="quantity-rule-tooltip__content flex flex-col gap-2 text-start">
+    {%- if has_rule -%}
+      {%- if has_breaks -%}
+        {%- comment -%}
+          With a price-break table underneath, the rule collapses to a single sentence — the table
+          is what the shopper came for, and two stacked blocks of label/value rows read as one
+          confusing grid. Rendered through quantity-rule-note so the separator logic (which must
+          never emit a leading " . ") lives in exactly one place.
+        {%- endcomment -%}
+        {%- render 'quantity-rule-note', variant: variant, wrapper_class: 'quantity-rule-tooltip__note' -%}
+      {%- else -%}
+        {%- comment -%}
+          No table, so the rule IS the content: one "Label — Value" row per rule that applies,
+          justified to both edges. A row is omitted when its rule is the default (increment 1 /
+          minimum 1 / no maximum), so a product whose only rule is a maximum shows a single row.
+        {%- endcomment -%}
+        <div class="quantity-rule-tooltip__note flex flex-col gap-1 text-x-small font-normal color-text-[rgba(var(--color-text))]">
+          {%- if qr.increment > 1 -%}
+            <div class="quantity-rule-tooltip__note-row flex items-center justify-between gap-4">
+              <span>{{ 'products.product.quantity_rule.increment_label' | t }}</span>
+              <span>{{ qr.increment }}</span>
+            </div>
+          {%- endif -%}
+          {%- if qr.min > 1 -%}
+            <div class="quantity-rule-tooltip__note-row flex items-center justify-between gap-4">
+              <span>{{ 'products.product.quantity_rule.minimum_label' | t }}</span>
+              <span>{{ qr.min }}</span>
+            </div>
+          {%- endif -%}
+          {%- if qr.max != blank -%}
+            <div class="quantity-rule-tooltip__note-row flex items-center justify-between gap-4">
+              <span>{{ 'products.product.quantity_rule.maximum_label' | t }}</span>
+              <span>{{ qr.max }}</span>
+            </div>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+    {%- endif -%}
+    {%- if has_breaks -%}
+      {%- comment -%}
+        Shopify omits the base tier from `quantity_price_breaks` — it only returns the
+        discounted steps — so the table used to start at the SECOND price point and the
+        minimum was nowhere to be seen. Lead with the base tier (the rule minimum at the
+        variant's own price), unless the first break already starts there.
+        Rounding lives on this container, not on the rows: per-row rounding left the
+        un-striped rows looking like a different shade.
+      {%- endcomment -%}
+      {%- liquid
+        assign base_qty = qr.min | default: 1
+        assign first_break_qty = variant.quantity_price_breaks.first.minimum_quantity
+        assign show_base_tier = false
+        if first_break_qty > base_qty
+          assign show_base_tier = true
+        endif
+        assign row_index = 0
+      -%}
+      <div class="quantity-rule-tooltip__table flex flex-col overflow-hidden rounded-corners-sm text-x-small gap-0.5">
+        {%- if show_base_tier -%}
+          {%- liquid
+            assign row_index = row_index | plus: 1
+            assign base_price = variant.price | money
+          -%}
+          <div class="quantity-rule-tooltip__row flex items-center gap-3 px-3 py-2 color-bg-[rgba(var(--color-text),0.06)] rounded-corners-md">
+            <span class="quantity-rule-tooltip__qty flex-1 color-text-[rgba(var(--color-text))]">{{ base_qty }}+</span>
+            <span class="quantity-rule-tooltip__price flex-1 text-end color-text-[rgba(var(--color-heading))] contents">
+              {{- 'products.product.quantity_rule.per_each' | t: price: base_price -}}
+            </span>
+          </div>
+        {%- endif -%}
+        {%- for price_break in variant.quantity_price_breaks -%}
+          {%- liquid
+            assign row_index = row_index | plus: 1
+            assign price_break_price = price_break.price | money
+          -%}
+          <div
+            class="quantity-rule-tooltip__row flex items-center gap-3 px-3 py-2 color-bg-[rgba(var(--color-text),0.06)] rounded-corners-md"
+          >
+            <span class="quantity-rule-tooltip__qty flex-1 color-text-[rgba(var(--color-text))]">{{ price_break.minimum_quantity }}+</span>
+            <span class="quantity-rule-tooltip__price flex-1 text-end color-text-[rgba(var(--color-heading))] contents">
+              {{- 'products.product.quantity_rule.per_each' | t: price: price_break_price -}}
+            </span>
+          </div>
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+  </div>
+{%- endif -%}

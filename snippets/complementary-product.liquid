@@ -1,0 +1,171 @@
+{%- if recommendations.performed and recommendations.products_count > 0 -%}
+  <div
+    {% if block.settings.show_tab %}
+      x-data="{ openComplementary: false }"
+    {% endif %}
+    {% if block.settings.show_background %}
+      style="--color-heading: var(--colors-heading-secondary); --color-text: var(--colors-text-secondary);"
+    {% endif %}
+    class="outline outline-1 color-outline-[rgba(var(--color-text),0.2)]{% if is_rounded_corners %} rounded-md{% endif %}"
+  >
+    <div
+      class="complementary__header flex flex-row px-4 relative items-center justify-between gap-2.5 w-full cursor-pointer py-3 h5 md:h6
+      {%- if block.settings.show_tab %} cursor-pointer{% endif -%}" 
+      {% if block.settings.show_tab %}
+        @click="openComplementary = !openComplementary"
+        tabindex="0"
+        @keyup.enter="openComplementary = !openComplementary"
+        x-cloak
+      {% endif %}
+      :style="{ '--heading-font-weight': !openComplementary ? '400' : null }"
+    >
+      <p class="text-medium anm-fade-element flex items-center min-h-[1.5rem]" data-fade-on-intersect>{{ block.settings.heading | escape }}</p>
+      {% if block.settings.show_tab %}
+        <div
+          class="collapsible-header__header__caret min-w-[12px] w-3 h-3 flex duration-500 transition-transform will-change-transform"
+          :class="openComplementary ? 'rotate-180' : 'rotate-0'"
+        >
+          {% render 'icon-all', icon: 'icon-caret' %}
+        </div>
+      {% endif %}
+    </div>
+    {% liquid
+      assign count_product = 0
+      for product in recommendations.products
+        if product.metafields.custom.excluded_from_recommendation != true
+          assign count_product = count_product | plus: 1
+        endif
+        if count_product == block.settings.max_product_show
+          break
+        endif
+      endfor
+
+      assign number_of_slides = count_product | plus: 0.0 | divided_by: block.settings.number_product_per_page | ceil
+
+      assign swiffy_slide_class = ''
+      if enable_carousel_desktop
+        if enable_carousel_mobile
+          assign swiffy_slide_class ='swiffy-slider'
+        else
+          assign swiffy_slide_class ='!swiffy-slider md:swiffy-slider'
+        endif
+      else
+        if enable_carousel_mobile
+          assign swiffy_slide_class ='swiffy-slider md:!swiffy-slider'
+        else
+          assign swiffy_slide_class ='!swiffy-slider md:!swiffy-slider'
+        endif
+      endif
+    %}
+    <div
+      id="ProductRecommendation__{{ section.id }}"
+      class="complementary__list-products px-4 {{ swiffy_slide_class }} slider-nav-detached slider-indicators-round slider-indicators-dark slider-indicators-outside"
+      {% if enable_carousel_mobile or enable_carousel_desktop %}
+        data-swiffy-config="
+          {
+            'effect': 'slide',
+            'isLoop': false,
+            'customElement': {
+              'sliderNavs': '#ProductRecommendation__{{ section.id }} .slider-nav__wrapper .slider-nav',
+              'indicatorsWrapper': '#ProductRecommendation__{{ section.id }} .slider-nav__wrapper .slider-indicators'
+            },
+            'breakPoints': {
+              '0': { 'slidesPerView': 1 },
+              '768': { 'slidesPerView': 1 }
+            }
+          }
+        "
+      {% endif %}
+      {% if block.settings.show_tab %}
+        x-show="openComplementary" x-cloak x-collapse
+      {% endif %}
+    >
+      {% style %}
+        #ProductRecommendation__{{ section.id }} {
+          --swiffy-slider-indicator-outside-size: 0px;
+        }
+      {% endstyle %}
+      <div 
+        class="slider-container gap-x-1 gap-y-2.5
+          {%- if enable_carousel_mobile %} grid{%- else %} flex flex-col{% endif -%}
+          {%- if enable_carousel_desktop %} md:grid{%- else %} md:flex md:flex-col{% endif -%}
+        "
+      >
+        {% assign product_offset = 0 %}
+        {% assign product_show = 0 %}
+        {% for i in (1..number_of_slides) %}
+          <div class="slide-item">
+            <div class="flex flex-col gap-2.5">
+              {% assign product_per_page = 0 %}
+              {%- for product in recommendations.products offset: product_offset -%}
+                {% if product_show == block.settings.max_product_show %}
+                  {% break %}
+                {% endif %}
+                
+                {% if product.metafields.custom.excluded_from_recommendation != true %}
+                  {% render 'product-card-complementary',
+                    product: product,
+                    media_aspect_ratio: block.settings.media_ratio,
+                    show_vendor: block.settings.show_vendor,
+                    show_rating: block.settings.show_product_rating,
+                    section_id: section.id,
+                    block_id: block.id,
+                    index: forloop.index0,
+                    show_b2b_price_label: block.settings.show_b2b_price_label
+                  %}
+                  {% assign product_per_page = product_per_page | plus: 1 %}
+                  {% assign product_show = product_show | plus: 1 %}
+                {% endif %}
+                {% assign product_offset = product_offset | plus: 1 %}
+                {% if product_per_page == block.settings.number_product_per_page %}
+                  {% break %}
+                {% elsif forloop.last == false %}
+                  <div class="h-[1px] color-bg-[rgba(var(--color-text),0.06)]"></div>
+                {% endif %}
+              {% endfor %}
+              {% unless forloop.last %}
+                <div 
+                  class="h-[1px] color-bg-[rgba(var(--color-text),0.06)]
+                    {%- if enable_carousel_mobile %} hidden{%- else %} block{% endif -%}
+                    {%- if enable_carousel_desktop %} md:hidden{%- else %} md:block{% endif -%}
+                  "
+                ></div>
+              {% endunless %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      {% if enable_carousel_mobile or enable_carousel_desktop %}
+        {% if number_of_slides > 1 %}
+          <div class="slider-nav__wrapper flex justify-center{% unless enable_carousel_mobile %} hidden md:flex{% endunless %}{% unless enable_carousel_desktop %} md:hidden{% endunless %}">
+            <button
+              class="slider-nav slider-nav-prev color-text-[rgba(var(--color-text),0.4)] justify-end flex"
+              aria-label="previous slide "
+            >
+              <span class="w-1.5{% if is_rtl %} rotate-0{% else %} rotate-180{% endif %}">{% render 'icon-all', icon: 'icon-transition-arrow' %}</span>
+            </button>
+            <ul class="slider-indicators items-center flex static mb-0 gap-1.5">
+              {% for i in (1..number_of_slides) %}
+                <li class="slider-indicator complementary-product-dot{% if forloop.index == 1 %} active{% endif %}"></li>
+              {% endfor %}
+            </ul>
+            <button
+              class="slider-nav slider-nav-next color-text-[rgba(var(--color-text),0.4)] justify-start flex"
+              aria-label="{{ 'accessibility.next_button' | t }}"
+            >
+              <span class="w-1.5{% if is_rtl %} rotate-180{% else %} rotate-0{% endif %}">{% render 'icon-all', icon: 'icon-transition-arrow' %}</span>
+            </button>
+          </div>
+        {% endif %}
+      {% endif %}
+      <div 
+        class="pb-4
+          {%- if number_of_slides > 1 %}
+            {%- if enable_carousel_mobile %} hidden{% else %} flex{% endif -%}
+            {%- if enable_carousel_desktop %} md:hidden{% else %} md:flex{% endif -%}
+          {%- endif -%}
+      "></div>
+    </div>
+  </div>
+{%- endif -%}

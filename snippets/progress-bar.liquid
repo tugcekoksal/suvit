@@ -1,0 +1,44 @@
+{% comment %}
+  Renders swiffy progress-bar on mobile
+
+  Accepts:
+  - container_class: {String} Additional CSS class for container (optional)
+  - show_on_desktop: {Boolean} Show progress bar on desktop (optional)
+  - show_on_tablet: {Boolean} Show progress bar on tablet (optional)
+  - show_on_mobile: {Boolean} Show progress bar on mobile (optional)
+  - is_hidden_arrow: {Boolean} Hidden arrow? (optional)
+
+  Usage:
+  {% render 'progress-bar' %}
+{% endcomment %}
+
+{% liquid 
+  unless show_on_mobile == false
+    assign show_on_mobile = true
+  endunless 
+%}
+<div 
+  class="swiffy-slide-indicator flex-row gap-1.5 justify-center items-center {% unless container_class contains 'mt' %} mt-3{% endunless %} {{ container_class -}} 
+    {%- if show_on_desktop %} lg:flex{%- else %} lg:hidden{% endif -%}
+    {%- if show_on_tablet %} md:flex{%- else %} md:hidden{% endif -%}
+    {%- if show_on_mobile %} flex{%- else %} hidden{% endif -%}
+  "
+>
+  {% unless is_hidden_arrow %}
+    <div class="indicator-arrow__button w-10 h-10 p-3 rotate-180 rtl:rotate-0 indicator-arrow-prev active">
+      {% render 'icon-all', icon: 'icon-pagination-right' %}
+    </div>
+  {% endunless %}
+  <div class="swiffy-slide-progress-container">
+    <div class="swiffy-slide-progress">
+      <div 
+        class="swiffy-slide-progress-bar progress-bar-active-width"
+      ></div>
+    </div>
+  </div>
+  {% unless is_hidden_arrow %}
+    <div class="indicator-arrow__button w-10 h-10 p-3 rtl:rotate-180 indicator-arrow-next active">
+      {% render 'icon-all', icon: 'icon-pagination-right' %}
+    </div>
+  {% endunless %}
+</div>

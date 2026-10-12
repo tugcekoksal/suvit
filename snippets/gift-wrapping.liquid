@@ -1,0 +1,50 @@
+{% if settings.gift_wrapping_product.selected_or_first_available_variant.available and product.selected_or_first_available_variant.available %}
+  {% style %}
+    {% if color_icon_light.alpha != 0.0 %}
+      .icon-gift-{{ product_form_id }} {
+        color: {{ color_icon_light }};
+      }
+    {% endif %}
+    .dark .icon-gift-{{ product_form_id }} {
+      {% if color_icon_dark.alpha != 0.0 %}
+        color: {{ color_icon_dark }};
+      {% else %}
+        color: var(--color-text);
+      {% endif %}
+    }
+  {% endstyle %}
+  {% liquid 
+    assign gift_wrapping_label =  'products.product.gift_wrapping_label' | t 
+    if settings.gift_wrapping_product_page_label != blank
+      assign gift_wrapping_label = settings.gift_wrapping_product_page_label
+    endif 
+    if gift_label != blank
+      assign gift_wrapping_label = gift_label 
+    endif 
+  %}
+  <div
+    id="GiftWrapping__{{ section.id }}"
+    class="gift-wrapping__wrapper w-full flex gap-2 {% if show_content_center %} justify-center{% endif %} relative items-center mb-[var(--padding-bottom-product-template-block)]"
+  >
+    <div class="flex items-center gap-2 w-full pt-2.5 pb-2.5 pl-2.5 pr-2.5 border border-dashed color-border-[rgba(var(--color-text),0.2)]{% if settings.edges_type == 'rounded_corners'  %} rounded-md{% endif %}">
+      <input
+        id="GiftWrappingInput__{{ product_form_id }}"
+        form="{{ product_form_id }}"
+        x-ref="gift_wrapping_checkbox"
+        class="gift-wrapping__input input-checkbox w-[22px] h-[22px]"
+        type="checkbox"
+      />
+      <label for="GiftWrappingInput__{{ product_form_id }}" class="gift-wrapping__label flex gap-1 items-center cursor-pointer">
+        <span class="icon-gift-{{ product_form_id }} color-text-[rgba(var(--color-text))] inline-block w-[18px] h-[18px]">
+          {% render 'icon-all', icon: 'icon-gift-wrapping' %}
+        </span>
+        <span class="text-medium">{{ gift_wrapping_label }}</span>
+      </label>
+    </div>
+
+    <div id="GiftWrappingError__{{ product_form_id }}" class="mt-2 empty:hidden flash-message error-message"></div>
+  </div>
+  <p id="GiftWrappingError__{{ product_form_id }}"
+     class="empty:hidden mb-2 mt-2 pl-4 pr-4 pt-3 pb-3 color-bg-[rgba(var(--error-message-color),0.2)]{% if settings.edges_type == 'rounded_corners' %} rounded{% endif %}"
+  ></p>
+{% endif %}

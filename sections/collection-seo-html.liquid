@@ -1,0 +1,19 @@
+{% if collection.metafields.custom.text != blank %}
+  <section class="collection-seo-html page-width">
+    <div class="collection-seo-html__content rte">
+      {{ collection.metafields.custom.text }}
+    </div>
+  </section>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Collection SEO HTML",
+  "settings": [],
+  "presets": [
+    {
+      "name": "Collection SEO HTML"
+    }
+  ]
+}
+{% endschema %}

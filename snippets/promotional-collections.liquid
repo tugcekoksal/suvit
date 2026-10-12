@@ -1,0 +1,434 @@
+{% liquid
+  if columns_desktop == 1
+    assign columns_tablet = 1
+  else 
+    assign columns_tablet = 2
+  endif
+
+  assign spacing_desktop = section.settings.spacing
+  assign spacing_mobile = section.settings.spacing_mobile
+
+  assign columns_mobile = columns_mobile | plus: 0
+  assign section_id_for_class = section.id
+  if request.visual_preview_mode
+    assign section_id_for_class = section_id_for_class | replace: '=', '\='
+  endif
+%}
+
+{% style %}
+  .section--{{ section_id_for_class }} .slider-container {
+    --swiffy-slider-item-gap: {{ spacing_mobile }}px;
+  }
+  @media screen and (min-width: 768px) {
+    .section--{{ section_id_for_class }} .slider-container {
+      --swiffy-slider-item-gap: {{ spacing_desktop }}px;
+    }
+  }
+  .section--{{ section_id_for_class }} .content--{{ section_id_for_class }} {
+    -moz-column-gap: {{ spacing_mobile }}px;
+    column-gap: {{ spacing_mobile }}px;
+    row-gap: {{ spacing_mobile }}px;
+  }
+  @media screen and (min-width: 768px) {
+    .section--{{ section_id_for_class }} .content--{{ section_id_for_class }} {
+      -moz-column-gap: {{ spacing_desktop }}px;
+      column-gap: {{ spacing_desktop }}px;
+      row-gap: {{ spacing_desktop }}px;
+    }
+  }
+{% endstyle %}
+{% if section.blocks.size > 0 %}
+  <div class="promotional-collections__products w-full">
+    {%- paginate pages by 1 -%}
+      {% liquid
+        if section.index == nil
+          assign block_index = paginate.current_page | minus: 1
+        else
+          assign block_index = 0
+        endif
+      %}
+      <div class="flex-col flex promotional-collections__content-block">
+        <div class="promotional-collections__content-wrapper" id="Collections--{{ section.id  }}">
+          {% liquid
+            assign block = section.blocks[block_index]
+            assign collection = block.settings.collection
+            assign product_to_show = columns_desktop | times: rows_desktop
+            if collection.products != blank and product_to_show >= collection.products.size
+              assign product_to_show = collection.products.size
+            endif
+            
+            assign enable_desktop_slider = section.settings.enable_desktop_slider
+            assign swiper_on_mobile = section.settings.swiper_on_mobile
+            
+            assign enable_tablet_slider = enable_desktop_slider
+            if product_to_show <= columns_desktop
+              assign enable_desktop_slider = false
+            endif
+            if product_to_show <= columns_tablet
+              assign enable_tablet_slider = false
+            endif
+            if product_to_show <= columns_mobile
+              assign swiper_on_mobile = false
+            endif
+  
+            if block.settings.enable_card and block.settings.product == blank
+              assign media_ratio = block.settings.image_ratio
+            endif
+
+            assign disable_badges = false
+            if block.settings.show_label_badges == false
+              assign disable_badges = true
+            endif 
+          %}
+          <div
+            class="animation-fade-in flex flex-1 flex-col"
+          >
+            {%- style -%}
+              {% if block.settings.enable_card %}
+                {% if block.settings.product == blank %}
+                  @media (max-width: 1023px) {
+                    .promotional-collections__card--{{ block.id }} {
+                      height: {{ block.settings.mobile_height }}px;
+                    }
+                  }
+                {% endif %}
+                @media (min-width: 1024px) {
+                  .promotional-collections__card--{{ block.id }} {
+                    width: {{ block.settings.desktop_width }}px;
+                  }
+                  .promotional-collections__grid--{{ block.id }} {
+                    {% if block.settings.enable_card %}
+                      width: calc(100% - {{ block.settings.desktop_width }}px - {{ spacing_desktop }}px);
+                    {% else %}
+                      width: 100%;
+                    {% endif %}
+                  }
+                  .promotional-collections__info--{{ block.id }} {
+                    padding: clamp(16px, {{ block.settings.desktop_width | times: 0.08 }}px, 60px);
+                  }
+                }
+              {% endif %}
+            {%- endstyle -%}
+            <div class="flex flex-col{% if block.settings.card_position == 'left' %} lg:flex-row rtl:lg:flex-row-reverse{% else %} lg:flex-row-reverse rtl:lg:flex-row{% endif %} content--{{ section.id }}">
+              {% if block.settings.enable_card %}
+                <div class="promotional-collections__card rounded-corners-container max-lg:w-full promotional-collections__card--{{ block.id }}">
+                  {% if block.settings.product != blank %}
+                    <div class="w-full relative {% if block.settings.enable_sticky %} lg:sticky sticky-top max-lg:top-0{% endif %} product-card">
+                      {% render 'product-card',
+                        product: block.settings.product,
+                        show_vendor: block.settings.show_vendor,
+                        show_rating: block.settings.show_product_rating,
+                        section_id: section.id,
+                        class_slide: 'h-auto',
+                        columns_desktop: columns_desktop,
+                        column_mobile: columns_mobile,
+                        index: forloop.index,
+                        list_name: collection.title,
+                        collection: collection,
+                        enable_desktop_slider: enable_desktop_slider,
+                        show_quickview: block.settings.show_quickview,
+                        index_param: forloop.index,
+                        is_always_active: true,
+                        disable_badges: disable_badges,
+                        show_b2b_price_label: block.settings.show_b2b_price_label
+                      %}
+                    </div>
+                  {% else %}
+                    {% liquid
+                      assign media_class = '!block w-full'
+  
+                      assign check_video = false
+                      if block.settings.video_url != blank or block.settings.video != null
+                        assign check_video = true
+                      endif
+
+                      assign is_full_height = false
+                      if media_ratio == 'responsive'
+                        assign is_full_height = true
+                        assign media_class = media_class | append: ' h-full'
+                      endif
+
+                      assign show_controls = true
+                      if block.settings.heading != blank or block.settings.text != blank or block.settings.button_label != blank
+                        assign show_controls = false
+                      endif
+                    %}
+                    {%- capture sizes -%}
+                      (min-width: 768px) {{ block.settings.desktop_width }}px,100vw
+                    {%- endcapture -%}
+                    <div 
+                      class="promotional-collections__card-wrapper w-full max-lg:h-full relative color-{{ block.settings.color_scheme_light.id }} dark-color-{{ block.settings.color_scheme_dark.id }} !bg-transparent !bg-none rounded-corners relative
+                        {%- if block.settings.enable_sticky and media_ratio != 'responsive' %} lg:sticky sticky-top max-lg:top-0 max-lg:transition-none{% endif -%}
+                        {%- if block.settings.card_link != blank and check_video == false %} cursor-pointer{% endif -%}
+                        {%- if media_ratio == 'responsive' %} h-full{% endif -%}
+                        {% if block.settings.card_link != blank %} media-hyperlink {% endif %}
+                      "
+                    >
+                      {% if block.settings.card_link != blank and check_video == false %}
+                        <a 
+                          href="{{ block.settings.card_link }}" {% if block.settings.open_card_link_new_window == true %}target="_blank"{% endif %}
+                          class="absolute inset-0 z-10 focus-visible:-outline-offset-1 rounded-inherit"
+                          aria-label="{{ 'accessibility.image_link' | t }}"
+                        >
+                        </a>
+                      {% endif %}
+                      <div class="w-full max-lg:h-full relative overflow-hidden pointer-events-none{% if media_ratio == 'responsive' %} h-full{% endif %}">
+                        <div class="w-full max-lg:h-full relative promotional-collections__card-media{% if media_ratio == 'responsive' %} h-full{% endif %}">
+                          {% render 'media',
+                            enable_video_autoplay: block.settings.enable_video_autoplay,
+                            video_alt: block.settings.video_alt_text,
+                            video: block.settings.video,
+                            video_url: block.settings.video_url,
+                            cover_image: block.settings.card_image,
+                            mobile_cover_image: block.settings.card_mobile_image,
+                            section: section,
+                            show_placeholder_image: true,
+                            is_full_height: is_full_height,
+                            sizes: sizes,
+                            class: media_class,
+                            ratio: media_ratio,
+                            class_rounded: 'rounded-corners',
+                            show_sound_control: block.settings.show_sound_control,
+                            is_full_height_on_mobile: true,
+                            is_full_height_on_tablet: true,
+                            show_controls: show_controls
+                          %}
+                          <div class="z-10 absolute top-0 left-0 bottom-0 right-0 scheme-image-overlay pointer-events-none opacity-{{ block.settings.overlay_opacity }} max-w-full max-h-full rounded-corners"></div>
+                        </div>
+                        {% if block.settings.heading != blank or block.settings.text != blank or block.settings.button_label != blank %}
+                          <div class="promotional-collections__info promotional-collections__info--{{ block.id }} w-full h-full p-4 md:p-6.5 absolute z-20 inset-0 pointer-events-none">
+                            <div class="w-full h-full overflow-hidden flex flex-col justify-{{ block.settings.content_position }}">
+                              {% if block.settings.heading != blank %}
+                                <div class="promotional-collections__heading text-{{ block.settings.content_alignment }} h2 heading-{{ block.settings.heading_size }} p-break-words pointer-events-none">
+                                  {% render 'text-highlight',
+                                    id: block.id,
+                                    text: block.settings.heading,
+                                    highlight_effect: block.settings.highlight_effect,
+                                    text_transform: block.settings.text_transform
+                                  %}
+                                </div>
+                              {% endif %}
+                              {% if block.settings.text != blank %}
+                                <div 
+                                  class="promotional-collections__text text-{{ block.settings.text_size }} text-{{ block.settings.content_alignment }} p-break-words pointer-events-auto rte whitespace-normal
+                                    {%- if block.settings.heading != blank %} mt-0.5{% endif -%}
+                                  "
+                                >
+                                  {% render 'text-highlight',
+                                    id: block.id,
+                                    text: block.settings.text,
+                                    highlight_effect: block.settings.highlight_effect,
+                                    text_transform: block.settings.text_transform,
+                                    allow_html: true
+                                  %}
+                                </div>
+                              {% endif %}
+                              {% if block.settings.enable_countdown and false %}
+                                <div
+                                    class="flex md:items-center mt-2 md:mt-3 rtl:md:items-center flex-col flex-wrap md:flex-row md:pt-0 gap-x-4 gap-y-1.5 promotional-collections__countdown-wrapper justify-{{ block.settings.content_alignment }} rtl:-justify-{{ block.settings.content_alignment }}"
+                                >
+                                  {% if block.settings.countdown_text != blank %}
+                                    <span 
+                                      class="countdown-text--{{ block.id }} p-break-words text-{{ block.settings.countdown_text_size }} color-text-[rgba(var(--color-text))] promotional-collections__countdown-text anm-fade-element"
+                                      data-fade-on-intersect
+                                    >{{ block.settings.countdown_text }}</span>
+                                  {% endif %}
+                                  <div
+                                    class="rounded-corners-md promotional-collections__countdown-timer{% if block.settings.show_border_around_timer %} border{% endif %}"
+                                    x-data="{ loading: true, textLoad: ' - ', days: 0, hours: 0, minutes: 0, seconds: 0 }"
+                                    x-intersect.once='
+                                      $nextTick(() => {
+                                        $store.xHelper.countdown({
+                                          "id": "{{ block.id }}",
+                                          "timezone": {{ block.settings.timezone | default: 0 }},
+                                          "end_year": {{ block.settings.end_year | default: 0 }},
+                                          "end_month": {{ block.settings.end_month | default: 0 }},
+                                          "end_day": {{ block.settings.end_day | default: 0 }},
+                                          "end_hour": {{ block.settings.end_hour | default: 0 }},
+                                          "end_minute": {{ block.settings.end_minute | default: 0 }}
+                                        }, (canShow, s, m, h, d) => {
+                                          days = d;
+                                          hours = h;
+                                          minutes = m;
+                                          seconds = s;
+                                          loading = false;
+                                        })
+                                      })
+                                    '
+                                    {{ block.shopify_attributes }}
+                                  >
+                                    <div 
+                                      class="promotional-collections__countdown promotional-collections__countdown-days"
+                                    >
+                                      <div class="h6" x-html="loading ? textLoad : days"></div>
+                                      <span class="text-x-small" x-cloak="">{{ 'general.countdown.days' | t }}</span>
+                                    </div>
+                                    <span class="font-bold">:</span>
+                                    <div
+                                      class="promotional-collections__countdown promotional-collections__countdown-hours"
+                                    >
+                                      <div class="h6" x-html="loading ? textLoad : hours"></div>
+                                      <span class="text-x-small" x-cloak="">{{ 'general.countdown.hours' | t }}</span>
+                                    </div>
+                                    <span class="font-bold">:</span>
+                                    <div
+                                      class="promotional-collections__countdown promotional-collections__countdown-minutes"
+                                    >
+                                      <div class="h6" x-html="loading ? textLoad : minutes"></div>
+                                      <span class="text-x-small" x-cloak="">{{ 'general.countdown.minutes' | t }}</span>
+                                    </div>
+                                    <span class="font-bold">:</span>
+                                    <div
+                                      class="promotional-collections__countdown promotional-collections__countdown-seconds"
+                                    >
+                                      <div class="h6" x-html="loading ? textLoad : seconds"></div>
+                                      <span class="text-x-small" x-cloak="">{{ 'general.countdown.seconds' | t }}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              {% endif %}
+                              {% if block.settings.button_label != blank %}
+                                <div class="promotional-collections__button {% if block.settings.text != blank or block.settings.heading != blank %} mt-[var(--spacing-between-heading-and-content)]{% endif %} text-{{ block.settings.content_alignment }}">
+                                  {% liquid
+                                    assign class_button = 'pointer-events-auto p-break-words'
+                                    if block.settings.show_button_style != 'text-link'
+                                      assign class_button = class_button | append: ' pt-2.5 pb-2.5 md:pt-3 md:pb-3'
+                                    endif
+                                  %}
+                                  {% render 'button',
+                                    button_style: block.settings.show_button_style,
+                                    button_label: block.settings.button_label,
+                                    button_link: block.settings.button_link,
+                                    open_new_window_button: block.settings.open_new_window_button,
+                                    button_size: "button-small",
+                                    class: class_button,
+                                    allow_wrap: true
+                                  %}
+                                </div>
+                              {% endif %}
+                            </div>
+                          </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+              <div 
+                x-intersect.once="document.dispatchEvent(new CustomEvent('maximize:animation:reveal'));"
+                class="promotional-collections__grid max-lg:w-full grow promotional-collections__grid--{{ block.id }}{% unless block.settings.enable_card %} lg:w-full{% endunless %}"
+              >
+                <div
+                  class="swiffy-slider enable-effect-hover relative slider-nav-animation slider-nav-animation-fadein slider-item-snapstart overflow-hidden
+                    {%- unless swiper_on_mobile %} !swiffy-slider{% endunless -%}
+                    {%- unless enable_tablet_slider %} md:!swiffy-slider{% endunless -%}
+                    {%- if settings.lang_direction contains request.locale.iso_code %} rtl{% endif -%}
+                  "
+                  {% if enable_tablet_slider or swiper_on_mobile -%}
+                    x-intersect.once="
+                      $store.xSwiffy.load($el, {
+                        'effect': 'slide',
+                        'mediaQuery': 'min',
+                        'isLoop': true,
+                        {% if section.settings.change_slides_speed != 0 %}
+                          'autoPlay': true,
+                          'autoPause': true,
+                        {% endif %}
+                        'speed': {{ section.settings.change_slides_speed | times: 1000 }},
+                        'breakPoints':{
+                          '0' : {
+                            'slidesPerView': {{ columns_mobile }},
+                            'gap': {{ spacing_mobile }}
+                          },
+                          '768': {
+                            'slidesPerView': {{ columns_tablet }},
+                            'gap': {{ spacing_desktop }}
+                          },
+                          '1024': {
+                            'slidesPerView': {{ columns_desktop }},
+                            'gap': {{ spacing_desktop }}
+                          }
+                        },
+                      });
+                    "
+                  {% endif %}
+                >
+                  {% if section.settings.show_navigation_arrows and enable_desktop_slider %}
+                    {% render 'slider-navigation-button' %}
+                  {% endif %}
+                  <div
+                    class="promotional-collections__list slider-container anm-reveal-container slider-transform
+                      {%- if swiper_on_mobile %} slider-item-show{{ columns_mobile }} w-full
+                      {%- else %} grid grid-cols-{{ columns_mobile }}{% if enable_desktop_slider %} md:grid-cols-none{% endif -%}
+                      {%- endif -%}
+                      {%- if enable_desktop_slider == false -%}
+                        {%- if enable_tablet_slider %} md:slider-item-show{{ columns_tablet }} md:grid-cols-none{%- else %} md:grid md:grid-cols-{{ columns_tablet }}{%- endif %} lg:grid lg:grid-cols-{{ columns_desktop -}}
+                      {%- else %} md:cursor-grab md:grid md:slider-item-show{{ columns_tablet }} lg:slider-item-show{{ columns_desktop -}}
+                      {%- endif -%}
+                    "
+                    data-mobile-gap="{{ spacing_mobile }}px"
+                    data-desktop-gap="{{ spacing_desktop }}px"
+                  >
+                    {% for product in collection.products limit: product_to_show %}
+                      <div
+                        class="promotional-collections__item {% if swiper_on_mobile or enable_tablet_slider %} slide-item{% endif %} product-card"
+                        data-item-index="{{ forloop.index }}"
+                      >
+                        {% render 'product-card',
+                          product: product,
+                          show_vendor: block.settings.show_vendor,
+                          show_rating: block.settings.show_product_rating,
+                          section_id: section.id,
+                          class_slide: 'h-auto',
+                          columns_desktop: columns_desktop,
+                          column_mobile: columns_mobile,
+                          index: forloop.index,
+                          list_name: collection.title,
+                          collection: collection,
+                          enable_desktop_slider: enable_desktop_slider,
+                          show_quickview: block.settings.show_quickview,
+                          index_param: forloop.index,
+                          disable_badges: disable_badges,
+                          show_b2b_price_label: block.settings.show_b2b_price_label
+                        %}
+                      </div>
+                    {% else %}
+                      {%- for i in (1..columns_desktop) -%}
+                        <div
+                          class="promotional-collections__item-skeleton {% if swiper_on_mobile or enable_tablet_slider %} slide-item{% endif %} product-card"
+                          data-item-index="{{ forloop.index }}"
+                        >
+                          {% render 'product-card',
+                            product: '',
+                            show_vendor: block.settings.show_vendor,
+                            show_rating: block.settings.show_product_rating,
+                            section_id: section.id,
+                            class_slide: 'h-auto',
+                            columns_desktop: columns_desktop,
+                            column_mobile: columns_mobile,
+                            index: forloop.index,
+                            list_name: collection.title,
+                            collection: collection,
+                            enable_desktop_slider: enable_desktop_slider,
+                            show_quickview: block.settings.show_quickview,
+                            index_param: forloop.index,
+                            disable_badges: disable_badges,
+                            show_b2b_price_label: block.settings.show_b2b_price_label
+                          %}
+                        </div>
+                      {% endfor %}
+                    {% endfor %}
+                  </div>
+                  {% render 'progress-bar',
+                    show_on_mobile: swiper_on_mobile,
+                    show_on_tablet: enable_tablet_slider
+                  %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endpaginate %}
+  </div>
+{% endif %}

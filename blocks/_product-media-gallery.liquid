@@ -1,0 +1,244 @@
+{% assign product = closest.product %}
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block.settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block.settings.desktop_padding_left }}px;
+    --pad-right: {{ block.settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+  }
+  @media screen and (min-width: 768px) {
+    .section--{{ section.id }} .block-product-media-gallery {
+      width: {{ block.settings.desktop_width }}%;
+    }
+  }
+{% endstyle %}
+<div class="block-product-media-gallery block-{{ block.id }} block-padding maximize-block h-fit md:sticky top-5" data-block-id="{{ block.id }}" {{ block.shopify_attributes }}>
+  {%- render 'media-gallery',
+    product: product,
+    section: section,
+    zoom_effect: block.settings.zoom_effect,
+    block_labels_and_badge: '',
+    is_show_preorder: false,
+    desktop_layout: "1_column",
+    desktop_carousel_option: "thumbnail",
+    desktop_carousel_position: "bottom",
+    show_navigation_arrows: true,
+    mobile_carousel_option: "number",
+    media_ratio: block.settings.media_ratio,
+    show_sound_control: block.settings.show_sound_control,
+    video_autoplay: block.settings.enable_video_autoplay
+  -%}
+</div>
+{% schema  %}
+{
+  "name": "t:product_showcase.media_gallery.name",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Size"
+    },
+    {
+      "type": "range",
+      "id": "desktop_width",
+      "label": "t:product_showcase.media_gallery.desktop_width",
+      "min": 20,
+      "max": 80,
+      "step": 1,
+      "unit": "%",
+      "default": 50
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.layout"
+    },
+    {
+      "type": "select",
+      "id": "media_ratio",
+      "label": "t:product_showcase.media_gallery.media_ratio",
+      "options": [
+        {
+          "value": "1/1",
+          "label": "t:global.ratio.square"
+        },
+        {
+          "value": "4/3",
+          "label": "t:global.ratio.landscape"
+        },
+        {
+          "value": "16/9",
+          "label": "t:global.ratio.wide"
+        },
+        {
+          "value": "2/3",
+          "label": "t:global.ratio.portrait"
+        },
+        {
+          "value": "3/4",
+          "label": "t:global.ratio.standard"
+        }
+      ],
+      "default": "1/1"
+    },
+    {
+      "type": "header",
+      "content": "t:product_showcase.media_gallery.zoom"
+    },
+    {
+      "type": "select",
+      "id": "zoom_effect",
+      "label": "t:main_product.settings.media.zoom_effect.label",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:global.options.none"
+        },
+        {
+          "value": "magnifier",
+          "label": "t:main_product.settings.media.zoom_effect.magnifier"
+        },
+        {
+          "value": "enlarge",
+          "label": "t:main_product.settings.media.zoom_effect.enlarge"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "header",
+      "content": "t:global.video.video"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_sound_control",
+      "label": "t:global.video.show_sound_control",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_video_autoplay",
+      "label": "t:global.video.enable_video_autoplay",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "select",
+      "id": "device_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Product Media Gallery",
+      "category": "t:global.product.product"
+    }
+  ]
+}
+{% endschema %}

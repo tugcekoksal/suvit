@@ -1,0 +1,8 @@
+<div id="{{ id }}" class="absolute hidden top-0 bottom-0 h-full {% if is_main_cart %}w-full{% else %}w-[calc(100%+32px)] ml-[-16px] mr-[-16px] md:w-[calc(100%+60px)] md:ml-[-30px] md:mr-[-30px]{% endif %}">
+  <div class="absolute top-0 right-0 w-full h-full opacity-20 color-bg-[rgba(var(--color-overlay))]"></div>
+  <div class="loading-cover">
+    <span class="w-5 h-5 animate-spin absolute top-[calc(50%-10px)] left-[calc(50%-10px)] z-20">
+      {% render 'icon-all', icon: 'icon-loading' %}
+    </span>
+  </div>
+</div>

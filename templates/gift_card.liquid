@@ -1,0 +1,235 @@
+{% layout none %}
+<!doctype html>
+<html lang="{{ request.locale.iso_code }}">
+  <head>
+    <meta charset="utf-8">
+    <meta
+      http-equiv="X-UA-Compatible"
+      content="IE=edge"
+    >
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1"
+    >
+    <meta
+      name="theme-color"
+      content="{{ settings.color_background }}"
+    >
+    <link
+      rel="canonical"
+      href="{{ canonical_url }}"
+    >
+    <link
+      rel="preconnect"
+      href="https://cdn.shopify.com"
+      crossorigin
+    >
+
+    {%- if settings.favicon != blank -%}
+      <link
+        rel="icon"
+        type="image/png"
+        href="{{ settings.favicon | image_url: width: 32, height: 32 }}"
+      >
+    {%- endif -%}
+
+    {%- unless settings.type_header_font.system? and settings.type_body_font.system? -%}
+      <link
+        rel="preconnect"
+        href="https://fonts.shopifycdn.com"
+        crossorigin
+      >
+    {%- endunless -%}
+
+    {%- assign formatted_initial_value = gift_card.initial_value | money_without_trailing_zeros | strip_html -%}
+    <title>{{ 'gift_cards.issued.title' | t: value: formatted_initial_value, shop: shop.name }}</title>
+    <meta name="description" content="{{ 'gift_cards.issued.subtext' | t }}">
+    {{ content_for_header }}
+    {%- render 'meta-tags' -%}
+    {%- render 'font-face' -%}
+    {{ 'theme.css' | asset_url | stylesheet_tag: preload: true }}
+    {{ 'gift-card.css' | asset_url | stylesheet_tag: preload: true }}
+    {%- render 'css-variables' -%}
+    {{ 'buttons.css' | asset_url | stylesheet_tag: preload: true }}
+
+    {%- unless settings.type_body_font.system? -%}
+      <link
+        rel="preload_tag"
+        as="font"
+        href="{{ settings.body_font | font_url }}"
+        type="font/woff2"
+        crossorigin
+      >
+    {%- endunless -%}
+    {%- unless settings.type_header_font.system? -%}
+      <link
+        rel="preload_tag"
+        as="font"
+        href="{{ settings.heading_font | font_url }}"
+        type="font/woff2"
+        crossorigin
+      >
+    {%- endunless -%}
+
+    <script src="{{ 'constants.js' | asset_url }}" defer></script>
+
+  </head>
+  <body class="color-text-[rgba(var(--color-text))] bg-no-repeat text-medium min-h-screen">
+    <header class="gift-card__header">
+      {% section 'gift-card-header' %}
+    </header>
+    <main class="gift-card__main page-width">
+      <div class="gift-card__info">
+        <div class="gift-card__info__heading heading-content-spacing">
+          <div class="gift-card__info__subtext h3">{{ 'gift_cards.issued.subtext' | t }}</div>
+          <p class="gift-card__info__value size_value_giftcard h2">
+            {% if settings.currency_code_enable %}
+              {{ gift_card.initial_value | money_with_currency }}
+            {% else %}
+              {{ gift_card.initial_value | money }}
+            {% endif %}
+          </p>
+          {%- if gift_card.enabled == false or gift_card.expired -%}
+            <p>{{ 'gift_cards.issued.expired' | t }}</p>
+          {%- endif -%}
+          {% liquid
+            if settings.currency_code_enable
+              assign gift_card_balance = gift_card.balance | money_with_currency
+            else
+              assign gift_card_balance = gift_card.balance | money
+            endif
+          %}
+          {%- if gift_card.balance != gift_card.initial_value -%}
+            <p>{{ 'gift_cards.issued.remaining_html' | t: balance: gift_card_balance }}</p>
+          {%- endif -%}
+        </div>
+        <div class="gift-card__info__content">
+          {% section "main-gift-card" %}
+          <div 
+            class="gift-card__code__wrapper{% if settings.edges_type == 'rounded_corners' %} rounded-[10px_4px]{% endif %}" 
+            role="button" tabindex="0" aria-label="{{ 'gift_cards.issued.copy_code' | t }}"
+          >
+            <span class="gift-card__code-value text-large leading-[1.6]">
+              {{ gift_card.code | format_code }}
+            </span>
+            <div class="gift-card__icon__wrapper">
+              <span id="gift-card__icon--copy" class="gift-card__icon is-visible">
+                {% render 'icon-all', icon: 'icon-copy' %}
+              </span>
+              <span id="gift-card__icon--success" class="gift-card__icon">
+                {% render 'icon-all', icon: 'icon-check' %}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="gift-card__action">
+        <div
+          class="gift-card__qr-code rounded-corners"
+          data-identifier="{{ gift_card.qr_identifier }}"
+        ></div>
+        <div class="gift-card__action__number">
+          {%- if gift_card.pass_url -%}
+            <a href="{{ gift_card.pass_url }}">
+              <img
+                class="ml-auto mr-auto"
+                src="{{ 'gift-card/add-to-apple-wallet.svg' | shopify_asset_url }}"
+                width="120"
+                height="40"
+                alt="{{ 'gift_cards.issued.add_to_apple_wallet' | t }}"
+                loading="lazy"
+              >
+            </a>
+          {%- endif -%}
+          <div class="gift-card__action__button{% if gift_card.pass_url %} mt-5{% endif %}">
+            <custom-button>
+              <a
+                class="gift-card__action__button--continue button button-primary no-print h6"
+                href="{{ shop.url }}"
+                target="_blank"
+                rel="noopener"
+                aria-describedby="a11y-new-window-message"
+              >
+                {% assign button_label = 'gift_cards.issued.shop_link' | t %}
+                {% render 'button-label', button_label: button_label, show_button_style: 'primary' %}
+              </a>
+            </custom-button>
+            <custom-button>
+              <button
+                class="gift-card__action__button--print button button-secondary no-print h6"
+                onclick="window.print();"
+              >
+                <span>{{ 'gift_cards.issued.print_gift_card' | t }}</span>
+              </button>
+            </custom-button>
+          </div>
+        </div>
+      </div>
+    </main>
+    <div hidden>
+      <span id="a11y-new-window-message">{{ 'accessibility.link_messages.new_window' | t }}</span>
+    </div>
+  </body>
+  <script>
+    window.Maximize = {
+      buttonHoverAnm: '{{ settings.button_hover_animation }}'
+    };
+  </script>
+  <script src="{{ 'vendor/qrcode.js' | shopify_asset_url }}" defer></script>
+  <script src="{{ 'theme.js' | asset_url }}" defer></script>
+</html>
+
+<script>
+  let string = { qrImageAlt: {{ 'gift_cards.issued.qr_image_alt' | t | json }} };
+  document.addEventListener('DOMContentLoaded', function() {
+   new QRCode( document.querySelector('.gift-card__qr-code'), {
+    text: document.querySelector('.gift-card__qr-code').dataset.identifier,
+    width: 140,
+    height: 140,
+    imageAltText: string.qrImageAlt
+    });
+  });
+
+
+  const giftCardCode = document.querySelector('.gift-card__code-value').textContent.trim();
+  const copyIcon = document.querySelector('#gift-card__icon--copy');
+  const successIcon = document.querySelector('#gift-card__icon--success');
+  const copyButton = document.querySelector('.gift-card__code__wrapper');
+
+  function show(el) {
+    el.classList.remove('is-hidden');
+    el.classList.add('is-visible');
+  }
+
+  function hide(el) {
+    el.classList.remove('is-visible');
+    el.classList.add('is-hidden');
+
+    el.addEventListener('transitionend', () => {
+      el.classList.remove('is-hidden');
+    })
+  }
+
+  function handleCopy() {
+    navigator.clipboard.writeText(giftCardCode).then(() => {
+      hide(copyIcon);
+      show(successIcon);
+
+      setTimeout(() => {
+        hide(successIcon);
+        show(copyIcon);
+      }, 5000);
+    }).catch(() => {
+      alert("Copy fail");
+    });
+  }
+
+  copyButton.addEventListener('click', handleCopy);
+
+  copyButton.addEventListener('keyup', (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleCopy();
+    }
+  });
+</script>

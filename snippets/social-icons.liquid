@@ -1,0 +1,120 @@
+{%- if settings.social_facebook_link != blank -%}
+  <li>
+    <a href="{{ settings.social_facebook_link }}" target="blank" aria-label="{{ 'general.social.links.facebook' | t }}"
+      class="flex hover-text-link{% if custom_class %} {{ custom_class }}{% else %} w-11 h-11 pt-3 pr-3 pb-3 pl-3{% endif %}
+      {%- if footer %} border border-solid rounded-full hover:color-border-[rgba(var(--color-link))] duration-300{% endif -%}"
+    >
+      {%- render 'icon-media', icon: 'icon-facebook' -%}
+    </a>
+  </li>
+{%- endif -%}
+{%- if settings.social_twitter_link != blank -%}
+  <li>
+    <a href="{{ settings.social_twitter_link }}" target="blank" aria-label="{{ 'general.social.links.twitter' | t }}" 
+      class="flex hover-text-link{% if custom_class %} {{ custom_class }}{% else %} w-11 h-11 pt-3 pr-3 pb-3 pl-3{% endif %}
+      {%- if footer %} border border-solid rounded-full hover:color-border-[rgba(var(--color-link))] duration-300{% endif -%}"
+    >
+      {%- render 'icon-media', icon: 'icon-twitter' -%}
+    </a>
+  </li>
+{%- endif -%} 
+{%- if settings.social_pinterest_link != blank -%}
+  <li>
+    <a href="{{ settings.social_pinterest_link }}" target="blank" aria-label="{{ 'general.social.links.pinterest' | t }}" 
+      class="flex hover-text-link{% if custom_class %} {{ custom_class }}{% else %} w-11 h-11 pt-3 pr-3 pb-3 pl-3{% endif %}
+      {%- if footer %} border border-solid rounded-full hover:color-border-[rgba(var(--color-link))] duration-300{% endif -%}"
+    >
+      {%- render 'icon-media', icon: 'icon-pinterest' -%}
+    </a>
+  </li>
+{%- endif -%}
+{%- if settings.social_instagram_link != blank -%}
+  <li>
+    <a href="{{ settings.social_instagram_link }}" target="blank" aria-label="{{ 'general.social.links.instagram' | t }}"
+      class="flex hover-text-link{% if custom_class %} {{ custom_class }}{% else %} w-11 h-11 pt-3 pr-3 pb-3 pl-3{% endif %}
+      {%- if footer %} border border-solid rounded-full hover:color-border-[rgba(var(--color-link))] duration-300{% endif -%}"
+    >
+      {%- render 'icon-media', icon: 'icon-instagram' -%}
+    </a>
+  </li>
+{%- endif -%}
+{%- if settings.social_tiktok_link != blank -%}
+  <li>
+    <a href="{{ settings.social_tiktok_link }}" target="blank" aria-label="{{ 'general.social.links.tiktok' | t }}" 
+      class="flex hover-text-link {% if custom_class %} {{ custom_class }}{% else %} w-11 h-11 pt-3 pr-3 pb-3 pl-3{% endif %}
+      {%- if footer %} border border-solid rounded-full hover:color-border-[rgba(var(--color-link))] duration-300{% endif -%}"
+    >
+      {%- render 'icon-media', icon: 'icon-tiktok' -%}
+    </a>
+  </li>
+{%- endif -%}
+{%- if settings.social_tumblr_link != blank -%}
+  <li>
+    <a href="{{ settings.social_tumblr_link }}" target="blank" aria-label="{{ 'general.social.links.tumblr' | t }}" 
+      class="flex hover-text-link{% if custom_class %} {{ custom_class }}{% else %} w-11 h-11 pt-3 pr-3 pb-3 pl-3{% endif %}
+      {%- if footer %} border border-solid rounded-full hover:color-border-[rgba(var(--color-link))] duration-300{% endif -%}"
+    >
+      {%- render 'icon-media', icon: 'icon-tumblr' -%}
+    </a>
+  </li>
+{%- endif -%}
+{%- if settings.social_snapchat_link != blank -%}
+  <li>
+    <a href="{{ settings.social_snapchat_link }}" target="blank" aria-label="{{ 'general.social.links.snapchat' | t }}" 
+      class="flex hover-text-link{% if custom_class %} {{ custom_class }}{% else %} w-11 h-11 pt-3 pr-3 pb-3 pl-3{% endif %}
+      {%- if footer %} border border-solid rounded-full hover:color-border-[rgba(var(--color-link))] duration-300{% endif -%}"
+    >
+      {%- render 'icon-media', icon: 'icon-snapchat' -%}
+    </a>
+  </li>
+{%- endif -%}
+{%- if settings.social_youtube_link != blank -%}
+  <li>
+    <a href="{{ settings.social_youtube_link }}" target="blank" aria-label="{{ 'general.social.links.youtube' | t }}"
+      class="flex hover-text-link{% if custom_class %} {{ custom_class }}{% else %} w-11 h-11 pt-3 pr-3 pb-3 pl-3{% endif %}
+      {%- if footer %} border border-solid rounded-full hover:color-border-[rgba(var(--color-link))] duration-300{% endif -%}"
+    >
+      {%- render 'icon-media', icon: 'icon-youtube' -%}
+    </a>
+  </li>
+{%- endif -%}
+{%- if settings.social_vimeo_link != blank -%}
+  <li>
+    <a href="{{ settings.social_vimeo_link }}" target="blank" aria-label="{{ 'general.social.links.vimeo' | t }}" 
+      class="flex hover-text-link{% if custom_class %} {{ custom_class }}{% else %} w-11 h-11 pt-3 pr-3 pb-3 pl-3{% endif %}
+      {%- if footer %} border border-solid rounded-full hover:color-border-[rgba(var(--color-link))] duration-300{% endif -%}"
+    >
+      {%- render 'icon-media', icon: 'icon-vimeo' -%}
+    </a>
+  </li>
+{%- endif -%}
+{%- if settings.social_linkedin_link != blank -%}
+  <li>
+    <a href="{{ settings.social_linkedin_link }}" target="blank" aria-label="{{ 'general.social.links.linkedin' | t }}" 
+      class="flex hover-text-link{% if custom_class %} {{ custom_class }}{% else %} w-11 h-11 pt-3 pr-3 pb-3 pl-3{% endif %}
+      {%- if footer %} border border-solid rounded-full hover:color-border-[rgba(var(--color-link))] duration-300{% endif -%}"
+    >
+      {%- render 'icon-media', icon: 'icon-linkedin' -%}
+    </a>
+  </li>
+{%- endif -%}
+{%- if settings.email_address != blank -%}
+  <li>
+    <a href="mailto:{{ settings.email_address }}" 
+      class="flex hover-text-link{% if custom_class %} {{ custom_class }}{% else %} w-11 h-11 pt-3 pr-3 pb-3 pl-3{% endif %}
+      {%- if footer %} border border-solid rounded-full hover:color-border-[rgba(var(--color-link))] duration-300{% endif -%}"
+    >
+      {%- render 'icon-all', icon: 'icon-email' -%}
+    </a>
+  </li>
+{%- endif -%}
+{%- if settings.phone_number != blank -%}
+  <li>
+    <a href="tel:{{ settings.phone_number }}"
+      class="flex hover-text-link{% if custom_class %} {{ custom_class }}{% else %} w-11 h-11 pt-3 pr-3 pb-3 pl-3{% endif %}
+      {%- if footer %} border border-solid rounded-full hover:color-border-[rgba(var(--color-link))] duration-300{% endif -%}"
+    >
+      {%- render 'icon-all', icon: 'icon-phone' -%}
+    </a>
+  </li>
+{%- endif -%}

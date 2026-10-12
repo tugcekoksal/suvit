@@ -1,0 +1,61 @@
+{% if imageUrlMobile != blank and imageUrlDesktop != blank %}
+  <picture>
+    <source
+      srcset="{{ imageUrlMobile | image_url: width: 50 }} 50w,
+      {{ imageUrlMobile | image_url: width: 100 }} 100w,
+      {{ imageUrlMobile | image_url: width: 150 }} 150w,
+      {{ imageUrlMobile | image_url: width: 200 }} 200w,
+      {{ imageUrlMobile | image_url: width: 250 }} 250w,
+      {{ imageUrlMobile | image_url: width: 300 }} 300w"
+      media="(max-width: 1023px)"
+      width="{{ logo_width_mobile }}"
+      height="{{ logo_width_mobile | divided_by: imageUrlMobile.aspect_ratio | round }}"
+    >
+    <img
+      srcset="{{ imageUrlDesktop | image_url: width: 50 }} 50w,
+        {{ imageUrlDesktop | image_url: width: 100 }} 100w,
+        {{ imageUrlDesktop | image_url: width: 150 }} 150w,
+        {{ imageUrlDesktop | image_url: width: 200 }} 200w,
+        {{ imageUrlDesktop | image_url: width: 250 }} 250w,
+        {{ imageUrlDesktop | image_url: width: 300 }} 300w,
+        {{ imageUrlDesktop | image_url: width: 400 }} 400w,
+        {{ imageUrlDesktop | image_url: width: 500 }} 500w,
+        {{ imageUrlDesktop | image_url: width: 600 }} 600w"
+      loading="eager"
+      sizes="(min-width: 768px) {{ logo_width | times: 3 }}px, {{ logo_width_mobile }}px"
+      src="{{ imageUrlDesktop | image_url: width: imageUrlDesktop.width }}"
+      {% if imageUrlMobile != blank %}
+        :alt="(screen.width < 768) ? '{{ imageUrlMobile.alt }}' : '{{ imageUrlDesktop.alt }}'"
+      {% else %}
+        alt="{{ imageUrlDesktop.alt | default: shop.name | escape }}"
+      {% endif %}
+      class="object-cover h-full w-full image-{{ section.id }}"
+      width="{{ logo_width }}"
+      height="{{ logo_width | divided_by: imageUrlDesktop.aspect_ratio | round }}"
+      fetchpriority="high"
+      decoding="sync"
+    >
+  </picture>
+{% else %}
+  <img
+    srcset="{{ imageUrlMobile | image_url: width: 50 }} 50w,
+      {{ imageUrlMobile | image_url: width: 100 }} 100w,
+      {{ imageUrlMobile | image_url: width: 150 }} 150w,
+      {{ imageUrlMobile | image_url: width: 200 }} 200w,
+      {{ imageUrlMobile | image_url: width: 250 }} 250w,
+      {{ imageUrlMobile | image_url: width: 300 }} 300w,
+      {{ imageUrlMobile | image_url: width: 400 }} 400w,
+      {{ imageUrlMobile | image_url: width: 500 }} 500w,
+      {{ imageUrlMobile | image_url: width: 600 }} 600w"
+    loading="lazy"
+    sizes="(min-width: 768px) {{ logo_width | times: 3 }}px, {{ logo_width_mobile }}px"
+    src="{{ imageUrlMobile | image_url: width: imageUrlMobile.width }}"
+    alt="{{ imageUrlMobile.alt | default: shop.name }}"
+    class="object-cover lg:hidden h-full w-full image-{{ section.id }}"
+    width="{{ logo_width_mobile }}"
+    height="{{ logo_width_mobile | divided_by: imageUrlMobile.aspect_ratio | round }}"
+    fetchpriority="high"
+    decoding="sync"
+  >
+  <span class="logo-text text-center {% unless section.settings.logo_position == 'logo-on-top' %} lg:text-left rtl:lg:text-right{% endunless %} p-break-words h2 text-theme-text hidden lg:block">{{ shop.name }}</span>
+{% endif %}

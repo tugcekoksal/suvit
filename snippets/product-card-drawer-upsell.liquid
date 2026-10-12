@@ -1,0 +1,136 @@
+{% comment %}
+  Renders a mini product card
+
+  Accepts:
+  - product: {Object} Product Liquid object (optional)
+  - media_aspect_ratio: {String} Size of the product image card. Values are "square" and "portrait". Default is "square" (optional)
+  - ratio: media_aspect_ratio in number
+
+  Usage:
+  {% render 'product-card-drawer-upsell', product: product %}
+{% endcomment %}
+
+
+
+{% liquid
+  assign product_form_id = 'CartDrawerUpsell' | append: '-' | append: product.id
+  assign current_variant = product.selected_or_first_available_variant
+%}
+{%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+{%- assign login_hide_price = login_hide_price | strip -%}
+
+{%- capture data_for_customer_event -%}
+  {
+    "product": {
+      "title": "{{ product.title | escape }}",
+      "listName": "{{ collection.title | default: list_name | escape }}",
+      "sku": "{{ product.id }}",
+      "currencyCode": "{{ cart.currency.iso_code }}",
+      "price": {{ product.price }},
+      "vendor": "{{ product.vendor }}"
+    }
+  }
+{%- endcapture %}
+
+<div class="product-card-drawer-upsell__wrapper flex flex-row gap-2.5 md:gap-4 w-full">
+  <div class="w-16 md:w-20 relative shrink-0">
+    <a
+      href="{{ product.url }}"
+      class="block w-full aspect-{{ image_ratio }} {% if imag_ration == 'auto' %} h-full{% endif %} 
+      {%- if product.url != blank %} media-hyperlink overflow-hidden{% endif -%}
+      {%- if settings.edges_type == 'rounded_corners' %} rounded-corners{% endif %}"
+      aria-label="{{ product.featured_media.alt | default: 'Image' }}"
+    >
+      {%- if product.featured_media -%}
+        <img
+          src="{{ product.featured_media | image_url: width: 168 }}"
+          alt="{{ product.featured_media.alt | split: "#" | first | escape }}"
+          class="product-card-drawer-upsell__image w-full h-full anm-image-hover object-cover transition duration-300 z-10 ease-out {% if settings.edges_type == 'rounded_corners' %} rounded-[10px]{% endif %}"
+          loading="lazy"
+          width="80"
+          height="80"
+        >
+      {%- else -%}
+        <div class='relative rounded-corners overflow-hidden object-cover aspect-{{ image_ratio }}'>
+          {% liquid
+            assign index = 1
+            assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+            assign placeholder_product_name = 'product_' | append: index
+          %}
+          {% render 'placeholder-image', image_type: placeholder_product_name %}
+        </div>
+      {%- endif -%}
+    </a>
+  </div>
+  <div class="product-card-drawer-upsell__info flex-auto flex flex-col md:min-w-0">
+    <a href="{{ product.url }}"
+       class="product-card-drawer-upsell__title h6 md:h7 title-link cursor-pointer duration-200 p-break-words mb-0.5"
+       @click='$store.xCustomerEvent.fire("product_selected", $el)'
+       data-customer-event="{{ data_for_customer_event | escape }}"
+    >
+      {{ product.title | escape }}
+    </a>
+    {% unless login_hide_price == "true" %}
+      <div>
+        {% render 'price',
+          product: product,
+          price_wrapper: ' h5 md:h6',
+          unit_price_class: 'text-xx-small',
+          show_b2b_price_label: settings.show_b2b_price_cart_upsell_drawer
+        %}
+      </div>
+    {% else %}
+      {% render 'guest-price-message', disabled_border: true, direction_label: 'col' %}
+    {% endunless %}
+    <div id="CartUpSellErrorMessage__{{ section.id }}__{{ product.id }}"></div>
+  </div>
+  <div class="product-card-complementary__action"
+       x-data="xProductForm('{{ product_form_id }}', '{{ current_variant.id }}', {{ current_variant.available | default: false }}, '', '{{ 'products.product.add_to_cart' | t }}', '{{ section.id }}')"
+       x-intersect.once.margin.200px="handleInitProductForm()"
+  >
+    <template x-teleport="#CartUpSellErrorMessage__{{ section.id }}__{{ product.id }}">
+      <div
+        class="pt-2 hidden"
+        @click.away="errorMessage = false"
+      >
+        <div x-ref="error_message" class="flash-message error-message"></div>
+      </div>
+    </template>
+    {%- form 'product', product, id: product_form_id, class: 'form', novalidate: 'novalidate', data-type: 'add-to-cart-form', x-ref: 'product_form' -%}
+      <input
+        class="product-form__variant-id hidden"
+        name="id"
+        type="hidden"
+        form="{{ product_form_id }}"
+        value="{{ current_variant.id }}"
+        {% unless current_variant.available %}disabled{% endunless %}
+      >
+      <input
+        class="product-form__variant-id hidden"
+        name="quantity"
+        type="hidden"
+        form="{{ product_form_id }}"
+        value="{{ current_variant.quantity_rule.min | default: 1 }}"
+      >
+      <custom-button>
+        <button
+          class="button-secondary p-2.5 w-fit h-fit {% unless current_variant.available %}pointer-events-none{% endunless %} {% if settings.edges_type == 'rounded_corners' %} rounded{% endif %} "
+          type="button"
+          name="add"
+          aria-haspopup="dialog"
+          aria-labelledby="{{ product_form_id }}-submit title-{{ section.id }}-{{ product.id }}"
+          aria-live="polite"
+          aria-label="{{ 'products.product.add_to_cart' | t }}"
+          data-variant-id="{{ product.selected_or_first_available_variant.id }}"
+          @click="handleClickButtonCartUpSell($event, {{ product.has_only_default_variant }}, '{{ current_variant.id }}', '{{ product.id }}', '{{ product.url }}')"
+          {% if login_hide_price == "true" and product.has_only_default_variant %}
+            disabled
+          {% endif %}
+        >
+          {% render 'icon-all', icon: 'icon-plus', class: 'w-3' %}
+        </button>
+      </custom-button>
+    {% endform %}
+    <script type="application/json" data-type="init-current-variant">{{ current_variant | json }}</script>
+  </div>
+</div>

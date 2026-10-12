@@ -1,0 +1,267 @@
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block.settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block.settings.desktop_padding_left }}px;
+    --pad-right: {{ block.settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+    {% if block.settings.heading_size == 'custom' %}
+      font-size: {{ block.settings.mobile_font_size }}px;
+      line-height: {{ block.settings.line_height }}%;
+    {% endif %}
+  }
+  {% if block.settings.heading_size == 'custom' %}
+    @media (min-width: 768px) {
+      .block-{{ block.id }} {
+        font-size: {{ block.settings.desktop_font_size }}px;
+      }
+    }
+  {% endif %}
+{% endstyle %}
+<{{ block.settings.heading_tag | default: "h2" }}
+  class="block-product-title block-{{ block.id }} block-padding maximize-block break-words heading-{{ block.settings.heading_size }} anm-fade-element p-break-words ltr"
+  data-block-id="{{ block.id }}"
+  data-fade-on-intersect
+  {{ block.shopify_attributes }}
+>
+  {% if closest.product != blank %}
+    {% if block.settings.enable_link %}
+      <a class="block-product-title__link title-link" href="{{ closest.product.url }}">
+        {{- closest.product.title | escape -}}
+      </a>
+    {% else %}
+      {{- closest.product.title | escape -}}
+    {% endif %}
+  {% else %}
+    {{ 'products.product.title' | t }}
+  {% endif %}
+</{{ block.settings.heading_tag | default: "h2" }}>
+{% schema  %}
+{
+  "name": "t:main_product.blocks.product_title.name",
+  "tag": null,
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enable_link",
+      "label": "Link to product",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:settings.typography.name"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "default": "h2",
+      "label": "t:global.text.heading_tag",
+      "options": [
+        {
+          "value": "h1",
+          "label": "H1"
+        },
+        {
+          "value": "h2",
+          "label": "H2"
+        },
+        {
+          "value": "h3",
+          "label": "H3"
+        },
+        {
+          "value": "h4",
+          "label": "H4"
+        },
+        {
+          "value": "h5",
+          "label": "H5"
+        },
+        {
+          "value": "h6",
+          "label": "H6"
+        },
+        {
+          "value": "p",
+          "label": "p"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "t:settings.typography.font_size",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small"
+        },
+        {
+          "value": "medium",
+          "label": "Medium"
+        },
+        {
+          "value": "large",
+          "label": "Large"
+        },
+        {
+          "value": "custom",
+          "label": "Custom"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "range",
+      "id": "desktop_font_size",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:footer.blocks.enlarged_store_name.settings.desktop_font_size",
+      "default": 32,
+      "visible_if": "{{ block.settings.heading_size == 'custom' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_font_size",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:footer.blocks.enlarged_store_name.settings.mobile_font_size",
+      "default": 32,
+      "visible_if": "{{ block.settings.heading_size == 'custom' }}"
+    },
+    {
+      "type": "range",
+      "id": "line_height",
+      "min": 100,
+      "max": 300,
+      "step": 5,
+      "unit": "%",
+      "label": "t:settings.typography.line_height",
+      "default": 140,
+      "visible_if": "{{ block.settings.heading_size == 'custom' }}"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "select",
+      "id": "device_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:main_product.blocks.product_title.name",
+      "category": "t:global.product.product"
+    }
+  ]
+}
+{% endschema %}

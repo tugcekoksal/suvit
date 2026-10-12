@@ -1,0 +1,305 @@
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block.settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block.settings.desktop_padding_left }}px;
+    --pad-right: {{ block.settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+  }
+{% endstyle %}
+{% liquid
+  assign newsletter_form_id = 'EmailSignup__' | append: block.id
+%}
+
+{% liquid
+  assign is_rtl = false
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  endif
+%}
+{% liquid
+  if block.settings.button_label != blank
+    assign button_label = block.settings.button_label
+  else
+    assign button_label = 'newsletter.button_label' | t
+  endif
+%}
+
+<div
+  class="maximize-block block-email-signup block-padding block-{{ block.id }} w-full z-10"
+  data-block-id="{{ block.id }}"
+  {{ block.shopify_attributes }}
+>
+  <div x-data="{ email: '', error: validateEmail('') }">
+    {%- form 'customer', id: newsletter_form_id -%}
+      {%- unless form.posted_successfully? -%}
+        <input
+          type="hidden"
+          name="contact[tags]"
+          value="newsletter"
+        >
+        <div class="text-field__wrapper text-field__has-button outline-none border border-solid color-border-[rgba(var(--color-line-and-border))]">
+          {% if is_rtl %}
+            <custom-button>
+              <button
+                type="submit"
+                class="button button-{{ block.settings.button_style }} py-2.5 px-3.5 cursor-pointer empty:hidden{% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+                name="btnSubmit"
+                :disabled="error.isError === true"
+                tabindex="0"
+              >
+                {{ button_label }}
+              </button>
+            </custom-button>
+          {% endif %}
+          <div class="text-field__content">
+            <input
+              id="Email--{{ block.id }}"
+              type="email"
+              name="contact[email]"
+              class="text-field__input"
+              value="{% if customer %}{{ customer.email }}{% endif %}"
+              aria-required="true"
+              autocorrect="off"
+              autocapitalize="off"
+              autocomplete="email"
+              placeholder="{{ 'newsletter.label' | t }}"
+              dir="{% if is_rtl %}rtl{% else %}ltr{% endif %}"
+              x-model="email"
+              @input.debounce.500ms="error = validateEmail(email)"
+              required
+            >
+            <label
+              for="Email--{{ block.id }}"
+              class="text-field__label"
+            >
+              {{ 'newsletter.label' | t }}
+            </label>
+          </div>
+
+          {% unless is_rtl %}
+            <custom-button>
+              <button
+                type="submit"
+                class="button button-{{ block.settings.button_style }} py-2.5 px-3.5 cursor-pointer empty:hidden{% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+                name="btnSubmit"
+                :disabled="error.isError === true"
+                tabindex="0"
+              >
+                {{ button_label }}
+              </button>
+            </custom-button>
+          {% endunless %}
+        </div>
+        <div
+          id="EmailSignup-{{ block.id }}__validation"
+          class="flex mt-1 {% if is_rtl %} justify-end{% endif %}"
+          x-show="error.isError === true && error.isInvalid === true"
+          x-cloak
+        >
+          <div class="flash-message error-message">
+            <p>{{ 'products.product.recipient.message_email_invalid' | t }}</p>
+          </div>
+        </div>
+      {%- else -%}
+        <div
+          id="EmailSignup__Success--{{ block.id }}"
+           class="newsletter-message newsletter-message__success inline-block mt-1 {% if is_rtl %} justify-end{% endif %}"
+        >
+          <div
+            class="flash-message success-message inline-block"
+            tabindex="-1"
+            autofocus
+          >
+            {%- liquid
+              assign success_message = block.settings.success_message
+              if success_message == blank
+                assign success_message = 'newsletter.success' | t
+              endif
+            -%}
+            {{ success_message }}
+          </div>
+        </div>
+      {%- endunless -%}
+
+      {%- if form.errors -%}
+        <div
+          id="EmailSignup__Error--{{ block.id }}"
+          class="newsletter-message newsletter-message__error flex {% if is_rtl %} justify-end{% endif %}"
+        >
+          <div
+            class="flash-message error-message"
+            tabindex="-1"
+            autofocus
+          >
+            {{ form.errors.translated_fields.email | capitalize }}
+            {{ form.errors.messages.email }}
+          </div>
+        </div>
+      {%- endif -%}
+    {%- endform -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Newsletter signup",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Submit button"
+    },
+    {
+      "type": "select",
+      "id": "button_style",
+      "options": [
+        {
+          "value": "primary",
+          "label": "t:global.button.style.primary"
+        },
+        {
+          "value": "secondary",
+          "label": "t:global.button.style.secondary"
+        }
+      ],
+      "label": "t:global.button.style.label",
+      "default": "secondary"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Label",
+      "default": "Subscribe"
+    },
+    {
+      "type": "header",
+      "content": "Message"
+    },
+    {
+      "type": "text",
+      "id": "success_message",
+      "label": "t:contact_form.settings.success_message",
+      "default": "<p>Thank you for signing up. We'll get back to you as soon as possible.</p>"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "select",
+      "id": "spacing_choose_device",
+      "label": "Choose device",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "Desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "Mobile"
+        }
+      ],
+      "default": "desktop",
+      "info": "Desktop and Mobile settings are configured separately."
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Newsletter signup",
+      "category": "Forms"
+    }
+  ]
+}
+{% endschema %}

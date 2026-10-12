@@ -1,0 +1,257 @@
+{% doc %} 
+  Documentation: Product comparison container
+
+  Renders the popup content for section product comparison overlay
+
+  @param section - {Section} Section Liquid object
+
+  @example
+  {%- render 'product-comparison-container',
+    section: section
+  -%}
+{% enddoc %}
+
+{% liquid 
+  for block in section.blocks
+    if block.type == 'buttons'
+      assign block_buttons = block
+    endif
+  endfor
+  
+  assign image_class = 'rounded-corners w-full object-cover'
+  if settings.pc_media_ratio != 'auto'
+    assign image_class = image_class | append: ' absolute insert-0 h-full'
+  endif
+
+  if settings.edges_type == 'rounded_corners'
+    assign rounded_corner = true
+  endif
+%}
+{%- style -%}
+  .product-comparison-table--{{ section.id }} {
+    --product-comparison-grid-item-width: 2/3;
+  }
+  @media (min-width: 768px) {
+    .product-comparison-table--{{ section.id }} {
+      --product-comparison-grid-item-width: 1/2;
+    }
+  }
+  @media (min-width: 1024px) {
+    .product-comparison-table--{{ section.id }} {
+      --product-comparison-item-in-table: 6;
+      --product-comparison-grid-item-width: 1/6;
+    }
+  }
+{%- endstyle -%}
+
+{%- capture skeleton_heading -%}
+  <div class="animate-Xpulse block w-full product-comparison__skeleton-heading">
+    <div class="w-full{% if settings.pc_media_ratio != 'auto' %} relative h-0 pb-[{{ settings.pc_media_ratio }}%]{% endif %}">
+      <div class="bg-skeleton w-full {{ image_class }}"></div>
+    </div>
+    <div class="mt-2.5 md:mt-4 relative">
+      <p class="h6 opacity-0">__</p>
+      <div class="bg-skeleton w-full h-full absolute inset-0"></div>
+    </div>
+    <div class="mt-2.5 relative">
+      <p class="h5 opacity-0">__</p>
+      <div class="bg-skeleton w-full h-full absolute inset-0"></div>
+    </div>
+  </div>
+{%- endcapture -%}
+
+{%- capture skeleton_block -%}
+  <div class="block product-comparison__skeleton-block relative lg:w-full lg:h-full">
+    <p class="opacity-0 lg:hidden">__</p>
+    <div class="bg-skeleton w-full h-full absolute inset-0"></div>
+  </div>
+{%- endcapture -%}
+
+<div>
+  <div class="text-{{ section.settings.heading_alignment }} heading-content-spacing flex flex-col gap-0.5">
+    {% if section.settings.subheading != blank %}
+      <p class="product-comparison__subheading p-break-words anm-fade-element subheading" data-fade-on-intersect>{{ section.settings.subheading | escape }}</p>
+    {% endif %}
+    {% if section.settings.heading != blank %}
+      <{{ section.settings.heading_tag }} class="heading-{{ section.settings.heading_size }} h2 block pointer-events-auto pb-1 product-comparison__heading p-break-words anm-fade-element" data-fade-on-intersect>
+        {{ section.settings.heading }}
+      </{{ section.settings.heading_tag }}>
+    {% endif %}
+    {% if section.settings.text != blank %}
+      <div class="rte product-comparison__text anm-fade-element" data-fade-on-intersect>{{ section.settings.text }}</div>
+    {% endif %}
+  </div>
+  <div class="relative mt-8 px-1">
+    <div
+      :class="[
+        $store.xProductComparison.listComparisonProducts.length > 5 ? 'lg:flex' : 'lg:hidden',
+        $store.xProductComparison.listComparisonProducts.length > 2 ? 'md:flex' : 'md:hidden',
+        $store.xProductComparison.listComparisonProducts.length > 1 ? 'flex' : 'hidden',
+      ]"
+      class="slider-indicators items-center gap-1.5 md:gap-2.5 absolute right-0 rtl:right-auto rtl:left-0 bottom-full justify-end mb-0"
+    >
+      <div x-ref="product-comparison__nav-prev" class="product-comparison__nav-prev bg-transparent h-4 w-4 rtl:rotate-180 relative product-compare__arrow-active" tabindex="0">
+        <div class="absolute {% if is_rtl %}-rotate-90{% else %}rotate-90{% endif %}">
+          {% render 'icon-all', icon: 'icon-caret' %}
+        </div>
+      </div>
+      <div x-ref="product-comparison__nav-next" class="product-comparison__nav-next bg-transparent h-4 w-4 rtl:rotate-180 relative product-compare__arrow-active" tabindex="0">
+        <div class="absolute {% if is_rtl %}rotate-90{% else %}-rotate-90{% endif %}">{% render 'icon-all', icon: 'icon-caret' %}</div>
+      </div>
+    </div>
+    <div 
+      x-init="$store.xProductComparison && $store.xProductComparison.updateCSSVariables('{{ section.id }}')"
+      @resize.window="$store.xProductComparison && $store.xProductComparison.updateCSSVariables('{{ section.id }}')"
+      class="product-comparison__table-container overflow-x-auto pb-1 scrollbar-horizontal"
+    >
+      <table class="mx-auto product-comparison-table--{{ section.id }} product-comparison-table product-comparison-table-popup">
+        <thead>
+          <tr
+            class="flex pt-3"
+            :class="
+              [
+                $store.xProductComparison.listComparisonProducts.length <= 4 && 'lg:justify-center',
+                $store.xProductComparison.listComparisonProducts.length <= 1 && 'justify-center'
+              ]
+            "
+          >
+            <th 
+              class="product-comparison-grid-title pt-4 p-break-words product-comparison-grid-item !color-border-[rgba(var(--color-text),0.12)] border before:color-bg-[rgba(var(--color-text),0.06)] bg-gradient
+                {%- if rounded_corner %} rounded-t-[var(--rounded-corners)]
+                  {%- if section.blocks.size == 0 %} rounded-b-[var(--rounded-corners)]{% endif -%}
+                {%- endif -%}
+              "
+            >
+            </th>
+            <template x-for="(value, index) in $store.xProductComparison.listComparisonProductsPopUp">
+              <th
+                :class="[(index == 0 || value == $store.xProductComparison.listComparisonProducts[0]) ? 'border-l border-r' : 'border-r border-l-0 rtl:border-l rtl:border-r-0', `product-comparison-${value.productHandle}`]"
+                class="flex flex-col items-center product-comparison-grid-item pt-4 !color-border-[rgba(var(--color-text),0.12)] border-t border-b lg:border-r lg:border-l-0 rtl:lg:border-l rtl:lg:border-r-0 relative overflow-hidden
+                  {%- if rounded_corner %} rounded-t-[var(--rounded-corners)]
+                    {%- if section.blocks.size == 0 %} rounded-b-[var(--rounded-corners)]{% endif -%}
+                  {%- endif -%}
+                "
+              >
+                <button
+                  class="-mt-2 mb-2 flex"
+                  :class="$store.xProductComparison.loadingFetchDataPopup && 'pointer-events-none'"
+                  @click="$store.xProductComparison.removeProductFromCompare(value.productId, value.productHandle)"
+                >
+                  <span class="button__close icon-close-small-desktop icon-close-small-mobile">{% render 'icon-all', icon: 'icon-close' %}</span>
+                </button>
+                <div
+                  x-cloak
+                  x-show="!$store.xProductComparison.loadingFetchDataPopup"
+                  class="w-full"
+                  :class="`product-comparison-table-header-${value.productHandle}-${index}`"
+                ></div>
+                <div
+                  x-show="$store.xProductComparison.loadingFetchDataPopup"
+                  class="w-full"
+                >
+                  {{ skeleton_heading }}
+                </div>
+              </th>
+            </template>
+          </tr>
+        </thead>
+        <tbody>
+          {% comment %} block {% endcomment %}
+          {% for block in section.blocks %}
+            {% if block.type != 'buttons' %}
+              <tr
+                class="flex"
+                :class="
+                  [
+                    $store.xProductComparison.listComparisonProducts.length <= 4 && 'lg:justify-center',
+                    $store.xProductComparison.listComparisonProducts.length <= 1 && 'justify-center'
+                  ]
+                "
+              >
+                <td class="product-comparison-grid-title before:color-bg-[rgba(var(--color-text),0.06)] bg-gradient p-break-words product-comparison-grid-item !color-border-[rgba(var(--color-text),0.12)] border-t-0 border-l border-r border-b{% if block_buttons == blank and forloop.last and rounded_corner %} rounded-b-[var(--rounded-corners)]{% endif %}">{{ block.settings.title | escape }}</td>
+                <template x-for="(value, index) in $store.xProductComparison.listComparisonProductsPopUp">
+                  <th
+                    :class="[(index == 0 || value == $store.xProductComparison.listComparisonProducts[0]) ? 'border-l border-r' : 'border-r border-l-0 rtl:border-l rtl:border-r-0', `product-comparison-${value.productHandle}`]"
+                    class="product-comparison-grid-item !color-border-[rgba(var(--color-text),0.12)] lg:border-r lg:border-l-0 rtl:lg:border-l rtl:lg:border-r-0 border-b overflow-hidden
+                      {%- if block_buttons == blank and forloop.last and rounded_corner %} rounded-b-[var(--rounded-corners)]{% endif -%}
+                    "
+                  >
+                    <p class="flex lg:hidden mb-1.5 h7">{{ block.settings.title | escape }}</p>
+                    <div x-cloak x-show="!$store.xProductComparison.loadingFetchDataPopup" class="overflow-hidden">
+                      {% case block.type %}
+                        {% when 'rating' %}
+                          <div :class="`product-comparison-rating-${value.productHandle}-${index}`"><p>{{ section.settings.text_empty_field }}</p></div>
+                        {% when 'sku' %}
+                          <div :class="`product-comparison-sku-${value.productHandle}-${index}`"><p>{{ section.settings.text_empty_field }}</p></div>
+                        {% when 'description' %}
+                          <div :class="`product-comparison-description-${value.productHandle}-${index}`"><p>{{ section.settings.text_empty_field }}</p></div>
+                        {% when 'vendor' %}
+                          <div :class="`product-comparison-vendor-{% if block.settings.open_new_window %}new-tab-{%endif %}${value.productHandle}-${index}`" class="{% unless block.settings.link_vendor_to_associated %}pointer-events-none{% else %}vendor-link{% endunless %}"><p>{{ section.settings.text_empty_field }}</p></div>
+                        {% when 'variant_option' %}
+                          <div :class="`product-comparison-option-{% if block.settings.enable_color_swatches %}swatches-{%endif %}{{ block.settings.title | replace: ' ', '_' }}-${index}`"><p>{{ section.settings.text_empty_field }}</p></div>
+                        {% when 'product_metafield' %}
+                          <div :class="`product-comparison-metafield-{{ block.settings.metafield_key | replace: '.', '_' }}-${index}`"><p>{{ section.settings.text_empty_field }}</p></div>
+                      {% endcase %}
+                    </div>
+                    <div x-show="$store.xProductComparison.loadingFetchDataPopup" class="w-full h-full">
+                      {{ skeleton_block }}
+                    </div>
+                  </th>
+                </template>
+              </tr>
+            {% endif %}
+          {% endfor %}
+
+          {% comment %} button {% endcomment %}
+          {% if block_buttons != blank %}
+            {% assign button_label = 'product_comparison.view_details' | t %}
+            <tr 
+              class="flex"
+              :class="
+                [
+                  $store.xProductComparison.listComparisonProducts.length <= 4 && 'lg:justify-center',
+                  $store.xProductComparison.listComparisonProducts.length <= 1 && 'justify-center'
+                ]
+              "
+            >
+              <td class="product-comparison-grid-title before:color-bg-[rgba(var(--color-text),0.06)] bg-gradient p-break-words product-comparison-grid-item product-comparison-grid-item !color-border-[rgba(var(--color-text),0.12)] border-t-0 border-l border-r border-b{% if rounded_corner %} rounded-b-[var(--rounded-corners)]{% endif %}"></td>
+              <template x-for="(value, index) in $store.xProductComparison.listComparisonProductsPopUp">
+                <th 
+                  :class="[(index == 0 || value == $store.xProductComparison.listComparisonProducts[0]) ? 'border-l border-r' : 'border-r border-l-0 rtl:border-l rtl:border-r-0', `product-comparison-${value.productHandle}`]"
+                  class="product-comparison-grid-item !color-border-[rgba(var(--color-text),0.12)] lg:border-r lg:border-l-0 rtl:lg:border-l rtl:lg:border-r-0 border-b overflow-hidden
+                    {%- if rounded_corner %} rounded-b-[var(--rounded-corners)]{% endif -%}
+                  "
+                >
+                  <span 
+                    class="{% if block_buttons.settings.button_style != 'text-link' %}w-fit{% else %}block text-center w-full{% endif %} h-fit"
+                  >
+                    {% liquid
+                      assign class_button = ' p-break-words'
+                      if block_buttons.settings.button_style != 'text-link'
+                        assign class_button = class_button | append: ' w-full pl-5 pr-5 pt-3 pb-3'
+                      endif
+                    %}
+                    {% capture add_attributes %}
+                      :class="$store.xProductComparison.loadingFetchDataPopup && 'pointer-events-none'"
+                      :href=`${Shopify.routes.root}products/${value.productHandle}`
+                      {% unless request.design_mode %}
+                        target="_blank"
+                      {% endunless %}
+                    {% endcapture %}
+                    {% render 'button',
+                      button_style: block_buttons.settings.button_style,
+                      button_label: button_label,
+                      isAlwaysActive: true,
+                      class: class_button,
+                      additional_attributes: add_attributes
+                    %}
+                  </span>
+                </th>
+              </template>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

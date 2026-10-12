@@ -1,0 +1,24 @@
+<div class="slider-nav-wrapper {{ class_nav_wrapper }}" {{ attribute_nav_wrapper }}>
+  <custom-button>
+    <button
+        class="anm-button-secondary slider-nav is-visible enable-effect-hover slider-nav__button-arrow search-page:w-8 search-page:h-8 search-page:p-2.5 {{ class_nav_button }}"
+        aria-label="{{ 'accessibility.prev_button' | t }}"
+        type="button"
+        @mouseout="$el.blur()"
+        {{ attribute_nav_button_prev }}
+    >
+      {% render 'icon-all', icon: 'icon-nav-arrow' %}
+    </button>
+  </custom-button>
+  <custom-button>
+    <button
+        class="anm-button-secondary slider-nav slider-nav-next is-visible enable-effect-hover slider-nav__button-arrow search-page:w-8 search-page:h-8 search-page:p-2.5 {{ class_nav_button }}"
+        aria-label="{{ 'accessibility.next_button' | t }}"
+        type="button"
+        @mouseout="$el.blur()"
+        {{ attribute_nav_button_next }}
+    >
+      {% render 'icon-all', icon: 'icon-nav-arrow' %}
+    </button>
+  </custom-button>
+</div>

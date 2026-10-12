@@ -1,0 +1,303 @@
+{%- comment -%}
+  Renders a bundle summary inside the Product Bundle section.
+
+  Accepts:
+    - block_id - The unique identifier for the block.
+    - block_settings - The settings for the specific block.
+    - section_settings - The settings for the section containing the block.
+    - money_format - The shop's money format.
+    - is_rtl - Boolean indicating if the layout is right-to-left.
+
+  Usage:
+  {% render 'product-bundle-summary',
+    block_id: block.id,
+    block_settings: block.settings,
+    section_settings: section.settings,
+    money_format: money_format,
+    is_rtl: is_rtl
+  %}
+{%- endcomment -%}
+<div 
+  class="bundle-summary bundle-summary--{{ block_id }} w-full mt-4 lg:mt-0 lg:w-[25%] rounded-corners sticky lg:relative lg:bottom-auto z-30 shrink-0 bottom-2.5 
+    {%- if is_rtl %} rtl{% endif -%}"
+>
+  <div 
+    id="bundler-sticky-{{ block_id }}" 
+    class="bundle-summary__wrapper rounded-corners sticky-top p-4 shadow-small lg:sticky lg:shadow-none lg:border color-{{ block_settings.color_scheme_light }} dark-color-{{ block_settings.color_scheme_dark }} bg-[rgba(var(--color-background))]"
+    x-data="{ showContent: true }"
+  >
+    <div class="bundle-summary__toggle flex items-center justify-between py-2.5 px-3 color-bg-[rgba(var(--color-text),0.06)] rounded-corners-md cursor-pointer lg:hidden" 
+      @click="showContent=!showContent"
+    >
+      <span class="h6">{{ 'sections.product-bundle.view_my_bundle' | t }}</span>
+      <span class="w-2.5 h-2.5" :class="showContent ? 'rotate-180' : 'rotate-0'">
+        {% render 'icon-all', icon: 'icon-caret' %}
+      </span>
+    </div>
+    <div class="bundle-summary__details text-center" x-show="showContent">
+      <div class="bundle-summary__header relative pt-5 lg:pt-0">
+        <div class="bundle-summary__heading heading-{{ section_settings.heading_size }} flex flex-wrap items-center justify-center gap-x-2.5">
+          <span class="bundle-summary__heading h4">
+            {{ block_settings.bundler_heading | escape }}
+          </span>
+          {% if block_settings.sale_label != blank %}
+            <span class="bundle-summary__discount-label h7 px-2 py-1 rounded-corners">
+              {{ block_settings.sale_label }}
+            </span>
+          {% endif %}
+        </div>
+        <p class="bundle-summary__subheading text-small color-text-[rgba(var(--color-text))] mt-0.5">{{ block_settings.bundler_detail }}</p>
+      </div>
+      <div class="bundle-summary__progress w-full relative mt-3 lg:mt-1.5">
+        <div class="bundle-summary__bar w-full h-1 color-bg-[rgba(var(--color-button),0.12)] rounded-full"></div>
+        <div class="bundle-summary__active h-1 w-[var(--progress-bar-active-width)] absolute color-bg-[rgba(var(--color-button))] top-0 ltr:left-0 rtl:right-0 rounded-full"></div>
+      </div>
+      <div class="mt-2 error-message flash-message" x-cloak x-show="errorMessage">
+        <span class="cart-warning text-small"></span>
+      </div>
+      <div class="bundle-summary__content mt-3 lg:mt-4 ltr:-mr-4 rtl:-ml-4">
+        <div class="bundle-summary__list max-h-[16rem] 2xl:max-h-[300px] overflow-y-auto scrollbar-body scrollbar-visible will-change-transform flex flex-col gap-1 ltr:pr-4.5 rtl:pl-4.5 md:ltr:pr-4 md:rtl:pl-4" x-cloak x-show="!isDesktop || viewBundle">
+          {% assign placeholder_index = 1 %}
+          <template x-for="(item,index) in productsBundle">
+            <div class="bundle-summary__product w-full p-2 ltr:pr-3 rtl:pl-3 ltr:md:pr-4 rtl:md:pl-4 flex flex-row gap-2 relative product-card__wrapper rounded-corners">
+              <div class="bundle-summary__product-img w-[60px] h-[60px] md:w-[66px] md:h-[66px] rounded-corners shrink-0" x-show="!item.featured_image" x-cloak>
+                {% liquid
+                  assign placeholder_index = placeholder_index | modulo: 5
+                  assign placeholder_product_name = 'product_' | append: placeholder_index
+                %}
+                {% render 'placeholder-image', image_type: placeholder_product_name %}
+              </div>
+              <img
+                x-show="item.featured_image"
+                class="bundle-summary__product-img object-cover image-hover w-[60px] h-[60px] md:w-[66px] md:h-[66px] rounded-corners shrink-0" 
+                :src="item.featured_image"
+                loading="lazy" 
+                width="150"
+                height="auto"
+                :alt="item.image_alt ? item.image_alt : `{{ 'accessibility.default_alt' | t }}`"
+              >
+              <div class="bundle-summary__product-info grow min-w-0 ltr:text-left rtl:text-right" x-show="item" x-cloak>
+                <a :href="item.product_url" x-text="item.title" class="bundle-summary__product-title h7 p-break-words block mb-0.5 title-link"></a>
+                <div class="bundle-summary__product-details flex gap-1">
+                  <div class="grow">
+                    <div class="bundle-summary__product-option text-x-small" x-text="item.option" :class="item.option && 'mb-0.5'"></div>
+                    {%- comment -%}
+                      unitPrice, not item.price: with volume pricing the row must show the tier the
+                      current quantity actually earns, or the bundle total reads differently from
+                      the cart.
+                    {%- endcomment -%}
+                    <div class="bundle-summary__product-price h6" x-text="formatMoney(unitPrice(item),'{{ money_format }}')"></div>
+                  </div>
+                  {% unless block_settings.each_product_can_added_to_bundle_once %}
+                    <div class="bundle-summary__product-qty relative w-[84px] shrink-0 flex gap-0.5 items-center border border-solid rounded-corners-md h-fit my-auto rtl:flex-row-reverse">
+                      <div
+                        class="flex justify-center items-center bg-transparent select-none p-2"
+                        name="minus"
+                        @click.prevent="item.quantity > _ruleMin(item) && updateQty(index, 'minus')"
+                        @keyup.enter="item.quantity > _ruleMin(item) && updateQty(index, 'minus')"
+                        tabindex="0"
+                        role="button"
+                        aria-label="{{ "accessibility.minus" | t }}"
+                        :class="item.quantity <= _ruleMin(item) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'"
+                      >
+                        <span class="w-2.5 h-2.5 flex">{% render 'icon-all', icon: 'icon-minus' %}</span>
+                      </div>
+                      <input
+                        class="outer-spin-button focus:outline-none text-medium text-center bg-transparent w-6.5 h-6.5 shrink-0"
+                        type="number"
+                        :min="_ruleMin(item)"
+                        :max="_ruleFor(item).max"
+                        :step="_ruleFor(item).increment"
+                        name="{{ 'products.product.quantity.label' | t }}"
+                        :value="item.quantity"
+                        aria-label="{{ "products.product.quantity.label" | t }}"
+                        @change.debounce.500ms="updateQty(index, 'input')"
+                      >
+                      <div
+                        class="flex justify-center items-center cursor-pointer bg-transparent select-none p-2"
+                        name="plus"
+                        @click.prevent="updateQty(index, 'plus')"
+                        @keyup.enter="updateQty(index, 'plus')"
+                        tabindex="0"
+                        role="button"
+                        aria-label="{{ "accessibility.plus" | t }}"
+                      >
+                        <span class="w-2.5 h-2.5 flex">{% render 'icon-all', icon: 'icon-plus' %}</span>
+                      </div>
+                      {%- if customer != blank and customer.b2b? -%}
+                        {%- render 'bulk-order-qty-error', error_expr: 'item.qtyError' -%}
+                        {%- comment -%}
+                          Volume-pricing / quantity-rule tooltip for the bundle row. Centred over
+                          the quantity box like every other quantity selector; the HTML arrives
+                          with the item (see product-card-bundle) because these rows are rendered
+                          client-side from JSON.
+                        {%- endcomment -%}
+                        <span
+                          class="quantity-rule-tooltip-anchor inline-flex absolute -top-3 right-1 z-10"
+                          x-show="item.tooltipHtml"
+                          x-html="item.tooltipHtml"
+                        ></span>
+                      {%- endif -%}
+                    </div>
+                  {% endunless %}
+                </div>
+              </div>
+              <div 
+                class="bundle-summary__product-btn cursor-pointer absolute top-1 ltr:right-0 rtl:left-0 button__close icon-close-xsmall-desktop icon-close-xsmall-mobile bg-[rgba(var(--color-secondary-button))] ltr:translate-x-1/2 rtl:-translate-x-1/2"
+                @click="removeBundle(index)"
+                @keydown.enter="removeBundle(index)"
+                role="button" tabindex="0" aria-label="{{ 'general.cart.remove_line_item' | t }}"
+                x-show="item"
+              >
+                <span class="w-2 h-2 md:w-2.5 md:h-2.5 block">{% render 'icon-all', icon: 'icon-close' %}</span>
+              </div>
+              {% assign placeholder_index = placeholder_index | plus: 1 %}
+            </div>
+          </template>
+        </div>
+        <div 
+          class="bundle-summary__grid w-full hidden lg:grid lg:grid-cols-3 lg:gap-1.5 ltr:pr-4 rtl:pl-4"
+          x-show="isDesktop && !viewBundle"
+          x-cloak
+        >
+          {% assign bundle_items = 4 %}
+          {% for index in (0..bundle_items) %}
+            <div class="bundle-summary__grid-item w-[88px] h-[88px] lg:w-full lg:h-full relative rounded-corners overflow-hidden color-border-[rgba(var(--color-text),0.12)] border-solid border">
+              <div class="relative w-full before:h-0 before:block before:pb-[100.0%] product-card__wrapper">
+                <div class="absolute top-0 left-0 w-full h-full color-bg-[rgba(var(--color-text),0.12)]" x-show="(productsBundle[{{ index }}] && productsBundle[{{ index }}].featured_image) ? false : true">
+                  {% liquid
+                    assign placeholder_index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+                    assign placeholder_product = 'product_' | append: placeholder_index
+                  %}
+                  {%- render 'placeholder-image', image_type: placeholder_product %}
+                </div>
+                <a :href="productsBundle[{{ index }}]?.product_url" x-show="productsBundle[{{ index }}]" class="absolute top-0 right-0 left-0 bottom-0 h-full w-full flex justify-center items-center media-hyperlink" x-cloak>
+                  <img
+                    x-show="productsBundle[{{ index }}]?.featured_image"
+                    class="object-cover image-hover anm-image-hover" 
+                    :src="productsBundle[{{ index }}]?.featured_image"
+                    loading="lazy" 
+                    width="150"
+                    height="auto"
+                    :alt="productsBundle[{{ index }}]?.featured_image"
+                  >
+                </a>
+              </div>
+              <div 
+                class="bundle-summary__product-btn-remove absolute rtl:left-1.5 rtl:right-auto top-1.5 right-1.5 bg-[rgba(var(--color-secondary-button))] button__close icon-close-xsmall-desktop icon-close-xsmall-mobile" 
+                @click="removeBundle({{ index }})"
+                role="button" tabindex="0" aria-label="{{ 'accessibility.remove' | t }}"
+                x-show="productsBundle[{{ index }}]"
+              >
+                <span class="w-2 h-2 md:w-2.5 md:h-2.5 block">{% render 'icon-all', icon: 'icon-close' %}</span>
+              </div>
+              {% unless block_settings.each_product_can_added_to_bundle_once %}
+                <div 
+                  class="bundle-summary__product-qty absolute rtl:right-1.5 rtl:left-auto top-1.5 left-1.5 bg-[rgba(var(--color-button))] text-[rgba(var(--color-button-text))] flex justify-center items-center rounded-full aspect-1/1 min-w-7.5"
+                  x-show="productsBundle[{{ index }}]"
+                >
+                  <span style="font-size: var(--h7-font-size)" x-text="productsBundle[{{ index }}]?.quantity"></span>
+                </div>
+              {% endunless %}
+            </div>
+          {% endfor %}
+          <template x-if="productsBundle.length <= 6">
+            <div class="bundle-summary__grid-item w-[88px] h-[88px] lg:w-full lg:h-full relative rounded-corners overflow-hidden color-border-[rgba(var(--color-text),0.12)] border-solid border">
+              <div class="relative w-full before:h-0 before:block before:pb-[100.0%] product-card__wrapper">
+                <div class="absolute top-0 left-0 w-full h-full color-bg-[rgba(var(--color-text),0.12)]" x-show="(productsBundle[5] && productsBundle[5].featured_image) ? false : true">
+                  {%- render 'placeholder-image', image_type: 'product_1' %}
+                </div>
+                <a :href="productsBundle[5]?.product_url" x-show="productsBundle[5]" class="absolute top-0 right-0 left-0 bottom-0 h-full w-full flex justify-center items-center media-hyperlink" x-cloak>
+                  <img
+                    x-show="productsBundle[5]?.featured_image"
+                    class="object-cover image-hover anm-image-hover" 
+                    :src="productsBundle[5]?.featured_image"
+                    loading="lazy" 
+                    width="150"
+                    height="auto"
+                    :alt="productsBundle[5]?.featured_image"
+                  >
+                </a>
+              </div>
+              <div 
+                class="bundle-summary__product-btn-remove absolute rtl:left-1.5 rtl:right-auto top-1.5 right-1.5 bg-[rgba(var(--color-secondary-button))] button__close icon-close-xsmall-desktop icon-close-xsmall-mobile" 
+                @click="removeBundle(5)"
+                role="button" tabindex="0" aria-label="{{ 'accessibility.remove' | t }}"
+                x-show="productsBundle[5]"
+              >
+                <span class="w-2 h-2 md:w-2.5 md:h-2.5 block">{% render 'icon-all', icon: 'icon-close' %}</span>
+              </div>
+              {% unless block_settings.each_product_can_added_to_bundle_once %}
+                <div 
+                  class="bundle-summary__product-qty absolute rtl:right-1.5 rtl:left-auto top-1.5 left-1.5 bg-[rgba(var(--color-button))] text-[rgba(var(--color-button-text))] flex justify-center items-center rounded-full aspect-1/1 min-w-7.5"
+                  x-show="productsBundle[5]"
+                >
+                  <span style="font-size: var(--h7-font-size)" x-text="productsBundle[5]?.quantity"></span>
+                </div>
+              {% endunless %}
+            </div>
+          </template>
+          <template x-if="productsBundle.length > 6">
+            <div class="bundle-summary__grid-item w-[88px] h-[88px] lg:w-full lg:h-full relative rounded-corners overflow-hidden color-border-[rgba(var(--color-text),0.12)] border-solid border">
+              <div class="relative w-full flex justify-center items-center h-full product-card__wrapper">
+                <span class="h4" x-text="'+' + (productsBundle.length - 5)"></span>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+      <div class="bundle-summary__toggle-detail hidden lg:block mt-4">
+        <span class="text-link cursor-pointer" x-show="!viewBundle" @click="viewBundle = !viewBundle" @keydown.enter="viewBundle = !viewBundle" role="button" tabindex="0">
+          {{ 'sections.product-bundle.view_bundle_summary' | t }}
+        </span>
+        <span class="text-link cursor-pointer" x-show="viewBundle" @click="viewBundle = !viewBundle" @keydown.enter="viewBundle = !viewBundle" role="button" tabindex="0">
+          {{ 'sections.product-bundle.back_to_summary' | t }}
+        </span>
+      </div>
+    </div>
+    {% if section_settings.collection.products_count != 0 or section_settings.products != blank %}
+      <div class="bundle-summary__footer mt-3 lg:mt-4 text-medium">
+        <div class="bundle-summary__total h5 w-full flex flex-row justify-between color-text-[rgba(var(--color-heading))]">
+          <p>{{ 'sections.cart.headings.total' | t }}</p>
+          <p id="total-price-discount" x-show="discountPrice == 0" x-html="totalPrice"></p>
+          <p id="total-price-discount" x-show="discountPrice != 0" x-html="discountPrice"></p>
+        </div>
+        {% if block_settings.discount_value != blank %}
+          <div 
+            class="bundle-summary__discount w-full flex flex-row justify-end text-small mt-0.5 line-through" 
+            :class="productsBundle.reduce((acc, item) => acc + item.quantity, 0) < {{ block_settings.minimum_items }} && 'hidden'"
+          >
+            <p x-html="totalPrice"></p>
+          </div>
+        {% endif %}
+        {% unless settings.hide_cart %}
+          <custom-button>
+            <button
+              class="bundle-summary__atc button-atc button button-primary block w-full mt-3 pl-7 pr-7 pt-3 pb-3 disabled:cursor-not-allowed"
+              @click="handleAddToCart($el)"
+              disabled
+            >
+              {% assign button_label = 'sections.product-bundle.add_bundle_to_cart' | t %}
+              <span class="add_to_cart_text" :class="{ 'lg:block opacity-0 is-focus-button' : loading }">
+                <span class="flex items-center justify-center">
+                  {% render 'button-label', button_label: button_label, show_button_style: 'primary' %}
+                </span>
+              </span>
+              <div class="lg:inline-block animate-spin w-4 h-4 md:w-5 md:h-5 absolute top-[calc(50%-8px)] left-[calc(50%-8px)] md:top-[calc(50%-10px)] md:left-[calc(50%-10px)]" x-show="loading" x-cloak>
+                {% render 'icon-all', icon: 'icon-loading' %}
+              </div>
+              <span 
+                class="w-5 h-5 absolute left-[calc(50%-10px)] top-[calc(50%-10px)] hidden" 
+                x-cloak 
+                data-check-icon
+                x-show='!loading'
+                >
+                {% render 'icon-all', icon: 'icon-check-success' %}
+              </span>
+            </button>
+          </custom-button>
+        {% endunless %}
+      </div>
+    {% endif %}
+  </div>
+</div>

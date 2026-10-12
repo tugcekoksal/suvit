@@ -1,0 +1,83 @@
+{%- liquid
+  assign rtl = false
+
+  if settings.lang_direction contains request.locale.iso_code
+    assign rtl = true
+  endif
+%}
+{%- liquid
+  assign is_guest = false
+  if customer == blank
+    assign is_guest = true
+  endif
+
+  assign default_label = 'products.product.login_to_view_price' | t
+  assign label = settings.login_to_view_price_label | default: default_label
+  assign login_url = routes.account_login_url
+
+  assign default_restricted = 'products.product.restricted_view_price' | t
+  assign restricted_label = settings.login_to_view_price_restricted_label | default: default_restricted
+
+  assign link_open = '<a href="' | append: login_url | append: '" rel="nofollow" class="login-to-view-price__link font-semibold button-link button-no-padding anm-button-flow">'
+
+  assign rendered_label = ''
+  assign bracket_parts = label | split: '['
+  for part in bracket_parts
+    if forloop.first
+      assign rendered_label = rendered_label | append: part
+      continue
+    endif
+
+    if part contains ']'
+      assign pair = part | split: ']'
+      assign link_text = pair[0] | strip
+      assign after_text = part | remove_first: pair[0] | remove_first: ']'
+      if login_url != blank and link_text != blank
+        assign rendered_label = rendered_label | append: link_open | append: link_text | append: '</a>' | append: after_text
+      else
+        assign rendered_label = rendered_label | append: link_text | append: after_text
+      endif
+    else
+      assign rendered_label = rendered_label | append: '[' | append: part
+    endif
+  endfor
+
+  assign label = rendered_label
+
+  assign show_b2b_register = false
+  if settings.b2b_registration_label != blank
+    assign show_b2b_register = true
+  endif
+
+  assign is_vertical_label = false
+  if direction_label == 'col'
+    assign is_vertical_label = true
+  endif  
+-%}
+<div class="login-to-view-price login-to-view-price--price {{ class_wrapper }} {% if show_b2b_register %}flex gap-y-0.5 gap-x-3 flex-wrap{% unless is_vertical_label %} items-center justify-between{% else %} flex-col{% endunless %}{% endif %} {% unless disabled_border %} px-4 py-2 w-full text-center rounded-corners-md border border-dashed color-border-[rgba(var(--color-button-link))]{% else %} text-small{% endunless %}{% if rtl %} rtl{% endif %}">
+  {%- if is_guest -%}
+    <span class="login-to-view-price__text font-normal {% unless is_vertical_label %}grow{% endunless %}">{{ label }}</span>
+  {%- else -%}
+    <div class="login-to-view-price__restricted rte font-normal {% unless is_vertical_label %} grow{% endunless %}">{{ restricted_label }}</div>
+  {%- endif -%}
+  {%- if show_b2b_register -%}
+    <span class="login-to-view-price__b2b-link font-semibold {% unless is_vertical_label %}grow{% endunless %}"> 
+        <a
+          {% if settings.b2b_registration_link != blank %}
+            href="{{ settings.b2b_registration_link }}"
+            {% if settings.open_new_window %} 
+              target="_blank"
+              rel="noopener"
+            {% endif %}
+          {% else %}
+            aria-disabled="true"
+            role="link" 
+          {% endif %}
+          class="button-link button-no-padding anm-button-flow
+          {%- if settings.b2b_registration_link == blank %} hover:cursor-not-allowed opacity-40{% endif -%}"
+        >
+          {{- settings.b2b_registration_label -}}
+        </a>
+    </span>
+  {%- endif -%}
+</div>

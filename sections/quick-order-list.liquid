@@ -1,0 +1,181 @@
+{%- liquid
+  assign qol_is_b2b = false
+  if customer != blank and customer.b2b?
+    assign qol_is_b2b = true
+  endif
+  assign qol_hide_for_b2b_only = false
+  if section.settings.only_show_for_b2b and qol_is_b2b == false and request.design_mode == false
+    assign qol_hide_for_b2b_only = true
+  endif
+-%}
+{%- unless qol_hide_for_b2b_only -%}
+  {% style %}
+    .section-{{ section.id }} {
+      padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+      padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+    }
+
+    @media screen and (min-width: 768px) {
+      .section-{{ section.id }} {
+        padding-top: {{ section.settings.padding_top }}px;
+        padding-bottom: {{ section.settings.padding_bottom }}px;
+      }
+    }
+  {% endstyle %}
+  {% render 'section-divider' %}
+
+  <div class="quick-order-list__wrapper x-bundle-section relative section-{{ section.id }} {{ section.settings.section_width }} rounded-corners-container color-{{ section.settings.color_scheme_light }} dark-color-{{ section.settings.color_scheme_dark }}">
+    <div
+      class="quick-order-list__container quick-order-list__container__{{ section.id }} relative"
+    >
+      {% content_for 'block', id: 'header-static', type: '_group' %}
+      {% content_for 'block', id: 'quick-order-list', type: '_quick-order-list' %}
+      {% content_for 'blocks' %}
+    </div>
+  </div>
+{%- endunless -%}
+
+{% schema %}
+{
+  "name": "t:quick_order_list.name",
+  "tag": "section",
+  "limit": 1,
+  "class": "maximize-section section-quick-order-list",
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "only_show_for_b2b",
+      "label": "t:bulk_order.settings.only_show_for_b2b",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "select",
+      "label": "t:global.section.section_width.label",
+      "id": "section_width",
+      "options": [
+        {
+          "label": "t:global.section.section_width.option_1",
+          "value": "page-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_2",
+          "value": "full-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_3",
+          "value": "full-width-padded"
+        }
+      ],
+      "default": "page-width"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.top_padding",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.bottom_padding",
+      "default": 32
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.style"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_section_divider",
+      "label": "t:global.section.show_section_divider",
+      "default": false
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "_group"
+    },
+    {
+      "type": "_quick-order-list"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:quick_order_list.name",
+      "category": "t:global.category.products",
+      "blocks": {
+        "header-static": {
+          "name": "Header",
+          "type": "_group",
+          "static": true,
+          "settings": {
+            "desktop_direction": "col",
+            "mobile_direction": "col",
+            "desktop_vertical_alignment": "center",
+            "mobile_vertical_alignment": "center",
+            "desktop_horizontal_alignment": "left",
+            "mobile_horizontal_alignment": "center",
+            "width": "custom"
+          },
+          "blocks": {
+            "heading": {
+              "type": "heading",
+              "settings": {
+                "heading": "Quick Order List",
+                "heading_tag": "h2",
+                "heading_size": "medium",
+                "desktop_font_size": 32,
+                "mobile_font_size": 32,
+                "line_height": 140,
+                "highlight_effect": "underline",
+                "text_transform": "none",
+                "desktop_padding_top": 0,
+                "desktop_padding_bottom": 0,
+                "mobile_padding_top": 0,
+                "mobile_padding_bottom": 0
+              }
+            }
+          },
+          "block_order": ["heading"]
+        },
+        "quick-order-list": {
+          "type": "_quick-order-list",
+          "static": true
+        }
+      },
+      "block_order": ["group_block"]
+    }
+  ]
+}
+{% endschema %}

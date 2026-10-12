@@ -1,0 +1,59 @@
+{% comment %}
+  Renders a product card slideshow
+  Accepts:
+  product: {Object} Product Liquid object (optional)
+{% endcomment %}
+{%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+{%- assign login_hide_price = login_hide_price | strip -%}
+<div
+  class="card-highlight-product-set cursor-pointer z-10 flex gap-x-2.5 w-full rounded-corners"
+>
+  <div class="w-[60px] md:w-[76px] shrink-0">
+    <div class="h-0 w-full relative pb-[100%] overflow-hidden rounded-corners{%- if product.featured_media != blank %} media-hyperlink{% endif -%}">
+      {%- if product.featured_media -%}
+        {% render 'image',
+          img: product.featured_media,
+          img_width: 400,
+          img_class: 'absolute top-0 left-0 w-full h-full object-cover anm-image-hover'
+        %}
+      {%- else -%}
+        <div class="flex justify-center absolute top-0 left-0 w-full h-full items-center">
+          {% liquid
+            assign index = 1
+            assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+            assign placeholder_product_name = 'product_' | append: index
+          %}
+          {% render 'placeholder-image', image_type: placeholder_product_name %}
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+  <div class="mr-1 flex flex-col items-{{ info_alignment }}">
+    {%- if show_rating -%}
+      <div class="color-text-[rgba(var(--rating-color))]">
+        {% render 'review-product', product: product %}
+      </div>
+    {%- endif -%}
+    {%- if show_vendor -%}
+      <div class="mb-0.5 tracking-widest text-x-small p-break-words color-text-[rgba(var(--color-text),0.6)]">
+        {{ product.vendor | default: "Product vendor"}}
+      </div>
+    {%- endif -%}
+    <p class="h6 md:h7 text-left rtl:text-right p-break-words">{{ product.title | default: "Product title" }}</p>
+    <div class="mt-0.5 text-left rtl:text-right">
+      {% if login_hide_price == 'true' %}
+        {% render 'guest-price-message', disabled_border: true %}
+      {% else %}
+        {% render 'price',
+          product: product,
+          align_left: true,
+          price_wrapper: 'h5 md:h6', 
+          price_class: ' p-break-words',
+          use_variant: false,
+          compare_at_price_class: ' color-text-[rgba(var(--color-heading),0.6)] p-break-words',
+          show_b2b_price_label: show_b2b_price_label
+        %}
+      {% endif %}
+    </div>
+  </div>
+</div>

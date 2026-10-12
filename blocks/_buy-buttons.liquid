@@ -1,0 +1,596 @@
+{% liquid
+  assign product = closest.product
+  assign product_form_id = 'product-form-' | append: block.id | append: '-' | append: product.id
+  assign current_variant = product.selected_or_first_available_variant
+
+  assign is_show_preorder = false
+  assign is_apply_preorder = false
+  if settings.applied_products_preorder == blank and settings.applied_collections_preorder == blank
+    assign is_apply_preorder = true
+  else
+    assign list_product = ''
+    for prod in settings.applied_products_preorder
+      assign list_product = list_product | append: ';' | append: prod.id
+    endfor
+    for collec in settings.applied_collections_preorder
+      for prod in collec.products
+        assign list_product = list_product | append: ';' | append: prod.id
+      endfor
+    endfor
+    if list_product contains product.id
+      assign is_apply_preorder = true
+    endif
+  endif
+
+  if is_apply_preorder
+    if settings.preorder_show == 'yes'
+      if current_variant.inventory_management == null
+        assign is_show_preorder = true
+      else
+        if current_variant.inventory_quantity > 0
+          assign is_show_preorder = true
+        elsif current_variant.inventory_policy == 'continue' and current_variant.inventory_management != null
+          assign is_show_preorder = true
+        endif
+      endif
+    elsif settings.preorder_show == 'on_back_ordered'
+      if current_variant.inventory_policy == 'continue' and current_variant.inventory_quantity < 1 and current_variant.inventory_management != null
+        assign is_show_preorder = true
+      endif
+    endif
+  endif
+
+  assign default_preorder_text = 'products.product.pre_order' | t
+  assign preorder_button_label = block.settings.preorder_button_label | default: default_preorder_text
+  if is_show_preorder
+    assign default_button_label = preorder_button_label
+  else
+    if product.selected_or_first_available_variant != nil
+      if current_variant.available == false
+        assign default_button_label = 'products.product.sold_out' | t
+      else
+        if settings.pc_atc_button_label != blank
+          assign default_button_label = settings.pc_atc_button_label
+        else  
+          assign default_button_label = 'products.product.add_to_cart' | t
+        endif  
+      endif
+    else
+      assign default_button_label = 'products.product.unavailable' | t
+    endif
+  endif
+
+  assign atc_button_label = 'products.product.add_to_cart' | t
+  if settings.pc_atc_button_label != blank
+    assign atc_button_label = settings.pc_atc_button_label
+  endif
+
+  assign is_enable_cart_edt = true
+  if is_show_preorder and block.settings.hide_when_pre_order
+    assign is_enable_cart_edt = false
+  endif
+%}
+{%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+{%- assign login_hide_price = login_hide_price | strip -%}
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block.settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block.settings.desktop_padding_left }}px;
+    --pad-right: {{ block.settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+  }
+  .block-{{ block.id }} .block-qty-atc {
+    gap: calc({{ block.settings.gap }}px * var(--mobile-padding-ratio));
+  }
+  .block-{{ block.id }} .product-form__dynamic-checkout {
+    margin-top: calc({{ block.settings.gap }}px * var(--mobile-padding-ratio));
+  }
+  @media screen and (min-width: 768px) {
+    .block-{{ block.id }} .block-qty-atc {
+      gap: {{ block.settings.gap }}px;
+    }
+    .block-{{ block.id }} .product-form__dynamic-checkout {
+      margin-top: {{ block.settings.gap }}px;
+    }
+  }
+{% endstyle %}
+<div
+  class="block-buy-buttons block-{{ block.id }} block-padding maximize-block w-full"
+  data-block-id="{{ block.id }}"
+  {{ block.shopify_attributes }}
+  x-data="xProductForm('{{ product_form_id }}', '{{ current_variant.id }}', {{ current_variant.available | default: false }}, '{{ default_button_label }}', '{{ atc_button_label }}', '{{ section.id }}', false, '{{ settings.preorder_show }}', '{{ preorder_button_label }}', {{ is_apply_preorder }}, {{ is_show_preorder }})"
+>
+  {% capture qty_add_to_cart %}
+    {% unless login_hide_price == 'true' %}
+      {% content_for 'block', id: 'quantity-selector', type: 'quantity', current_variant: current_variant, product_form_id: product_form_id %}
+      {% content_for 'block',
+        id: 'add-to-cart',
+        type: 'add-to-cart',
+        current_variant: current_variant,
+        product_form_id: product_form_id,
+        button_preorder: block.settings.preorder_button_label,
+        is_apply_preorder: is_apply_preorder,
+        is_show_preorder: is_show_preorder,
+        default_button_label: default_button_label,
+        atc_button_label: atc_button_label
+      %}
+    {% endunless %}
+  {% endcapture %}
+    {% if product != blank %}
+      <div
+        class="pb-2 hidden"
+        @click.away="errorMessage=false"
+      >
+        <div
+          x-ref="error_message"
+          class="flash-message error-message"
+        ></div>
+      </div>
+      {%- form 'product', product, id: product_form_id, class: 'product-info__form h-full', novalidate: 'novalidate', data-type: 'add-to-cart-form', x-ref: 'product_form' -%}
+        {% comment %} quantity rule (B2B only) {% endcomment %}
+        {%- if customer != blank and customer.b2b? -%}
+          {%- render 'quantity-rule-note', variant: current_variant, class: 'mb-1 md:mb-2.5 mt-1 md:mt-2.5' -%}
+        {%- endif -%}
+        {% comment %} end quantity rule {% endcomment %}
+        <div class="block-qty-atc flex flex-wrap gap-1.5 w-full">
+          {{ qty_add_to_cart }}
+          {% if block.settings.show_add_to_compare_button and template.name != 'index' %}
+            <template x-if="$store.xProductComparison && $store.xProductComparison.hasSection">
+              <div class="buy-buttons__compare-button-wrapper flex items-center min-w-[42px] {% if login_hide_price == "true" %} w-full{% else %} {%- if block.settings.compare_button_label == blank %} aspect-1/1{% else %} aspect-auto{% endif -%}{% endif -%}">
+                <div
+                  class="
+                    relative buy-buttons__compare-button hidden w-full
+                  "
+                >
+                  {% style %}
+                    .buy-buttons__compare-button-icon {
+                      width: calc(var(--button-font-size) * var(--line-height-button));
+                      height: calc(var(--button-font-size) * var(--line-height-button));
+                    }
+                  {% endstyle %}
+                  <custom-button>
+                    <button
+                      class="
+                        w-full h-fit button button-large flex flex-row gap-1.5 button-secondary items-center justify-center flex-nowrap px-3 md:px-4 rounded-corners-md
+                        {%- if block.settings.compare_button_label != blank %} lg:aspect-auto{% endif -%}
+                      "
+                      :class="{'cursor-not-allowed disable-button-compare': ($store.xProductComparison.listComparisonProducts.length >= $store.xProductComparison.maximumProductCompare && !$store.xProductComparison.isClickAddToCompare) || $store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}')}"
+                      aria-label="{{ 'products.product.compare' | t }}"
+                      @click.prevent="$store.xProductComparison.addProductToCompare('{{ product.id }}', '{{ product.handle }}')"
+                    >
+                      <div class="buy-buttons__compare-button-icon relative shrink-0">
+                        <div
+                          class="absolute w-full h-full"
+                          :class="$store.xProductComparison.listComparisonProducts && $store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}') ? 'hidden' : 'block'"
+                        >
+                          {% render 'icon-all', icon: 'icon-product-comparison' %}
+                        </div>
+                        <div
+                          x-cloak
+                          class="absolute w-full h-full"
+                          :class="$store.xProductComparison.listComparisonProducts && $store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}') ? 'block' : 'hidden'"
+                        >
+                          {% render 'icon-all', icon: 'icon-check-compare' %}
+                        </div>
+                      </div>
+
+                      {% if block.settings.compare_button_label != blank %}
+                        <div class="buy-buttons__compare-label hidden md:block">
+                          {{ block.settings.compare_button_label }}
+                        </div>
+                      {% endif %}
+                    </button>
+                  </custom-button>
+
+                  <custom-tooltip x-show="!$store.xProductComparison.isClickAddToCompare && ($store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}') || $store.xProductComparison.listComparisonProducts.length >= $store.xProductComparison.maximumProductCompare)">
+                    <div
+                      class="tooltip-popup-wrapper absolute invisible z-10 pointer-events-none flex my-0.5 right-0 rtl:left-0 rtl:right-auto{% if settings.hide_cart %} sm:right-auto sm:left-0 rtl:sm:right-0 rtl:sm:left-auto{% endif %}"
+                      data-tooltip-position="top"
+                      :class="{'state-success': !$store.xProductComparison.isClickAddToCompare && $store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}'), 'state-error': !$store.xProductComparison.isClickAddToCompare && $store.xProductComparison.listComparisonProducts.length >= $store.xProductComparison.maximumProductCompare && !$store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}')}"
+                    >
+                      <div class="tooltip-arrow-up relative z-10 w-fit self-end rtl:self-start hidden">
+                        <div class="triangle-up border-transparent mx-1"></div>
+                        <div class="triangle-up border-b-white mx-1 absolute top-0 left-0 -z-10"></div>
+                      </div>
+                      <div x-show="!$store.xProductComparison.isClickAddToCompare && $store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}')">
+                        <div class="w-[100px] md:w-[130px] rounded-[var(--border-radius-flash-message)] bg-white">
+                          <div class="flash-message success-message w-full text-center relative">
+                            <span class="text-x-small">{{ 'product_comparison.tooltip_added_to_compare' | t }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div x-show="!$store.xProductComparison.isClickAddToCompare && $store.xProductComparison.listComparisonProducts.length >= $store.xProductComparison.maximumProductCompare && !$store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}')">
+                        <div class="w-[100px] md:w-[130px] rounded-[var(--border-radius-flash-message)] bg-white">
+                          <div
+                            x-init="$el.innerHTML = $el.innerHTML.replace('count_product', $store.xProductComparison.maximumProductCompare)"
+                            class="flash-message error-message w-full text-center"
+                          >
+                            <span class="product_comparison-limit text-x-small">{{ 'product_comparison.tooltip_limit_products' | t }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="tooltip-arrow-down relative z-10 w-fit self-end rtl:self-start">
+                        <div class="triangle-down border-transparent mx-1"></div>
+                        <div class="triangle-down border-t-white mx-1 absolute top-0 left-0 -z-10"></div>
+                      </div>
+                    </div>
+                  </custom-tooltip>
+                </div>
+              </div>
+            </template>
+          {% endif %}
+        </div>
+
+        {% if block.settings.show_dynamic_checkout and settings.hide_cart == false and login_hide_price != 'true' %}
+          <custom-button data-check-dom-change="true">
+            <div
+              class="product-form__dynamic-checkout w-full button-large relative"
+              x-init="$el.classList.toggle('hidden', !(isAvailableButton && isOptionExist) || (isShowPreorder && !({{ block.settings.preorder_show_dynamic_button }})))"
+              :class="!(isAvailableButton && isOptionExist) || (isShowPreorder && !{{ block.settings.preorder_show_dynamic_button }}) ? 'hidden' : ''"
+            >
+              {{ form | payment_button }}
+            </div>
+          </custom-button>
+        {% endif %}
+
+        {%- if block.settings.pickup_availability and settings.hide_cart == false and login_hide_price != 'true' -%}
+          {% style %}
+            .maximize-theme:not(.dark) .buy-buttons__preorder--{{ block.id }} {
+              {% if block.settings.background_color_light.alpha != 0.0 and block.settings.show_background %}
+                background: rgba({{ block.settings.background_color_light.red }} {{ block.settings.background_color_light.green }} {{ block.settings.background_color_light.blue }} / {{ block.settings.background_color_light.alpha }});
+                padding: 10px 14px;
+              {% endif %}
+              {% if block.settings.message_color_light.alpha != 0.0 %}
+                color: rgba({{ block.settings.message_color_light.red }} {{ block.settings.message_color_light.green }} {{ block.settings.message_color_light.blue }} / {{ block.settings.message_color_light.alpha }});
+              {% endif %}
+            }
+
+            .maximize-theme.dark .buy-buttons__preorder--{{ block.id }} {
+              {% if block.settings.background_color_dark.alpha != 0.0 and block.settings.show_background %}
+                background: rgba({{ block.settings.background_color_dark.red }} {{ block.settings.background_color_dark.green }} {{ block.settings.background_color_dark.blue }} / {{ block.settings.background_color_dark.alpha }});
+                padding: 10px 14px;
+              {% endif %}
+              {% if block.settings.message_color_dark.alpha != 0.0 %}
+                color: rgba({{ block.settings.message_color_dark.red }} {{ block.settings.message_color_dark.green }} {{ block.settings.message_color_dark.blue }} / {{ block.settings.message_color_dark.alpha }});
+              {% endif %}
+            }
+          {% endstyle %}
+          {% if block.settings.preorder_message != blank and is_show_preorder %}
+            <div
+              class="buy-buttons__preorder-message buy-buttons__preorder--{{ block.id }} mt-2 rte{% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+              x-init="$el.classList.toggle('hidden', !isShowPreorder)"
+              :class="isOptionExist && isShowPreorder ? '' : 'hidden'"
+              x-cloak
+            >
+              {{ block.settings.preorder_message }}
+            </div>
+          {% endif %}
+
+          <div
+            id="PickupAvailability__{{ section.id }}"
+            class="pick-up-{{ section.id }}"
+            data-hide-when-preorder="{{ block.settings.pickup_hide_when_pre_order }}"
+            x-intersect.once.margin.200px="updatePickUpAvailability(true);"
+          ></div>
+        {%- endif -%}
+
+        <div class="block-buy-buttons__properties product-template__properties hidden">
+          <div
+            class="product-template__estimate-property__wrapper{% if is_enable_cart_edt %} enable-cart-edt{% endif %}"
+            data-enable-cart-edt="{{ is_enable_cart_edt }}"
+          >
+            {% capture estimate_shipping_message %}
+            {% render 'estimate-shipping-message', product: product, variant: current_variant %}
+          {% endcapture %}
+            {% assign message_update = estimate_shipping_message | strip %}
+            {% if message_update != blank and settings.estimate_show_in_cart == 'show_item' %}
+              {% liquid
+                assign name_edt = settings.name_edt
+                if settings.name_edt == blank
+                  assign name_edt = 'general.estimate_delivery' | t
+                endif
+              %}
+              <input
+                name="properties[{{ name_edt }}]"
+                value="{{ message_update }}"
+                class="hidden"
+                {% if product_form_id != blank %}
+                  form="{{ product_form_id }}"
+                {% endif %}
+              >
+            {% endif %}
+          </div>
+
+          {% if is_show_preorder %}
+            {% liquid
+              assign message_preorder = 'general.preorder.message_preorder' | t
+              if settings.message_preorder_cart != blank
+                assign message_preorder = settings.message_preorder_cart
+              endif
+            %}
+            <div class="block-buy-buttons__preorder">
+              <label>
+                <input
+                  form="{{ product_form_id }}"
+                  name="properties[{{ 'general.preorder.name' | t }}]"
+                  value="{{ message_preorder }}"
+                >
+              </label>
+            </div>
+          {% endif %}
+        </div>
+      {%- endform -%}
+
+      <script
+        type="application/json"
+        data-type="init-current-variant"
+      >
+        {{ current_variant | json }}
+      </script>
+      {% if is_apply_preorder %}
+        <script
+          type="application/json"
+          id="AdditionalVariantInfo__{{ section.id }}"
+        >
+          {
+            "inventory_policy": "{{ current_variant.inventory_policy }}",
+            "inventory_quantity": {{ current_variant.inventory_quantity | default: false }},
+            "inventory_management": "{{ current_variant.inventory_management }}"
+          }
+        </script>
+      {% endif %}
+    {% else %}
+      <div class="block-qty-atc flex flex-wrap gap-1.5">
+        {{ qty_add_to_cart }}
+      </div>
+    {% endif %}
+
+    {% content_for 'blocks' %}
+</div>
+<script
+  src="{{ 'product-form.js' | asset_url }}"
+  defer
+></script>
+{% schema %}
+{
+  "name": "t:main_product.blocks.buy_buttons.name",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:main_product.blocks.add_to_cart.dynamic_checkout"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_dynamic_checkout",
+      "default": false,
+      "label": "t:main_product.blocks.buy_buttons.settings.show_dynamic_checkout",
+      "info": "t:main_product.blocks.buy_buttons.settings.show_dynamic_checkout_info"
+    },
+    {
+      "type": "header",
+      "content": "t:settings.products.settings.pre_order.header"
+    },
+    {
+      "type": "text",
+      "id": "preorder_button_label",
+      "default": "Pre-order",
+      "label": "t:global.button.button_label",
+      "info": "t:main_product.blocks.buy_buttons.settings.pre_order.button_info"
+    },
+    {
+      "type": "richtext",
+      "id": "preorder_message",
+      "label": "t:global.text.message",
+      "default": "<p>This product will be available for sale in 2 weeks, but you can pre-order now to receive 10% discount!</p>",
+      "info": "t:main_product.blocks.buy_buttons.settings.pre_order.message_info"
+    },
+    {
+      "type": "checkbox",
+      "id": "preorder_show_dynamic_button",
+      "default": false,
+      "label": "t:main_product.blocks.buy_buttons.settings.pre_order.pre_order_show_dynamic_button"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_background",
+      "default": false,
+      "label": "t:global.colors.show_background"
+    },
+    {
+      "type": "color",
+      "id": "background_color_light",
+      "default": "rgba(0,0,0,0)",
+      "label": "t:global.colors.background_light",
+      "visible_if": "{{ block.settings.show_background }}"
+    },
+    {
+      "type": "color",
+      "id": "message_color_light",
+      "default": "rgba(0,0,0,0)",
+      "label": "t:global.colors.text_light",
+      "visible_if": "{{ block.settings.show_background }}"
+    },
+    {
+      "type": "color",
+      "id": "background_color_dark",
+      "default": "rgba(0,0,0,0)",
+      "label": "t:global.colors.background_dark",
+      "visible_if": "{{ block.settings.show_background }}"
+    },
+    {
+      "type": "color",
+      "id": "message_color_dark",
+      "default": "rgba(0,0,0,0)",
+      "label": "t:global.colors.text_dark",
+      "visible_if": "{{ block.settings.show_background }}"
+    },
+    {
+      "type": "header",
+      "content": "t:main_product.blocks.buy_buttons.settings.pickup_availability.header"
+    },
+    {
+      "type": "checkbox",
+      "id": "pickup_availability",
+      "default": true,
+      "label": "t:main_product.blocks.buy_buttons.settings.pickup_availability.pickup_availability",
+      "info": "t:main_product.blocks.buy_buttons.settings.pickup_availability.pickup_availability_info"
+    },
+    {
+      "type": "checkbox",
+      "id": "pickup_hide_when_pre_order",
+      "default": false,
+      "label": "t:main_product.blocks.buy_buttons.settings.pickup_availability.hide_when_pre_order"
+    },
+    {
+      "type": "header",
+      "content": "t:settings.products.settings.comparison.name"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_add_to_compare_button",
+      "default": false,
+      "label": "t:main_product.blocks.buy_buttons.settings.show_add_to_compare"
+    },
+    {
+      "type": "text",
+      "id": "compare_button_label",
+      "default": "Compare",
+      "label": "t:main_product.blocks.buy_buttons.settings.compare_button"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.spacing"
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "t:main_product.blocks.space.settings.gap",
+      "min": 1,
+      "max": 100,
+      "step": 1,
+      "default": 6,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "select",
+      "id": "device_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:main_product.blocks.buy_buttons.name",
+      "category": "t:global.product.product"
+    }
+  ]
+}
+{% endschema %}

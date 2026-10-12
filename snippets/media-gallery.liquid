@@ -1,0 +1,817 @@
+{% doc %} 
+  Documentation: Media gallery
+
+  Renders the product's media gallery
+
+  @param product - {Product} Product Liquid object
+  @param section - {Section} Section Liquid object
+  @param zoom_effect - {String} Zoom effect when click product image
+  @param block_labels_and_badge - {Block} Block Liquid object used for labels_and_badge
+  @param is_show_preorder - {Boolean} Whether to display the pre order
+  @param desktop_layout - {String} Media gallery layouts on desktop devices
+  @param desktop_carousel_option - {String} Carousel navigation layout style on desktop devices
+  @param desktop_carousel_position - {String} Carousel navigation position on desktop devices
+  @param show_navigation_arrows - {Boolean} Show previous/next navigation arrows
+  @param mobile_carousel_option - {String} Carousel navigation layout style on mobile devices
+  @param media_ratio - {String} Media ratio setting
+  @param show_sound_control - {Boolean} Enable sound control in video
+  @param video_autoplay - {Boolean} Enable video autoplay
+
+  @example
+  {%- render 'media-gallery',
+    product: product,
+    section: section,
+    zoom_effect: 'enlarge',
+    block_labels_and_badge: block,
+    is_show_preorder: false,
+    desktop_layout: '1_column',
+    desktop_carousel_option: 'thumbnail',
+    desktop_carousel_position: 'left',
+    show_navigation_arrows: false,
+    mobile_carousel_option: 'thumbnail',
+    media_ratio: 'square',
+    show_sound_control: true,
+    video_autoplay: section.settings.enable_video_autoplay
+  -%}
+{% enddoc %}
+
+{%- liquid
+  assign current_variant = product.selected_or_first_available_variant
+
+  assign page_width = settings.page_width
+
+  assign is_rtl = false
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  endif
+
+  assign is_rounded_corners = false
+  if settings.edges_type == 'rounded_corners'
+    assign is_rounded_corners = true
+  endif
+  assign enable_desktop_slider = false
+
+  if desktop_layout == '2_columns' and desktop_carousel_option == 'thumbnail'
+    assign desktop_carousel_position = 'bottom'
+  endif
+-%}
+
+{% liquid
+  assign ratio = 'pb-[100%]'
+  case media_ratio
+    when '4/3'
+      assign ratio = 'pb-[75%]'
+    when '2/3'
+      assign ratio = 'pb-[150%]'
+    when '16/9'
+      assign ratio = 'pb-[56%]'
+    when '3/4'
+      assign ratio = 'pb-[133%]'
+  endcase
+%}
+
+{%- capture sizes -%}
+  {%- if section.settings.section_width == 'page-width' %}(min-width: {{ page_width }}px) {% if section.settings.desktop_media_width == 'default' %}calc({{ page_width }}px * 1 / 2){% else %}calc({{ page_width }}px * 2 / 3){% endif %},
+  {%- else %}(min-width: 1024px) {% if section.settings.desktop_media_width == 'default' %}50vw{% else %}calc(100vw * 2 / 3){% endif %},
+  {%- endif %} (min-width: 768px) {% if section.settings.desktop_media_width == 'default' %}50vw{% else %}calc(100vw * 2 / 3 ){% endif %}, 100vw
+{%- endcapture -%}
+
+{%- capture sizes_in_2_columns -%}
+  {%- if section.settings.section_width == 'page-width' %}(min-width: {{ page_width }}px) {% if section.settings.desktop_media_width == 'default' %}calc({{ page_width }}px * 1 / 2 / 2){% else %}calc({{ page_width }}px * 2 / 3 / 2){% endif %},
+  {%- else %}(min-width: 1024px) {% if section.settings.desktop_media_width == 'default' %}25vw{% else %}calc(100vw * 2 / 3 / 2){% endif %},
+  {%- endif %} (min-width: 768px) {% if section.settings.desktop_media_width == 'default' %}25vw{% else %}calc(100vw * 2 / 3 / 2){% endif %}, 100vw
+{%- endcapture -%}
+
+{%- if product.media.first.media_type == 'image' -%}
+  <div class="hidden">
+    {% assign default_image_alt = product.media.first.preview_image.alt | default: product.title %}
+    {{ product.media.first.preview_image | image_url: width: 1780 | image_tag: widths: '375, 450, 750, 900, 1100, 1500, 1780', preload: true, sizes: '50vw', alt: default_image_alt }}
+  </div>
+{%- endif -%}
+{% if product.media.size > 0 %}
+  {% liquid
+    if desktop_layout != 'grid_2_columns'
+      assign enable_desktop_slider = true
+    endif
+  %}
+
+  {% liquid
+    assign option_to_classify_variant_media = section.settings.option_to_classify_variant_media | split: ';'
+    assign is_show_media_with_variant_selected = false
+    if section.settings.option_to_classify_variant_media != blank and section.settings.show_media_with_variant_selected and product.has_only_default_variant == false
+      for product_option in product.options_with_values
+        if forloop.index0 == 0 and option_to_classify_variant_media contains product_option.name
+          assign is_show_media_with_variant_selected = true
+        endif
+      endfor
+    endif
+
+    assign first_media = current_variant.featured_media
+    if first_media == blank
+      assign first_media = product.featured_media
+    endif
+  %}
+
+  {% liquid
+    assign active_media_id = false
+    assign current_variant_first_option = current_variant.options | first | handle
+
+    for media in product.media
+      assign is_active_media = false
+      if media.alt contains "#"
+        assign media_alt_handle = media.alt | split: '#' | last
+      else
+        assign media_alt_handle = ""
+      endif
+
+      if is_show_media_with_variant_selected 
+        if current_variant_first_option == media_alt_handle and media_alt_handle != ""
+          assign is_active_media = true
+        endif
+      else
+        if first_media.id == media.id
+          assign is_active_media = true
+        endif
+      endif
+
+      if is_active_media
+        assign active_media_id = media.id
+        break
+      endif
+    endfor
+
+    unless is_active_media
+      assign is_active_media = true
+      assign active_media_id = first_media.id
+    endunless
+
+    assign number_media_show = 0
+    if is_show_media_with_variant_selected
+      assign list_media_show = '||'
+
+      for media in product.media
+        assign is_active_media = false
+        if media.alt contains "#"
+          assign media_alt_handle = media.alt | split: '#' | last
+        else
+          assign media_alt_handle = ""
+        endif
+
+        if media.id != active_media_id and media_alt_handle == '' or current_variant_first_option == media_alt_handle
+          assign number_media_show = number_media_show | plus: 1
+          assign list_media_show = list_media_show | append: media.id | append: '||'
+        endif
+      endfor
+
+      if active_media_id
+        assign number_media_show = number_media_show | plus: 1
+        assign list_media_show = list_media_show | append: active_media_id | append: '||'
+      endif
+      
+    else
+      assign number_media_show = product.media.size
+    endif
+  %}
+  <div
+    id="MediaGallery__{{ section.id }}"
+    class="media-gallery__wrapper h-full relative {% if is_rounded_corners %} rounded-md{% endif %} flex flex-col-reverse md:flex-col gap-1 md:gap-y-3 md:block{% if desktop_layout == '2_columns' and section.settings.enable_desktop_carousel_overlay == false %} desktop-carousel-nav--no-overlay{% endif %}"
+    x-data="xMediaGallery($el, '{{ section.id }}', '{{ zoom_effect }}', {{ is_show_media_with_variant_selected }}, '{{ desktop_layout }}')"
+    data-zoom-effect="{{ zoom_effect }}"
+    :data-item-count="listMediaApplyShowMediaWithVariantSelected.length"
+    data-is-grid-layout-on-desktop="{% if enable_desktop_slider %}false{% else %}true{% endif %}"
+    data-is-scrolling-on-desktop="false"
+    :data-is-first-loaded="!isFirstLoading"
+  >
+    <custom-button>
+      <a
+        href="#ProductTemplate__Content__{{ section.id }}"
+        class="skip-to-content absolute -z-10 hidden lg:block button button-primary focus-visible:z-20"
+      >
+        {{ 'accessibility.skip_to_product_info' | t }}
+      </a>
+    </custom-button>
+    {% if product.media.size > 1 and mobile_carousel_option == 'thumbnail' or enable_desktop_slider and desktop_carousel_option == 'thumbnail' %}
+      {% style %}
+        {% if is_rounded_corners %}
+          @media (max-width: 767px) {
+            #MediaGallery__{{ section.id }} .media-gallery__thumbnail-item {
+              --rounded-corners: 6px
+            }
+          }
+        {% endif %}
+        #MediaGallery__{{ section.id }} .media-gallery__thumbnail-nav__wrapper {
+          --thumbnail-item-ratio: calc({{ media_ratio }});
+        }
+      {% endstyle %}
+      <div 
+        class="media-gallery__thumbnail-nav__container
+          {%- unless desktop_carousel_option == 'thumbnail' and enable_desktop_slider %} md:!hidden{% endunless -%}
+          {%- unless mobile_carousel_option == 'thumbnail' %} sm:!hidden{% endunless -%}
+        "
+        {% if desktop_layout == '2_columns' %}
+          :class="mediaItemsShow.length > 2 ? '' : 'md:!hidden'"
+          :data-show-on-desktop="mediaItemsShow.length > 2 ? 'true' : 'false'"
+        {% endif %}
+        x-show="mediaItemsShow.length > 1"
+      >
+        <div
+          class="media-gallery__thumbnail-nav__wrapper thumbnail-{{ desktop_carousel_position }}{% if desktop_carousel_position != 'bottom'%} sticky-top{% endif %}"
+          x-ref="thumbnail_wrapper"
+        >
+          <div class="media-gallery__thumbnail-nav__content">
+            <custom-button>
+              <button
+                class="media-gallery__thumbnail-nav flex nav-previous anm-button-secondary
+                  {%- if desktop_carousel_position == 'bottom' %} md:!hidden{% endif -%}
+                "
+                aria-label="{{ 'accessibility.prev_button' | t }}"
+                @click.prevent="handleClickNav(false)"
+                x-show="!isFirstLoading"
+                x-cloak
+              >
+                <span class="w-4 h-4 md:w-3 md:h-3 md:-rotate-90{% unless is_rtl %} rotate-180{% endunless %}">
+                  {% render 'icon-all', icon: 'icon-nav-arrow' %}
+                </span>
+              </button>
+            </custom-button>
+    
+            <div class="media-gallery__thumbnail-wrapper scroll-smooth w-full flex overflow-x-auto scrollbar-hidden overflow-auto{% unless desktop_carousel_position == 'bottom' %} md:w-[60px] md:block{% else %} md:flex md:justify-center{% endunless %}">
+              <div 
+                class="media-gallery__thumbnail-container inline-flex flex-row select-none duration-150 overflow-auto scrollbar-hidden gap-1
+                  {%- unless desktop_carousel_position == 'bottom' %} md:flex md:flex-col{% endunless -%}
+                  {%- if desktop_layout == '2_columns' and desktop_carousel_option == 'thumbnail' %} enable-bg-active-in-two-columns{% unless is_rounded_corners %} before:[--rounded-corners:0px] after:[--rounded-corners:0px]{% endunless %}{% endif -%}
+                "
+                data-gap="4"
+                data-desktop-thumbnail-position="{{ desktop_carousel_position }}"
+                {% if desktop_carousel_position == 'bottom' %}
+                  x-intersect.once="$store.xHelper.dragToScroll($el)"
+                {% endif %}
+              >
+                {% if product.media.size > 0 %}
+                  {% for media in product.media %}
+                    {% liquid
+                      assign is_active_media = false
+                      if active_media_id == media.id
+                        assign is_active_media = true
+                      endif
+                    %}
+                    <button
+                      class="media-gallery__thumbnail-item focus-visible:-outline-offset-2 rounded-corners{% if is_active_media %} is-active{% endif %}"
+                      aria-label="image-thumbnail"
+                      data-media-id="{{ media.id }}"
+                      data-thumbnail-index="{{ forloop.index0 }}"
+                      data-ratio="{{ media_ratio }}"
+                      @click.prevent="if ($el.parentNode.dataset?.dragStartedScroll == 'true') return; handleFocusThumbnail($event)"
+                      @keyup.enter="$el.click()"
+                    >
+                      <img
+                        src="{{ media.preview_image | image_url: width: 150 }}"
+                        alt="{{ media.preview_image.alt | default: product.title | escape }}"
+                        loading="lazy"
+                        width="{{ media.preview_image.width }}"
+                        height="{{ media.preview_image.height }}"
+                        class="w-full h-full object-cover select-none pointer-events-none block"
+                      />
+                      {%- if media.media_type == 'video' or media.media_type == 'external_video' -%}
+                        <div class="absolute top-1/2 -translate-x-1/2 left-1/2 -translate-y-1/2 w-6 h-6">
+                          <span class="w-6 h-6 inline-block p-1 button-video rounded-full">
+                            {% assign icon_variable = 'icon-play' %}
+                            {%- render 'icon-media', icon: icon_variable -%}
+                          </span>
+                        </div>
+                      {%- endif -%}
+                      {%- if media.media_type == 'model' -%}
+                        <div class="absolute top-1/2 -translate-x-1/2 left-1/2 -translate-y-1/2 w-6 h-6">
+                          <span class="w-6 h-6 inline-block p-1 color-bg-[rgba(var(--color-background))] rounded-full border">
+                            {%- render 'icon-media', icon: 'icon-3d-model' -%}
+                          </span>
+                        </div>
+                      {%- endif -%}
+                    </button>
+                  {% endfor %}
+                {% endif %}
+              </div>
+            </div>
+    
+            <custom-button>
+              <button
+                class="media-gallery__thumbnail-nav flex nav-next anm-button-secondary
+                  {%- if desktop_carousel_position == 'bottom' %} md:!hidden{% endif -%}
+                "
+                aria-label="{{ 'accessibility.next_button' | t }}"
+                @click.prevent="handleClickNav(true)"
+                x-show="!isFirstLoading"
+                x-cloak
+              >
+                <span class="w-4 h-4 md:w-3 md:h-3 md:rotate-90{% if is_rtl %} rotate-180{% endif %}">
+                  {% render 'icon-all', icon: 'icon-nav-arrow' %}
+                </span>
+              </button>
+            </custom-button>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+    <div
+      class="swiffy-slider media-gallery__media-wrapper enable-effect-hover h-full slider-item-ratio slider-item-ratio-{{ media_ratio }}
+        {%- unless enable_desktop_slider %} md:!swiffy-slider{% endunless -%}
+        {%- if desktop_layout == '2_columns' %} slider-item-snapstart{% endif -%}
+      "
+      data-effect="{% if desktop_layout == '2_columns' %}slide{% else %}fade{% endif %}"
+      x-init="
+        handleInitSwiffy($el, {
+          'effect': '{% if desktop_layout == '2_columns' %}slide{% else %}fade{% endif %}',
+          'isLoop': true,
+          {% if desktop_layout == '2_columns' %}
+            'mediaQuery': 'min',
+            'breakPoints': {
+              '768': {
+                'slidesPerMove': 1,
+                'slidesPerView': 2
+              }
+            },
+          {% endif %}
+          'customElement': {
+            'sliderNavs': '#MediaGallery__{{ section.id }} .slider-nav__wrapper .slider-nav'
+          }
+        });
+      "
+    >
+      {% if block_labels_and_badge.settings.label_position == "on_product_media" %}
+        <div class="product-info__label-wrapper static z-10">
+          {% liquid
+            if product.selected_or_first_available_variant.inventory_quantity <= 0
+              assign label_quantity = ""
+            else
+              assign label_quantity = product.selected_or_first_available_variant.inventory_quantity
+            endif
+            assign sale_amount = product.selected_or_first_available_variant.compare_at_price | minus: product.selected_or_first_available_variant.price
+            if sale_amount <= 0
+              assign sale_amount = ""
+            endif
+          %}
+          {% liquid
+            assign label_position = block_labels_and_badge.settings.label_position | default: 'content_inline' 
+          %}
+          {% capture data_for_label %}
+            {%
+              render "data-for-label",
+              product: product,
+              current_variant: current_variant,
+              target: product.selected_or_first_available_variant,
+              sale_amount: sale_amount,
+              label_quantity: label_quantity,
+              container: "product-info",
+              make_content_center: show_content_center,
+              is_show_preorder: is_show_preorder,
+              label_position: label_position,
+              desktop_carousel_option: desktop_carousel_option,
+              desktop_carousel_position: desktop_carousel_position,
+              desktop_layout: desktop_layout
+            %}
+          {% endcapture %}
+          <div class="w-full"
+            x-intersect.once.margin.200px="
+              $nextTick(() => {
+                $store.xLabelsAndBadges.load($el);
+            })"
+            x-labels-data="{{ data_for_label | escape }}"
+          >
+          </div>
+        </div>
+      {% endif %}
+      {% if enable_desktop_slider and show_navigation_arrows %}
+        {% unless desktop_carousel_option == 'thumbnail' and desktop_carousel_position != 'bottom' %}
+          {% liquid
+            assign attribute_nav_wrapper = 'x-show="mediaItemsShow.length > 1" x-cloak'
+            if desktop_layout == '2_columns'
+              assign attribute_nav_wrapper = 'x-show="mediaItemsShow.length > 2" x-cloak'
+            endif
+          %} 
+          {% render 'slider-navigation-button', 
+            class_nav_wrapper: "overflow-hidden absolute inset-0 z-30 pointer-events-none",
+            class_nav_button: "pointer-events-auto",
+            attribute_nav_button_prev: '@click.stop.prevent="handleClickNav(false)" data-disable-event-click-slider="true"',
+            attribute_nav_button_next: '@click.stop.prevent="handleClickNav(true)" data-disable-event-click-slider="true"',
+            attribute_nav_wrapper: attribute_nav_wrapper
+          %}
+        {% endunless %}
+      {% endif %}
+      <div
+        class="gap-2 slider-container media-gallery__container rounded-corners slider-item-show1
+          {%- if enable_desktop_slider == false %} md:grid-cols-2 md:grid md:gap-1{%- endif -%}
+          {%- if desktop_layout == '2_columns' %} md:slider-item-show2{% endif -%}
+        "
+        data-mobile-gap="{% if desktop_layout == '2_columns' %}4px{% else %}0px{% endif %}"
+        data-desktop-gap="{% if desktop_layout == '2_columns' %}4px{% else %}0px{% endif %}"
+        data-scroll-to-change-image="false"
+        data-desktop-layout="{{ desktop_layout }}"
+        {% if desktop_layout != '1_column' and is_show_media_with_variant_selected %}
+          data-sizes="{{ sizes }}"
+          data-sizes-in-two-columns="{{ sizes_in_2_columns }}"
+        {% endif %}
+      >
+        {% for media in product.media %}
+          {% liquid
+            if media.alt contains "#"
+              assign media_alt_handle = media.alt | split: '#' | last
+            else
+              assign media_alt_handle = ""
+            endif
+
+            assign index0 = forloop.index0
+
+            assign is_active_media = false
+            if active_media_id == media.id
+              assign is_active_media = true
+            endif
+
+            assign media_id = '||' | append: media.id | append: '||'
+          %}
+          
+          <div
+            class="slide-item media-gallery__media-item h-full focus-visible:-outline-offset-1 overflow-hidden rounded-corners
+              {%- if is_show_media_with_variant_selected == false or list_media_show contains media_id %} is-show-media-item{% endif -%}
+              {%- if desktop_layout == '2_columns' %} is-active-in-two-columns{% endif -%}
+              {%- if zoom_effect == 'enlarge' %} pointer-events-auto{% endif -%}
+              {%- if is_active_media %} is-active{% endif -%}
+              {%- if desktop_layout != '1_column' and number_media_show <= 1 %} sm:col-span-1 col-span-2{% endif -%}
+            "
+            data-media-id="{{ media.id }}"
+            data-index="{{ index0 }}"
+            data-media-type="{{ media.media_type }}"
+            data-media-alt="{{ media_alt_handle }}"
+            data-ratio="{% if media.media_type == 'model' %}1.0{% else %}{{ media.aspect_ratio }}{% endif %}"
+            @click.prevent.stop="handleZoom($el)"
+            {% if desktop_layout == '1_column' %}
+              x-bind:inert="activeMediaId != '{{ media.id }}'"
+            {% else %}
+              :class="mediaItemsShow.length <= 1 ? 'md:col-span-2' : 'md:col-span-1'"
+            {% endif %}
+            {% if media.media_type != 'image' %}
+              @pointerdown.stop
+              @pointerup.stop
+            {% endif %}
+          >
+            {%- render 'media-of-media-gallery',
+              product: product,
+              media: media,
+              sizes: sizes,
+              sizes_in_2_columns: sizes_in_2_columns,
+              desktop_layout: desktop_layout,
+              zoom_effect: zoom_effect,
+              video_autoplay: video_autoplay,
+              index0: index0,
+              is_zoom_media: false,
+              show_sound_control: show_sound_control,
+              desktop_carousel_option: desktop_carousel_option,
+              desktop_carousel_position: desktop_carousel_position,
+              is_active_media: is_active_media,
+              number_media_show: number_media_show,
+              is_show_media_with_variant_selected: is_show_media_with_variant_selected
+            -%}
+          </div>
+        {% endfor %}
+      </div>
+
+      {% if product.media.size > 1 %}
+        {% if desktop_carousel_option == 'dot' or mobile_carousel_option == 'dot' %}
+          <div 
+            class="media-gallery__dot-nav__container
+              {%- unless desktop_carousel_option == 'dot' and enable_desktop_slider %} md:!hidden{% endunless -%}
+              {%- unless mobile_carousel_option == 'dot' %} sm:!hidden{% endunless -%}
+            "
+            x-cloak
+            {% if desktop_layout == '2_columns' %}
+              :class="mediaItemsShow.length > 2 ? '' : 'md:!hidden'"
+            {% endif %}
+            x-show="listDotsShowEl.length > 1"
+          >
+            <div
+              class="media-gallery__dot-nav__wrapper"
+            >
+              <div class="media-gallery__dot-nav__content">
+                <button
+                  class="media-gallery__dot-nav flex nav-previous"
+                  aria-label="{{ 'accessibility.prev_button' | t }}"
+                  @click.prevent.stop="handleClickNav(false)"
+                  @keyup.enter="handleClickNav(false)"
+                  @keydown.enter.prevent
+                >
+                  <span class="w-3.5 h-3.5 md:w-4 md:h-4{% unless is_rtl %} rotate-180{% endunless %}">
+                    {% render 'icon-all', icon: 'icon-nav-arrow' %}
+                  </span>
+                </button>
+                <div class="media-gallery__dot-nav__dot-list scrollbar-hidden" tabindex="-1">
+                  {% for media in product.media %}
+                    {% liquid
+                      assign is_active_media = false
+                      if active_media_id == media.id
+                        assign is_active_media = true
+                      endif
+                    %}
+                    <div class="media-gallery__dot-nav__dot-item__wrapper">
+                      <div 
+                          class="media-gallery__dot-nav__dot-item is-show-dot{% if is_active_media %} is-active{% endif %}"
+                          data-media-id="{{ media.id }}"
+                      ></div>
+                    </div>
+                  {% endfor %}
+                </div>
+                <button
+                  class="media-gallery__dot-nav flex nav-next"
+                  aria-label="{{ 'accessibility.next_button' | t }}"
+                  @click.prevent.stop="handleClickNav(true)"
+                  @keyup.enter="handleClickNav(true)"
+                  @keydown.enter.prevent
+                >
+                  <span class="w-3.5 h-3.5 md:w-4 md:h-4{% if is_rtl %} rotate-180{% endif %}">
+                    {% render 'icon-all', icon: 'icon-nav-arrow' %}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if mobile_carousel_option == 'number' %}
+          <div 
+            class="media-gallery__number-nav__container md:!hidden"
+            x-cloak
+            x-show="mediaItemsShow.length > 1"
+          >
+            <div class="media-gallery__number-nav__wrapper">
+              <div class="media-gallery__number-nav__content">
+                <button
+                  class="media-gallery__number-nav flex nav-previous"
+                  aria-label="{{ 'accessibility.prev_button' | t }}"
+                  @click.prevent.stop="handleClickNav(false)"
+                  @keyup.enter="handleClickNav(false)"
+                  @keydown.enter.prevent
+                >
+                  <span class="w-3.5 h-3.5 md:-rotate-90{% unless is_rtl %} rotate-180{% endunless %}">
+                    {% render 'icon-all', icon: 'icon-nav-arrow' %}
+                  </span>
+                </button>
+                <div class="media-gallery__number-block h5 relative color-text-[rgba(var(--color-secondary-button-text))]">
+                  <span class="opacity-0">
+                    <span x-text="mediaItemsShow.length"></span>
+                    <span>/</span>
+                    <span x-text="mediaItemsShow.length"></span>
+                  </span>
+                  <div class="absolute flex inset-0 items-center justify-center">
+                    <span x-text="`${Array.from(mediaItemsShow).findIndex(item => item.dataset.mediaId == activeMediaId) + 1}`"></span>
+                    <span>/</span>
+                    <span x-text="mediaItemsShow.length"></span>
+                  </div>
+                </div>
+                <button
+                  class="media-gallery__number-nav flex nav-next"
+                  aria-label="{{ 'accessibility.next_button' | t }}"
+                  @click.prevent.stop="handleClickNav(true)"
+                  @keyup.enter="handleClickNav(true)"
+                  @keydown.enter.prevent
+                >
+                  <span class="w-3.5 h-3.5 md:rotate-90{% if is_rtl %} rotate-180{% endif %}">
+                    {% render 'icon-all', icon: 'icon-nav-arrow' %}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    {% if zoom_effect != 'none' %}
+      <template x-teleport="body">
+        <div
+            id="MediaGalleryZoom__Enlarge__{{ section.id }}"
+            class="fixed top-0 left-0 w-full h-full z-[60] transition-all duration-300 ease-in-out"
+            x-show="isZoomOpen && ('{{ zoom_effect }}' === 'enlarge' || ('{{ zoom_effect }}' === 'magnifier' && window.innerWidth < MIN_DEVICE_WIDTH.desktop))"
+            data-auto-play="{{ video_autoplay }}"
+            x-transition:enter-start="opacity-0 transform translate-y-1/3"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+            x-transition:leave-end="opacity-0 transform translate-y-1/3"
+            x-intersect.full="$store.xFocusElement.trapFocus('MediaGalleryZoom__Enlarge__{{ section.id }}', 'MediaGalleryZoom__Enlarge__CloseButton__{{ section.id }}')"
+            tabindex="0"
+            @keyup.escape="__handleCloseZoom()"
+        >
+          <div
+              id="MediaGalleryZoom__Enlarge_Overlay"
+              class="color-bg-[rgba(var(--color-heading),0.6)] hidden md:block fixed top-0 right-0 bottom-0 left-0"
+              @click.prevent="__handleCloseZoom()"
+          ></div>
+
+          <div class="sticky bg-gradient w-full h-full top-0 left-0 right-0 bottom-0">
+            <button
+                class="cursor-pointer modal__button-close-absolute"
+                id="MediaGalleryZoom__Enlarge__CloseButton__{{ section.id }}"
+                @click.prevent="__handleCloseZoom()"
+                @keyup.enter="__handleCloseZoom()"
+                @keydown.enter.prevent
+            >
+              <span class="button__close icon-close-large-desktop icon-close-large-mobile">{%- render 'icon-all', icon: 'icon-close' -%}</span>
+            </button>
+            <div
+                class="zoom-enlarge__wrapper w-full h-full swiffy-slider enable-effect-hover slider-nav-animation slider-nav-animation-fadein {% if product.media.size > 1 %} grabbable{% endif %}"
+                data-effect="slide"
+                x-intersect.full="handleInitZoomEffectEnlarge($el, {
+                  'effect': 'slide',
+                  'isLoop': true,
+                  'mediaQuery': 'min',
+                  'breakPoints': {
+                    '768': { 'slidesPerView': 1 }
+                  }
+                });"
+            >
+              {% if product.media.size > 1 %}
+                <custom-button>
+                  <button
+                      class="slider-nav always-effect-hover slider-nav__button-arrow show-on-mobile anm-button-secondary"
+                      aria-label="{{ 'accessibility.prev_button' | t }}"
+                      x-show="mediaItemsShow.length > 1"
+                  >
+                    {% render 'icon-all', icon: 'icon-nav-arrow' %}
+                  </button>
+                </custom-button>
+                <custom-button>
+                  <button
+                      class="slider-nav slider-nav-next always-effect-hover slider-nav__button-arrow show-on-mobile anm-button-secondary"
+                      aria-label="{{ 'accessibility.next_button' | t }}"
+                      x-show="mediaItemsShow.length > 1"
+                  >
+                    {% render 'icon-all', icon: 'icon-nav-arrow' %}
+                  </button>
+                </custom-button>
+              {% endif %}
+              <div class="slider-container grid-rows-none overscroll-none">
+                {% for media in product.media %}
+                  {% liquid
+                    assign index0 = forloop.index0
+
+                    assign is_active_media = false
+                    if active_media_id == media.id
+                      assign is_active_media = true
+                    endif
+                  %}
+                  <div
+                      class="media-gallery__zoom-enlarge__item slide-item relative flex justify-center {% if is_active_media %} is-active{% endif %} is-show-media-zoom-item"
+                      data-media-type="{{ media.media_type }}"
+                      data-media-id="{{ media.id }}"
+                      data-index="{{ index0 }}"
+                      x-bind:inert="zoomItemActiveMediaId != {{ media.id }}"
+                  >
+                    {%- render 'media-of-media-gallery',
+                      product: product,
+                      media: media,
+                      sizes: '100vw',
+                      video_autoplay: video_autoplay,
+                      index0: index0,
+                      is_zoom_media: true,
+                      show_sound_control: section.settings.show_sound_control
+                    -%}
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% if product.media.size > 1 %}
+              <div
+                class="zoom-enlarge__thumbnail-nav__wrapper absolute bottom-6.5 md:bottom-10 left-1/2 -translate-x-1/2 w-fit max-w-full px-3 md:px-20 z-10"
+                x-ref="zoom_enlarge_thumbnail_wrapper"
+                :class="(listZoomThumbnailItemsShow.length > 1) && isShowZoomThumbnail ? '' : 'invisible'"
+              >
+                <div class="zoom-enlarge__thumbnail-wrapper w-full block scroll-smooth overflow-x-auto scrollbar-hidden">
+                  <div class="zoom-enlarge__thumbnail-container flex flex-row select-none duration-150 md:gap-1.5 gap-1" data-mobile-gap="4" data-desktop-gap="6">
+                    {% if product.media.size > 0 %}
+                      {% for media in product.media %}
+                        {% assign thumbnail_ratio = media_ratio %}
+                        <button
+                          class="zoom-enlarge__thumbnail-item overflow-hidden relative block w-[48px] md:w-[100px] min-w-[48px] md:min-w-[100px]"
+                          aria-label="zoom-enlarge__image-thumbnail"
+                          data-media-id="{{ media.id }}"
+                          data-media-type="{{ media.media_type }}"
+                          data-thumbnail-index="{{ forloop.index0 }}"
+                          data-ratio="{{ media_ratio }}"
+                          style="--thumbnail-item-ratio: calc({{ thumbnail_ratio }});"
+                          @click.prevent="handleFocusZoomEnlargeThumbnail()"
+                          @keyup.enter="$el.click()"
+                        >
+                          <img
+                            src="{{ media.preview_image | image_url: width: 150 }}"
+                            alt="{{ media.preview_image.alt | default: product.title | escape }}"
+                            loading="lazy"
+                            width="{{ media.preview_image.width }}"
+                            height="{{ media.preview_image.height }}"
+                            class="w-full h-full object-cover select-none pointer-events-none block"
+                          >
+                          {%- if media.media_type == 'video' or media.media_type == 'external_video' -%}
+                            <div class="absolute top-1/2 -translate-x-1/2 left-1/2 -translate-y-1/2 w-6 h-6">
+                              <span class="w-6 h-6 inline-block p-1 video__button rounded-full">
+                                {% assign icon_variable = 'icon-play' %}
+                                {%- render 'icon-media', icon: icon_variable -%}
+                              </span>
+                            </div>
+                          {%- endif -%}
+                          {%- if media.media_type == 'model' -%}
+                            <div class="absolute top-1/2 -translate-x-1/2 left-1/2 -translate-y-1/2 w-6 h-6">
+                              <span class="w-6 h-6 inline-block p-1 color-bg-[rgba(var(--color-background))] rounded-full border">
+                                {%- render 'icon-media', icon: 'icon-3d-model' -%}
+                              </span>
+                            </div>
+                          {%- endif -%}
+                        </button>
+                      {% endfor %}
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+            <div
+              class="element-end-modal h-0 w-0 absolute pointer-events-none"
+              tabindex="0"
+              @focus="document.getElementById('MediaGalleryZoom__Enlarge__CloseButton__{{ section.id }}')?.focus()"></div>
+          </div>
+        </div>
+      </template>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="media-gallery__wrapper">
+    <div
+      data-type="image"
+      class="product-media product-media--image featured-image"
+    >
+      <div class="media-gallery__img-placeholder relative overflow-hidden {{ ratio }} {% if is_rounded_corners %} rounded-md{% endif %}">
+        <div class="w-full h-full absolute top-0 left-0 {% if is_rounded_corners %} rounded-md{% endif %}"
+        >
+          {% liquid
+            assign index = 1
+            assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+            assign placeholder_product_name = 'product_' | append: index
+          %}
+          {% render 'placeholder-image', image_type: placeholder_product_name %}
+
+          {% if block_labels_and_badge.settings.label_position == "on_product_media" %}
+            <div class="product-info__label-wrapper static z-20">
+              <div
+                class="product-info__label-wrapper static"
+                >
+                {% liquid
+                  if product.selected_or_first_available_variant.inventory_quantity <= 0
+                    assign label_quantity = ""
+                  else
+                    assign label_quantity = product.selected_or_first_available_variant.inventory_quantity
+                  endif
+                  assign sale_amount = product.selected_or_first_available_variant.compare_at_price | minus: product.selected_or_first_available_variant.price
+                  if sale_amount <= 0
+                    assign sale_amount = ""
+                  endif
+                %}
+                {% liquid
+                  assign label_position = block_labels_and_badge.settings.label_position | default: 'content_inline' 
+                %}
+                {% capture data_for_label %}
+                  {%
+                    render "data-for-label",
+                    product: product,
+                    current_variant: current_variant,
+                    target: product.selected_or_first_available_variant,
+                    sale_amount: sale_amount,
+                    label_quantity: label_quantity,
+                    container: "product-info",
+                    make_content_center: show_content_center,
+                    is_show_preorder: is_show_preorder,
+                    label_position: label_position,
+                    desktop_carousel_option: desktop_carousel_option,
+                    desktop_carousel_position: desktop_carousel_position,
+                    desktop_layout: desktop_layout
+                  %}
+                {% endcapture %}
+                <div class="w-full"
+                  x-intersect.once.margin.200px="
+                    $nextTick(() => {
+                      $store.xLabelsAndBadges.load($el);
+                  })"
+                  x-labels-data="{{ data_for_label | escape }}"
+                >
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<script
+  src="{{ 'media-gallery.js' | asset_url }}"
+  defer
+></script>
+
+<script
+  id="ProductMediaInfo__{{ section.id }}"
+  defer
+>
+  {{ product.media | json }}
+</script>

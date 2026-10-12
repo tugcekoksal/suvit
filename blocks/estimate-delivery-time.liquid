@@ -1,0 +1,295 @@
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block.settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block.settings.desktop_padding_left }}px;
+    --pad-right: {{ block.settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+  }
+{% endstyle %}
+{% liquid 
+  assign current_variant = closest.product.selected_or_first_available_variant
+
+  assign is_show_preorder = false
+  assign is_apply_preorder = false
+  if settings.applied_products_preorder == blank and settings.applied_collections_preorder == blank
+    assign is_apply_preorder = true
+  else
+    assign list_product = ''
+    for prod in settings.applied_products_preorder
+      assign list_product = list_product | append: ';' | append: prod.id
+    endfor
+    for collec in settings.applied_collections_preorder
+      for prod in collec.products
+        assign list_product = list_product | append: ';' | append: prod.id
+      endfor
+    endfor
+    if list_product contains product.id
+      assign is_apply_preorder = true
+    endif
+  endif
+
+  if is_apply_preorder
+    if settings.preorder_show == 'yes'
+      if current_variant.inventory_management == null
+        assign is_show_preorder = true
+      else
+        if current_variant.inventory_quantity > 0
+          assign is_show_preorder = true
+        elsif current_variant.inventory_policy == 'continue' and current_variant.inventory_management != null
+          assign is_show_preorder = true
+        endif
+      endif
+    elsif settings.preorder_show == 'on_back_ordered'
+      if current_variant.inventory_policy == 'continue' and current_variant.inventory_quantity < 1 and current_variant.inventory_management != null
+        assign is_show_preorder = true
+      endif
+    endif
+  endif
+
+  assign is_out_of_stock = false
+  if current_variant.inventory_management == 'shopify'
+    if current_variant.inventory_quantity <= 0 and current_variant.inventory_policy != 'continue'
+      assign is_out_of_stock = true
+    endif
+  endif
+
+  assign is_enable_cart_edt = true
+  if is_show_preorder and block.settings.hide_when_pre_order
+    assign is_enable_cart_edt = false
+  elsif is_out_of_stock 
+    assign is_enable_cart_edt = false     
+  endif
+%}
+<div 
+  id="x-estimate-delivery-{{ block.id }}"
+  class="block-edt block-{{ block.id }}{% if is_enable_cart_edt %} block-padding{% endif %} maximize-block product-info__estimate-delivery-wrapper anm-fade-element z-10" 
+  data-block-id="{{ block.id }}" 
+  data-fade-on-intersect
+  {{ block.shopify_attributes }}
+>
+  <div class="block-edt-wrapper{% unless is_enable_cart_edt %} hidden disable-estimate{% endunless %}">
+    {%- assign container_id = '#x-estimate-delivery-' | append: block.id -%}
+    {%- render 'estimate-delivery-product-template',
+      product: closest.product,
+      estimate_message: block.settings.message,
+      enable_tooltip: block.settings.enable_tooltip,
+      tooltip_content: block.settings.tooltip_content,
+      container_id: container_id,
+      current_variant: current_variant,
+      show_background: block.settings.show_background,
+      background_color_light: block.settings.background_color_light,
+      message_color_light: block.settings.message_color_light,
+      background_color_dark: block.settings.background_color_dark,
+      message_color_dark: block.settings.message_color_dark,
+      is_product_page: false
+    -%}
+  </div>
+</div>
+{% schema  %}
+{
+  "name": "t:main_product.blocks.estimate_delivery.name",
+  "tag": null,
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "hide_when_pre_order",
+      "default": false,
+      "label": "t:main_product.blocks.buy_buttons.settings.pickup_availability.hide_when_pre_order"
+    },
+    {
+      "type": "header",
+      "content": "t:settings.product_cards.settings.estimated_delivery_date.message"
+    },
+    {
+      "type": "paragraph",
+      "content": "t:main_product.blocks.estimate_delivery.settings.paragraph"
+    },
+    {
+      "type": "richtext",
+      "id": "message",  
+      "default": "<p>Estimated delivery between <strong>earliest_delivery_date and latest_delivery_date.</strong></p>",
+      "label": "t:settings.product_cards.settings.estimated_delivery_date.message"
+    },
+    {
+      "type": "paragraph",
+      "content": "t:settings.product_cards.settings.estimated_delivery_date.paragraph_1"
+    },
+    {
+      "type": "paragraph",
+      "content": "t:settings.product_cards.settings.estimated_delivery_date.paragraph_2"
+    },
+    {
+      "type": "paragraph",
+      "content": "t:settings.product_cards.settings.estimated_delivery_date.paragraph_3"
+    },
+    {
+      "type": "header",
+      "content": "t:global.blocks.tooltip"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_tooltip",
+      "label": "t:settings.shipping_delivery.settings.edt_in_cart.enable_tooltip"
+    },
+    {
+      "type": "text",
+      "id": "tooltip_content",
+      "label": "t:settings.shipping_delivery.settings.edt_in_cart.tooltip_content",
+      "default": "Deliveries to rural areas in Western Australia may take an additional 2–3 business days."
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "select",
+      "id": "device_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.style"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_background",
+      "default": false,
+      "label": "t:global.colors.show_background"
+    },
+    {
+      "type": "color",
+      "id": "background_color_light",
+      "default": "rgba(0,0,0,0)",
+      "label": "t:global.colors.background_light"
+    },
+    {
+      "type": "color",
+      "id": "message_color_light",
+      "default": "rgba(0,0,0,0)",
+      "label": "t:global.colors.text_light"
+    },
+    {
+      "type": "color",
+      "id": "background_color_dark",
+      "default": "rgba(0,0,0,0)",
+      "label": "t:global.colors.background_dark"
+    },
+    {
+      "type": "color",
+      "id": "message_color_dark",
+      "default": "rgba(0,0,0,0)",
+      "label": "t:global.colors.text_dark"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:main_product.blocks.estimate_delivery.name",
+      "category": "t:global.product.product"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,216 @@
+{% if block.settings.text != blank and block.settings.text contains 'collection_name' %}
+  <div 
+    class="block-collection-link block-{{ block.id }} block-padding maximize-block" 
+    data-block-id="{{ block.id }}" 
+    {{ block.shopify_attributes }}
+  >
+    {% style %}
+      .block-{{ block.id }} {
+        --pad-top: {{ block.settings.desktop_padding_top }}px;
+        --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+        --pad-left: {{ block.settings.desktop_padding_left }}px;
+        --pad-right: {{ block.settings.desktop_padding_right }}px;
+        --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+        --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+        --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+        --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+      }
+    {% endstyle %}
+    {%- liquid
+      assign product = closest.product
+      if product and product.collections[0].url
+        assign collection_title = product.collections[0].title | escape
+        assign collection_url = product.collections[0].url | escape
+      endif
+
+      assign button_style = block.settings.button_style
+    -%}
+    {% if collection_title %}
+      <div
+        class="block-collection-link-wrapper w-full"
+        {{ block.shopify_attributes }}
+      >
+        {% capture collection_link %}
+          <custom-button>
+            <a
+              class="collection-link--{{ block.id }} overflow-hidden relative ltr:ml-0.5 rtl:mr-0.5
+                {%- if button_style == 'primary' %} button pt-2 pb-2 pl-3 pr-3 inline-flex button-primary rounded-corners-md
+                {%- elsif button_style == 'secondary' %} button pt-2 pb-2 pl-3 pr-3 inline-flex button-secondary rounded-corners-md
+                {%- elsif button_style == 'direction_link' %} direction_link button-no-padding anm-button-arrow_push shrink-0
+                {%- else %} button-link button-no-padding anm-button-{{ settings.button_link_hover_animation -}}{% endif -%}"
+              href="{{ collection_url }}"
+            >
+              {% render 'button-label', button_label: collection_title, show_button_style: button_style %}
+            </a>
+          </custom-button>
+        {% endcapture %}
+        <div class="flex flex-row gap-2 flex-wrap">
+          <div
+            class="anm-fade-element collection-link__content"
+            data-fade-on-intersect
+          >
+            {{ block.settings.text | replace: 'collection_name', collection_link }}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% endif %}
+{% schema  %}
+{
+  "name": "t:main_product.blocks.rating.block_name",
+  "tag": null,
+  "settings": [
+    {
+      "type": "text",
+      "id": "text",
+      "label": "t:global.text.label",
+      "default": "See more by collection_name",
+      "info": "t:main_product.blocks.collection_link.settings.label_info"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.style"
+    },
+    {
+      "type": "select",
+      "id": "button_style",
+      "options": [
+        {
+          "value": "primary",
+          "label": "t:global.colors.primary_button"
+        },
+        {
+          "value": "secondary",
+          "label": "t:global.colors.secondary_button"
+        },
+        {
+          "value": "link",
+          "label": "t:global.button.button_link"
+        },
+        {
+          "value": "direction_link",
+          "label": "t:global.button.style.direction_link"
+        }
+      ],
+      "label": "t:main_product.blocks.collection_link.settings.button_style",
+      "default": "primary"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "select",
+      "id": "device_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:main_product.blocks.collection_link.name",
+      "category": "t:global.product.product"
+    }
+  ]
+}
+{% endschema %}

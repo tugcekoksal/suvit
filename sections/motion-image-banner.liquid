@@ -1,0 +1,744 @@
+{% liquid
+  assign before_heading = false
+  if section.settings.heading_before != blank
+    assign before_heading = true
+  endif
+%}
+{% assign default_image_alt = 'accessibility.default_alt' | t %}
+{% style %}
+  .section--{{ section.id }} {
+    padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+    padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+  }
+  {% if before_heading %}
+    .section--{{ section.id }} .section-motion-image-banner__container {
+      height: calc({{ section.settings.mobile_height }} * 2);
+    }
+  {% endif %}
+  .section--{{ section.id }} .motion-image-banner__wrapper, .section--{{ section.id }} .motion-after-wrapper {
+    height: {{ section.settings.mobile_height }};
+  }
+  {% if section.settings.color_heading_before.alpha != 0.0 %}
+    .maximize-theme:not(.dark) .heading-before-{{ section.id }} {
+      color: {{ section.settings.color_heading_before }};
+    }
+  {% endif %}
+  {% if section.settings.color_heading_dark.alpha != 0.0 %}
+    .dark .heading-before-{{ section.id }} {
+      color: {{ section.settings.color_heading_dark }};
+    }
+  {% endif %}
+  @media screen and (min-width: 768px) {
+    .section--{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+    {% if before_heading %}
+      .section--{{ section.id }} .section-motion-image-banner__container {
+        height: calc({{ section.settings.desktop_height }} * 2);
+      }
+    {% endif %}
+    .section--{{ section.id }} .motion-image-banner__wrapper, .section--{{ section.id }} .motion-after-wrapper {
+      height: {{ section.settings.desktop_height }};
+    }
+  }
+{% endstyle %}
+{{ "motion-image-banner.css" | asset_url| stylesheet_tag }}
+{% render 'section-divider' %}
+
+<div class="section--{{ section.id }} color-{{ section.settings.color_scheme_light }} dark-color-{{ section.settings.color_scheme_dark }}">
+  <div
+    class="section-motion-image-banner__container {% if before_heading %} min-h-screen{% endif %} relative {%- if section.settings.image_link != blank %} media-hyperlink{% endif -%}"
+    {% if section.settings.image_link != blank %}
+      :class="isScrollFull && 'cursor-pointer'"
+    {% endif %}
+    x-data="xMotionImage"
+  >
+    {% if before_heading %}
+      <div class="motion-image-banner__wrapper w-full left-0 absolute overflow-hidden h-full">
+        <div class="motion-front page-width flex items-center justify-center h-full">
+          {% liquid
+            assign show_before_image = false
+            assign heading_before = section.settings.heading_before | split: '[img]'
+            if section.settings.heading_before contains '[img]'
+              assign show_before_image = true
+            endif
+          %}
+          <{{ section.settings.heading_tag_before }} class="heading-before-section p-break-words h2 heading-before-{{ section.id }} w-full duration-75 transition-transform text-{{ section.settings.heading_alignment }} heading-{{ section.settings.heading_size_before }}">
+            {{ heading_before[0] }}
+            {% if show_before_image %}
+              <span
+                class="motion-before-image image-size-{{ section.settings.heading_size_before }} inline-block transition-opacity duration-150 align-middle"
+                x-bind:class="showAfterImage ? 'opacity-0' : ''"
+              >
+                <span class="inline-block relative rounded-corners overflow-hidden h-full">
+                  {% if section.settings.image != blank %}
+                    <img
+                      class="object-cover {% if section.settings.mobile_image %} hidden md:block{% endif %} h-full object-center"
+                      srcset="
+                        {{ section.settings.image | image_url: width: 375 }} 375w,
+                        {{ section.settings.image | image_url: width: 450 }} 450w,
+                        {{ section.settings.image | image_url: width: 750 }} 750w
+                      "
+                      sizes="(min-width: 768px) 400px, 50vw"
+                      src="{{ section.settings.image | image_url: width: 750 }}"
+                      loading="lazy"
+                      alt="{{ section.settings.image.alt | default: default_image_alt | escape }}"
+                      width="{{ section.settings.image.width }}"
+                      height="{{ section.settings.image.width | divided_by: section.settings.image.aspect_ratio }}"
+                      style="object-position: {{ section.settings.image.presentation.focal_point }};"
+                    >
+                  {% else %}
+                    <div class="w-full h-full aspect-16/9 {% if section.settings.mobile_image %} hidden md:block{% endif %}">
+                      {% render 'placeholder-image', image_type: 'image' %}
+                    </div>
+                  {% endif %}
+  
+                  {% if section.settings.mobile_image %}
+                    <img
+                      class="object-cover object-center h-full md:hidden"
+                      srcset="
+                        {{ section.settings.mobile_image | image_url: width: 375 }} 375w,
+                        {{ section.settings.mobile_image | image_url: width: 450 }} 450w,
+                        {{ section.settings.mobile_image | image_url: width: 750 }} 750w
+                      "
+                      sizes="(min-width: 768px) 400px, 50vw"
+                      src="{{ section.settings.mobile_image | image_url: width: 750 }}"
+                      loading="lazy"
+                      alt="{{ section.settings.mobile_image.alt | default: default_image_alt | escape }}"
+                      width="{{ section.settings.mobile_image.width }}"
+                      height="{{ section.settings.mobile_image.width | divided_by: section.settings.mobile_image.aspect_ratio }}"
+                      style="object-position: {{ section.settings.mobile_image.presentation.focal_point }};"
+                    >
+                  {% endif %}
+                </span>
+              </span>
+            {% endif %}
+            {{ heading_before[1] }}
+          </{{ section.settings.heading_tag_before }}>
+        </div>
+      </div>
+    {% endif %}
+    <div
+      class="motion-after-wrapper w-full h-full {% if before_heading %} sticky top-sticky-after-image left-0 inline-block {% endif %} z-10 pointer-events-none"
+      {% if before_heading %}
+        x-cloak
+        x-show="showAfterImage"
+        x-transition:enter="transition-opacity ease-in-out duration-150"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity ease-in-out duration-150"
+        x-transition:leave-end="opacity-0"
+        :class="isScrollFull && 'finished-scrolling'"
+      {% endif %}
+    >
+      <div class="image-motion-wrapper inline-flex items-center relative justify-center w-full h-full overflow-hidden">
+        <div
+          class="image-section-wrapper overflow-hidden relative h-full"
+          {% if before_heading %}
+            :style="`--motion-after-image-width: ${scaledImageWidth}%; --motion-after-image-height: ${scaledImageHeight}%`"
+          {% else %}
+            style="--motion-after-image-width: 100%; --motion-after-image-height: 100%"
+          {% endif %}
+          :class="!isScrollFull && 'rounded-corners'"
+        >
+          {% if section.settings.image_link != blank %}
+            <a
+              href="{{ section.settings.image_link }}"
+              {% if section.settings.open_new_window_button %}
+                target="_blank"
+              {% endif %}
+              class="section-image-link absolute top-0 left-0 bottom-0 right-0 z-20"
+              aria-label="{{ 'accessibility.image_link' | t }}"
+            ></a>
+          {% endif %}
+          <div
+            class="scheme-image-overlay absolute top-0 left-0 bottom-0 right-0 z-10 opacity-{{ section.settings.overlay_opacity }}"
+          ></div>
+          
+          {% if section.settings.image != blank %}
+            {% if section.index == 1 and section.location == 'template' %}
+              <div class="hidden">
+                {{ section.settings.image | image_url: width: 1780 | image_tag: widths: '375, 450, 750, 900, 1100, 1500, 1780, 2000, 3000, 3840', preload: true, loading: 'lazy', sizes: "100vw" }}
+              </div>
+            {% endif %}
+            <img
+              class="w-full h-full object-cover object-center anm-image-hover {% if section.settings.mobile_image %} hidden md:block{% endif %}"
+              srcset="
+                {{ section.settings.image | image_url: width: 375 }} 375w,
+                {{ section.settings.image | image_url: width: 450 }} 450w,
+                {{ section.settings.image | image_url: width: 750 }} 750w,
+                {{ section.settings.image | image_url: width: 900 }} 900w,
+                {{ section.settings.image | image_url: width: 1100 }} 1100w,
+                {{ section.settings.image | image_url: width: 1500 }} 1500w,
+                {{ section.settings.image | image_url: width: 1780 }} 1780w,
+                {{ section.settings.image | image_url: width: 2000 }} 2000w,
+                {{ section.settings.image | image_url: width: 3000 }} 3000w,
+                {{ section.settings.image | image_url: width: 3840 }} 3840w
+              "
+              sizes="100vw"
+              src="{{ section.settings.image | image_url: width: 3840 }}"
+              loading="lazy"
+              alt="{{ section.settings.image.alt | default: default_image_alt | escape }}"
+              width="{{ section.settings.image.width }}"
+              height="{{ section.settings.image.width | divided_by: section.settings.image.aspect_ratio }}"
+              style="object-position: {{ section.settings.image.presentation.focal_point }};"
+            >
+          {% else %}
+            <div class="w-full h-full aspect-16/9 {% if section.settings.mobile_image %} hidden md:block{% endif %}">
+              {% render 'placeholder-image', image_type: 'image' %}
+            </div>
+          {% endif %}
+          {% if section.settings.mobile_image != blank %}
+            {% if section.index == 1 and section.location == 'template' %}
+              <div class="hidden">
+                {{ section.settings.mobile_image | image_url: width: 1500 | image_tag: widths: '375, 450, 750, 900, 1100', preload: true, loading: 'lazy' }}
+              </div>
+            {% endif %}
+            <img
+              class=" h-full object-cover object-center md:hidden"
+              srcset="
+                {{ section.settings.mobile_image | image_url: width: 375 }} 375w,
+                {{ section.settings.mobile_image | image_url: width: 450 }} 450w,
+                {{ section.settings.mobile_image | image_url: width: 750 }} 750w,
+                {{ section.settings.mobile_image | image_url: width: 900 }} 900w,
+                {{ section.settings.mobile_image | image_url: width: 1100 }} 1100w,
+              "
+              sizes="100vw"
+              src="{{ section.settings.mobile_image | image_url: width: 750 }}"
+              loading="lazy"
+              alt="{{ section.settings.mobile_image.alt | default: default_image_alt | escape }}"
+              width="{{ section.settings.mobile_image.width }}"
+              height="{{ section.settings.mobile_image.width | divided_by: section.settings.mobile_image.aspect_ratio }}"
+              style="object-position: {{ section.settings.mobile_image.presentation.focal_point }};"
+            >
+          {% endif %}
+        </div>
+      </div>
+      <div
+        class="motion-after-content absolute overflow-hidden{% if before_heading %} hidden{% else %} flex{% endif %} top-0 items-center md:items-{{ section.settings.content_position }} w-full h-full left-0 z-10"
+      >
+        <div class="padding-slideshow-content px-4 py-10 md:py-20 w-full text-{{ section.settings.content_alignment }}">
+          {% if section.settings.heading_after != blank %}
+            <{{ section.settings.heading_tag_after }} class="heading-{{ section.settings.heading_size_after }} pointer-events-auto">
+              <span class="block p-break-words">
+                {% render 'text-highlight',
+                  id: section.id,
+                  text: section.settings.heading_after,
+                  highlight_effect: section.settings.highlight_effect,
+                  text_transform: section.settings.text_transform
+                %}
+              </span>
+            </{{ section.settings.heading_tag_after }}>
+          {% endif %}
+          {% if section.settings.text != blank %}
+            <div class="motion-after-text rte pointer-events-auto mt-4 md:mt-5">
+              {% render 'text-highlight',
+                id: section.id,
+                text: section.settings.text,
+                highlight_effect: section.settings.highlight_effect,
+                text_transform: section.settings.text_transform,
+                allow_html: true
+              %}
+            </div>
+          {% endif %}
+          <div class="buttons-{{ section.id }} mt-6.5 pointer-events-auto md:mt-8 inline-flex flex-wrap gap-1 md:gap-2 p-break-words justify-{{ section.settings.content_alignment }} items-center text-{{ section.settings.content_alignment }}">
+            {%- if section.settings.button_label_1 != blank -%}
+              {% render 'button', button_style: section.settings.button_style_1, button_label: section.settings.button_label_1, button_link: section.settings.button_link_1, open_new_window_button: section.settings.open_new_window_button_1, button_size: 'button-large' %}
+            {%- endif -%}
+            {%- if section.settings.button_label_2 != blank -%}
+              {% render 'button', button_style: section.settings.button_style_2, button_label: section.settings.button_label_2, button_link: section.settings.button_link_2, open_new_window_button: section.settings.open_new_window_button_2, button_size: 'button-large' %}
+            {%- endif -%}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="{{ 'motion-image-banner.js' | asset_url }}" defer></script>
+{% schema %}
+{
+  "name": "t:motion_image_banner.name",
+  "tag": "section",
+  "class": "maximize-section section-motion-image-banner",
+  "disabled_on": {
+    "groups": ["aside", "header", "footer"]
+  },
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "t:motion_image_banner.settings.paragraph"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:global.image.image"
+    },
+    {
+      "type": "image_picker",
+      "id": "mobile_image",
+      "label": "t:global.image.mobile_image"
+    },
+    {
+      "type": "url",
+      "id": "image_link",
+      "label": "t:global.image.image_link"
+    },
+    {
+      "type": "checkbox",
+      "id": "open_new_window_button",
+      "default": false,
+      "label": "t:global.text.open_link_new_tab"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "%",
+      "label": "t:global.overlay.overlay_opacity",
+      "info": "t:motion_image_banner.settings.overlay_opacity_info",
+      "default": 0
+    },
+    {
+      "type": "select",
+      "id": "desktop_height",
+      "label": "t:global.image.desktop_image_height",
+      "options": [
+        {
+          "value": "450px",
+          "label": "450px"
+        },
+        {
+          "value": "550px",
+          "label": "550px"
+        },
+        {
+          "value": "650px",
+          "label": "650px"
+        },
+        {
+          "value": "750px",
+          "label": "750px"
+        },
+        {
+          "value": "100vh",
+          "label": "t:global.image.fullscreen"
+        }
+      ],
+      "default": "650px"
+    },
+    {
+      "type": "select",
+      "id": "mobile_height",
+      "label": "t:global.image.mobile_image_height",
+      "options": [
+        {
+          "value": "400px",
+          "label": "400px"
+        },
+        {
+          "value": "500px",
+          "label": "500px"
+        },
+        {
+          "value": "90vh",
+          "label": "t:global.image.fullscreen"
+        }
+      ],
+      "default": "500px"
+    },
+    {
+      "type": "header",
+      "content": "t:motion_image_banner.settings.before_motion.header"
+    },
+    {
+      "type": "text",
+      "id": "heading_before",
+      "label": "t:global.text.heading",
+      "default": "Immerse in a wide range of invaluable [img] significance at our store",
+      "info": "t:motion_image_banner.settings.before_motion.heading_info"
+    },
+    {
+      "type": "select",
+      "id": "heading_size_before",
+      "label": "t:global.text.heading_size",
+      "options": [
+        {
+          "value": "large",
+          "label": "t:global.size.large"
+        },
+        {
+          "value": "extra-large",
+          "label": "t:global.size.extra_large"
+        }
+      ],
+      "default": "large"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag_before",
+      "default": "h2",
+      "label": "t:global.text.heading_tag",
+      "options": [
+        {
+          "value": "h1",
+          "label": "H1"
+        },
+        {
+          "value": "h2",
+          "label": "H2"
+        },
+        {
+          "value": "h3",
+          "label": "H3"
+        },
+        {
+          "value": "h4",
+          "label": "H4"
+        },
+        {
+          "value": "h5",
+          "label": "H5"
+        },
+        {
+          "value": "h6",
+          "label": "H6"
+        },
+        {
+          "value": "p",
+          "label": "p"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "heading_alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:global.position.left"
+        },
+        {
+          "value": "center",
+          "label": "t:global.position.center"
+        },
+        {
+          "value": "right",
+          "label": "t:global.position.right"
+        }
+      ],
+      "label": "t:global.alignment.content",
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "t:motion_image_banner.settings.after_motion.header"
+    },
+    {
+      "type": "text",
+      "id": "heading_after",
+      "label": "t:global.text.heading",
+      "default": "Immerse in a wide range of invaluable significance at our store",
+      "info": "t:global.text.highlight_info"
+    },
+    {
+      "type": "select",
+      "id": "heading_size_after",
+      "label": "t:global.text.heading_size",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:global.size.small"
+        },
+        {
+          "value": "medium",
+          "label": "t:global.size.medium"
+        },
+        {
+          "value": "large",
+          "label": "t:global.size.large"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag_after",
+      "default": "h2",
+      "label": "t:global.text.heading_tag",
+      "options": [
+        {
+          "value": "h1",
+          "label": "H1"
+        },
+        {
+          "value": "h2",
+          "label": "H2"
+        },
+        {
+          "value": "h3",
+          "label": "H3"
+        },
+        {
+          "value": "h4",
+          "label": "H4"
+        },
+        {
+          "value": "h5",
+          "label": "H5"
+        },
+        {
+          "value": "h6",
+          "label": "H6"
+        },
+        {
+          "value": "p",
+          "label": "p"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "t:global.text.text",
+      "default": "Describe your store or promotion, highlighting attractive deals for customers.",
+      "info": "t:global.text.highlight_info"
+    },
+    {
+      "type": "select",
+      "id": "highlight_effect",
+      "label": "t:global.text.highlight_effect.label",
+      "options": [
+        {
+          "value": "underline",
+          "label": "t:global.text.highlight_effect.option_1"
+        },
+        {
+          "value": "marker",
+          "label": "t:global.text.highlight_effect.option_2"
+        },
+        {
+          "value": "text-color-change",
+          "label": "t:global.text.highlight_effect.option_3"
+        },
+        {
+          "value": "shadow",
+          "label": "t:global.text.highlight_effect.option_4"
+        }
+      ],
+      "default": "underline"
+    },
+    {
+      "type": "select",
+      "id": "text_transform",
+      "label": "t:global.text.transform.label",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:global.text.transform.none"
+        },
+        {
+          "value": "italic",
+          "label": "t:global.text.transform.italic"
+        },
+        {
+          "value": "uppercase",
+          "label": "t:global.text.transform.uppercase"
+        },
+        {
+          "value": "both",
+          "label": "t:global.text.transform.italic_and_uppercase"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "text",
+      "id": "button_label_1",
+      "label": "t:motion_image_banner.settings.after_motion.button_label_1",
+      "default": "Discover now"
+    },
+    {
+      "type": "url",
+      "id": "button_link_1",
+      "label": "t:motion_image_banner.settings.after_motion.button_link_1"
+    },
+    {
+      "type": "checkbox",
+      "id": "open_new_window_button_1",
+      "default": false,
+      "label": "t:global.text.open_link_new_tab"
+    },
+    {
+      "type": "select",
+      "id": "button_style_1",
+      "label": "t:motion_image_banner.settings.after_motion.button_style_1",
+      "options": [
+        {
+          "value": "primary",
+          "label": "t:global.button.style.primary"
+        },
+        {
+          "value": "secondary",
+          "label": "t:global.button.style.secondary"
+        },
+        {
+          "value": "text-link",
+          "label": "t:global.button.style.text_link"
+        },
+        {
+          "value": "direction_link",
+          "label": "t:global.button.style.direction_link"
+        }
+      ],
+      "default": "primary"
+    },
+    {
+      "type": "text",
+      "id": "button_label_2",
+      "label": "t:motion_image_banner.settings.after_motion.button_label_2"
+    },
+    {
+      "type": "url",
+      "id": "button_link_2",
+      "label": "t:motion_image_banner.settings.after_motion.button_link_2"
+    },
+    {
+      "type": "checkbox",
+      "id": "open_new_window_button_2",
+      "default": false,
+      "label": "t:global.text.open_link_new_tab"
+    },
+    {
+      "type": "select",
+      "id": "button_style_2",
+      "label": "t:motion_image_banner.settings.after_motion.button_style_2",
+      "options": [
+        {
+          "value": "primary",
+          "label": "t:global.button.style.primary"
+        },
+        {
+          "value": "secondary",
+          "label": "t:global.button.style.secondary"
+        },
+        {
+          "value": "text-link",
+          "label": "t:global.button.style.text_link"
+        },
+        {
+          "value": "direction_link",
+          "label": "t:global.button.style.direction_link"
+        }
+      ],
+      "default": "primary"
+    },
+    {
+      "type": "select",
+      "id": "content_alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:global.position.left"
+        },
+        {
+          "value": "center",
+          "label": "t:global.position.center"
+        },
+        {
+          "value": "right",
+          "label": "t:global.position.right"
+        }
+      ],
+      "label": "t:global.alignment.content",
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "content_position",
+      "options": [
+        {
+          "value": "start",
+          "label": "t:global.position.top"
+        },
+        {
+          "value": "center",
+          "label": "t:global.position.middle"
+        },
+        {
+          "value": "end",
+          "label": "t:global.position.bottom"
+        }
+      ],
+      "label": "t:global.position.desktop_content_position",
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "unit": "px",
+      "step": 4,
+      "default": 0,
+      "label": "t:global.section.top_padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "unit": "px",
+      "step": 4,
+      "default": 0,
+      "label": "t:global.section.bottom_padding"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_section_divider",
+      "label": "t:global.section.show_section_divider",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.colors"
+    },
+    {
+      "type": "color",
+      "id": "color_heading_before",
+      "default": "#011832",
+      "label": "t:motion_image_banner.settings.colors.color_heading_before_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:motion_image_banner.settings.colors.color_scheme_after_motion_light"
+    },
+    {
+      "type": "color",
+      "id": "color_heading_dark",
+      "default": "#FFFFFF",
+      "label": "t:motion_image_banner.settings.colors.color_heading_before_dark"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:motion_image_banner.settings.colors.color_scheme_after_motion_dark"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:motion_image_banner.name",
+      "category": "t:global.category.banners"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,332 @@
+{% comment %}
+    Renders a Promotion block
+
+    Accepts:
+    - image_ratio: {String} Size of the product image card. Values are "square", "rectangle", "round", "natural". Default is "square" (optional) 
+    Usage:
+    {% render 'promotion-block' %}
+{% endcomment %}
+{% liquid 
+  assign corner_image = false
+  assign class_rounded = ""
+  if settings.edges_type == 'rounded_corners' or image_ratio == "round"
+    assign corner_image = true
+    assign class_rounded = 'rounded-[10px]'
+  endif
+%}
+{%- style -%}
+  {% if image != blank %}
+    .promotion-block-{{ block.id }}{
+      background: none;
+    }
+  {% endif %}
+{%- endstyle -%}
+{%- liquid 
+  if content_position
+    assign class_layout = "flex items-" | append: content_position
+  else
+    assign class_layout = "flex items-center"
+  endif
+
+  if block.settings.image_mobile != blank
+    assign image_mobile = block.settings.image_mobile
+  else
+    assign image_mobile = image
+  endif
+  assign video_type = false
+  assign video_alt = block.settings.video_alt_text
+
+  if block.settings.video != nil
+    assign video_type = 'video_select'
+  elsif block.settings.video_url != blank
+    assign video_type = 'video_url'
+  endif
+
+  if block.settings.video_url != blank
+    assign video_type = "video_url"
+  endif
+-%}
+{% assign default_image_alt = 'accessibility.default_alt' | t %}
+<div 
+  class="promotion-block__wrapper promotion-block-{{ blockID }} color-{{ color_scheme_light }} dark-color-{{ color_scheme_dark }} color-scheme-block md:list-layout:col-span-1 relative promotion group md:list-layout:min-h-[200px] {{ class_rounded }}
+    {%- unless image_ratio == "auto" %} flex items-{{ content_position | default: 'center' }} h-full min-h-[200px]{% endunless -%}
+    {%- if collection_page %} anm-reveal-item{% endif -%}
+    {%- if block.settings.image_link != blank %} media-hyperlink{% endif -%}
+  "
+  {%- if collection_page -%}
+    data-active="false"
+  {%- endif -%}
+>
+  {%- capture sizes -%}
+    (min-width: {{ settings.page_width }}px) {% if enable_desktop_slider %}{{ settings.page_width | plus: 100 | divided_by: columns_desktop }}px{% else %}calc((100vw - 10rem) / {{ columns_desktop }}){% endif %}, (min-width: 768px) {% if columns_desktop > 1 %}calc((100vw - 5rem) / {{ columns_desktop }}){% else %}calc(100vw - 5rem){% endif %}, calc((100vw) / {{ columns_mobile }})
+  {%- endcapture -%}
+  {% liquid
+    if image_ratio == "auto" or image_ratio == "round"
+      assign is_full_height = false
+      assign image_ratio = blank
+    else
+      assign is_full_height = true
+    endif
+
+    assign show_controls = true
+    if subheading != blank or heading != blank or content != blank or button_label != blank
+      assign show_controls = false
+    else
+      unless icon == 'none' or custom_icon_image == blank and icon == 'another' and another_icon == blank
+        assign show_controls = false
+      endunless
+    endif
+  %}
+  {% if video_type %}
+    {% render 'media',
+      video: block.settings.video,
+      enable_video_autoplay: block.settings.enable_video_autoplay,
+      video_alt: video_alt,
+      video_url: block.settings.video_url,
+      show_sound_control: block.settings.show_sound_control,
+      cover_image: block.settings.image,
+      mobile_cover_image: block.settings.image_mobile,
+      section: section,
+      sizes: sizes,
+      class: 'relative h-full',
+      class_rounded: class_rounded,
+      is_full_height: is_full_height,
+      show_placeholder_image: true,
+      ratio: image_ratio,
+      corner_image: corner_image,
+      show_controls: show_controls
+    %}
+    <span class="pointer-events-none absolute top-0 left-0 bottom-0 right-0 z-10 scheme-image-overlay opacity-{{ image_overlay_opacity }}{% if corner_image %} rounded-[10px]{% endif %}"></span>
+  {%- elsif image != blank or block.settings.image_mobile != blank -%}
+    {%- if loading == 'eager' -%}
+      <div class="hidden">
+        {%- if block.settings.image_mobile != blank -%}
+          <img
+            src="{{ block.settings.image_mobile | image_url: width: 750 }}"
+            srcset="
+              {{ block.settings.image_mobile | image_url: width: 375 }} 375w,
+              {{ block.settings.image_mobile | image_url: width: 450 }} 450w,
+              {{ block.settings.image_mobile | image_url: width: 750 }} 750w"
+            sizes="100vw"
+            loading="eager"
+            alt="{{ block.settings.image_mobile.alt | default: default_image_alt | escape }}"
+            decoding="async"
+            width="{{ block.settings.image_mobile.width }}"
+            height="{{ block.settings.image_mobile.height }}"
+          >
+        {%- endif -%}
+
+        <img
+          src="{{ image | image_url: width: 1780 }}"
+          srcset="
+            {{ image | image_url: width: 375 }} 375w,
+            {{ image | image_url: width: 450 }} 450w,
+            {{ image | image_url: width: 750 }} 750w,
+            {{ image | image_url: width: 900 }} 900w,
+            {{ image | image_url: width: 1100 }} 1100w,
+            {{ image | image_url: width: 1500 }} 1500w,
+            {{ image | image_url: width: 1780 }} 1780w,
+            {{ image | image_url: width: 2000 }} 2000w"
+          sizes="{{ sizes }}"
+          loading="eager"
+          fetchpriority="high"
+          alt="{{ image.alt | default: default_image_alt | escape }}"
+          decoding="async"
+          width="{{ image.width }}"
+          height="{{ image.height }}"
+        >
+      </div>
+    {%- endif -%}
+    <div 
+      class="promotion-media{% if image == blank %} md:hidden{% endif %} md:list-layout:pb-[30%] w-full h-full overflow-hidden relative z-0 before:h-0 before:block{% if corner_image %} rounded-[10px]{% endif %}{% unless image_ratio == "auto" or image_ratio == "round" %} pb-[{{ ratio }}%]{% endunless %}{% if collection_page %} lg:pb-[30%]{% endif %}"
+      {% if image_ratio == "auto" %} style="height:0; padding-bottom: {{ 100 | divided_by: image.aspect_ratio }}%;"{% endif %}
+    >
+      {% if block.settings.image_link != blank %}
+        <a href="{{ block.settings.image_link }}" {% if open_new_window_image %} target="_blank"{% endif %} class="block{% if corner_image %} rounded-[10px]{% endif %}">
+      {% else %}
+        <div class="block{% if corner_image %} rounded-[10px]{% endif %}">
+      {% endif %}
+        <div class="promotion-image w-full h-full top-0 left-0 absolute z-10">
+          {% comment %}theme-check-disable ImgLazyLoading{% endcomment %}
+          <picture>
+            <source 
+              srcset="{{ image | image_url: width: 375 }} 375w,
+              {{ image | image_url: width: 450 }} 450w,
+              {{ image | image_url: width: 750 }} 750w" 
+              media="(max-width: 767px)" 
+              width="{{ image.width }}" 
+              height="{{ image.height }}"
+              sizes="{{ sizes }}"
+            />
+            <img
+              srcset="{{ image | image_url: width: 225 }} 225w,
+              {{ image | image_url: width: 375 }} 375w,
+              {{ image | image_url: width: 450 }} 450w,
+              {{ image | image_url: width: 750 }} 750w,
+              {{ image | image_url: width: 900 }} 900w,
+              {{ image | image_url: width: 1100 }} 1100w,
+              {{ image | image_url: width: 1500 }} 1500w,
+              {{ image | image_url: width: 1780 }} 1780w,
+              {{ image | image_url: width: 2000 }} 2000w"
+              src="{{ image | image_url: width: 1780 }}"
+              sizes="{{ sizes }}"
+              loading="lazy"
+              alt="{{ image.alt | default: default_image_alt | escape }}"
+              width="{{ image.width }}"
+              height="{{ image.width | divided_by: image.aspect_ratio }}"
+              style="object-position: {{ image.presentation.focal_point }};"
+              class="md:list-layout:hidden aspect-{{ image_ratio }} image-hover anm-image-hover w-full h-full object-cover{% if corner_image %} rounded-[10px]{% endif %} hidden md:block"
+            >
+          </picture>
+
+          {%- if image_mobile != blank -%}
+            <img
+              srcset="{{ image_mobile | image_url: width: 375 }} 375w,
+              {{ image_mobile | image_url: width: 450 }} 450w,
+              {{ image_mobile | image_url: width: 750 }} 750w,
+              {{ image_mobile | image_url: width: 900 }} 900w,
+              {{ image_mobile | image_url: width: 1100 }} 1100w,"
+              sizes="{{ sizes }}"
+              src="{{ image_mobile | image_url: width: 750 }}"
+              alt="{{ image_mobile.alt | default: default_image_alt | escape }}"
+              class="object-cover absolute top-0 left-0 h-full w-full md:hidden animate_transition_slide__image"
+              loading="lazy"  
+              width="{{ image_mobile.width }}"
+              height="{{ image_mobile.height }}"
+              style="object-position: {{ image_mobile.presentation.focal_point }}"
+              x-intersect.once="$el.classList.add('active')"
+            />  
+          {%- endif %}
+          {% comment %}theme-check-enable ImgLazyLoading{% endcomment %}
+          {% if list_layout %}
+            <img
+              srcset="{{ image | image_url: width: 225 }} 225w,
+              {{ image | image_url: width: 375 }} 375w,
+              {{ image | image_url: width: 450 }} 450w,
+              {{ image | image_url: width: 750 }} 750w,
+              {{ image | image_url: width: 900 }} 900w,
+              {{ image | image_url: width: 1100 }} 1100w,
+              {{ image | image_url: width: 1500 }} 1500w,
+              {{ image | image_url: width: 1780 }} 1780w,
+              {{ image | image_url: width: 2000 }} 2000w"
+              src="{{ image | image_url: width: 1780 }}"
+              sizes="(min-width: {{ settings.page_width }}px) calc({{ settings.page_width | plus: 100 }}px / {{ 2 |  divided_by: column_desktop_list }}),calc(100vw / {{ 2 |  divided_by: column_desktop_list }})"
+              loading="lazy" 
+              alt="{{ image.alt | default: default_image_alt | escape }}"
+              width="{{ image.width }}"
+              height="{{ image.width | divided_by: image.aspect_ratio }}"
+              style="object-position: {{ image.presentation.focal_point }};"
+              class="aspect-{{ image_ratio }} hidden md:list-layout:block image-hover anm-image-hover w-full h-full object-cover{% if corner_image %} rounded-[10px]{% endif %}"
+            >
+          {% endif %}
+        </div>
+        <span class="pointer-events-none absolute top-0 left-0 bottom-0 right-0 z-10 scheme-image-overlay opacity-{{ image_overlay_opacity }}"></span>
+      {% if block.settings.image_link != blank %}
+        </a>
+      {% else %}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+ 
+  <div 
+    class="promotion-content w-full overflow-hidden z-10 top-0 right-0 bottom-0 left-0 h-full {{ class_layout -}}
+      {%- if image_mobile == blank and video_type == false %} relative{% else %} absolute pointer-events-none{% endif %} text-{{ alignment -}}
+    "
+  >
+    {% style %}
+      .promotion-block-{{ blockID }} .promotion-content {
+        --promo-grid-column-mobile: 1 / {{ columns_mobile }};
+        --promo-grid-column-desktop: 1 / {{ columns_desktop }};
+        {% if list_layout %}
+        --promo-list-column: {{ column_desktop_list }} / {{ products_per_row_on_mobile }};
+        {% endif %}
+      }
+    {% endstyle %}
+    <div class="w-full">
+      {% if block.settings.image_link != blank and block.settings.video == blank and block.settings.video_url == blank %}
+        <a href="{{ block.settings.image_link }}" {% if open_new_window_image %} target="_blank"{% endif %} class="absolute inset-0 focus-visible:-outline-offset-1"></a>
+      {% endif %}
+      {%- unless icon == 'none' or icon == 'another' and another_icon == blank -%}
+        {% style %}
+          .icon--{{ block.id }} {
+            width: {{ icon_size | times: 0.7 }}px;
+            height: {{ icon_size | times: 0.7 }}px;
+          }
+          @media (min-width: 768px){
+            .icon--{{ block.id }} {
+              width: {{ icon_size }}px;
+              height: {{ icon_size }}px;
+            }
+          }
+        {% endstyle %}
+        <div class="promotion-block__icon-wrapper inline-flex items-center justify-{{ alignment }} color-text-[rgba(var(--color-text))] mb-3 pointer-events-none">
+          <span class="inline-block relative icon--{{ block.id }}">
+            {% if custom_icon_image != blank %}
+              <img
+                src="{{ custom_icon_image | image_url: width: icon_size }}"
+                alt="{{ custom_icon_image.alt | default: default_image_alt | escape }}"
+                loading="lazy"
+                width="{{ custom_icon_image.width }}"
+                height="{{ custom_icon_image.height }}"
+                style="object-position: {{ custom_icon_image.presentation.focal_point }}"
+                class="object-cover absolute top-0 left-0 w-full h-full custom-icon-image_rounded-corners{% if corner_image %} rounded-[10px]{% endif %}"
+              >
+            {% else %} 
+              {% if icon == 'another' %}
+                {% render 'icon-another', icon: another_icon %}  
+              {% else %}
+                {% render 'icon-labels-bags', icon: icon %}
+              {% endif %}
+            {% endif %}
+          </span>
+        </div>
+      {%- endunless -%}
+      <div class="promotion__content-wrapper {% if button_label != blank %}heading-content-spacing{% endif %} flex flex-col gap-0.5 pointer-events-none">
+        {%- if subheading != blank -%}
+          <div 
+            class="promotion-subheading subheading-{{ block.id }} subheading block p-break-words {% unless collection_page %} anm-fade-element{% endunless %}"
+            {% unless collection_page %} data-fade-on-intersect{% endunless %}
+          >
+            {{ subheading }}
+          </div>
+        {%- endif -%}
+        {%- if heading != blank -%}
+          <div class="promotion-heading h2 heading-{{ title_size }} heading-{{ blockID }} p-break-words">
+            {% render 'text-highlight',
+              id: blockID,
+              text: heading,
+              highlight_effect: block.settings.highlight_effect,
+              text_transform: block.settings.text_transform
+            %}
+          </div>
+        {%- endif -%}
+        {%- if content != blank -%}
+          <div class="promotion-text text-{{ block.id }} text-{{ text_size }} pointer-events-auto rte color-text-[rgba(var(--color-text))] whitespace-normal p-break-words">
+            {% render 'text-highlight',
+              id: blockID,
+              text: content,
+              highlight_effect: block.settings.highlight_effect,
+              text_transform: block.settings.text_transform,
+              allow_html: true
+            %}
+          </div>
+        {%- endif -%}
+      </div>
+      {%- if button_label != blank -%}
+          {% assign class_button ='promotion-button pointer-events-auto z-30 cursor-pointer p-break-words button--' | append: block.id %}
+          {% if content == blank %}
+            {% assign class_button = class_button | append: 'mt-3' %}
+          {% endif %}
+          {% render 'button',
+            button_style: block.settings.show_button_style,
+            button_label: block.settings.button_label,
+            button_link: block.settings.button_link,
+            open_new_window_button: block.settings.open_new_window_button,
+            class: class_button,
+            allow_wrap: true
+          %}
+      {%- endif -%}
+    </div>
+  </div>
+</div>

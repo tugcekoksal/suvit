@@ -1,0 +1,47 @@
+
+<div class="inline-flex items-center gap-x-4">
+  {% unless icon == 'none' or custom_icon_image == blank and icon == 'another' and another_icon == blank %}
+    <span class="fill-current inline-block relative icon h-6 w-6 lg:h-9 lg:w-9 min-w-[24px] lg:min-w-[36px]">
+      {% if custom_icon_image != blank %}
+        {% assign default_image_alt = 'accessibility.default_alt' | t %}
+        <img
+          src="{{ custom_icon_image | image_url: width: 36 }}"
+          alt="{{ custom_icon_image.alt | default: default_image_alt | escape }}"
+          loading="lazy"
+          width="{{ custom_icon_image.width }}"
+          height="{{ custom_icon_image.height }}"
+          style="object-position: {{ custom_icon_image.presentation.focal_point }}"
+          class="object-cover absolute top-0 left-0 w-full h-full rounded-corners custom-icon-image_rounded-corners"
+        >
+      {% else %}
+        {% if icon == 'another' %}
+          {% render 'icon-another', icon: another_icon %}  
+        {% else %}
+          {% render 'icon-labels-bags', icon: icon %}
+        {% endif %}
+      {% endif %}
+    </span>
+  {% endunless %}
+  {% if title or text %}
+    <div{% unless content_alignment %} class="grow"{% endunless %}>
+      <p class="empty:hidden p-break-words mt-1 mb-1">
+        {{ title | escape }}
+      </p>
+      {% if link != blank %}
+        <a
+          href="{{ link }}"
+          {% if open_new_window %}
+            target="_blank"
+          {% endif %}
+          class="nav-subtitle block text-medium h2 p-break-words empty:hidden text-link-animation relative mt-1 mb-1"
+        >
+          {{ text | escape }}
+        </a>
+      {% else %}
+        <p class="nav-subtitle block text-medium h2 p-break-words empty:hidden mt-1 mb-1">
+          {{ text | escape }}
+        </p>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>

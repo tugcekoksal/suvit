@@ -1,0 +1,149 @@
+{% style %}
+  .section--{{ section.id }} {
+    padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+    padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+  }
+  @media screen and (min-width: 768px) {
+    .section--{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+  .section--{{ section.id }} .rte a {
+    color: var(--color-link, #0066cc);
+    text-decoration: underline;
+  }
+  .section--{{ section.id }} .rte a:hover {
+    opacity: 0.8;
+  }
+{% endstyle %}
+
+{% liquid
+  assign long_desc = collection.metafields.custom.long_desc
+%}
+
+{% if long_desc != blank %}
+  {% render 'section-divider' %}
+  <div class="collection-description section--{{ section.id }} {{ section.settings.section_width }} rounded-corners-container color-{{ section.settings.color_scheme_light }} dark-color-{{ section.settings.color_scheme_dark }}">
+    <div class="collection-description__wrapper mx-auto">
+      {% if section.settings.show_heading and section.settings.heading != blank %}
+        <{{ section.settings.heading_tag }} class="collection-description__heading heading-{{ section.settings.heading_size }} block heading-content-spacing text-{{ section.settings.heading_alignment }} anm-fade-element" data-fade-on-intersect>
+          {{ section.settings.heading }}
+        </{{ section.settings.heading_tag }}>
+      {% endif %}
+      <div class="collection-description__content text-{{ section.settings.text_size }} mx-auto">
+        <div class="rte anm-fade-element" data-fade-on-intersect>
+         {{ long_desc | metafield_tag }}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Long Description",
+  "class": "maximize-section",
+  "enabled_on": {
+    "templates": ["collection"]
+  },
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_heading",
+      "label": "Show Heading",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Beschreibung"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "label": "Heading tag",
+      "default": "h2",
+      "options": [
+        { "value": "h1", "label": "H1" },
+        { "value": "h2", "label": "H2" },
+        { "value": "h3", "label": "H3" }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "Heading size",
+      "default": "medium",
+      "options": [
+        { "value": "small", "label": "Small" },
+        { "value": "medium", "label": "Medium" },
+        { "value": "large", "label": "Large" }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "heading_alignment",
+      "label": "Heading alignment",
+      "default": "left",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "text_size",
+      "label": "Text size",
+      "default": "medium",
+      "options": [
+        { "value": "small", "label": "Small" },
+        { "value": "medium", "label": "Medium" },
+        { "value": "large", "label": "Large" }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "Section width",
+      "default": "page-width",
+      "options": [
+        { "value": "page-width", "label": "Page width" },
+        { "value": "full-width", "label": "Full width" },
+        { "value": "full-width-padded", "label": "Full width padded" }
+      ]
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0, "max": 100, "step": 4, "unit": "px",
+      "label": "Top padding",
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0, "max": 100, "step": 4, "unit": "px",
+      "label": "Bottom padding",
+      "default": 28
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "Color scheme (light)"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "Color scheme (dark)"
+    }
+  ],
+  "presets": [
+    { "name": "Long Description" }
+  ]
+}
+{% endschema %}

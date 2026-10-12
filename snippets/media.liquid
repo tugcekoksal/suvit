@@ -1,0 +1,518 @@
+{% comment %}
+  Renders product media gallery
+
+  Accepts:
+  - video: {Object} Video object (optional)
+  - enable_video_autoplay: {Boolean} Enable autoplay video. Default: false (optional)
+  - video_alt: {Boolean} Video alt text. (optional)
+  - video_url: {String} Video url (optional)
+  - show_sound_control: {Boolean} Show button sound
+  - show_button_play: {Boolean} Show button play
+  - cover_image: {Object} Background image (optional)
+  - mobile_cover_image: {Object} Mobile background image (optional)
+  - section: {Object} Section Object
+  - sizes: {Object} Sizes image(optional)
+  - columns_desktop: {Number} Column span on desktop — used to compute sizes when sizes is blank (optional)
+  - max_columns_desktop: {Number} Total grid columns on desktop (optional)
+  - columns_mobile: {Number} Column span on mobile (optional)
+  - max_columns_mobile: {Number} Total grid columns on mobile (optional)
+  - class: {String} Media class
+  - is_full_height: {Boolean} Full height instead of ratio based on width (optional)
+  - show_placeholder_image: {Boolean} Show placeholder image when media is empty (optional)
+  - ratio: {String} Ratio (optional)
+  - show_controls: {Boolean} Show controls bar video (optional)
+  - preload: {Boolean} Is preload media (optional)
+  - is_full_height_on_mobile: {Boolean} Full height instead of ratio based on width on mobile (optional)
+  - is_full_height_on_tablet: {Boolean} Full height instead of ratio based on width on tablet (optional)
+  - media_loading: {String} Media loading attribute (optional)
+  - is_active_media: {Boolean} Is media active in section(optional)
+  Usage:
+  {% render 'media',
+    video: section.settings.video,
+    enable_video_autoplay: section.settings.enable_video_autoplay,
+    video_alt: section.settings.video_alt,
+    video_url: section.settings.video_url,
+    show_sound_control: section.settings.show_sound_control,
+    cover_image: section.settings.cover_image,
+    mobile_cover_image: section.settings.mobile_cover_image,
+    section: section,
+    sizes: section.settings.sizes,
+    class: 'media-class',
+    is_full_height: section.settings.is_full_height,
+    show_placeholder_image: section.settings.show_placeholder_image,
+    ratio: section.settings.ratio,
+    media_loading: image_loading
+  %}
+{% endcomment %}
+{%- capture sizes -%}{% render 'media-sizes-design-mode', sizes: sizes %}{%- endcapture -%}
+{%- assign sizes = sizes | strip -%}
+{% liquid
+  assign video_type = false
+
+  if sizes == blank
+    if columns_desktop and max_columns_desktop and columns_mobile and max_columns_mobile
+      assign pct_desktop = columns_desktop | times: 100 | divided_by: max_columns_desktop
+      assign pct_mobile  = columns_mobile  | times: 100 | divided_by: max_columns_mobile
+      assign sizes = '(min-width: 768px) ' | append: pct_desktop | append: 'vw, ' | append: pct_mobile | append: 'vw'
+    else
+      assign sizes = '100vw'
+    endif
+  endif
+ 
+  if preload or section.index == 1 and section.location == 'template'
+    assign loading = 'eager'
+    if media_loading != blank
+      assign loading = media_loading
+    endif
+  else
+    assign loading = 'lazy'
+  endif
+
+  if video_url != blank
+    if video_url.type == 'youtube'
+      assign video_type = 'youtube'
+      assign video_id = video_url.id
+    elsif video_url.type == 'vimeo'
+      assign video_type = 'vimeo'
+      assign video_id = video_url.id
+    endif
+  endif
+
+  if show_sound_control
+    unless show_controls == false
+      assign show_controls = true
+    endunless
+  else 
+    assign show_controls = false
+  endif
+
+  if video != null
+    assign video_type = 'video_select'
+    if video_alt == blank
+      assign video_alt = video.alt
+    endif
+  endif
+  
+  assign media_ratio_and_style = 'h-full'
+  if ratio != blank
+    if ratio contains 'ratio-'
+      assign media_ratio_and_style = ratio
+      else
+        case ratio
+          when 'square', '1/1'
+            assign media_ratio_and_style = 'ratio-1/1'
+          when '3/4'
+            assign media_ratio_and_style = 'ratio-3/4'
+          when '4/3', 'landscape'
+            assign media_ratio_and_style = 'ratio-4/3'
+          when '2/3', 'portrait', 'rectangle'
+            assign media_ratio_and_style = 'ratio-2/3'
+          when '16/9', 'wide'
+            assign media_ratio_and_style = 'ratio-16/9'
+          when '9/14'
+            assign media_ratio_and_style = 'ratio-9/14'
+          when '9/16'
+            assign media_ratio_and_style = 'ratio-9/16'
+          when 'natural', 'auto'
+            assign media_ratio_and_style = 'ratio-auto'
+          when 'round'
+            assign media_ratio_and_style = 'ratio-1/1 rounded-full'
+          else
+            assign media_ratio_and_style = 'h-full'
+        endcase
+    endif
+  endif
+  unless is_full_height or video_type == 'video_select'
+    if video_url != blank and media_ratio_and_style == 'h-full' or media_ratio_and_style == 'ratio-auto'
+      assign media_ratio_and_style = 'ratio-16/9'
+    endif
+  endunless
+
+  unless show_button_play == false
+    assign show_button_play = true
+  endunless
+
+  assign is_active = true
+  if is_active_media == false
+    assign is_active = false
+  endif
+%}
+
+{%- capture buttons_video -%}
+  {%- unless show_controls and enable_video_autoplay -%}
+    <div 
+      class="buttons-video__wrapper
+        {%- if show_controls %} show-controls{% endif -%}
+        {%- if buttons_position %} {{ buttons_position -}}{%- else %} bottom-0 justify-end{% endif -%}
+      "
+      x-cloak
+    >
+      {% comment %} Button sound control {% endcomment %}
+      {% if show_controls == false and show_sound_control == true %}
+        <button
+          class="button-sound-control video__button pointer-events-auto is-muted anm-hover-button"
+          @click.prevent.stop="$store.xVideo.toggleMute($el)"
+          @keyup.enter.stop="$store.xVideo.toggleMute($el)"
+          @keydown.enter.prevent
+          {% unless enable_video_autoplay %}
+            tabindex="-1"
+          {% endunless %}
+          aria-label="button sound control"
+        >
+          <span class="icon-unmute video__button-icon">
+            {% render 'icon-media', icon: 'icon-unmute' %}
+          </span>
+          <span class="icon-mute video__button-icon">
+            {% render 'icon-media', icon: 'icon-mute' %}
+          </span>
+        </button>
+      {% endif %}
+        
+      {% comment %} Button play / pause {% endcomment %}
+      {% if show_button_play == true %}
+        <button
+          class="button-play video__button pointer-events-auto anm-hover-button{% if enable_video_autoplay %} is-playing started-video{% endif %}"
+          @click.prevent.stop="$store.xVideo.handleClickButtonPlay($el, '{{ video_type }}', '{{ video_id }}', '{{ video_alt }}', {{ show_controls }})"
+          @keyup.enter.stop="$store.xVideo.handleClickButtonPlay($el, '{{ video_type }}', '{{ video_id }}', '{{ video_alt }}', {{ show_controls }})"
+          @keydown.enter.prevent
+          aria-label="button play"
+        >
+          <span class="icon-play video__button-icon">
+            {% render 'icon-media', icon: 'icon-play' %}
+          </span>
+          <span class="icon-pause video__button-icon">
+            {% render 'icon-media', icon: 'icon-pause' %}
+          </span>
+        </button>
+      {% endif %}
+    </div>
+  {%- endunless -%}
+{%- endcapture -%}
+
+{%- if loading == 'eager' -%}
+  {%- unless video_type and enable_video_autoplay -%}
+    {%- if cover_image != blank -%}
+      <link
+        rel="preload"
+        as="image"
+        href="{{ cover_image | image_url: width: 1500 }}"
+        {%- if mobile_cover_image != blank -%}
+          imagesrcset="{{ cover_image | image_url: width: 767 }} 767w, {{ cover_image | image_url: width: 900 }} 900w, {{ cover_image | image_url: width: 1100 }} 1100w, {{ cover_image | image_url: width: 1200 }} 1200w, {{ cover_image | image_url: width: 1350 }} 1350w, {{ cover_image | image_url: width: 1400 }} 1400w, {{ cover_image | image_url: width: 1500 }} 1500w, {{ cover_image | image_url: width: 1780 }} 1780w, {{ cover_image | image_url: width: 2000 }} 2000w, {{ cover_image | image_url: width: 3000 }} 3000w, {{ cover_image | image_url: width: 3840 }} 3840w"
+          media="(min-width: 768px)"
+        {%- else -%}
+          imagesrcset="{{ cover_image | image_url: width: 350 }} 350w, {{ cover_image | image_url: width: 375 }} 375w, {{ cover_image | image_url: width: 400 }} 400w, {{ cover_image | image_url: width: 450 }} 450w, {{ cover_image | image_url: width: 500 }} 500w, {{ cover_image | image_url: width: 550 }} 550w, {{ cover_image | image_url: width: 650 }} 650w, {{ cover_image | image_url: width: 767 }} 767w, {{ cover_image | image_url: width: 900 }} 900w, {{ cover_image | image_url: width: 1100 }} 1100w, {{ cover_image | image_url: width: 1200 }} 1200w, {{ cover_image | image_url: width: 1350 }} 1350w, {{ cover_image | image_url: width: 1400 }} 1400w, {{ cover_image | image_url: width: 1500 }} 1500w, {{ cover_image | image_url: width: 1780 }} 1780w, {{ cover_image | image_url: width: 2000 }} 2000w, {{ cover_image | image_url: width: 3000 }} 3000w, {{ cover_image | image_url: width: 3840 }} 3840w"
+        {%- endif -%}
+        imagesizes="{{ sizes }}"
+        fetchpriority="high"
+      >
+    {%- endif -%}
+    {%- if mobile_cover_image != blank -%}
+      <link
+        rel="preload"
+        as="image"
+        href="{{ mobile_cover_image | image_url: width: 767 }}"
+        imagesrcset="{{ mobile_cover_image | image_url: width: 350 }} 350w, {{ mobile_cover_image | image_url: width: 375 }} 375w, {{ mobile_cover_image | image_url: width: 400 }} 400w, {{ mobile_cover_image | image_url: width: 450 }} 450w, {{ mobile_cover_image | image_url: width: 500 }} 500w, {{ mobile_cover_image | image_url: width: 550 }} 550w, {{ mobile_cover_image | image_url: width: 650 }} 650w, {{ mobile_cover_image | image_url: width: 767 }} 767w"
+        imagesizes="{{ sizes }}"
+        fetchpriority="high"
+        media="(max-width: 767px)"
+      >
+    {%- endif -%}
+    {%- if video_type == 'youtube' and cover_image == blank -%}
+      <link
+        rel="preload"
+        as="image"
+        href="{{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/maxresdefault.webp' }}"
+        imagesrcset="{{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/mqdefault.webp' }} 320w, {{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/hqdefault.webp' }} 480w, {{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/sddefault.webp' }} 640w, {{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/maxresdefault.webp' }} 1280w"
+        imagesizes="{{ sizes }}"
+        fetchpriority="high"
+        crossorigin="anonymous"
+      >
+    {%- endif -%}
+  {%- endunless -%}
+{%- endif -%}
+{% if mobile_cover_image != blank or cover_image != blank or video_url != blank or video != null %}
+  {% if video_type %}
+    <div class="flex w-full pointer-events-auto{% if class != blank %} {{ class }}{% endif %}{%- if is_full_height_on_mobile %} sm:h-full sm:pb-0{% endif -%}{%- if is_full_height_on_tablet %} md-lg:h-full md-lg:pb-0{% endif -%}">
+      <div
+        class="relative w-full overflow-hidden video-wrapper focus-visible:-outline-offset-1 external-video 
+          {%- if is_full_height %} h-full{%- else %} {{ media_ratio_and_style }}{% endif -%}
+          {%- if video_type != 'video_select' and media_ratio_and_style == 'ratio-auto' or media_ratio_and_style == blank %} ratio-16/9{% endif -%}
+          {%- if corner_image %} {{ class_rounded -}}
+          {%- else %} rounded-corners-container {{ class_rounded -}}
+          {%- endif -%}
+          {%- if is_full_height_on_mobile %} sm:h-full sm:pb-0{% endif -%}
+          {%- if is_full_height_on_tablet %} md-lg:h-full md-lg:pb-0{% endif -%}
+        "
+        data-video-auto-play="{{ enable_video_autoplay }}"
+        data-video-status="{% if enable_video_autoplay %}play{% else %}pause{% endif %}"
+        data-paused-by-leave="false"
+        data-is-active="{% if is_active %}true{% else %}false{% endif %}"
+        x-intersect:leave="$store.xVideo.pause($el, true)"
+        {% if enable_video_autoplay %}
+          x-intersect="$store.xVideo.updateStatusVideo($el, true)"
+          {% if video_type == 'youtube' or video_type == 'vimeo' %}
+            x-intersect.once="$store.xVideo.externalLoad($el, '{{ video_type }}', '{{ video_id }}', {{ enable_video_autoplay }}, `{{ video_alt }}`, {{ show_controls }})"
+            {% if show_controls and is_interaction_disabled != true %}
+              tabindex="0"
+            {% else %}
+              tabindex="-1"
+            {% endif %}
+            @keyup.enter="$store.xVideo.togglePlay($el)"
+            @keyup.space="$store.xVideo.togglePlay($el)"
+            @keydown.space.prevent
+          {% else %}
+            x-intersect.once="$store.xVideo.firtLoadMp4AutoPlay($el)"
+          {% endif %}
+        {% else %}
+          {% if video_type == 'video_select'  %}
+            {% if media_ratio_and_style == 'ratio-auto' or media_ratio_and_style == 'h-full' %}
+              {% unless is_full_height %}
+                style="padding-bottom: {{ 1 | divided_by: video.aspect_ratio | times: 100 }}%;"
+              {% endunless %}
+            {% endif %}
+          {% else %}
+            tabindex="-1"
+            @keyup.enter="$el.click()"
+            @keyup.space="$el.click()"
+            @keydown.space.prevent
+          {% endif %}
+        {% endif %}
+      >
+        {{ buttons_video }}
+      <div class="video-container" {% if is_interaction_disabled %} inert {% endif %}>
+          {%- if enable_video_autoplay -%}
+            {%- if video_type == 'youtube' or video_type == 'vimeo' -%}
+              <div class="w-full h-full{% if media_ratio_and_style != 'ratio-auto' %} absolute top-0 left-0{% endif %}"></div>
+            {%- endif -%}
+            {% if video_type == 'video_select' %}
+              {% liquid
+                assign class_video = 'video-mp4 video w-full h-full object-cover focus-visible:-outline-offset-1'
+                if media_ratio_and_style != 'ratio-auto'
+                  assign class_video = class_video | append: ' absolute top-0 left-0'
+                endif
+              %}
+              <div class="min-h-[1px]"
+                {% if media_ratio_and_style == 'ratio-auto' or media_ratio_and_style == 'h-full' %}
+                  {% unless is_full_height %}
+                    style="padding-bottom: {{ 1 | divided_by: video.aspect_ratio | times: 100 }}%;"
+                  {% endunless %}
+                {% endif %}
+                x-intersect.once="$store.xVideo.mp4Listen($el)"
+              >
+                {% liquid
+                  assign video_preload = "none"
+                  if preload
+                    assign video_preload = "auto"
+                  endif
+                  assign img_alt = 'accessibility.default_alt' | t
+                  assign poster_element = '<img loading="' | append: loading | append: '" hidden alt="' | append: img_alt | append: '"'
+                %}
+                {{ video | video_tag: autoplay: enable_video_autoplay, 
+                  loop: true, 
+                  controls: show_controls,
+                  preload: video_preload, 
+                  class: class_video, 
+                  alt: video_alt, 
+                  poster: '' | replace: '<img ', poster_element 
+                }}
+              </div>
+            {% endif %}
+          {%- else -%}
+            {%- liquid
+              assign default_image_alt = 'accessibility.default_alt' | t
+              if video_type == 'video_select' and cover_image == blank
+                assign cover_image = video.preview_image
+              endif
+            -%}
+            {% if video_type == 'vimeo' %}
+              {%- capture options -%}
+                { 'alt': '{{ video_alt }}', 'width': 1280 }
+              {%- endcapture -%}
+            {% endif %}
+            <picture
+              class="absolute top-0 left-0 h-full w-full z-10 img-thumbnail cursor-pointer"
+              {% if cover_image == blank and video_type == 'vimeo' %}
+                x-init="$store.xVideo.renderVimeoFacadeSource($el, '{{ video_id }}', {{ options }}, '{{ loading }}')"
+              {% endif %}
+              {% if video_type == 'video_select' %}
+                @click.prevent="$store.xVideo.mp4Thumbnail($el, {{ show_controls }})"
+              {% elsif video_type == 'youtube' or video_type == 'vimeo' %}
+                @click.prevent="$store.xVideo.externalLoad($el, '{{ video_type }}', '{{ video_id }}', false, '{{ video_alt }}', {{ show_controls }})"
+              {% endif %}
+            >
+              {% if mobile_cover_image != blank %}
+                <source
+                  srcset="
+                    {{ mobile_cover_image | image_url: width: 375 }} 375w,
+                    {{ mobile_cover_image | image_url: width: 450 }} 450w,
+                    {{ mobile_cover_image | image_url: width: 600 }} 600w,
+                    {{ mobile_cover_image | image_url: width: 767 }} 767w
+                  "
+                  sizes="{{ sizes }}"
+                  media="(max-width: 767px)"
+                  width="{{ mobile_cover_image.width }}"
+                  height="{{ mobile_cover_image.height }}"
+                >
+              {% endif %}
+              {% if cover_image != blank %}
+                <source
+                  srcset="
+                    {{ cover_image | image_url: width: 768 }} 768w,
+                    {{ cover_image | image_url: width: 900 }} 900w,
+                    {{ cover_image | image_url: width: 1100 }} 1100w,
+                    {{ cover_image | image_url: width: 1500 }} 1500w,
+                    {{ cover_image | image_url: width: 1780 }} 1780w,
+                    {{ cover_image | image_url: width: 2000 }} 2000w,
+                    {{ cover_image | image_url: width: 3000 }} 3000w,
+                    {{ cover_image | image_url: width: 3840 }} 3840w
+                  "
+                  sizes="{{ sizes }}"
+                  media="(min-width: 768px)"
+                  width="{{ cover_image.width }}"
+                  height="{{ cover_image.height }}"
+                >
+                <img
+                  srcset="
+                    {{ cover_image | image_url: width: 375 }} 375w,
+                    {{ cover_image | image_url: width: 450 }} 450w,
+                    {{ cover_image | image_url: width: 750 }} 750w,
+                    {{ cover_image | image_url: width: 900 }} 900w,
+                    {{ cover_image | image_url: width: 1100 }} 1100w,
+                    {{ cover_image | image_url: width: 1500 }} 1500w,
+                    {{ cover_image | image_url: width: 1780 }} 1780w,
+                    {{ cover_image | image_url: width: 2000 }} 2000w,
+                    {{ cover_image | image_url: width: 3000 }} 3000w,
+                    {{ cover_image | image_url: width: 3840 }} 3840w
+                  "
+                  sizes="{{ sizes }}"
+                  src="{{ cover_image | image_url: width: 1500 }}"
+                  alt="{{ cover_image.alt | default: default_image_alt | escape }}"
+                  class="object-cover h-full w-full image-hover anm-image-hover"
+                  loading="{{ loading }}"
+                  width="{{ cover_image.width }}"
+                  height="{{ cover_image.height }}"
+                  {% if cover_image.presentation.focal_point != blank %}
+                    style="object-position:{{ cover_image.presentation.focal_point }};"
+                  {% endif %}
+                >
+              {% elsif video_type == 'youtube' %}
+                <source
+                  type="image/webp"
+                  srcset="
+                    {{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/mqdefault.webp' }} 320w,
+                    {{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/hqdefault.webp' }} 480w,
+                    {{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/sddefault.webp' }} 640w
+                  "
+                  sizes="{{ sizes }}"
+                  media="(max-width: 767px)"
+                >
+                <source
+                  type="image/webp"
+                  srcset="
+                    {{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/sddefault.webp' }} 640w,
+                    {{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/maxresdefault.webp' }} 1280w
+                  "
+                  sizes="{{ sizes }}"
+                  media="(min-width: 768px)"
+                >
+                <source
+                  type="image/jpeg"
+                  srcset="
+                    {{ video_id | prepend: 'https://i.ytimg.com/vi/' | append: '/mqdefault.jpg' }} 320w,
+                    {{ video_id | prepend: 'https://i.ytimg.com/vi/' | append: '/hqdefault.jpg' }} 480w,
+                    {{ video_id | prepend: 'https://i.ytimg.com/vi/' | append: '/sddefault.jpg' }} 640w,
+                    {{ video_id | prepend: 'https://i.ytimg.com/vi/' | append: '/maxresdefault.jpg' }} 1280w
+                  "
+                  sizes="{{ sizes }}"
+                >
+                <img
+                  srcset="
+                    {{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/mqdefault.webp' }} 320w,
+                    {{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/hqdefault.webp' }} 480w,
+                    {{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/sddefault.webp' }} 640w,
+                    {{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/maxresdefault.webp' }} 1280w
+                  "
+                  sizes="{{ sizes }}"
+                  src="{{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/maxresdefault.webp' }}"
+                  loading="{{ loading }}"
+                  class="object-cover h-full w-full image-hover"
+                  alt="{{ video_alt | default: default_image_alt }}"
+                  width="1280"
+                  height="720"
+                >
+              {% else %}
+                <div class="vimeo-thumbnail-skeleton w-full h-full bg-skeleton"></div>
+              {% endif %}
+            </picture>
+  
+            {% if video_type == 'video_select' %}
+              <div
+                x-data="{load: false, isHovered: false}"
+                x-intersect.once="load = true;"
+                class="min-h-[1px]"
+              >
+                <template x-if="load">
+                  {%  liquid 
+                    assign video_tag = '<video x-on:mouseover="isHovered = true" x-on:mouseleave="isHovered = false" '
+                    if show_controls
+                      assign video_tag = video_tag | append: ':controls="isHovered" '
+                    endif
+                  %}
+                  <div x-intersect.once="$store.xVideo.mp4Listen($el)">
+                    {{ video | video_tag: image_size: '1100x',
+                      loop: false,
+                      controls: show_controls,
+                      muted: true,
+                      tabindex: '-1',
+                      class: 'video-mp4 video w-full h-full absolute top-0 left-0 object-cover focus-visible:-outline-offset-1',
+                      alt: video_alt
+                      | replace: '<video ', video_tag
+                    }}
+                  </div>
+                </template>
+              </div>
+            {% endif %}
+          {%- endif -%}
+        </div>
+      </div>
+    </div>
+    
+    <script src="{{ 'video.js' | asset_url }}" defer></script>
+  {% else %}
+    {%- if cover_image != blank or mobile_cover_image != blank -%}
+      <div class="relative {{ class }} {{ media_ratio_and_style }} overflow-hidden{% if class_rounded != blank %} {{ class_rounded }}{% else %} rounded-corners-container{% endif %}{% if is_full_height_on_mobile %} sm:h-full sm:pb-0{% endif %}{% if is_full_height_on_tablet %} md-lg:h-full md-lg:pb-0{% endif %}">
+        {% liquid 
+          assign image_class = 'w-full image-hover object-cover h-full border-inherit anm-image-hover'
+          if media_ratio_and_style and media_ratio_and_style != 'ratio-auto' and media_ratio_and_style != 'h-full'
+            assign image_class = image_class | append: ' absolute top-0 right-0'
+          endif
+          assign image_mobile_class = 'md:hidden w-full image-hover object-cover h-full border-inherit'
+        %}  
+        {% render 'image-new',
+          image: cover_image,
+          image_mobile: mobile_cover_image,
+          sizes: sizes,
+          loading: loading,
+          image_class: image_class,
+          image_mobile_class: image_mobile_class,
+          slideshow: slideshow,
+          columns_desktop: columns_desktop,
+          columns_mobile: columns_mobile,
+          max_columns_desktop: max_columns_desktop,
+          max_columns_mobile: max_columns_mobile
+        %}
+      </div>
+    {% endif %}
+  {% endif %}
+{% elsif show_placeholder_image %}
+  {% assign class_placeholder = 'absolute top-0 left-0 w-full h-full object-cover rounded-corners-container ' | append: class_rounded %}
+  <div class="rounded-corners-container relative{% if media_ratio_and_style == 'ratio-auto' or media_ratio_and_style == blank %} ratio-1/1{% endif %} {{ class }} {{ media_ratio_and_style }}{% if is_full_height_on_mobile %} sm:h-full sm:pb-0{% endif %}{% if is_full_height_on_tablet %} md-lg:h-full md-lg:pb-0{% endif %}">
+    <div class="{{ class_placeholder }}">
+      {% if slideshow %}
+        {% render 'placeholder-image', image_type: 'slide' %}
+      {% else %}
+        {% render 'placeholder-image', image_type: 'image' %}
+      {% endif %}
+    </div>
+  </div>
+{% endif %}

@@ -1,0 +1,123 @@
+{%- liquid
+  assign product = closest.product
+  assign default_preorder_text = 'products.product.pre_order' | t
+  assign preorder_button_label = block.settings.preorder_button_label | default: default_preorder_text
+-%}
+{%- if login_hide_price == nil -%}
+  {%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+  {%- assign login_hide_price = login_hide_price | strip -%}
+{%- endif -%}
+{%- unless login_hide_price == 'true' -%}
+  <div class="block-add-to-cart flex grow items-center">
+    {%- if product != blank -%}
+      <div
+        class="product-info__form-wrapper block-{{ block.id }} w-full"
+        id="ProductForm-{{ section.id }}-{{ block.id }}"
+        x-intersect.margin.200px="handleInitProductForm()"
+        data-block-id="{{ block.id }}"
+        {{ block.shopify_attributes }}
+      >
+        <input
+          class="block-add-to-cart__variant-id product-form__variant-id size-full px-4 py-3 hidden"
+          name="id"
+          type="hidden"
+          form="{{ product_form_id }}"
+          :value="variantId"
+          :disabled="!isOptionAvailable"
+        >
+        {%- unless settings.hide_cart -%}
+          <custom-button>
+            <button
+              class="block-add-to-cart__button product-form__btn-add-to-cart button button-{{ block.settings.button_style }} button-large size-full relative rounded-corners-md"
+              type="submit"
+              name="add"
+              aria-haspopup="dialog"
+              aria-labelledby="{{ product_form_id }}-submit title-{{ section.id }}-{{ product.id }}"
+              aria-live="polite"
+              data-sold-out-message="true"
+              :class="{'opacity-60': !isAvailableButton, 'pointer-events-none': !visible, 'is-loading': isLoading}"
+              :disabled="!isAvailableButton"
+              :aria-disabled="!isAvailableButton || isLoading"
+              :tabindex="isAvailableButton && isOptionExist ? '0' : '-1'"
+              @click.prevent="handleAddToCart($event, true)"
+            >
+              <span
+                class="block-add-to-cart__button-text btn__text"
+                id="AddToCartText-{{ product_form_id }}"
+                :class="{'invisible': isLoading}"
+              >
+                {% if is_show_preorder %}
+                  {{ preorder_button_label }}
+                {% else %}
+                  {% if current_variant %}
+                    {% if current_variant.available %}
+                      {{ default_button_label }}
+                    {% else %}
+                      {{ 'products.product.sold_out' | t }}
+                    {% endif %}
+                  {% else %}
+                    {{ 'products.product.unavailable' | t }}
+                  {% endif %}
+                {% endif %}
+              </span>
+              <span class="block-add-to-cart__loading inline-block w-5 h-5 animate-spin absolute left-[calc(50%-10px)] top-[calc(50%-10px)]" x-show="isLoading" x-cloak>
+                {% render 'icon-all', icon: 'icon-loading' %}
+              </span>
+              <span 
+                class="w-5 h-5 absolute left-[calc(50%-10px)] top-[calc(50%-10px)] hidden" 
+                x-cloak 
+                data-check-icon
+                x-show='!isLoading'
+              >
+                {% render 'icon-all', icon: 'icon-check-success' %}
+              </span>
+            </button>
+          </custom-button>
+        {%- endunless -%}
+      </div>
+    {%- else -%}
+      {%- unless settings.hide_cart -%}
+        <div class="block-add-to-cart--placeholder product-form__placeholder-wrapper block-{{ block.id }} w-full" data-block-id="{{ block.id }}" {{ block.shopify_attributes }}>
+          <custom-button>
+            <button
+              class="block-add-to-cart__button block-add-to-cart__button--placeholder product-form__placeholder__btn-add-to-cart button button-{{ block.settings.button_style }} button-large size-full relative rounded-corners-md"
+              disabled
+            >
+              {{ atc_button_label }}
+            </button>
+          </custom-button>
+        </div>
+      {%- endunless -%}
+    {%- endif -%}
+  </div>
+{% endunless %}
+{% schema  %}
+{
+  "name": "t:main_product.blocks.add_to_cart.name",
+  "tag": null,
+  "settings": [
+    {
+      "type": "select",
+      "id": "button_style",
+      "options": [
+        {
+          "value": "primary",
+          "label": "t:global.button.style.primary"
+        },
+        {
+          "value": "secondary",
+          "label": "t:global.button.style.secondary"
+        }
+      ],
+      "label": "t:global.button.style.label",
+      "default": "primary"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:main_product.blocks.add_to_cart.name",
+      "category": "t:global.product.product"
+    }
+  ]
+}
+{% endschema %}

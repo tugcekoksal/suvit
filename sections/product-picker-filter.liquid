@@ -1,0 +1,383 @@
+{% liquid
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  else
+    assign is_rtl = false
+  endif
+%}
+<div id="OptionFilter">
+  <div class="total-result">
+    {% if collection.products_count > 1 %}
+      {{ 'sections.product-picker.show_products_count' | t: count: collection.products_count }}
+    {% else %}
+      {{ 'sections.product-picker.show_product_count' | t: count: collection.products_count }}
+    {% endif %}
+  </div>
+  {% for filter in collection.filters %}
+    {% case filter.type %}
+      {% when 'boolean', 'list' %}
+        {% liquid
+          assign has_visual_display = false
+          assign param_name = filter.param_name
+          if filter.presentation == 'swatch' or filter.presentation == 'image'
+            assign has_visual_display = true
+          endif
+        %}
+        <div
+          data-label="{{ filter.label }}"
+          data-type="dropdown"
+        >
+          <select-element
+            class="w-full h-full relative dropdown-large rounded-corners"
+            data-select-type="product-picker"
+            data-no-require="true"
+          >
+            <div class="relative h-full">
+              <div
+                class="select-button h-full color-bg-[rgba(var(--element-background))] cursor-pointer flex justify-center items-center w-full gap-2.5 pt-3.5 pb-3.5 pl-4 pr-4 lg:pt-[15px] lg:pb-[15px] lg:pl-5 lg:pr-5 rounded-corners"
+                role="button" tabindex="0" aria-pressed="false" aria-expanded="false" aria-describedby="Select option"
+              >
+                <span class="select-button__label parent-text-label flex items-start flex-auto whitespace-nowrap color-text-[rgba(var(--color-heading))] pr-[22px] rtl:pl-[22px] overflow-hidden">
+                  {{ filter.label | escape }}
+                </span>
+                <span class="w-3 h-3 shrink-0">{% render 'icon-all', icon: 'icon-caret' %}</span>
+              </div>
+              <div class="select-options-wrapper scrollbar-visible scrollbar-body color-bg-gradient-[rgba(var(--color-background))]">
+                <ul
+                  class="select-options max-h-96"
+                  role="listbox"
+                  aria-label="Select option"
+                >
+                  <li
+                    class="select-option cursor-pointer rounded-corners{% if has_visual_display %} flex items-center gap-1.5 px-1.5 py-2{% else %} px-2.5 py-2.5{% endif -%}
+                      {%- if value.count == 0 and value.active == false %} disabled opacity-60{% endif -%}
+                      {%- if value.active %} selected{% endif -%}"
+                    data-select-value="{{ filter.label }}"
+                    data-value=""
+                    role="option"
+                    aria-selected="false"
+                    tabindex="-1"
+                  >
+                    <span class="p-break-words parent-text-label font-bold">{{ filter.label | escape }}</span>
+                  </li>
+                  {% for value in filter.values %}
+                    <li
+                      class="select-option cursor-pointer rounded-corners{% if has_visual_display %} flex items-center gap-1.5 px-1.5 py-2{% else %} px-2.5 py-2.5{% endif -%}
+                        {%- if value.count == 0 and value.active == false %} disabled opacity-60{% endif -%}
+                        {%- if value.active %} selected{% endif -%}"
+                      data-select-value="{{ value.label | escape }}"
+                      data-value="{{ value.value }}"
+                      role="option"
+                      aria-selected="false"
+                      tabindex="-1"
+                    >
+                      {% if has_visual_display %}
+                        {% liquid
+                          assign index = forloop.index
+                          assign img_width = 40
+                          unless settings.visual_value_style == 'compact'
+                            assign img_width = 140
+                          endunless
+                          if filter.presentation == 'swatch'
+                            assign swatch_type = 'color'
+                            assign swatch_value = false
+                            if value.swatch.color
+                              assign swatch_value = 'rgba(' | append: value.swatch.color.rgba | append: ')'
+                            endif
+                            if value.swatch.image
+                              assign swatch_type = 'image'
+                              assign image_url = value.swatch.image | image_url: width: img_width
+                              assign swatch_value = 'url(' | append: image_url | append: ')'
+                            endif
+                          endif
+
+                          if filter.presentation == 'image'
+                            if value.image
+                              assign swatch_type = 'image'
+                              assign image_url = value.image | image_url: width: img_width
+                              assign swatch_value = 'url(' | append: image_url | append: ')'
+                            endif
+                          endif
+                        %}
+                        {% style %}
+                          {% if swatch_value %}
+                            .swatch-option__label[for="Filter-{{ param_name }}-{{ index }}"]::before {
+                            {% if swatch_type == "color" %}
+                              --swatch-color-value: {{ swatch_value }}
+                            {% elsif swatch_type == "image" %}
+                              --swatch-image-value: {{ swatch_value }};
+                            {% endif %} }
+                          {% endif %}
+                        {% endstyle %}
+                        <label
+                          class="swatch-option__label relative cursor-pointer peer-disabled:cursor-not-allowed flex items-center variant-option__label before:top-1 before:bottom-1 before:left-1 before:right-1 before:w-[calc(100%-8px)] before:h-[calc(100%-8px)] before:bg-clip-content border
+                            {%- if settings.edges_type == 'rounded_corners' %} before:rounded rounded{% endif -%}"
+                          for="Filter-{{ param_name }}-{{ index }}"
+                          data-swatch-type="color"
+                          data-type-display="none"
+                        >
+                        </label>
+                      {% endif %}
+                      <span class="p-break-words">{{ value.label | escape }}</span>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+              <label class="hidden">
+                <input
+                  class="select-option-selected"
+                  name="{{ filter.param_name }}"
+                  value=""
+                >
+              </label>
+            </div>
+          </select-element>
+        </div>
+      {% when 'price_range' %}
+        <div
+          data-label="{{ filter.label }}"
+          data-type="price"
+        >
+          {% comment %} Both {% endcomment %}
+          <div data-price-filter-type="both">
+            <div
+              class="w-full color-text-[rgba(var(--color-text),0.7)] pt-1.5"
+              data-filter-type="price"
+              x-data="xRangePrice"
+            >
+              <div class="slider h-1 relative color-bg-[rgba(var(--color-heading),0.12)] {% if settings.edges_type == 'rounded_corners' %} rounded-[100px]{% endif %}">
+                <div
+                  style="{% if is_rtl %}left: var(--right_range); right: var(--left_range);{% else %}left: var(--left_range); right: var(--right_range);{% endif %}"
+                  class="progress h-full absolute color-bg-[rgba(var(--color-button))] left-0 right-0"
+                ></div>
+              </div>
+              <div class="range-input relative">
+                <input
+                  class="absolute -translate-x-1 rtl:translate-x-1 range-min w-full bg-none h-1.5 py-3 -top-[15px] pointer-events-none appearance-none{% if filter.operator == 'AND' %} filter-and{% endif %}"
+                  name="{{ filter.min_value.param_name }}"
+                  {%- if filter.min_value.value -%}
+                    {{ filter.min_value.value | divided_by: 100.0 }}
+                  {%- else -%}
+                    value="0"
+                  {%- endif -%}
+                  type="range"
+                  placeholder="0"
+                  min="0"
+                  max="{{ filter.range_max | divided_by: 100.0 }}"
+                  step=".01"
+                  form="ranger-price"
+                  id="Filter-{{ filter.label | escape }}-{{ forloop.index }}-range-min"
+                >
+                <label for="Filter-{{ filter.label | escape }}-{{ forloop.index }}-range-min" class="hidden">Range min</label>
+                <input
+                  class="absolute translate-x-1 rtl:-translate-x-1 range-max w-full bg-none h-1.5 py-3 -top-[15px] pointer-events-none appearance-none{% if filter.operator == 'AND' %} filter-and{% endif %}"
+                  type="range"
+                  min="1"
+                  step=".01"
+                  {%- if filter.max_value.value -%}
+                    value="{{ filter.max_value.value | divided_by: 100.0 }}"
+                  {%- else -%}
+                    value="{{ filter.range_max | divided_by: 100.0 }}"
+                  {%- endif -%}
+                  placeholder="{{ filter.range_max | divided_by: 100.0 }}"
+                  max="{{ filter.range_max | divided_by: 100.0 }}"
+                  form="ranger-price"
+                  id="Filter-{{ filter.label | escape }}-{{ forloop.index }}-range-max"
+                >
+                <label for="Filter-{{ filter.label | escape }}-{{ forloop.index }}-range-max" class="hidden">Range max</label>
+              </div>
+              <div class="w-full flex justify-between mt-3 items-center gap-3">
+                <div class="flex items-center gap-1.5 py-[7px] px-3 color-bg-[rgba(var(--element-background))] outline outline-1 color-outline-[rgba(var(--color-text),0.2)] w-full flex-1 {% if settings.edges_type == 'rounded_corners' %} rounded{% endif %}">
+                  <span>{{ cart.currency.symbol }}</span>
+                  <input
+                    class="price-input bg-transparent w-full focus:outline-none {% if filter.operator == 'AND' %} filter-and{% endif %}"
+                    @blur="handlePriceInput($event)"
+                    name="{{ filter.min_value.param_name }}"
+                    x-ref="filter_price_gte"
+                    {%- if filter.min_value.value -%}
+                      value="{{ filter.min_value.value | default: 100.0 }}"
+                    {%- endif -%}
+                    type="number"
+                    placeholder="0"
+                    min="0"
+                    step=".01"
+                    max="{{ filter.range_max | divided_by: 100.0 }}"
+                    id="Filter-{{ filter.label | escape }}-{{ forloop.index }}-input-min"
+                  >
+                  <label for="Filter-{{ filter.label | escape }}-{{ forloop.index }}-input-min" class="hidden">Input price min</label>
+                </div>
+                <span>-</span>
+                <div class="flex items-center gap-1.5 py-[7px] px-3 color-bg-[rgba(var(--element-background))] outline outline-1 color-outline-[rgba(var(--color-text),0.2)] w-full flex-1 {% if settings.edges_type == 'rounded_corners' %} rounded{% endif %}">
+                  <span>{{ cart.currency.symbol }}</span>
+                  <input
+                    class="price-input bg-transparent w-full focus:outline-none {% if filter.operator == 'AND' %} filter-and{% endif %}"
+                    @blur="handlePriceInput($event)"
+                    name="{{ filter.max_value.param_name }}"
+                    x-ref="filter_price_lte"
+                    type="number"
+                    min="0"
+                    step=".01"
+                    {%- if filter.max_value.value -%}
+                      value="{{ filter.max_value.value | divided_by: 100.0 }}"
+                    {%- endif -%}
+                    placeholder="{{ filter.range_max | divided_by: 100.0 }}"
+                    max="{{ filter.range_max | divided_by: 100.0 }}"
+                    id="Filter-{{ filter.label | escape }}-{{ forloop.index }}-input-max"
+                  >
+                  <label for="Filter-{{ filter.label | escape }}-{{ forloop.index }}-input-max" class="hidden">Input price max</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {% comment %} Range {% endcomment %}
+          <div data-price-filter-type="range">
+            <div
+              class="w-full color-text-[rgba(var(--color-text),0.7)] flex flex-col gap-0.5 py-1 px-2.5"
+              data-filter-type="price"
+              x-data="xRangePrice"
+            >
+              <div class="flex justify-between items-center">
+                <span class="price-label-preview">
+                  <span>{{ cart.currency.symbol }}</span>
+                  <span class="price-label">
+                    {%- if filter.min_value.value -%}
+                      {{ filter.min_value.value | divided_by: 100.0 }}
+                    {%- else -%}
+                      0
+                    {%- endif -%}
+                  </span>
+                </span>
+                <span class="price-label-preview">
+                  <span>{{ cart.currency.symbol }}</span>
+                  <span class="price-label">
+                    {{ filter.range_max | divided_by: 100.0 }}
+                  </span>
+                </span>
+              </div>
+              <div class="price-range-group w-full py-2">
+                <div class="slider h-1 relative color-bg-[rgba(var(--color-heading),0.12)] {% if settings.edges_type == 'rounded_corners' %} rounded-[100px]{% endif %}">
+                  <div
+                    style="{% if is_rtl %}left: var(--right_range); right: var(--left_range);{% else %}left: var(--left_range); right: var(--right_range);{% endif %}"
+                    class="progress h-full absolute color-bg-[rgba(var(--color-button))] left-0 right-0"
+                  ></div>
+                </div>
+                <div class="range-input relative">
+                  <input
+                    class="absolute -translate-x-1 rtl:translate-x-1 range-min w-full bg-none h-1.5 py-3 -top-[15px] pointer-events-none appearance-none{% if filter.operator == 'AND' %} filter-and{% endif %}"
+                    name="{{ filter.min_value.param_name }}"
+                    {%- if filter.min_value.value -%}
+                      value="{{ filter.min_value.value | divided_by: 100.0 }}"
+                    {%- else -%}
+                      value="0"
+                    {%- endif -%}
+                    type="range"
+                    placeholder="0"
+                    min="0"
+                    max="{{ filter.range_max | divided_by: 100.0 }}"
+                    step=".01"
+                    form="ranger-price"
+                    id="Filter-{{ filter.label | escape }}-{{ forloop.index }}-range-min"
+                  >
+                  <label for="Filter-{{ filter.label | escape }}-{{ forloop.index }}-range-min" class="hidden">Range min</label>
+                  <input
+                    class="absolute translate-x-1 rtl:-translate-x-1 range-max w-full bg-none h-1.5 py-3 -top-[15px] pointer-events-none appearance-none{% if filter.operator == 'AND' %} filter-and{% endif %}"
+                    type="range"
+                    min="1"
+                    step=".01"
+                    {%- if filter.max_value.value -%}
+                      value="{{ filter.max_value.value | divided_by: 100.0 }}"
+                    {%- else -%}
+                      value="{{ filter.range_max | divided_by: 100.0 }}"
+                    {%- endif -%}
+                    placeholder="{{ filter.range_max | divided_by: 100.0 }}"
+                    max="{{ filter.range_max | divided_by: 100.0 }}"
+                    form="ranger-price"
+                    id="Filter-{{ filter.label | escape }}-{{ forloop.index }}-range-max"
+                  >
+                  <label for="Filter-{{ filter.label | escape }}-{{ forloop.index }}-range-max" class="hidden">Range max</label>
+                  <input
+                    class="price-input bg-transparent w-full hidden focus:outline-none {% if filter.operator == 'AND' %} filter-and{% endif %}"
+                    name="{{ filter.min_value.param_name }}"
+                    {% if filter.min_value.value %}
+                      value="{{ filter.min_value.value | divided_by: 100.0 }}" 
+                    {% endif %}
+                    type="number"
+                    placeholder="0"
+                    min="0"
+                    max="{{ filter.range_max | divided_by: 100.0 }}"
+                    id="Filter-{{ filter.label | escape }}-{{ forloop.index }}-input-min"
+                  >
+                  <label for="Filter-{{ filter.label | escape }}-{{ forloop.index }}-input-min" class="hidden">Input price min</label>
+                  <input
+                    class="price-input bg-transparent w-full hidden focus:outline-none {% if filter.operator == 'AND' %} filter-and{% endif %}"
+                    name="{{ filter.max_value.param_name }}"
+                    type="number"
+                    min="0"
+                    {%- if filter.max_value.value -%}
+                      value="{{ filter.max_value.value | divided_by: 100.0 }}"
+                    {%- endif -%}
+                    placeholder="{{ filter.range_max | divided_by: 100.0 }}"
+                    max="{{ filter.range_max | divided_by: 100.0 }}"
+                    id="Filter-{{ filter.label | escape }}-{{ forloop.index }}-input-max"
+                  >
+                  <label for="Filter-{{ filter.label | escape }}-{{ forloop.index }}-input-max" class="hidden">Input price max</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {% comment %} Input {% endcomment %}
+          <div data-price-filter-type="input">
+            <div
+              class="w-full color-text-[rgba(var(--color-text),0.7)] h-full"
+              data-filter-type="price"
+              x-data="xRangePrice"
+            >
+              <div class="w-full flex pt-1.5 pb-1.5 lg:pt-0 lg:pb-0 justify-between color-bg-[rgba(var(--element-background))] items-center gap-2 h-full outline outline-1 color-outline-[rgba(var(--color-text),0.2)] rounded-corners-md">
+                <div class="flex items-center gap-2 py-2 px-4 lg:pt-[15px] lg:pb-[15px] w-full flex-1 h-full {% if settings.edges_type == 'rounded_corners' %} rounded{% endif %}">
+                  <span>{{ cart.currency.symbol }}</span>
+                  <input
+                    class="price-input bg-transparent w-full focus:outline-none {% if filter.operator == 'AND' %} filter-and{% endif %}"
+                    @blur="handlePriceInput($event)"
+                    name="{{ filter.min_value.param_name }}"
+                    {%- if filter.min_value.value -%}
+                      value="{{ filter.min_value.value | divided_by: 100.0 }}"
+                    {%- endif -%}
+                    type="number"
+                    placeholder="0"
+                    min="0"
+                    step=".01"
+                    max="{{ filter.range_max | divided_by: 100.0 }}"
+                    id="Filter-{{ filter.label | escape }}-{{ forloop.index }}-input-min"
+                  >
+                  <label for="Filter-{{ filter.label | escape }}-{{ forloop.index }}-input-min" class="hidden">Input price min</label>
+                </div>
+                <div class="h-full py-2">
+                  <div class="w-full h-full border-l min-h-[20px]"></div>
+                </div>
+                <div class="flex items-center gap-2 py-2 px-4 w-full flex-1 h-full {% if settings.edges_type == 'rounded_corners' %} rounded{% endif %}">
+                  <span>{{ cart.currency.symbol }}</span>
+                  <input
+                    class="price-input bg-transparent w-full focus:outline-none {% if filter.operator == 'AND' %} filter-and{% endif %}"
+                    @blur="handlePriceInput($event)"
+                    name="{{ filter.max_value.param_name }}"
+                    type="number"
+                    min="0"
+                    step=".01"
+                    {%- if filter.max_value.value -%}
+                      value="{{  filter.max_value.value | divided_by: 100.0 }}"
+                    {%- endif -%}
+                    placeholder="{{ filter.range_max | divided_by: 100.0 }}"
+                    max="{{ filter.range_max | divided_by: 100.0 }}"
+                    id="Filter-{{ filter.label | escape }}-{{ forloop.index }}-input-max"
+                  >
+                  <label for="Filter-{{ filter.label | escape }}-{{ forloop.index }}-input-max" class="hidden">Input price max</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+    {% endcase %}
+  {% endfor %}
+</div>

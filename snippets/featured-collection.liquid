@@ -1,0 +1,299 @@
+{% liquid
+  if columns_desktop == 1
+    assign columns_tablet = 1
+  else 
+    assign columns_tablet = 2
+  endif
+
+  assign is_rtl = false
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  endif
+
+  assign section_id_for_class = section.id
+  if request.visual_preview_mode
+    assign section_id_for_class = section_id_for_class | replace: '=', '\='
+  endif
+%}
+
+{% style %}
+  .section--{{ section_id_for_class }} .slider-container {
+    --swiffy-slider-item-gap: {{ section.settings.spacing_mobile }}px;
+  }
+  @media screen and (min-width: 768px) {
+    .section--{{ section_id_for_class }} .slider-container {
+      --swiffy-slider-item-gap: {{ section.settings.spacing }}px;
+    }
+  }
+{% endstyle %}
+<div class="w-full">
+  {%- paginate pages by 1 -%}
+    {% liquid
+      if section.index == nil
+        assign block_index = paginate.current_page | minus: 1
+      else
+        assign block_index = 0
+      endif
+    %}
+    {%- style -%}
+      .width-list-products-{{ section_id_for_class }} {
+        width: 100%;
+      }
+      @media (max-width: 1023px) {
+        .featured-collections__collection-title__{{ section_id_for_class }} {
+          --rounded-corners: 6px;
+        }
+      }
+      @media (min-width: 1024px) {
+        .width-list-products-{{ section_id_for_class }} {
+          {% if section.blocks.size > 1 %}
+            max-width: calc(100% - 200px);
+            {% if columns_desktop > 3 %}
+              width: calc(100% / {{ columns_desktop | plus: 1 }} * {{ columns_desktop }});
+            {% else %}
+              width: 75%;
+            {% endif %}
+          {% endif %}
+        }
+        {% if section.blocks.size > 1 %}
+          [dir="ltr"] .featured-collections__title-collections__wrapper__{{ section_id_for_class }} {
+            padding-right: clamp(10px, {{ section.settings.spacing }}px * 2, 60px);
+          }
+          [dir="rtl"] .featured-collections__title-collections__wrapper__{{ section_id_for_class }} {
+            padding-left: clamp(10px, {{ section.settings.spacing }}px * 2, 60px);
+          }
+        {% endif %}
+      }
+    {%- endstyle -%}
+    <div class="featured-collections__content flex-col lg:flex-row flex">
+      {% if section.blocks.size > 1 or section.settings.view_all_button_label != blank %}
+        <div 
+          class="featured-collections__title-collections__wrapper featured-collections__title-collections__wrapper__{{ section.id }} h-auto
+            {%- if section.blocks.size > 1 %} max-lg:mb-[var(--spacing-between-heading-and-content)] lg:min-w-[200px]{% if columns_desktop > 3 %} lg:w-1/{{ columns_desktop | plus: 1 }}{% else %} lg:w-1/4{% endif %}{% endif -%}
+          "
+        >
+          {% if section.blocks.size > 1 %}
+            <div 
+              x-data="xScrollNav" 
+              class="scroll-container relative flex lg:justify-start whitespace-nowrap overflow-hidden 
+                {%- if is_rtl %} -justify-{{ section.settings.mobile_heading_alignment }} lg:-justify-{{ section.settings.heading_alignment }}{% else %} justify-{{ section.settings.mobile_heading_alignment }} lg:justify-{{ section.settings.heading_alignment }}{% endif -%}"
+            >
+              {% render 'scroll-navigation-button', class_nav: 'lg:hidden' %}
+              <div class="nav-content overflow-hidden lg:w-full">
+                <div
+                  x-intersect.once="$store.xHelper.dragToScroll($el)"
+                  class="relative link-list max-w-full w-fit lg:w-full mx-auto overflow-visible featured-collection_list-title flex flex-row lg:flex-col overflow-x-auto gap-1 list-collection-title-{{ section.id }}"
+                >
+                  {%- for block in section.blocks -%}
+                    {%- liquid
+                      assign collection = block.settings.collection
+                      if block.settings.heading != blank
+                        assign title = block.settings.heading
+                      else
+                        if collection != empty
+                          assign title = collection.title
+                        else
+                          assign title = 'sections.collection_template.title' | t
+                        endif
+                      endif
+                    -%}
+                    <button
+                      class="featured-collections__collection-title featured-collections__tab featured-collections__collection-title__{{ section.id }} collection-title shrink-0 tab-title-{{ section.settings.title_size }} rounded-corners h6 flex items-center gap-x-2.5 min-w-fit relative
+                        {%- if section.settings.show_collection_image %} p-1 ltr:max-lg:pr-3 rtl:max-lg:pl-3 lg:p-1.5{%- else %} py-2.5 px-3 lg:py-3 lg:px-4{% endif -%}
+                      "
+                      {{ block.shopify_attributes }}
+                      data-tab-index="{{ forloop.index }}"
+                      data-view-all-link="{{ block.settings.collection.url | default: '' }}"
+                      @click="scrollToActiveItem($el, true)"
+                    >
+                      <div class="flex gap-x-2.5 items-center grow">
+                        {% if section.settings.show_collection_image %}
+                          <div class="w-7.5 h-7.5 min-w-[30px] lg:w-10 lg:h-10 lg:min-w-[40px] rounded-corners custom-icon-image_rounded-corners overflow-hidden">
+                            {% render 'media',
+                              cover_image: block.settings.collection.featured_image,
+                              section: section,
+                              sizes: '40px',
+                              class: 'w-full h-full',
+                              ratio: '1/1',
+                              show_placeholder_image: true
+                            %}
+                          </div>
+                        {% endif %}
+                        <span class="md:line-clamp-none md:whitespace-nowrap lg:line-clamp-2 lg:whitespace-normal lg:p-break-words {{ section.settings.title_style }}">{{ title | escape }}</span>
+                      </div>
+                      <div class="hidden lg:flex lg:w-4 lg:h-4 lg:min-w-4 rtl:rotate-180">
+                        {% render 'icon-all', icon: 'icon-nav-arrow' %}
+                      </div>
+
+                      <span class="collection-button-loading-icon inline-block w-5 h-5 animate-spin absolute left-[calc(50%-10px)] top-[calc(50%-10px)] pointer-events-none">
+                        {% render 'icon-all', icon: 'icon-loading' %}
+                      </span>
+                    </button>
+                  {%- endfor -%}
+                </div>
+              </div>
+            </div>
+          {% endif %}
+          {% if section.settings.view_all_button_label != blank and section.blocks.size > 1 and section.settings.view_all_button_position == 'above' %}
+            <div 
+              class="flex lg:justify-start rtl:lg:justify-start mt-3 lg:mt-4 lg:px-2.5
+              {%- if section.settings.mobile_heading_alignment == 'left' %} justify-start rtl:justify-end
+              {%- elsif section.settings.mobile_heading_alignment == 'right' %} justify-end rtl:justify-start
+              {% else %} justify-center{%- endif -%}"
+            >
+              <a class="collection__view-all link-hover empty:hidden cursor-pointer featured-collection_view-all">
+                {%- render 'button-view-all', view_all_button_label: section.settings.view_all_button_label, button_style: section.settings.view_all_button_style, isAlwaysActive: true -%}
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+      {% liquid
+        assign block = section.blocks[block_index]
+        assign collection = block.settings.collection
+        assign columns_desktop = columns_desktop | plus: 0
+        assign columns_tablet = columns_tablet | plus: 0
+        assign columns_mobile = columns_mobile | plus: 0
+        assign product_to_show = columns_desktop | times: rows_desktop
+        if collection.products != blank and product_to_show >= collection.products.size
+          assign product_to_show = collection.products.size
+        endif
+
+        assign enable_tablet_slider = enable_desktop_slider
+        if product_to_show <= columns_desktop
+          assign enable_desktop_slider = false
+        endif
+        if product_to_show <= columns_tablet
+          assign enable_tablet_slider = false
+        endif
+        if product_to_show <= columns_mobile
+          assign enable_desktop_slider = false
+        endif
+
+        assign enable_mobile_slider = false  
+        if product_to_show > columns_mobile and swiper_on_mobile
+          assign enable_mobile_slider = true
+        endif
+
+        assign disable_badges = false
+        if block.settings.show_label_badges == false
+          assign disable_badges = true
+        endif 
+      %}
+      <div
+        class="flex width-list-products-{{ section.id }}"
+        id="Collections--{{ section.id  }}"
+      >
+        <div class="w-full" x-intersect.once="document.dispatchEvent(new CustomEvent('maximize:animation:reveal'));">
+          <div
+            class="swiffy-slider enable-effect-hover relative slider-nav-animation slider-nav-animation-fadein slider-item-snapstart overflow-hidden
+              {%- unless swiper_on_mobile %} !swiffy-slider{% endunless -%}
+              {%- unless enable_tablet_slider %} md:!swiffy-slider{% endunless -%}
+              {%- if settings.lang_direction contains request.locale.iso_code and section.settings.transition_style == "fade" %} ltr{% endif -%}
+            "
+            {% if enable_tablet_slider or swiper_on_mobile -%}
+              x-intersect.once="
+                $store.xSwiffy.load($el, {
+                  'effect': 'slide',
+                  'mediaQuery': 'min',
+                  'isLoop': true,
+                  {% if section.settings.change_slides_speed != 0 %}
+                    'autoPlay': true,
+                    'autoPause': true,
+                  {% endif %}
+                  'speed': {{ section.settings.change_slides_speed | times: 1000 }},
+                  'breakPoints':{
+                    '0' : {
+                      'slidesPerView': {{ columns_mobile }},
+                      'gap': {{ section.settings.spacing_mobile }}
+                    },
+                    '768': {
+                      'slidesPerView': {{ columns_tablet }},
+                      'gap': {{ section.settings.spacing }}
+                    },
+                    '1024': {
+                      'slidesPerView': {{ columns_desktop }},
+                      'gap': {{ section.settings.spacing }}
+                    }
+                  },
+                });
+              "
+            {% endif %}
+          >
+            {% if section.settings.show_navigation_arrows and enable_desktop_slider %}
+              {% render 'slider-navigation-button' %}
+            {% endif %}
+            <div
+              class="feature-collection__list-items slider-container anm-reveal-container slider-transform
+                {%- if swiper_on_mobile %} slider-item-show{{ columns_mobile }} w-full
+                {%- else %} grid grid-cols-{{ columns_mobile }}{% if enable_desktop_slider %} md:grid-cols-none{% endif -%}
+                {%- endif -%}
+                {%- if enable_desktop_slider == false -%}
+                  {%- if enable_tablet_slider %} md:slider-item-show{{ columns_tablet }} md:grid-cols-none{%- else %} md:grid md:grid-cols-{{ columns_tablet }}{%- endif %} lg:grid lg:grid-cols-{{ columns_desktop -}}
+                {%- else %} md:cursor-grab md:grid md:slider-item-show{{ columns_tablet }} lg:slider-item-show{{ columns_desktop -}}
+                {%- endif -%}
+              "
+              data-mobile-gap="{{ section.settings.spacing_mobile }}px"
+              data-desktop-gap="{{ section.settings.spacing }}px"
+            >
+              {% for product in collection.products limit: product_to_show %}
+                <div
+                  class="feature-collection__item {% if swiper_on_mobile or enable_tablet_slider %} slide-item{% endif %} featured-collection_product_card product-card"
+                  data-item-index="{{ forloop.index }}"
+                >
+                  {% assign index_param = section.index | append: forloop.index | plus: 0 %}
+                  {% render 'product-card',
+                    product: product,
+                    show_vendor: block.settings.show_vendor,
+                    show_rating: block.settings.show_product_rating,
+                    section_id: section.id,
+                    class_slide: 'h-auto',
+                    columns_desktop: columns_desktop,
+                    column_mobile: columns_mobile,
+                    index: forloop.index,
+                    list_name: collection.title,
+                    collection: collection,
+                    enable_desktop_slider: enable_desktop_slider,
+                    show_quickview: block.settings.show_quickview,
+                    index_param: index_param,
+                    disable_badges: disable_badges,
+                    show_b2b_price_label: block.settings.show_b2b_price_label
+                  %}
+                </div>
+              {% else %}
+                {%- for i in (1..columns_desktop) -%}
+                  <div
+                    class="feature-collection__item {% if swiper_on_mobile or enable_tablet_slider %} slide-item{% endif %} featured-collection_product_card product-card"
+                    data-item-index="{{ forloop.index }}"
+                  >
+                    {% assign index_param = section.index | append: forloop.index | plus: 0 %}
+                    {% render 'product-card',
+                      product: '',
+                      show_vendor: block.settings.show_vendor,
+                      show_rating: block.settings.show_product_rating,
+                      section_id: section.id,
+                      class_slide: 'h-auto',
+                      columns_desktop: columns_desktop,
+                      column_mobile: columns_mobile,
+                      index: forloop.index,
+                      list_name: collection.title,
+                      collection: collection,
+                      enable_desktop_slider: enable_desktop_slider,
+                      show_quickview: block.settings.show_quickview,
+                      index_param: index_param,
+                      disable_badges: disable_badges
+                    %}
+                    </div>
+                {% endfor %}
+              {% endfor %}
+            </div>
+            {% render 'progress-bar',
+              show_on_mobile: enable_mobile_slider,
+              show_on_tablet: enable_tablet_slider
+            %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endpaginate %}
+</div>

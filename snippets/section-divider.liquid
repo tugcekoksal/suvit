@@ -1,0 +1,8 @@
+{%- if section.settings.show_section_divider -%}
+  <div
+    class="section-divider color-{{ section.settings.color_scheme_light }} dark-color-{{ section.settings.color_scheme_dark }}
+      {%- if section.settings.section_width != 'full-width' %} {{ section.settings.section_width }} px-0{% endif -%}"
+  >
+    <div class="divider m-auto border-t"></div>
+  </div>
+{%- endif -%}

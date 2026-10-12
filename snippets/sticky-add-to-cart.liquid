@@ -1,0 +1,514 @@
+{% assign product_form_id_sticky = 'StickyAddToCart--Form-' | append: section.id %}
+{%- comment -%}
+  The sticky bar keeps its own quantity, independent of the one in product information, so its price
+  tiers must be keyed separately too — otherwise changing either quantity would retarget both prices.
+  Same key the sticky quantity selector already uses as its error scope.
+{%- endcomment -%}
+{% assign sticky_price_group = section.id | append: '-sticky' %}
+
+{% liquid
+  assign default_preorder_text = 'products.product.pre_order' | t
+  assign preorder_button_label = block.settings.preorder_button_label | default: default_preorder_text
+
+  if is_show_preorder
+    assign default_button_label = preorder_button_label
+  else
+    if variant.available == false
+      assign default_button_label = 'products.product.sold_out' | t
+    else
+      if settings.pc_atc_button_label != blank
+        assign default_button_label = settings.pc_atc_button_label
+      else
+        assign default_button_label = 'products.product.add_to_cart' | t
+      endif
+    endif
+  endif
+
+  assign choose_option_label = 'products.product.choose_option' | t
+  if settings.pc_choose_option_label != blank
+    assign choose_option_label = settings.pc_choose_option_label
+  endif
+
+  assign atc_button_label = 'products.product.add_to_cart' | t
+  if settings.pc_atc_button_label != blank
+    assign atc_button_label = settings.pc_atc_button_label
+  endif
+%}
+<script
+  src="{{ 'sticky-atc.js' | asset_url }}"
+  defer
+></script>
+{%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+{%- assign login_hide_price = login_hide_price | strip -%}
+{%- unless login_hide_price == 'true' -%}
+  <div
+    id="StickyAddToCart--{{ section.id }}"
+    class="sticky-add-to-cart__wrapper bg-transparent fixed bottom-2.5 transform lg:bottom-5 left-0 right-0 z-40 flex w-full md:max-w-xl lg:max-w-[var(--page-width)] lg:w-fit m-auto"
+    x-show="$store.stickyATC.isOpen"
+    x-cloak
+    x-transition:enter="transition-all ease-in-out duration-300"
+    x-transition:enter-start="opacity-0 translate-y-1/3"
+    x-transition:enter-end="opacity-100 translate-y-0"
+    x-transition:leave="transition-all ease-in-out duration-500"
+    x-transition:leave-end="opacity-0 translate-y-1/3"
+  >
+    <div
+      class="sticky-add-to-cart__container color-bg-[rgba(var(--color-background))] shadow-small m-auto w-[calc(100%-32px)] lg:w-full mr-4 ml-4 md:mr-0 md:ml-0 transition duration-300 ease-linear relative border border-solid color-border-[rgba(var(--color-line-and-border))] rounded-corners"
+      :class="$store.stickyATC.isOpenDetailOnMobile ? '' : 'delay-200'"
+      x-data="xStickyATC($el, '{{ section.id }}', {{ product.has_only_default_variant }} )"
+    >
+      <div
+        class="bg-gradient-no-alpha rounded-inherit relative pr-4 pl-4 pt-4 pb-4 flex flex-col lg:inline-flex lg:flex-row gap-4 lg:gap-0"
+        :class="$store.stickyATC.isOpenDetailOnMobile ? 'gap-3' : 'gap-2.5'"
+      >
+        <div
+          class="sticky-add-to-cart__info-wrapper flex flex-row lg:pointer-events-none"
+          @click="$store.stickyATC.isOpenDetailOnMobile = false"
+          :class="$store.stickyATC.isOpenDetailOnMobile ? 'pointer-events-auto' : 'pointer-events-none'"
+        >
+          <div
+            class="flex flex-auto gap-2 rtl:text-right relative transition ease-in-out duration-300"
+          >
+            <div
+              class="sticky-add-to-cart__info flex flex-row gap-1 lg:gap-0 w-full lg:flex-col lg:mr-7.5 rtl:lg:mr-0 rtl:lg:ml-7.5"
+              :class="$store.stickyATC.isOpenDetailOnMobile ? 'flex-col' : 'flex-row'"
+            >
+              <div
+                class="flex-auto lg:hidden w-fit p-break-words"
+                :class="$store.stickyATC.isOpenDetailOnMobile ? 'h5' : 'pointer-events-none h6'"
+              >
+                {{ product.title | escape }}
+              </div>
+              <div class="h7 hidden lg:flex lg:flex-none w-fit p-break-words">{{ product.title | escape }}</div>
+              <div
+                id="StickyAddToCart__Price__{{ section.id }}"
+                class="price-sticky-{{ section.id }} "
+                role="status"
+              >
+                <div
+                  class="sticky-add-to-cart__price__mobile lg:hidden"
+                  :class="$store.stickyATC.isOpenDetailOnMobile ? 'hidden' : ''"
+                >
+                  {% render 'price', product: product, use_variant: true, show_badges: false, price_wrapper: 'h5 justify-end items-baseline', price_class: 'justify-end items-baseline', alignment: 'end', price_content: 'lg:justify-start', login_hide_price: login_hide_price, enable_volume_pricing: true, price_group: sticky_price_group, show_b2b_price_label: show_b2b_price_label %}
+                </div>
+                <div class="sticky-add-to-cart__price__desktop hidden lg:flex">
+                  {% render 'price', product: product, use_variant: true, show_badges: false, price_wrapper: 'h5 items-baseline', price_class: 'justify-end items-baseline', alignment: 'end', price_content: 'lg:justify-start', login_hide_price: login_hide_price, enable_volume_pricing: true, price_group: sticky_price_group, show_b2b_price_label: show_b2b_price_label %}
+                </div>
+                <div
+                  class="sticky-add-to-cart__price__mobile lg:hidden is-open-detail"
+                  :class="$store.stickyATC.isOpenDetailOnMobile ? '' : 'hidden'"
+                >
+                  {% render 'price', product: product, use_variant: true, show_badges: false, price_wrapper: 'h4 justify-end items-baseline', price_class: 'justify-end items-baseline', alignment: 'start', login_hide_price: login_hide_price, enable_volume_pricing: true, price_group: sticky_price_group, show_b2b_price_label: show_b2b_price_label %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="w-2.5 block lg:hidden color-text-[rgba(var(--color-heading),0.4)] relative shrink-0"
+            :class="$store.stickyATC.isOpenDetailOnMobile ? 'flex' : 'hidden'"
+          >
+            <span class="absolute">{% render 'icon-all', icon: 'icon-caret' %}</span>
+          </div>
+        </div>
+
+        {% unless product.has_only_default_variant %}
+          <div
+            x-show="!$store.stickyATC.isOpenDetailOnMobile"
+            class="lg:hidden"
+          >
+            <div
+              class="button button-primary text-medium w-full relative lg:hidden pt-2.5 pb-2.5 !px-3 pointer-events-auto"
+              @click.stop="$store.stickyATC.isOpenDetailOnMobile = !$store.stickyATC.isOpenDetailOnMobile;"
+            >
+              {{ choose_option_label }}
+            </div>
+          </div>
+
+          <div
+            id="StickyAddToCart__Variant__{{ section.id }}"
+            class="sticky-atc-action flex flex-col md:flex-wrap lg:flex-row gap-1.5 lg:mr-1.5 rtl:lg:ml-1.5 rtl:lg:mr-0"
+            :class="$store.stickyATC.isOpenDetailOnMobile || !isMobile ? 'flex' : ''"
+            x-collapse
+            x-show="$store.stickyATC.isOpenDetailOnMobile || !isMobile"
+            x-cloak
+            x-bind:style="$store.stickyATC.isOpenDetailOnMobile || !isMobile ? 'overflow: visible;' : ''"
+          >
+            {%- for product_option in product.options_with_values -%}
+              {% liquid
+                assign selected_value = product_option.selected_value
+              %}
+              {% capture select_value_text %}
+              {% if selected_value.available %}
+                {{ selected_value | escape }}
+              {% else %}
+                {% if selected_value.variant.available == nil %}
+                  {{ 'products.product.value_unavailable' | t: value: selected_value }}
+                {% else %}
+                  {{ 'products.product.value_sold_out' | t: value: selected_value }}
+                {% endif %}
+              {% endif %}
+            {% endcapture %}
+              {% assign select_value_text = select_value_text | strip %}
+
+              <select-element
+                class="variant-option__wrapper dropdown-large w-full lg:w-fit relative lg:max-w-[calc(var(--page-width)/8)]"
+                data-option-name="{{ product_option.name | escape }}"
+                data-option-position="{{ product_option.position }}"
+                data-picker-type="dropdown"
+              >
+                <legend class="variant-option__label h6 pb-1 lg:hidden">
+                  <span>{{ product_option.name }}:</span>
+                  <span
+                    {% comment %}:data-value="options[{{ product_option.position }} - 1]"{% endcomment %}
+                  >
+                    {{ select_value_text }}
+                  </span>
+                </legend>
+
+                <div class="relative">
+                  <div
+                    class="select-button cursor-pointer flex justify-center items-center w-full pt-2 pb-2 md:py-[11px] gap-4{% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+                    aria-expanded="false"
+                    role="button"
+                    aria-expanded="false"
+                    tabindex="0"
+                    aria-pressed="false"
+                    aria-describedby="StickyAddToCart"
+                  >
+                    <span
+                      class="select-button__label variant-option__select-button__label flex items-start flex-auto whitespace-nowrap color-text-[rgba(var(--color-heading)) overflow-hidden"
+                      data-option-position="{{ product_option.position }}"
+                      data-section-id="{{ section.id }}"
+                      {% comment %}:data-value="options[{{ product_option.position }} - 1]"{% endcomment %}
+                    >
+                      {{ select_value_text }}
+                    </span>
+                    <span class="select-arrow transition-transform w-2.5 h-2.5 shrink-0">
+                      {% render 'icon-all', icon: 'icon-caret' %}
+                    </span>
+                  </div>
+                  <div class="select-options-wrapper w-full lg:min-w-full lg:w-auto lg:max-w-[300px] scrollbar-visible scrollbar-body">
+                    <ul
+                      class="select-options variant-option__list max-h-[200px]"
+                      role="listbox"
+                      aria-label="Select options {{ product_option.name }}"
+                    >
+                      {% render 'sticky-atc-variant-options', product: product, variant: variant, product_option: product_option, product_form_id: product_form_id_sticky, section: section, variant_picker_type: 'dropdown' %}
+                    </ul>
+                  </div>
+                  <label class="hidden">
+                    <input
+                      class="select-option-selected"
+                      value="{{ product_option.selected_value.name }}"
+                    >
+                  </label>
+                </div>
+              </select-element>
+            {%- endfor -%}
+          </div>
+        {% endunless %}
+
+        <div
+          x-data="xProductForm('{{ product_form_id_sticky }}', '{{ variant.id }}', {{ variant.available | default: false }}, '{{ default_button_label }}', '{{ atc_button_label }}', '{{ section.id }}', '{{ section.id }}-sticky','{{ settings.preorder_show }}', '{{ preorder_button_label }}', {{ is_apply_preorder }})"
+          class="sticky-add-to-cart__form-wrapper"
+          x-init="handleInitProductForm()"
+          {% unless product.has_only_default_variant %}
+            x-show="$store.stickyATC.isOpenDetailOnMobile || !isMobile"
+          {% endunless %}
+        >
+          <div class="absolute top-0 w-full left-0 translate-y-[calc(-100%-4px)]">
+            <div class="m-auto bg-white w-fit rounded-[var(--border-radius-flash-message)]">
+              <div
+                class="flash-message error-message"
+                role="alert"
+                x-cloak
+                x-show="errorMessage"
+                @click.away="errorMessage=false"
+              >
+                <span
+                  class="pt-0.5"
+                  x-ref="error_message"
+                ></span>
+              </div>
+            </div>
+            {%- if customer != blank and customer.b2b? -%}
+              <div class="m-auto bg-white w-fit rounded-[var(--border-radius-flash-message)]" x-show="quantityErrorMessage" x-cloak>
+                <div class="flash-message error-message" role="alert">
+                  <span class="pt-0.5" x-ref="quantity_error" x-text="quantityErrorMessage"></span>
+                </div>
+              </div>
+            {%- endif -%}
+          </div>
+
+          {%- form 'product', product, id: product_form_id_sticky, class: 'sticky-add-to-cart__form', novalidate: 'novalidate', data-type: 'add-to-cart-form', x-ref: 'product_form' -%}
+            <input
+              type="hidden"
+              id="update-variant-sticky-{{ section.id }}"
+              form="{{ product_form_id_sticky }}"
+              name="id"
+              value="{{ variant.id }}"
+            >
+            <div class="sticky-add-to-cart__actions flex flex-row size-full gap-1 lg:gap-1.5 flex-wrap lg:flex-nowrap">
+              {%- if section.settings.sticky_add_to_cart_show_quantity and settings.hide_cart == false -%}
+                <div
+                  class="sticky-add-to-cart__quantity__wrapper relative outline outline-1 color-outline-[rgba(var(--color-text),0.2)] w-fit h-full items-center ltr:lg:mr-1 rtl:lg:ml-1 rounded-corners-md"
+                  x-data="xQuantitySelector('{{ section.id }}', '{{ variant.id }}', '{{ product.url }}', false, {{ variant.quantity_rule.min | default: 1 }}, {{ variant.quantity_rule.max | default: 'null' }}, {{ variant.quantity_rule.increment | default: 1 }}, '{{ section.id }}-sticky')"
+                  x-init="$nextTick(() => {qty = document.getElementById('QuantitySticky-{{ section.id }}').value;})"
+                >
+                  {%- comment -%}
+                    Quantity-rule / volume-pricing tooltip, centred over the quantity box like
+                    every other quantity selector in the theme. The sticky bar sits at the
+                    bottom of the viewport, so the popup is asked to open downward-flipping
+                    from the top — custom-tooltip already auto-flips on available room.
+                  {%- endcomment -%}
+                  {%- if customer != blank and customer.b2b? -%}
+                    <div class="quantity-rule-tooltip-anchor absolute -top-3 right-1 z-10">
+                      {%- render 'quantity-rule-tooltip', variant: variant, product: product -%}
+                    </div>
+                  {%- endif -%}
+                  <div class="sticky-add-to-cart__quantity__container flex">
+                    <div
+                      class="w-full flex pr-4 pl-4 cursor-pointer bg-transparent select-none items-center color-text-[rgba(var(--color-text))]"
+                      :class="atMin ? 'cursor-not-allowed opacity-60 pointer-events-none' : 'cursor-pointer'"
+                      :aria-disabled="atMin"
+                      aria-label="minus"
+                      @click.prevent="minus(1)"
+                      @mousedown.prevent
+                      tabindex="0"
+                      @keyup.enter="minus(1)"
+                    >
+                      <span class="w-3">{% render 'icon-all', icon: 'icon-minus' %}</span>
+                    </div>
+                    <input
+                      class="outer-spin-button text-medium hide-spin-input focus:outline-none py-2.5 md:py-[11.5px] w-[calc(var(--body-font-size)*2)] text-center bg-transparent {% if is_rounded_conner %} rounded-md{% endif %}"
+                      type="number"
+                      name="quantity"
+                      id="QuantitySticky-{{ section.id }}"
+                      min="{{ variant.quantity_rule.min | default: 1 }}"
+                      {%- if variant.quantity_rule.max %} max="{{ variant.quantity_rule.max }}"{% endif %}
+                      step="{{ variant.quantity_rule.increment | default: 1 }}"
+                      form="{{ product_form_id_sticky }}"
+                      aria-labelledby="QuantitySticky-{{ section.id }}"
+                      x-model="qty"
+                      x-on:blur="normalizeOnLeave($el)"
+                      x-on:keydown.enter.prevent="validateNow($el)"
+                      x-ref="quantity_input"
+                    >
+                    <div
+                      class="w-full flex pr-4 pl-4 cursor-pointer bg-transparent select-none items-center color-text-[rgba(var(--color-text))]"
+                      :class="atMax ? 'cursor-not-allowed opacity-60 pointer-events-none' : 'cursor-pointer'"
+                      :aria-disabled="atMax"
+                      @click.prevent="plus(1)"
+                      @mousedown.prevent
+                      aria-label="minus"
+                      tabindex="0"
+                      @keyup.enter="plus(1)"
+                    >
+                      <span class="w-3">{% render 'icon-all', icon: 'icon-plus' %}</span>
+                    </div>
+                  </div>
+                </div>
+              {% else %}
+                {%- comment -%}
+                  No quantity selector, so this hidden field carries the quantity. Shopify wants a
+                  MULTIPLE of the increment, and a rule such as min 1 / increment 2 makes the raw
+                  minimum invalid — align it up onto the increment grid, the same way
+                  quantityRuleUtils.normalizeRule does on the JS side.
+                {%- endcomment -%}
+                {%- liquid
+                  assign sticky_qty = variant.quantity_rule.min | default: 1
+                  assign sticky_increment = variant.quantity_rule.increment | default: 1
+                  assign sticky_remainder = sticky_qty | modulo: sticky_increment
+                  if sticky_remainder > 0
+                    assign sticky_qty = sticky_qty | plus: sticky_increment | minus: sticky_remainder
+                  endif
+                -%}
+                <input
+                  class="hidden"
+                  type="number"
+                  name="quantity"
+                  id="QuantitySticky-{{ section.id }}"
+                  value="{{ sticky_qty }}"
+                  min="{{ sticky_qty }}"
+                  {%- if variant.quantity_rule.max %} max="{{ variant.quantity_rule.max }}"{% endif %}
+                  step="{{ sticky_increment }}"
+                  form="{{ product_form_id_sticky }}"
+                  aria-labelledby="QuantitySticky-{{ section.id }}"
+                  x-ref="quantity_input"
+                >
+              {%- endif -%}
+
+              {% if settings.estimate_show_in_cart == 'show_item' %}
+                {% liquid
+                  assign name_edt = settings.name_edt
+                  if settings.name_edt == blank
+                    assign name_edt = 'general.estimate_delivery' | t
+                  endif
+                %}
+                {% capture estimate_shipping_message %}
+                {% render 'estimate-shipping-message', product: product, variant: variant %}
+              {% endcapture %}
+                {% assign message_update = estimate_shipping_message | strip %}
+                <input
+                  class="sticky-add-to-cart__estimate-property hidden"
+                  id="StickyAddToCart--EstimateShippingCart__{{ section.id }}"
+                  name="properties[{{ name_edt }}]"
+                  value="{{ message_update | escape }}"
+                  {% if product_form_id_sticky != blank %}
+                    form="{{ product_form_id_sticky }}"
+                  {% endif %}
+                  {% unless enable_cart_edt %}
+                    disabled
+                  {% endunless %}
+                >
+                <label
+                  class="hidden"
+                  for="StickyAddToCart--EstimateShippingCart__{{ section.id }}"
+                ></label>
+                {% if is_show_preorder %}
+                  <label>
+                    <input
+                      name="properties[_preorder]"
+                      class="hidden"
+                      value="preorder"
+                      {% if product_form_id_sticky != blank %}
+                        form="{{ product_form_id_sticky }}"
+                      {% endif %}
+                    >
+                  </label>
+                {% endif %}
+              {% endif %}
+              {%- unless settings.hide_cart -%}
+                <div class="grow h-full flex">
+                  <custom-button>
+                    <button
+                      class="product-form__btn-add-to-cart button button-primary text-medium w-[calc(100%+1px)] h-full relative pt-2.5 pb-2.5 whitespace-nowrap rounded-corners-md{% unless variant.available %} opacity-60{% endunless %}"
+                      id="StickyAddToCart--Button-{{ section.id }}"
+                      type="submit"
+                      name="add"
+                      aria-haspopup="dialog"
+                      aria-labelledby="{{ product_form_id }}-submit title-{{ section.id }}-{{ product.id }}"
+                      aria-live="polite"
+                      data-sold-out-message="true"
+                      {% if variant.available %}
+                        aria-disabled="false"
+                        tabindex="0"
+                      {% else %}
+                        disabled
+                        aria-disabled="true"
+                        tabindex="-1"
+                      {% endif %}
+                      {% comment %}:class="{'visible': visible, 'invisible': !visible, 'is-loading': isLoading}"{% endcomment %}
+                      :class="{'opacity-80': !isAvailableButton, 'is-loading': isLoading}"
+                      :disabled="!isAvailableButton"
+                      @click.prevent="handleAddToCart($event, false, '{{ variant.id }}')"
+                    >
+                      <span
+                        id="AddToCartText-{{ product_form_id_sticky }}"
+                        class="btn__text"
+                        :class="{'invisible': isLoading}"
+                      >
+                        {% if is_show_preorder %}
+                          {{ preorder_button_label }}
+                        {% else %}
+                          {% if variant %}
+                            {% if variant.available %}
+                              {{ 'products.product.add_to_cart' | t }}
+                            {% else %}
+                              {{ 'products.product.sold_out' | t }}
+                            {% endif %}
+                          {% else %}
+                            {{ 'products.product.unavailable' | t }}
+                          {% endif %}
+                        {% endif %}
+                      </span>
+                      <span
+                        class="inline-block w-5 h-5 animate-spin absolute left-[calc(50%-10px)]"
+                        x-show="isLoading"
+                        x-cloak
+                      >
+                        {% render 'icon-all', icon: 'icon-loading' %}
+                      </span>
+                      <span
+                        class="w-5 h-5 absolute left-[calc(50%-10px)] hidden"
+                        x-cloak
+                        data-check-icon
+                        x-show="!isLoading"
+                      >
+                        {% render 'icon-all', icon: 'icon-check-success' %}
+                      </span>
+                    </button>
+                  </custom-button>
+                </div>
+              {%- endunless -%}
+              {% if is_show_compare_button %}
+                <template x-if="$store.xProductComparison && $store.xProductComparison.hasSection">
+                  <div class="relative buy-buttons__compare-button hidden h-full">
+                    <custom-button>
+                      <button
+                        class="size-full button flex flex-row gap-1.5 button-secondary items-center flex-nowrap pt-2.5 pb-2.5 pl-2.5 pr-2.5 {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+                        :class="{'cursor-not-allowed disable-button-compare pointer-events-none': ($store.xProductComparison?.listComparisonProducts.length >= $store.xProductComparison?.maximumProductCompare && !$store.xProductComparison.isClickAddToCompare) || $store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}')}"
+                        @click.prevent="$store.xProductComparison?.addProductToCompare('{{ product.id }}', '{{ product.handle }}')"
+                      >
+                        <div class="h-[calc(var(--body-font-size)*1.6)] w-[calc(var(--body-font-size)*1.6)] relative">
+                          <div
+                            class="absolute size-full"
+                            :class="$store.xProductComparison?.listComparisonProducts && $store.xProductComparison?.listComparisonProducts.some(item => item.productId === '{{ product.id }}') ? 'hidden' : 'block'"
+                          >
+                            {% render 'icon-all', icon: 'icon-product-comparison' %}
+                          </div>
+                          <div
+                            x-cloak
+                            class="absolute size-full"
+                            :class="$store.xProductComparison?.listComparisonProducts && $store.xProductComparison?.listComparisonProducts.some(item => item.productId === '{{ product.id }}') ? 'block' : 'hidden'"
+                          >
+                            {% render 'icon-all', icon: 'icon-check-compare' %}
+                          </div>
+                        </div>
+                      </button>
+                    </custom-button>
+
+                    <custom-tooltip data-tooltip-align="end" data-enable-mobile="true" x-show="($store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}') || $store.xProductComparison.listComparisonProducts.length >= $store.xProductComparison.maximumProductCompare)">
+                      <div
+                        class="tooltip-popup-wrapper absolute invisible z-10 pointer-events-none flex my-0.5 right-0 rtl:left-0 rtl:right-auto{% if settings.hide_cart %} max-lg:right-auto max-lg:left-0 rtl:max-lg:right-0 rtl:max-lg:left-auto{% endif %}"
+                        data-tooltip-position="top"
+                        :class="{'state-success': $store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}'), 'state-error': $store.xProductComparison.listComparisonProducts.length >= $store.xProductComparison.maximumProductCompare && !$store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}')}"
+                      >
+                        <div class="tooltip-arrow-up triangle-tooltip relative z-10 w-fit self-end hidden">
+                          <div class="triangle-up border-transparent mx-1"></div>
+                          <div class="triangle-up border-b-white mx-1 absolute top-0 left-0 -z-10"></div>
+                        </div>
+                        <div x-show="$store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}')">
+                          <div class="w-[100px] lg:w-[130px] rounded-[var(--border-radius-flash-message)] bg-white">
+                            <div class="flash-message success-message w-full text-center relative">
+                              <span class="text-x-small">{{ 'product_comparison.tooltip_added_to_compare' | t }}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div x-show="$store.xProductComparison?.listComparisonProducts.length >= $store.xProductComparison?.maximumProductCompare && !$store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}')">
+                          <div class="w-[100px] lg:w-[130px] rounded-[var(--border-radius-flash-message)] bg-white">
+                            <div
+                              x-init="$el.innerHTML = $el.innerHTML.replace('count_product', $store.xProductComparison?.maximumProductCompare)"
+                              class="flash-message error-message w-full text-center"
+                            >
+                              <span class="product_comparison-limit text-x-small">{{ 'product_comparison.tooltip_limit_products' | t }}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="tooltip-arrow-down triangle-tooltip relative z-10 w-fit self-end">
+                          <div class="triangle-down border-transparent mx-1"></div>
+                          <div class="triangle-down border-t-white mx-1 absolute top-0 left-0 -z-10"></div>
+                        </div>
+                      </div>
+                    </custom-tooltip>
+                  </div>
+                </template>
+              {% endif %}
+            </div>
+          {%- endform -%}
+        </div>
+      </div>
+    </div>
+  </div>
+{%- endunless -%}

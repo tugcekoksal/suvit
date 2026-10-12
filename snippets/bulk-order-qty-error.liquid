@@ -1,0 +1,43 @@
+{% doc %}
+  Renders a quantity-rule error as a tooltip-style popup that appears
+  automatically (no hover) whenever its `.tooltip-content` has text.
+
+  Uses the <bulk-order-error-tooltip> web component (extends CustomToolTip), which
+  opens the popup in the browser top layer via the Popover API — so it is NEVER
+  clipped by popup/table/drawer overflow — and follows its trigger on scroll.
+  Visibility is driven purely by the content text (a MutationObserver opens the
+  popup while it is non-empty), so it works with either binding style:
+  - Alpine: pass `error_expr`, bound via x-text (bulk order qtyErrors state).
+  - Plain JS: pass `content_class` (+ `id`) and write the message into the
+    content element directly (cart / cart drawer `_addErrorMessage`).
+
+  Reuses the same visual primitives as `custom-tooltip` (tooltip-popup-wrapper +
+  triangle arrows) plus the shared `state-error` arrow tint.
+
+  Must be placed inside the `position: relative` element that wraps the quantity control.
+
+  @param error_expr {String} - Alpine expression resolving to the error message for the
+    current row, bound via x-text (e.g. "qtyErrors[row.variantId]"). Optional.
+  @param id {String} - id for the custom-element host (e.g. "LineItemError-1"). Optional.
+  @param content_class {String} - extra class(es) for the content element so external
+    JS can target it (e.g. "cart-item__error-text"). Optional.
+{% enddoc %}
+<bulk-order-error-tooltip{% if id %} id="{{ id }}"{% endif %} class="bulk-order__qty-error" data-enable-mobile="true" data-tooltip-align="center">
+  <div
+    class="tooltip-popup-wrapper state-error absolute invisible z-30 !bg-transparent flex flex-col w-max max-w-[240px]"
+    data-tooltip-position="top"
+    role="alert"
+  >
+    <div class="tooltip-arrow-up triangle-tooltip relative z-10 w-fit mx-auto hidden">
+      <div class="triangle-up border-transparent"></div>
+      <div class="triangle-up color-border-b-[rgba(var(--color-background))] absolute top-0 left-0 -z-10"></div>
+    </div>
+    <div class="flash-message error-message overflow-hidden rounded-corners rounded-corners-sm shadow-small">
+      <div class="tooltip-content py-1.5 px-2 text-x-small p-break-words{% if content_class %} {{ content_class }}{% endif %}"{% if error_expr %} x-text="{{ error_expr }}"{% endif %}></div>
+    </div>
+    <div class="tooltip-arrow-down triangle-tooltip relative z-10 w-fit mx-auto">
+      <div class="triangle-down border-transparent"></div>
+      <div class="triangle-down color-border-t-[rgba(var(--color-background))] absolute top-0 left-0 -z-10"></div>
+    </div>
+  </div>
+</bulk-order-error-tooltip>

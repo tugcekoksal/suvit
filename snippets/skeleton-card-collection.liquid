@@ -1,0 +1,9 @@
+<div class="block">
+  <div class="bg-skeleton w-full before:h-0 before:block z-0{% unless image_ratio == "round" %} rounded-corners before:pb-[{{ ratio }}%]{% else %} rounded-full before:pb-[100%]{% endunless %}"></div>
+  {% unless text_overlay %}
+    <div class="h-5 w-full bg-skeleton mt-2.5"></div>
+    {% if show_item_count or collage %}
+      <div class="h-4 w-full bg-skeleton mt-1.5 mb-2.5"></div>
+    {% endif %}
+  {% endunless %}
+</div>

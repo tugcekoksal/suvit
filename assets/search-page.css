@@ -1,0 +1,174 @@
+@charset "UTF-8";
+.search-page .search-page\:slider-container{
+  --swiffy-slider-item-gap-totalwidth:calc(var(--swiffy-slider-item-gap) * (var(--swiffy-slider-item-count) - 1));
+  --swiffy-slider-item-width:calc((100% - var(--swiffy-slider-item-gap-totalwidth)) / var(--swiffy-slider-item-count));
+  overflow-x:auto;
+  overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+  scroll-snap-type:x mandatory;
+  scroll-behavior:smooth;
+  display:grid;
+  height:100%;
+  grid:auto / auto-flow max-content;
+  grid-auto-rows:100%;
+  grid-auto-columns:var(--swiffy-slider-item-width);
+  grid-auto-flow:column;
+  grid-gap:var(--swiffy-slider-item-gap);
+  list-style:none;
+  margin:0;
+  padding:0;
+  scrollbar-width:none;
+  scrollbar-color:rgba(0, 0, 0, 0.4) rgba(0, 0, 0, var(--swiffy-slider-track-opacity));
+  background-clip:padding-box;
+}
+@supports (height: 100dvh){
+}
+.bg-gradient,
+.search-page .search-page\:bg-gradient{
+  background:var(--gradient-background, "none");
+}
+@media (min-width: 1024px){
+}
+@media screen and (min-width: 768px){
+}
+@-moz-document url-prefix(){
+}
+.search-page.direction_link .text-link-arrow{
+  display:inline-flex;
+  align-items:center;
+}
+@media (max-width: 767px){
+  .search-page.direction_link .text-link-arrow{
+    display:none;
+  }
+}
+@media (min-width: 1024px){
+}
+.search-page .search-page\:slider-item-show1{
+    --swiffy-slider-item-count:1;
+  }
+@media (min-width: 768px){
+  .search-page .search-page\:md\:slider-item-show2{
+    --swiffy-slider-item-count:2;
+  }
+}
+@media (min-width: 1024px){
+
+  .search-page .search-page\:lg\:slider-item-show3{
+    --swiffy-slider-item-count:3;
+  }
+}
+.search-page .search-page\:pointer-events-none{
+  pointer-events:none;
+}
+.search-page .search-page\:block{
+  display:block;
+}
+.search-page .search-page\:flex{
+  display:flex;
+}
+.search-page .search-page\:hidden{
+  display:none;
+}
+.search-page .search-page\:h-8{
+  height:2rem;
+}
+.search-page .search-page\:max-h-\[45vh\]{
+  max-height:45vh;
+}
+.search-page .search-page\:w-8{
+  width:2rem;
+}
+.search-page .search-page\:w-\[92px\]{
+  width:92px;
+}
+.search-page .search-page\:max-w-full{
+  max-width:100%;
+}
+.search-page .search-page\:flex-row{
+  flex-direction:row;
+}
+.search-page .search-page\:flex-col{
+  flex-direction:column;
+}
+.search-page .search-page\:rounded-\[20px\]{
+  border-radius:20px;
+}
+.search-page .search-page\:border{
+  border-width:1px;
+}
+.search-page .search-page\:border-t-0{
+  border-top-width:0px;
+}
+.search-page .search-page\:p-0{
+  padding:0px;
+}
+.search-page .search-page\:p-2\.5{
+  padding:0.625rem;
+}
+.search-page .search-page\:px-0{
+  padding-left:0px;
+  padding-right:0px;
+}
+.search-page .search-page\:px-4{
+  padding-left:1rem;
+  padding-right:1rem;
+}
+.search-page .search-page\:px-5{
+  padding-left:1.25rem;
+  padding-right:1.25rem;
+}
+.search-page .search-page\:pb-5{
+  padding-bottom:1.25rem;
+}
+.search-page .search-page\:pt-4{
+  padding-top:1rem;
+}
+.search-page .search-page\:color-bg-\[rgba\(var\(--color-background\)\)\]{
+  background-color:rgba(var(--color-background));
+}
+.search-page .search-page\:color-bg-\[rgba\(var\(--color-text\)\2c 0\.06\)\]{
+  background-color:rgba(var(--color-text-no-alpha) / 0.06);
+}
+.search-page .search-page\:color-bg-gradient-\[var\(--gradient-background\)\]{
+  background:var(--gradient-background);
+}
+.search-page .search-page\:color-text-\[rgba\(var\(--color-text\)\2c 0\.6\)\]{
+  color:rgba(var(--color-text-no-alpha) / 0.6);
+}
+@media (min-width: 768px){
+  .search-page .md\:search-page\:\!flex{
+    display:flex !important;
+  }
+  .search-page .search-page\:md\:max-w-full{
+    max-width:100%;
+  }
+  .search-page .search-page\:md\:flex-col{
+    flex-direction:column;
+  }
+  .search-page .md\:search-page\:gap-y-7\.5{
+    row-gap:1.875rem;
+  }
+  .search-page .md\:search-page\:py-3\.5{
+    padding-top:0.875rem;
+    padding-bottom:0.875rem;
+  }
+  .search-page .search-page\:md\:px-0{
+    padding-left:0px;
+    padding-right:0px;
+  }
+  .search-page .md\:search-page\:pb-3{
+    padding-bottom:0.75rem;
+  }
+  .search-page .md\:search-page\:pt-5{
+    padding-top:1.25rem;
+  }
+}
+@media (min-width: 1024px){
+  .search-page .lg\:search-page\:\!flex{
+    display:flex !important;
+  }
+  .search-page .lg\:search-page\:\!hidden{
+    display:none !important;
+  }
+}

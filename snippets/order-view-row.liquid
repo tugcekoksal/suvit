@@ -1,0 +1,657 @@
+{% doc %}
+  Renders one product as an order card of the B2B order view: the parent row (always rendered),
+  an empty container the variant rows are lazily fetched into (see assets/order-view.js), and the
+  card footer with its running total and "Add to cart".
+
+  This row's own stepper (single-variant products only) mirrors the one in variant-order-row.liquid
+  (same data-qty-step / data-variant-id contract) — keep both in sync.
+
+  @param {object} product - The product to order
+  @param {string} [hide_price] - 'true' when "Log in to view price" hides this product's prices.
+    Caller's product loop already resolves this once per product — falls back to computing it
+    here when omitted.
+  @param {string} [can_request_quote] - 'true'/'false' from `can-request-quote`. Customer-wide, so
+    the caller hoists it ABOVE its product loop — falls back to computing it here when omitted.
+    Still ANDed with `hide_price` below: a card with no price gets no quote button.
+  @param {boolean} [show_vendor] - Show the vendor above the title
+  @param {boolean} [show_skus] - Show SKUs, defaults to true
+  @param {string} [loading] - Image loading attribute ('eager' for the first rows)
+  @param {boolean} [is_b2b] - customer.b2b? — falls back to computing it here when omitted
+  @param {boolean} [rounded] - settings.edges_type == 'rounded_corners' — falls back when omitted
+
+  Icon/label/format params below are optional, mirroring variant-order-row.liquid — the caller's
+  product loop hoists them once per page; each falls back here when omitted.
+
+  @param {string} [icon_minus] - Pre-rendered 'icon-minus' markup
+  @param {string} [icon_plus] - Pre-rendered 'icon-plus' markup
+  @param {string} [icon_caret] - Pre-rendered 'icon-caret' markup
+  @param {string} [icon_loading] - Pre-rendered 'icon-loading' markup
+  @param {string} [lbl_sku] - 'products.product.sku' | t
+  @param {string} [lbl_minus] - 'accessibility.minus' | t
+  @param {string} [lbl_plus] - 'accessibility.plus' | t
+  @param {string} [lbl_qty] - 'products.product.quantity.label' | t
+  @param {string} [lbl_inc] - 'bulk_order.rule.inc' | t
+  @param {string} [lbl_min] - 'bulk_order.rule.min' | t
+  @param {string} [lbl_max] - 'bulk_order.rule.max' | t
+  @param {string} [lbl_total] - 'order_view.total' | t
+  @param {string} [lbl_atc] - 'order_view.add_to_cart' | t
+  @param {string} [lbl_toggle] - 'order_view.toggle_variants' | t
+  @param {boolean} [money_with_currency] - settings.currency_code_enable
+  @param {string} [zero_money] - 0 | money
+{% enddoc %}
+{%- liquid
+  if show_skus == nil
+    assign show_skus = true
+  endif
+
+  if hide_price != nil
+    assign ov_hide_price = hide_price
+  else
+    capture ov_hide_price
+      render 'can-hide-price', product: product
+    endcapture
+    assign ov_hide_price = ov_hide_price | strip
+  endif
+
+  if is_b2b == nil
+    assign is_b2b = false
+    if customer != blank and customer.b2b?
+      assign is_b2b = true
+    endif
+  endif
+
+  if rounded == nil
+    assign rounded = false
+    if settings.edges_type == 'rounded_corners'
+      assign rounded = true
+    endif
+  endif
+
+  comment
+    Avoids a second pass over product.variants — the product-card grid already walked it.
+  endcomment
+  assign ov_variant_count = product.variants_count
+  comment
+    "Single" means the product offers no choice — Shopify's default variant — not merely one
+    variant: a product with one real option value (Color: Red) is still ordered by variant, so it
+    keeps its chevron and lists that variant inside the collapsible like any other product.
+  endcomment
+  assign ov_single = product.has_only_default_variant
+  assign ov_variant = product.selected_or_first_available_variant
+
+  comment
+    Preorder eligibility per theme settings — same derivation as product-card.liquid. Only this
+    row's own variant; the variant rows compute their own in variant-order-row.liquid.
+  endcomment
+  assign ov_apply_preorder = false
+  if settings.applied_products_preorder == blank and settings.applied_collections_preorder == blank
+    assign ov_apply_preorder = true
+  else
+    assign ov_preorder_product_list = ''
+    for prod in settings.applied_products_preorder
+      assign ov_preorder_product_list = ov_preorder_product_list | append: ';' | append: prod.id
+    endfor
+    for collec in settings.applied_collections_preorder
+      for prod in collec.products
+        assign ov_preorder_product_list = ov_preorder_product_list | append: ';' | append: prod.id
+      endfor
+    endfor
+    if ov_preorder_product_list contains product.id
+      assign ov_apply_preorder = true
+    endif
+  endif
+
+  assign ov_show_preorder = false
+  if ov_apply_preorder
+    if settings.preorder_show == 'yes'
+      if ov_variant.inventory_management == null
+        assign ov_show_preorder = true
+      elsif ov_variant.inventory_quantity > 0
+        assign ov_show_preorder = true
+      elsif ov_variant.inventory_policy == 'continue'
+        assign ov_show_preorder = true
+      endif
+    elsif settings.preorder_show == 'on_back_ordered'
+      if ov_variant.inventory_policy == 'continue' and ov_variant.inventory_quantity < 1 and ov_variant.inventory_management != null
+        assign ov_show_preorder = true
+      endif
+    endif
+  endif
+
+  comment
+    Product-level pre-order: the stock label and the card's Add to cart speak for every variant at
+    once, so they only say "Pre-order" when every orderable variant is one. Under 'yes' that needs
+    no pass over the variants — by the rule above, available and pre-order are the same set.
+    'on_back_ordered' is narrower (in stock is orderable but not pre-order), so it has to count.
+  endcomment
+  assign ov_product_preorder = false
+  if ov_apply_preorder and product.available
+    if settings.preorder_show == 'yes'
+      assign ov_product_preorder = true
+    elsif settings.preorder_show == 'on_back_ordered'
+      assign ov_orderable_variant_count = 0
+      assign ov_preorder_variant_count = 0
+      for ov_pv in product.variants
+        if ov_pv.available
+          assign ov_orderable_variant_count = ov_orderable_variant_count | plus: 1
+          if ov_pv.inventory_policy == 'continue' and ov_pv.inventory_quantity < 1 and ov_pv.inventory_management != null
+            assign ov_preorder_variant_count = ov_preorder_variant_count | plus: 1
+          endif
+        endif
+      endfor
+      if ov_orderable_variant_count > 0 and ov_orderable_variant_count == ov_preorder_variant_count
+        assign ov_product_preorder = true
+      endif
+    endif
+  endif
+
+  assign ov_message_preorder = 'general.preorder.message_preorder' | t
+  if settings.message_preorder_cart != blank
+    assign ov_message_preorder = settings.message_preorder_cart
+  endif
+
+  comment
+    A sold-out product gets no chevron/variant container — a flat, dimmed row instead. Preorder
+    needs no exception: Shopify reports a variant available whenever it oversells or doesn't track
+    stock, which is exactly when preorder applies.
+  endcomment
+  assign ov_expandable = false
+  if ov_single == false and product.available
+    assign ov_expandable = true
+  endif
+
+  assign ov_orderable = false
+  if ov_single and ov_hide_price != 'true'
+    if ov_variant.available or ov_show_preorder
+      assign ov_orderable = true
+    endif
+  endif
+
+  assign ov_image = product.featured_image
+  assign ov_loading = loading | default: 'lazy'
+
+  if money_with_currency == nil
+    assign money_with_currency = settings.currency_code_enable
+  endif
+  if money_with_currency
+    assign ov_price_min = product.price_min | money_with_currency
+    assign ov_compare = product.compare_at_price | money_with_currency
+  else
+    assign ov_price_min = product.price_min | money
+    assign ov_compare = product.compare_at_price | money
+  endif
+  if zero_money == nil
+    assign zero_money = 0 | money
+  endif
+  if product.price_varies
+    assign ov_price_label = 'products.product.price.from_price_html' | t: price: ov_price_min
+  else
+    assign ov_price_label = ov_price_min
+  endif
+
+  comment
+    `number`, not `count` — `count` makes Shopify look for pluralised forms.
+  endcomment
+  assign ov_variant_count_label = 'order_view.variant_count' | t: number: ov_variant_count
+  assign ov_variants_id = 'OrderViewVariants-' | append: product.id
+
+  comment
+    Only a single-variant product makes the parent row itself orderable.
+  endcomment
+  if ov_single
+    assign ov_cart_qty = cart | item_count_for_variant: ov_variant.id
+    assign ov_available = false
+    if ov_variant.available
+      assign ov_available = true
+    endif
+
+    comment
+      Same as variant-order-row.liquid: computeMaxQty() takes the smaller of the inventory and cart
+      ceilings, and without this a single-variant parent row enforces no inventory limit at all.
+    endcomment
+    assign ov_inventory_max = ''
+    if ov_variant.inventory_management == 'shopify' and ov_variant.inventory_policy == 'deny'
+      assign ov_inventory_max = ov_variant.inventory_quantity
+    endif
+
+    assign ov_breaks = ''
+    unless ov_hide_price == 'true'
+      for ov_break in ov_variant.quantity_price_breaks
+        assign ov_breaks = ov_breaks | append: '[' | append: ov_break.minimum_quantity | append: ',' | append: ov_break.price | append: ']'
+        unless forloop.last
+          assign ov_breaks = ov_breaks | append: ','
+        endunless
+      endfor
+    endunless
+
+    assign ov_rule_inc = ov_variant.quantity_rule.increment | default: 1
+    assign ov_rule_min = ov_variant.quantity_rule.min | default: 1
+    assign ov_rule_max = ov_variant.quantity_rule.max
+
+    comment
+      Only parts that differ from the default are spelled out.
+    endcomment
+    assign ov_rule_summary = ''
+    if is_b2b
+      if lbl_inc == nil
+        assign lbl_inc = 'bulk_order.rule.inc' | t
+      endif
+      if lbl_min == nil
+        assign lbl_min = 'bulk_order.rule.min' | t
+      endif
+      if lbl_max == nil
+        assign lbl_max = 'bulk_order.rule.max' | t
+      endif
+      if ov_rule_inc > 1
+        assign ov_rule_summary = ov_rule_summary | append: ' . ' | append: lbl_inc | append: ': ' | append: ov_rule_inc
+      endif
+      if ov_rule_min > 1
+        assign ov_rule_summary = ov_rule_summary | append: ' . ' | append: lbl_min | append: ': ' | append: ov_rule_min
+      endif
+      if ov_rule_max != blank
+        assign ov_rule_summary = ov_rule_summary | append: ' . ' | append: lbl_max | append: ': ' | append: ov_rule_max
+      endif
+      assign ov_rule_summary = ov_rule_summary | remove_first: ' . '
+    endif
+  endif
+
+  comment
+    A multi-variant parent row is a summary only on mobile — stock/qty belong to the variant rows.
+  endcomment
+  assign ov_summary_only = 'flex'
+  unless ov_single
+    assign ov_summary_only = 'hidden lg:flex'
+  endunless
+
+  comment
+    Only resolve what this row will actually render.
+  endcomment
+  if ov_orderable
+    if icon_minus == nil
+      capture icon_minus
+        render 'icon-all', icon: 'icon-minus'
+      endcapture
+    endif
+    if icon_plus == nil
+      capture icon_plus
+        render 'icon-all', icon: 'icon-plus'
+      endcapture
+    endif
+    if lbl_minus == nil
+      assign lbl_minus = 'accessibility.minus' | t
+    endif
+    if lbl_plus == nil
+      assign lbl_plus = 'accessibility.plus' | t
+    endif
+    if lbl_qty == nil
+      assign lbl_qty = 'products.product.quantity.label' | t
+    endif
+  endif
+
+  if ov_single and show_skus and ov_variant.sku != blank and lbl_sku == nil
+    assign lbl_sku = 'products.product.sku' | t
+  endif
+
+  if ov_expandable
+    if icon_caret == nil
+      capture icon_caret
+        render 'icon-all', icon: 'icon-caret'
+      endcapture
+    endif
+    if lbl_toggle == nil
+      assign lbl_toggle = 'order_view.toggle_variants' | t
+    endif
+  endif
+
+  comment
+    RFQ entry point for this card. Captured here, not between the attributes below — a capture
+    inside a tag's attribute list is a parse error.
+  endcomment
+  assign ov_can_request_quote = 'false'
+  unless ov_hide_price == 'true'
+    if can_request_quote != nil
+      assign ov_can_request_quote = can_request_quote
+    else
+      capture ov_can_request_quote
+        render 'can-request-quote'
+      endcapture
+      assign ov_can_request_quote = ov_can_request_quote | strip
+    endif
+  endunless
+
+  if ov_hide_price != 'true'
+    if icon_loading == nil
+      capture icon_loading
+        render 'icon-all', icon: 'icon-loading'
+      endcapture
+    endif
+    if lbl_total == nil
+      assign lbl_total = 'order_view.total' | t
+    endif
+    if lbl_atc == nil
+      assign lbl_atc = 'order_view.add_to_cart' | t
+    endif
+
+    comment
+      Same rule as add-to-cart-buttons.liquid: when what this button orders is a preorder, it says so.
+    endcomment
+    if ov_product_preorder
+      assign lbl_atc = 'products.product.pre_order' | t
+      if settings.label_preorder_button_card != blank
+        assign lbl_atc = settings.label_preorder_button_card
+      endif
+    endif
+  endif
+-%}
+<order-view-card
+  class="order-view__card row-group block border border-solid color-border-[rgba(var(--color-line-and-border))] color-bg-[rgba(var(--color-background))] rounded-corners overflow-hidden"
+  data-product-id="{{ product.id }}"
+  data-product-url="{{ product.url }}"
+  data-variant-count="{{ ov_variant_count }}"
+  data-single="{{ ov_single }}"
+  data-quote-root="order-view"
+  data-product-title="{{ product.title | escape }}"
+  data-has-only-default-variant="{{ product.has_only_default_variant }}"
+  {%- if ov_image %}
+  data-product-image="{{ ov_image | image_url: width: 240 }}"
+  {%- endif %}
+  data-price-hidden="{{ ov_hide_price }}"
+  {% unless product.has_only_default_variant %}
+    x-data="{ ovOpen: false }"
+    :class="{ 'is-open': ovOpen, 'row-group--open': ovOpen }"
+    @maximize:order-view:added="ovOpen = false"
+  {% endunless %}
+>
+  <div
+    class="order-view__row order-view__row--parent row-group__header rounded-corners gap-y-1 p-2 lg:p-4 gap-x-2 lg:gap-x-6  {% unless product.has_only_default_variant %}cursor-pointer{% endunless %} {% unless product.available %} opacity-60{% endunless %}"
+    {% if ov_expandable %}
+      :class="ovOpen ? 'rounded-t-[10px]' : 'rounded-corners'"
+      @click="if (!$event.target.closest('a, input, .order-row__qty, .quantity-rule-tooltip, .order-view__toggle')) { ovOpen = !ovOpen; if (ovOpen) $root._ensureVariantsLoaded() }"
+    {% endif %}
+    {% if ov_single %}
+      data-variant-id="{{ ov_variant.id }}"
+      data-price="{{ ov_variant.price }}"
+      data-available="{{ ov_available }}"
+      data-preorder="{{ ov_show_preorder }}"
+      data-cart-qty="{{ ov_cart_qty }}"
+      {%- if ov_inventory_max != blank %}
+      data-inventory-max="{{ ov_inventory_max }}"
+      {%- endif %}
+      data-sku="{{ ov_variant.sku }}"
+      data-variant-title="{{ ov_variant.title | escape }}"
+      data-compare-at-price="{{ ov_variant.compare_at_price }}"
+      data-rule-min="{{ ov_variant.quantity_rule.min | default: 1 }}"
+      data-rule-max="{{ ov_variant.quantity_rule.max }}"
+      data-rule-inc="{{ ov_variant.quantity_rule.increment | default: 1 }}"
+      data-price-breaks="[{{ ov_breaks }}]"
+    {% endif %}
+  >
+    {%- comment -%} Own grid column, ahead of the stack — see .order-view__row in order-view.css. {%- endcomment -%}
+    <a
+      class="order-row__cell order-row__cell--media block w-16 lg:w-[5.625rem] aspect-square shrink-0 overflow-hidden rounded-corners color-bg-[rgba(var(--color-text),0.06)]"
+      href="{{ product.url }}"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      {%- if ov_image -%}
+        {{ ov_image | image_url: width: 240 | image_tag: loading: ov_loading, class: 'w-full h-full object-cover' }}
+      {%- else -%}
+        {%- render 'placeholder-image', image_type: 'product_1' -%}
+      {%- endif -%}
+    </a>
+
+    {%- comment -%}
+      Stack becomes `display: contents` on desktop (assets/order-view.css) — each cell drops into
+      its own grid column, right after the media column above.
+    {%- endcomment -%}
+    <div class="order-row__stack">
+      <div class="order-row__cell order-row__cell--product stack-cell--product flex flex-col gap-0.5 min-w-0 lg:-ml-3">
+        {%- if show_vendor and product.vendor != blank -%}
+          <p class="text-x-small color-text-[rgba(var(--color-text),0.6)]">{{ product.vendor }}</p>
+        {%- endif -%}
+        {%- comment -%}
+          `w-fit` so the link covers the title text only — stretched, it would swallow the blank
+          space beside it, and the row's toggle skips any click landing on an <a>.
+        {%- endcomment -%}
+        <a class="heading p-break-words whitespace-nowrap overflow-hidden text-ellipsis w-fit max-w-full color-text-[rgba(var(--color-heading))]" href="{{ product.url }}">{{ product.title }}</a>
+        {%- comment -%} Title and SKU are separate lines, so each is its own paragraph. {%- endcomment -%}
+        {%- if ov_single -%}
+          {%- if show_skus and ov_variant.sku != blank -%}
+            <p class="text-x-small color-text-[rgba(var(--color-text),0.6)]">{{ lbl_sku }}: {{ ov_variant.sku }}</p>
+          {%- endif -%}
+        {%- else -%}
+          <p class="text-x-small color-text-[rgba(var(--color-text),0.6)]">{{ ov_variant_count_label }}</p>
+        {%- endif -%}
+      </div>
+
+      <div class="order-row__cell order-row__cell--status stack-cell--status {{ ov_summary_only }} flex-col justify-center">
+        {%- if ov_single -%}
+          {%- render 'inventory-status', variant: ov_variant, is_show_preorder: ov_show_preorder, is_order_view: true -%}
+        {%- else -%}
+          {%- comment -%}
+            Quick order lists every variant right below this row, so a mixed product says so
+            instead of rolling up to a single "In stock" — see the B2B order view requirement.
+          {%- endcomment -%}
+          {%- render 'pc-inventory-status',
+            product: product,
+            is_show_preorder: ov_show_preorder,
+            is_preorder_product: ov_product_preorder
+          -%}
+        {%- endif -%}
+      </div>
+
+      {%- comment -%}
+        Same two-line shape as the variant rows below it (variant-order-row.liquid): price and its
+        compare-at price share a line, the unit price gets its own line underneath.
+      {%- endcomment -%}
+      <div class="order-row__cell order-row__cell--price stack-cell--price flex flex-col gap-0.5">
+        {%- if ov_hide_price == 'true' -%}
+          {%- render 'guest-price-message', disabled_border: true -%}
+        {%- else -%}
+          <div class="flex flex-wrap items-baseline gap-1.5">
+            {%- comment -%}
+              Only a single-variant row is orderable, so only it can follow a volume-pricing tier as
+              the quantity changes (assets/order-view.js writes into .order-row__price-each-amount).
+              A multi-variant parent shows a "From …" label, which must stay as rendered.
+            {%- endcomment -%}
+            <span
+              class="font-semibold h5 md:h6 {% if ov_single %}order-row__price-each-amount {% endif %}{% if product.compare_at_price > product.price %}!color-text-[rgba(var(--color-sale-price))]{% else %}!color-text-[rgba(var(--color-price))]{% endif %}"
+              {% if ov_single %}data-variant-id="{{ ov_variant.id }}"{% endif %}
+            >{{ ov_price_label }}</span>
+            {%- if ov_single and ov_variant.compare_at_price > ov_variant.price -%}
+              <s class="compare-at-price line-through h6 md:h7">{{ ov_compare }}</s>
+            {%- endif -%}
+          </div>
+          {%- if ov_variant.unit_price_measurement -%}
+            {%- comment -%} `order-row__unit-price`: quote-request.js lifts this text into the quote modal. {%- endcomment -%}
+            <span class="order-row__unit-price text-x-small color-text-[rgba(var(--color-text),0.6)]">
+              {{- ov_variant.unit_price | money }} / {{ ov_variant.unit_price_measurement.reference_value -}}
+              {{- ov_variant.unit_price_measurement.reference_unit -}}
+            </span>
+          {%- endif -%}
+        {%- endif -%}
+      </div>
+
+      <div class="order-row__cell order-row__cell--qty stack-cell--qty {{ ov_summary_only }}">
+        {%- if ov_orderable -%}
+          {%- capture quantity_rule_tooltip -%}
+              {%- if is_b2b -%}
+                {%- render 'quantity-rule-tooltip',
+                  variant: ov_variant,
+                  product: product,
+                  login_hide_price: ov_hide_price,
+                  disabled_rule_note: true,
+                  clamp_boundary: 'order-view__card'
+                -%}
+              {%- endif -%}
+          {%- endcapture -%}
+          {%- comment -%} Staged, not written to cart, until "Add to cart" — see assets/order-view.js. {%- endcomment -%}
+          <div class="order-row__qty flex flex-col items-start gap-1 {% if quantity_rule_tooltip != "" %} pt-2{% endif %}">
+            <div class="order-row__qty-controls relative flex w-fit items-center outline outline-1 color-outline-[rgba(var(--color-text),0.2)]{% if rounded %} rounded-md{% endif %}">
+              <button
+                type="button"
+                class="flex justify-center items-center cursor-pointer pt-2.5 pb-2.5 pl-3 pr-3 bg-transparent select-none"
+                data-qty-step="-1"
+                data-variant-id="{{ ov_variant.id }}"
+                aria-label="{{ lbl_minus }}"
+              >
+                <span class="flex w-3 h-3 color-text-[rgba(var(--color-text))]">{{ icon_minus }}</span>
+              </button>
+              {%- comment -%} Product id + variant id keeps this unique — a card renders at most one stepper. {%- endcomment -%}
+              <input
+                id="OrderViewQuantity-{{ product.id }}-{{ ov_variant.id }}"
+                class="order-row__qty-input color-text-[rgba(var(--color-text))] focus:outline-none text-medium text-center bg-transparent py-2 lg:py-2.5 w-8"
+                type="number"
+                inputmode="numeric"
+                data-variant-id="{{ ov_variant.id }}"
+                value="0"
+                min="0"
+                step="{{ ov_rule_inc }}"
+                {%- if ov_rule_max %} max="{{ ov_rule_max }}"{% endif %}
+                aria-label="{{ lbl_qty }}"
+              >
+              <button
+                type="button"
+                class="flex justify-center items-center cursor-pointer pt-2.5 pb-2.5 pl-3 pr-3 bg-transparent select-none"
+                data-qty-step="1"
+                data-variant-id="{{ ov_variant.id }}"
+                aria-label="{{ lbl_plus }}"
+              >
+                <span class="flex w-3 h-3 color-text-[rgba(var(--color-text))]">{{ icon_plus }}</span>
+              </button>
+              {%- if is_b2b -%}
+                <span class="quantity-rule-tooltip-anchor inline-flex absolute right-1 -top-3 shrink-0">
+                  {{- quantity_rule_tooltip -}}
+                </span>
+              {%- endif -%}
+            </div>
+            {%- if ov_rule_summary != blank -%}
+              <span class="text-x-small opacity-60">{{ ov_rule_summary }}</span>
+            {%- endif -%}
+            {%- comment -%}
+              Carries the preorder line-item property — assets/order-view.js reads it when building
+              the cart payload. Nested in the qty cell: the parent row is a fixed 7-column grid.
+            {%- endcomment -%}
+            {%- if ov_show_preorder -%}
+              <div
+                class="order-row__preorder"
+                data-variant-id="{{ ov_variant.id }}"
+                data-pre-order-name="{{ 'general.preorder.name' | t }}"
+                data-pre-order-value="{{ ov_message_preorder }}"
+              ></div>
+            {%- endif -%}
+          </div>
+        {%- else -%}
+          <span class="color-text-[rgba(var(--color-text),0.4)]">--</span>
+        {%- endif -%}
+      </div>
+    </div>
+
+    {%- comment -%} The card total repeats this on mobile, so the line total is desktop-only here. {%- endcomment -%}
+    <div class="order-row__cell order-row__cell--total hidden lg:flex flex-col">
+      {%- if ov_orderable -%}
+        <span class="order-row__line-total font-semibold color-text-[rgba(var(--color-heading))]">{{ zero_money }}</span>
+        <span class="order-row__line-unit text-x-small color-text-[rgba(var(--color-text),0.6)]" hidden></span>
+      {%- else -%}
+        <span class="color-text-[rgba(var(--color-text),0.4)]">--</span>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%}
+      Only when there is something to expand. The column itself is always in the template
+      (order-view.css) — left empty here, so a card without a chevron still lines its other
+      columns up with the cards around it.
+    {%- endcomment -%}
+    {%- if ov_expandable -%}
+      <div class="order-row__cell order-row__cell--toggle flex items-center justify-end">
+        <button
+          type="button"
+          class="order-view__toggle flex items-center justify-center w-6.5 h-6.5 lg:w-8 lg:h-8 p-1.5 lg:p-2 shrink-0 cursor-pointer rounded-full border border-solid color-bg-[rgba(var(--color-text),0.06)] color-border-[rgba(var(--color-line-and-border))] color-text-[rgba(var(--color-text))]"
+          @click="ovOpen = !ovOpen; if (ovOpen) $root._ensureVariantsLoaded()"
+          :aria-expanded="ovOpen"
+          aria-controls="{{ ov_variants_id }}"
+          aria-label="{{ lbl_toggle }}"
+        >
+          <span class="row-toggle-icon w-full h-full duration-200">{{ icon_caret }}</span>
+        </button>
+      </div>
+    {%- endif -%}
+
+    {%- if ov_single -%}
+      <div class="order-view__row-error flash-message error-message max-w-full mt-1" hidden></div>
+    {%- endif -%}
+  </div>
+
+  {%- if ov_expandable -%}
+    <div
+      class="order-view__variants variant-expand-surface variant-loader"
+      id="{{ ov_variants_id }}"
+      x-show="ovOpen"
+      x-collapse
+      x-cloak
+    >
+      <div class="variant-loader-error flash-message error-message m-4" hidden></div>
+      <div class="variant-loader-body scrollbar-visible"></div>
+      {%- comment -%} After the body on purpose — see .variant-loader in order-row-shared.css. {%- endcomment -%}
+      <div class="variant-loader-spinner" hidden>
+        <span class="flex w-5 h-5 animate-spin color-text-[rgba(var(--color-text))]">{{ icon_loading }}</span>
+      </div>
+    </div>
+  {%- endif -%}
+
+  {%- comment -%}
+    No footer when prices are hidden — nothing to total/order, and the price cell already says so.
+    Otherwise always shown, sold-out included; "Add to cart" ships disabled.
+  {%- endcomment -%}
+  {%- unless ov_hide_price == 'true' -%}
+    <div class="order-view__footer flex flex-wrap items-center justify-between lg:justify-end gap-4 lg:gap-6 px-2 py-2 lg:px-4 lg:py-4 border-t border-solid color-border-[rgba(var(--color-line-and-border))] color-bg-[rgba(var(--color-text),0.06)]">
+      {%- comment -%} Fallback for a message that belongs to a row scrolled out of view. {%- endcomment -%}
+      <div class="order-view__card-error flash-message error-message w-full max-w-full" hidden></div>
+      <div class="flex items-baseline gap-2">
+        <span class="order-view__card-total-label h5 md:h6">{{ lbl_total }}</span>
+        <span class="order-view__card-total h4 md:h5">{{ zero_money }}</span>
+      </div>
+      {% if ov_can_request_quote == 'true' or settings.hide_cart == false %}
+        <div class="flex flex-wrap items-center justify-end gap-1">
+          {%- if ov_can_request_quote == 'true' -%}
+            <custom-button>
+              <button
+                type="button"
+                class="button button-small button-secondary relative whitespace-nowrap"
+                data-quote-request-open
+                data-quote-source="order-view"
+              >
+                <span class="btn__text p-break-words">{{ 'quote_request.button_label' | t }}</span>
+                {% comment %} The reader fetches this product's first variant page when the card has never been expanded. {% endcomment %}
+                <span
+                  class="absolute left-[calc(50%-10px)] top-[calc(50%-10px)] w-5 h-5 animate-spin"
+                  data-quote-open-spinner
+                  hidden
+                >
+                  {{ icon_loading }}
+                </span>
+              </button>
+            </custom-button>
+          {%- endif -%}
+          {%- comment -%}
+            Catalog mode hides ordering, not the whole footer: stepper, total and quote button stay.
+          {%- endcomment -%}
+          {%- unless settings.hide_cart -%}
+            <custom-button>
+              <button
+                type="button"
+                class="button button-small button-primary order-view__atc relative whitespace-nowrap disabled:cursor-not-allowed"
+                disabled
+              >
+                <span class="btn__text p-break-words">{{ lbl_atc }}</span>
+                <span class="order-view__atc-spinner absolute left-[calc(50%-10px)] top-[calc(50%-10px)] w-5 h-5 animate-spin" hidden>
+                  {{ icon_loading }}
+                </span>
+              </button>
+            </custom-button>
+          {%- endunless -%}
+        </div>
+      {% endif %}
+    </div>
+  {%- endunless -%}
+</order-view-card>

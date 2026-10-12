@@ -1,0 +1,771 @@
+{% doc %}
+  The Request-for-quote modal. Rendered ONCE per page from `theme.liquid`, so every entry point
+  (quick order list, bulk order, cart page, cart drawer) shares one instance and one contact form.
+
+  Nothing here knows where the items came from — callers push them into the store.
+
+  No section needs that today: a `[data-quote-request-open]` button carrying a `data-quote-source`
+  is the supported entry point and the boot script below already handles it end to end.
+
+  A quote request is not an order. Quantity rules and volume pricing are rendered read-only and
+  are never enforced: the shopper may ask to be quoted any quantity. See `quote-request.js`.
+
+  The product table is the bulk-order table by design, so it reuses that section's class names and
+  stylesheet instead of growing a second copy of ~250 lines of table CSS. That is why
+  `bulk-order.css` is linked below even on pages with no bulk-order section.
+
+  The form is a real Shopify contact form so the platform emits `form_type` and `utf8`; the store
+  POSTs it with fetch instead of letting the browser navigate, which would otherwise wipe the
+  quantities the shopper has typed into the table behind the modal.
+
+  LAZY BY DEFAULT — same idea as the mini cart, taken one step further. The mini cart defers only
+  its satellite scripts (`cart-drawer.js` → `_watchLazyScript`); here the modal is never on screen
+  until it is asked for, so the stylesheet, the 35KB `quote-request.js` AND the markup itself all
+  stay off the main thread until the shopper clicks a `[data-quote-request-open]` button. What the
+  page actually pays on load is the small boot script below. See its comment for the ordering rule.
+
+  @param {string} [can_request_quote] - 'true'/'false' from `can-request-quote`, already resolved
+    by the caller. Falls back to resolving it here when omitted, so the snippet stays safe alone.
+{% enddoc %}
+
+{%- if can_request_quote != nil -%}
+  {%- assign quote_can_request = can_request_quote -%}
+{%- else -%}
+  {%- capture quote_can_request -%}{%- render 'can-request-quote' -%}{%- endcapture -%}
+  {%- assign quote_can_request = quote_can_request | strip -%}
+{%- endif -%}
+
+{%- if quote_can_request == 'true' -%}
+  {%- liquid
+    assign quote_form_id = 'QuoteRequestForm'
+
+    assign quote_money_format = shop.money_format | strip_html
+    if settings.currency_code_enable
+      assign quote_money_format = shop.money_with_currency_format | strip_html
+    endif
+  -%}
+
+  {%- comment -%}
+    Boot script — the whole reason this modal no longer shows up in TBT.
+
+    `quote-request.css` and `quote-request.js` used to be a render-blocking <link> and a 35KB
+    defer script on EVERY page a B2B customer loaded, and the modal markup was a live Alpine tree
+    Alpine had to walk before the page went interactive. None of it was needed until someone
+    clicked "Request a quote", so none of it ships until then.
+
+    The order below is load-bearing: assets first, markup second. Injecting the template earlier
+    would let Alpine's mutation observer walk bindings such as `$store.xQuoteRequest.show` before
+    the store exists and every one of them would throw.
+
+    This is also the ONLY `[data-quote-request-open]` delegate in the theme — `quote-request.js`
+    deliberately ships without one, so a click never runs the readers twice.
+  {%- endcomment -%}
+  <script>
+    (() => {
+      const STYLESHEET = {{ 'quote-request.css' | asset_url | json }};
+      const SCRIPT = {{ 'quote-request.js' | asset_url | json }};
+      let booting = null;
+
+      // `onerror` resolves too: a missing asset must not leave the button spinning forever.
+      const loadTag = (tag) =>
+        new Promise((resolve) => {
+          tag.onload = tag.onerror = resolve;
+          document.head.appendChild(tag);
+        });
+
+      const loadStylesheet = () => {
+        if (document.querySelector('link[data-quote-request-style]')) return Promise.resolve();
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = STYLESHEET;
+        link.setAttribute('data-quote-request-style', '');
+        return loadTag(link);
+      };
+
+      const loadScript = () => {
+        const script = document.createElement('script');
+        script.src = SCRIPT;
+        return loadTag(script);
+      };
+
+      // Alpine may not have booted yet on a very early click; the store has to be registerable.
+      const whenAlpine = () =>
+        window.Alpine
+          ? Promise.resolve()
+          : new Promise((resolve) => document.addEventListener('alpine:init', resolve, { once: true }));
+
+      // Alpine's own mutation observer initialises the injected tree — calling `initTree` here
+      // as well would bind every directive twice.
+      const injectMarkup = () => {
+        const template = document.getElementById('QuoteRequestModal__Template');
+        if (!template) return;
+        template.parentNode.insertBefore(template.content.cloneNode(true), template.nextSibling);
+        template.remove();
+      };
+
+      const boot = () => {
+        if (!booting) {
+          stopPrefetching();
+          booting = whenAlpine()
+            .then(() => Promise.all([loadStylesheet(), loadScript()]))
+            .then(injectMarkup);
+        }
+        return booting;
+      };
+
+      // Mirrors `_setOpenBusy` in quote-request.js so the very first click — the only one that
+      // waits on the network — gives the same feedback as every click after it.
+      const setBusy = (button, busy) => {
+        button.classList.toggle('is-loading', busy);
+        button.setAttribute('aria-busy', String(busy));
+        const spinner = button.querySelector('[data-quote-open-spinner]');
+        if (spinner) spinner.hidden = !busy;
+      };
+
+      // Warm up on intent so the click itself is instant; harmless when it never comes. Both
+      // listeners are dropped the moment booting starts — a `closest` on every hover in the
+      // document is not something to keep paying for once the answer can no longer change.
+      const prefetch = (event) => {
+        if (event.target.closest?.('[data-quote-request-open]')) boot();
+      };
+      document.addEventListener('pointerover', prefetch, { passive: true });
+      document.addEventListener('focusin', prefetch, { passive: true });
+
+      function stopPrefetching() {
+        document.removeEventListener('pointerover', prefetch);
+        document.removeEventListener('focusin', prefetch);
+      }
+
+      // The only supported way to reach the modal without a button — see the doc block on top.
+      window.MaximizeQuoteRequest = { boot };
+
+      document.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-quote-request-open]');
+        if (!button) return;
+        event.preventDefault();
+        setBusy(button, true);
+        boot().then(() => {
+          setBusy(button, false);
+          window.Alpine?.store('xQuoteRequest')?.openFrom(button);
+        });
+      });
+    })();
+  </script>
+
+  <script type="application/json" data-quote-request-config>
+    {
+      "moneyFormat": {{ quote_money_format | json }},
+      "qtyLabel": {{ 'customer.order.quantity' | t | json }},
+      "inStock": {{ 'products.product.inventory_status.in_stock' | t | json }},
+      "soldOut": {{ 'products.product.sold_out' | t | json }},
+      "removeLabel": {{ 'bulk_order.remove_item' | t | json }},
+      {%- comment -%}
+        Both forms: the count only exists client-side, so Liquid cannot pick the plural itself —
+        `variantCountLabel()` does. Same split as `collection-item-count`'s singular/plural settings.
+      {%- endcomment -%}
+      "variantLabel": {{ 'quote_request.variant_count' | t | json }},
+      "variantLabelPlural": {{ 'quote_request.variant_count_plural' | t | json }},
+      "productField": {{ 'quote_request.field_label' | t | json }},
+      "summaryLabel": {{ 'quote_request.summary_label' | t | json }},
+      "summaryUnits": {
+        "products": {{ 'quote_request.summary_products' | t | json }},
+        "variants": {{ 'quote_request.summary_variants' | t | json }},
+        "units": {{ 'quote_request.summary_units' | t | json }}
+      },
+      "cols": {
+        "sku": {{ 'quote_request.col_sku' | t | json }},
+        "quantity": {{ 'quote_request.col_quantity' | t | json }},
+        "empty": {{ 'quote_request.col_empty' | t | json }}
+      },
+      "priceFrom": {{ 'products.product.price.from_price_html' | t: price: '[[PRICE]]' | json }},
+      "ruleLabels": {
+        "inc": {{ 'bulk_order.rule.inc' | t | json }},
+        "min": {{ 'bulk_order.rule.min' | t | json }},
+        "max": {{ 'bulk_order.rule.max' | t | json }}
+      }
+    }
+  </script>
+
+  {%- comment -%}
+    The markup ships INERT, inside a <template>: nothing in here is a live DOM node, so Alpine
+    never walks these ~530 lines while the page is starting up, and the modal costs zero main
+    thread time until a shopper actually asks for a quote. The boot script above clones it into
+    the document on the first click — after `quote-request.js` has registered the store, because
+    every binding in here dereferences `$store.xQuoteRequest`.
+  {%- endcomment -%}
+  <template id="QuoteRequestModal__Template">
+    <div
+      x-show="$store.xQuoteRequest.show"
+      x-cloak
+      class="quote-request popup-container{% unless settings.show_popup_overlay %} quote-request--overlay{% endunless %}"
+      :class="{ 'quote-request--centered': $store.xQuoteRequest.status === 'success' }"
+    >
+      <div
+        id="QuoteRequestPopup__Container"
+        x-show="$store.xQuoteRequest.show"
+        class="quote-request__panel mx-auto w-[calc(100%-32px)] md:w-[calc(100%-64px)] popup-content{% unless settings.show_popup_overlay %} shadow-large{% endunless %} transform-gpu"
+        :class="{ 'quote-request__panel--success': $store.xQuoteRequest.status === 'success' }"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="QuoteRequestPopup__Title"
+        x-intersect.full="$store.xFocusElement.trapFocus('QuoteRequestPopup__Container', 'CloseQuoteRequestPopup')"
+        @keyup.escape="$store.xFocusElement.removeTrapFocus(); $store.xQuoteRequest.close()"
+        @click.away="$store.xQuoteRequest.close()"
+        x-transition:enter-start="opacity-0 translate-y-1/3"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave-end="opacity-0 translate-y-1/3"
+      >
+        <div class="modal-title-container">
+          <div class="modal-title-wrapper">
+            <p
+              id="QuoteRequestPopup__Title"
+              class="h4 grow"
+              :class="{ 'invisible': $store.xQuoteRequest.status === 'success' }"
+            >
+              {{- 'quote_request.title' | t -}}
+            </p>
+
+            <button
+              type="button"
+              id="CloseQuoteRequestPopup"
+              class="modal-title__button-close"
+              aria-label="{{ 'quote_request.close' | t }}"
+              @click="$store.xFocusElement.removeTrapFocus(); $store.xQuoteRequest.close()"
+            >
+              <span class="button__close icon-close-medium-desktop icon-close-medium-mobile">
+                {% render 'icon-all', icon: 'icon-close' %}
+              </span>
+            </button>
+          </div>
+        </div>
+        <div
+          class="quote-request__body flex flex-col min-h-0 flex-auto"
+          x-show="$store.xQuoteRequest.status !== 'success'"
+          x-data="xContactForm('{{ quote_form_id }}')"
+          @input.debounce.300ms="validateForm()"
+          @change="validateForm()"
+          @submit.prevent="isFormValid && $store.xQuoteRequest.submit($event.target)"
+        >
+          {%- form 'contact', id: quote_form_id, class: 'quote-request__form maximize flex flex-col min-h-0 flex-auto overflow-visible', novalidate: 'novalidate' -%}
+            {%- if form.errors -%}
+              <p
+                class="flex items-center mb-3 flash-message error-message"
+                data-quote-form-errors
+                role="alert"
+              >
+                <span class="inline-block w-5 mr-2 rtl:mr-0 rtl:ml-2">{% render 'icon-all', icon: 'icon-error' %}</span>
+                {{ form.errors.translated_fields.email | capitalize }}
+                {{ form.errors.messages.email }}
+              </p>
+            {%- endif -%}
+
+            <input
+              type="hidden"
+              name="contact[{{ 'templates.contact.form.form_type' | t }}]"
+              value="{{ 'templates.contact.form.request_for_quote' | t }}"
+            >
+            <div hidden data-quote-products-fields></div>
+
+            <div class="quote-request__scroll scrollbar-body scrollbar-visible flex-auto min-h-0 overflow-y-auto overflow-x-hidden px-1">
+              {%- comment -%}
+                The heading and the column header stick to the top of the scroll area. They used to
+                scroll away with the rows, which left a long list with no column labels. They stay
+                INSIDE the scroll container on purpose — moving them out would make them miss the
+                scrollbar width the rows lose, and every column would sit a few px off again.
+              {%- endcomment -%}
+              <div class="quote-request__sticky-head">
+                <p class="mb-2 h5">{{ 'quote_request.products_heading' | t }}</p>
+
+                <div x-show="$store.xQuoteRequest.items.length">
+                  <div class="quote-request__table-head-mobile grid gap-2 p-2 font-semibold lg:hidden color-text-[rgba(var(--color-text),0.8)] text-small uppercase">
+                    <span>{{ 'customer.order.product' | t }}</span>
+                    <span>{{ 'customer.order.total' | t }}</span>
+                  </div>
+
+                  <div class="quote-request__table-head hidden lg:grid gap-3 p-2 font-semibold color-text-[rgba(var(--color-text),0.8)] text-small uppercase">
+                    <span>{{ 'customer.order.product' | t }}</span>
+                    <span>{{ 'bulk_order.column_inventory' | t }}</span>
+                    <span>{{ 'customer.order.price' | t }}</span>
+                    <span>{{ 'customer.order.quantity' | t }}</span>
+                    <span>{{ 'customer.order.total' | t }}</span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
+              </div>
+
+              <p
+                class="py-3 text-small opacity-60"
+                x-show="!$store.xQuoteRequest.items.length"
+              >
+                {{ 'quote_request.empty' | t }}
+              </p>
+
+              <div class="quote-request__table" x-show="$store.xQuoteRequest.items.length">
+                <div role="list">
+                  <template x-for="group in $store.xQuoteRequest.groupedItems" :key="group.productId">
+                    <div
+                      class="group quote-request__group rounded-corners overflow-hidden mb-0.5 border border-solid color-border-[rgba(var(--color-text),0.2)]"
+                      :class="{ 'is-open': !group.isFlat && $store.xQuoteRequest.isGroupOpen(group.productId) }"
+                    >
+                      <div
+                        x-show="!group.isFlat"
+                        class="quote-request__row grid gap-x-3 gap-y-1 items-start p-2 duration-150 lg:items-center lg:relative quote-request__row--header cursor-pointer"
+                        :class="$store.xQuoteRequest.isGroupOpen(group.productId) ? 'bg-transparent' : 'color-bg-[rgba(var(--color-text),0.02)]'"
+                        @click="$store.xQuoteRequest.toggleGroup(group.productId)"
+                      >
+                        <div class="quote-request__cell-media row-span-2 self-start lg:self-center">
+                          <template x-if="group.productImage">
+                            <img
+                              :src="$store.xQuoteRequest.imgUrl(group.productImage)"
+                              :alt="group.productTitle"
+                              width="52"
+                              height="52"
+                              loading="lazy"
+                              class="w-[52px] h-[52px] rounded-corners object-cover shrink-0"
+                            >
+                          </template>
+                          <template x-if="!group.productImage">
+                            <div class="w-[52px] h-[52px] overflow-hidden shrink-0 rounded-corners">
+                              {%- render 'placeholder-image', image_type: 'product_2' -%}
+                            </div>
+                          </template>
+                        </div>
+                        <div class="quote-request__cell-info row-span-2 min-w-0 flex flex-col gap-1 -ms-1">
+                          <div class="quote-request__cell-name order-1 flex flex-col gap-0.5 min-w-0 lg:-ms-1">
+                            <span class="h5 md:h6 font-semibold whitespace-nowrap overflow-hidden text-ellipsis" x-text="group.productTitle"></span>
+                            <span
+                              class="text-x-small opacity-60"
+                              x-text="$store.xQuoteRequest.variantCountLabel(group)"
+                            ></span>
+                          </div>
+                          <div class="quote-request__cell-status order-2 flex items-center">
+                            <div
+                              class="product-info__inventory-status"
+                              :data-inventory-status="$store.xQuoteRequest.groupAvailable(group) ? 'in-stock' : 'out-of-stock'"
+                            >
+                              <span class="product-info__inventory-label text-small flex items-center gap-1.5">
+                                <span class="flex relative mx-1">
+                                  <span class="product-info__inventory-dot animate-ping absolute flex h-full w-full rounded-full opacity-75"></span>
+                                  <span class="product-info__inventory-dot flex"></span>
+                                </span>
+                                <span x-text="$store.xQuoteRequest.groupAvailable(group) ? $store.xQuoteRequest.config.inStock : $store.xQuoteRequest.config.soldOut"></span>
+                              </span>
+                            </div>
+                          </div>
+
+                          <div class="quote-request__cell-price order-3 flex flex-col items-start color-text-[rgba(var(--color-price))]">
+                            <span class="font-semibold h5 md:h6" x-html="$store.xQuoteRequest.groupPriceFormatted(group)"></span>
+                          </div>
+
+                          <div class="quote-request__cell-qty flex">
+                            <span class="opacity-60">--</span>
+                          </div>
+
+                        </div>
+
+                        <div class="quote-request__cell-total col-start-3 whitespace-nowrap color-text-[rgba(var(--color-price))] pt-[3px] lg:pt-0">
+                          <span class="font-semibold" x-text="$store.xQuoteRequest.groupTotalFormatted(group)"></span>
+                        </div>
+
+                        <div class="quote-request__cell-remove quote-request__cell-remove--header self-end flex justify-end">
+                          <button
+                            type="button"
+                            class="flex cursor-pointer opacity-60 hover:opacity-100"
+                            :aria-label="$store.xQuoteRequest.config.removeLabel + ' ' + group.productTitle"
+                            @click.stop="$store.xQuoteRequest.removeGroup(group.productId)"
+                          >
+                            <span class="w-4 h-4 flex">{%- render 'icon-all', icon: 'icon-remove' -%}</span>
+                          </button>
+                        </div>
+
+                        <div class="quote-request__cell-toggle flex justify-end">
+                          <button
+                            type="button"
+                            class="quote-request__toggle flex items-center justify-center w-6.5 h-6.5 p-1.5 shrink-0 cursor-pointer rounded-full color-bg-[rgba(var(--color-text),0.06)] color-text-[rgba(var(--color-text))]"
+                            :aria-expanded="$store.xQuoteRequest.isGroupOpen(group.productId)"
+                            aria-label="{{ 'order_view.toggle_variants' | t }}"
+                            @click.stop="$store.xQuoteRequest.toggleGroup(group.productId)"
+                          >
+                            <span
+                              class="quote-request__toggle-icon w-full h-full -rotate-90 rtl:rotate-90 transition-transform duration-200"
+                              :class="$store.xQuoteRequest.isGroupOpen(group.productId) ? '!rotate-180' : ''"
+                            >
+                              {%- render 'icon-all', icon: 'icon-caret' -%}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div
+                        class="quote-request__collapse overflow-hidden"
+                        x-show="group.isFlat || $store.xQuoteRequest.isGroupOpen(group.productId)"
+                        x-collapse
+                      >
+                        <template x-for="item in group.items" :key="item.key">
+                          <div
+                            class="quote-request__row quote-request__row--variant grid gap-x-3 gap-y-1 items-start p-2 duration-150 lg:items-center lg:relative"
+                            :class="group.isFlat
+                              ? 'color-bg-[rgba(var(--color-text),0.02)]'
+                              : 'quote-request__row--child border-t border-solid color-bg-[rgba(var(--color-text),0.04)] color-border-[rgba(var(--color-text),0.06)]'"
+                          >
+                            <div class="quote-request__cell-media row-span-2 self-start lg:self-center">
+                              <template x-if="item.image">
+                                <img
+                                  :src="$store.xQuoteRequest.imgUrl(item.image)"
+                                  :alt="item.productTitle"
+                                  width="52"
+                                  height="52"
+                                  loading="lazy"
+                                  class="object-cover shrink-0 rounded-corners"
+                                  :class="group.isFlat ? 'w-[52px] h-[52px]' : 'w-[45px] h-[45px]'"
+                                >
+                              </template>
+                              <template x-if="!item.image">
+                                <div
+                                  class="overflow-hidden shrink-0 rounded-corners"
+                                  :class="group.isFlat ? 'w-[52px] h-[52px]' : 'w-[45px] h-[45px]'"
+                                >
+                                  {%- render 'placeholder-image', image_type: 'product_2' -%}
+                                </div>
+                              </template>
+                            </div>
+                            <div class="quote-request__cell-info row-span-2 min-w-0 flex flex-col gap-1 -ms-1">
+                              <div class="quote-request__cell-name order-1 flex flex-col gap-0.5 min-w-0 lg:-ms-1">
+                                <span
+                                  class="h6 md:h7 font-semibold whitespace-nowrap overflow-hidden text-ellipsis"
+                                  x-text="group.isFlat ? item.productTitle : (item.variantTitle || item.productTitle)"
+                                ></span>
+                                <span class="text-x-small opacity-60" x-show="item.sku">
+                                  {{ 'customer.order.sku' | t }}: <span x-text="item.sku"></span>
+                                </span>
+                              </div>
+                              <div class="quote-request__cell-status order-2 flex items-center">
+                                <div
+                                  class="product-info__inventory-status"
+                                  :data-inventory-status="$store.xQuoteRequest.statusKey(item)"
+                                >
+                                  <span class="product-info__inventory-label text-small flex items-center gap-1.5">
+                                    <span class="flex relative mx-1">
+                                      <span class="product-info__inventory-dot animate-ping absolute flex h-full w-full rounded-full opacity-75"></span>
+                                      <span class="product-info__inventory-dot flex"></span>
+                                    </span>
+                                    <span x-text="$store.xQuoteRequest.statusText(item)"></span>
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div class="quote-request__cell-price order-3 flex flex-col items-start p-break-words">
+                                <span
+                                  class="font-semibold h5 md:h6 !color-text-[rgba(var(--color-price))]"
+                                  :class="{ '!color-text-[rgba(var(--color-sale-price))]': $store.xQuoteRequest.isDiscounted(item) }"
+                                  x-text="$store.xQuoteRequest.unitPriceFormatted(item)"
+                                ></span>
+                                <s
+                                  class="quote-request__compare-at opacity-60 h6 md:h7 rtl:mr-1 !color-text-[rgba(var(--color-price))]"
+                                  x-show="$store.xQuoteRequest.isDiscounted(item)"
+                                  x-text="$store.xQuoteRequest.compareAtFormatted(item)"
+                                ></s>
+                                {%- comment -%}
+                                  Shopify's unit price on its own line under the pair, the same shape the
+                                  source rows use (variant-order-row.liquid, cart items). The string is
+                                  whatever that surface rendered; blank when the variant has no measurement.
+                                {%- endcomment -%}
+                                <span
+                                  class="quote-request__unit-price text-x-small opacity-60 color-text-[rgba(var(--color-text))]"
+                                  x-show="item.measurementPrice"
+                                  x-text="item.measurementPrice"
+                                ></span>
+                              </div>
+
+                              <div
+                                class="quote-request__cell-qty flex"
+                                :class="{ 'pt-2.5': item.tooltipHtml }"
+                              >
+                                <div class="flex flex-col items-start gap-1 relative">
+                                  {%- comment -%}
+                                    Volume pricing, lifted from the source row — same anchor + `x-html`
+                                    pattern the bulk-order table uses, so one snippet keeps owning the
+                                    price-break markup. `|| ''` is load-bearing: x-html would otherwise
+                                    print the literal "undefined". The anchor sits on THIS wrapper, not
+                                    on the stepper box below, because that box is `overflow-hidden` and
+                                    would clip the icon.
+                                  {%- endcomment -%}
+                                  <span
+                                    class="quantity-rule-tooltip-anchor inline-flex absolute right-1 -top-3 z-10"
+                                    x-html="item.tooltipHtml || ''"
+                                  ></span>
+                                  <div
+                                    class="inline-flex items-center rounded-corners-md overflow-hidden border color-border-[rgba(var(--color-text),0.2)]"
+                                    role="group"
+                                    :aria-label="$store.xQuoteRequest.config.qtyLabel + ' ' + item.productTitle"
+                                  >
+                                    <div
+                                      class="flex items-center justify-center py-2.5 px-2.5 bg-transparent cursor-pointer select-none text-medium leading-none shrink-0 text-inherit"
+                                      tabindex="0"
+                                      role="button"
+                                      @click.prevent="$store.xQuoteRequest.stepQty(item.key, -1, $el.parentElement.querySelector('input'))"
+                                      @keyup.enter="$store.xQuoteRequest.stepQty(item.key, -1, $el.parentElement.querySelector('input'))"
+                                      @mousedown.prevent
+                                      aria-label="{{ 'accessibility.minus' | t }}"
+                                    >
+                                      <span class="w-3 h-3 flex color-text-[rgba(var(--color-text))]">{% render 'icon-all', icon: 'icon-minus' %}</span>
+                                    </div>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      inputmode="numeric"
+                                      class="w-10 h-10 text-center text-medium border-0 bg-transparent outline-none text-inherit appearance-none"
+                                      :value="item.qty"
+                                      :aria-label="$store.xQuoteRequest.config.qtyLabel + ' ' + item.productTitle"
+                                      @input="$store.xQuoteRequest.setQty(item.key, $el.value)"
+                                      @change="$store.xQuoteRequest.setQty(item.key, $el.value, $el)"
+                                    >
+                                    <div
+                                      class="flex items-center justify-center py-2.5 px-2.5 bg-transparent cursor-pointer select-none text-medium leading-none shrink-0 text-inherit"
+                                      tabindex="0"
+                                      role="button"
+                                      @click.prevent="$store.xQuoteRequest.stepQty(item.key, 1, $el.parentElement.querySelector('input'))"
+                                      @keyup.enter="$store.xQuoteRequest.stepQty(item.key, 1, $el.parentElement.querySelector('input'))"
+                                      @mousedown.prevent
+                                      aria-label="{{ 'accessibility.plus' | t }}"
+                                    >
+                                      <span class="flex h-3 w-3 color-text-[rgba(var(--color-text))]">{% render 'icon-all', icon: 'icon-plus' %}</span>
+                                    </div>
+                                  </div>
+                                  <span
+                                    class="text-x-small opacity-60"
+                                    x-show="$store.xQuoteRequest.ruleSummary(item)"
+                                    x-text="$store.xQuoteRequest.ruleSummary(item)"
+                                  ></span>
+                                </div>
+                              </div>
+
+                            </div>
+
+                            <div class="quote-request__cell-total col-start-3 whitespace-nowrap color-text-[rgba(var(--color-price))] pt-[3px] lg:pt-0">
+                              <span class="font-semibold" x-text="$store.xQuoteRequest.lineTotalFormatted(item)"></span>
+                            </div>
+
+                            <div class="quote-request__cell-remove col-start-3 self-end flex justify-end">
+                              <button
+                                type="button"
+                                class="flex cursor-pointer opacity-60 hover:opacity-100"
+                                :aria-label="$store.xQuoteRequest.config.removeLabel + ' ' + item.productTitle"
+                                @click="$store.xQuoteRequest.removeItem(item.key)"
+                              >
+                                <span class="w-4 h-4 flex">{%- render 'icon-all', icon: 'icon-remove' -%}</span>
+                              </button>
+                            </div>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </div>
+
+            <div class="quote-request__contact flex-none pt-5" :class="{ 'is-open': $store.xQuoteRequest.contactOpen }">
+              <button
+                type="button"
+                class="quote-request__contact-toggle flex items-center justify-between gap-3 w-full cursor-pointer text-start"
+                :class="{ 'is-open': $store.xQuoteRequest.contactOpen }"
+                :aria-expanded="$store.xQuoteRequest.contactOpen"
+                aria-controls="QuoteRequestContactPanel"
+                @click="$store.xQuoteRequest.contactOpen = !$store.xQuoteRequest.contactOpen"
+              >
+                <span class="h5">{{ 'quote_request.contact_heading' | t }}</span>
+                <span
+                  class="quote-request__toggle quote-request__toggle--contact flex items-center justify-center w-8 h-8 shrink-0 rounded-full"
+                  aria-hidden="true"
+                >
+                  <span
+                    class="quote-request__toggle-icon w-3 h-3 flex transition-transform duration-200"
+                    :class="$store.xQuoteRequest.contactOpen ? '!rotate-180' : ''"
+                  >
+                    {%- render 'icon-all', icon: 'icon-caret' -%}
+                  </span>
+                </span>
+              </button>
+
+              <div
+                id="QuoteRequestContactPanel"
+                class="quote-request__contact-panel pb-1 px-1"
+                x-show="$store.xQuoteRequest.contactOpen"
+                x-collapse
+              >
+                <div
+                  class="contact-form__email-error-{{ quote_form_id }} hidden flash-message error-message mb-1"
+                ></div>
+
+                <div class="grid grid-cols-1 gap-2 pt-2 md:grid-cols-2">
+                  <div class="text-field__wrapper">
+                    <input
+                      type="text"
+                      id="QuoteRequestCompanyName"
+                      class="text-field__input"
+                      name="contact[{{ 'quote_request.company_name' | t }}]"
+                      value="{{ customer.company_available_locations.first.company.name }}"
+                      autocapitalize="words"
+                      placeholder="{{ 'customer.enter_text' | t }}"
+                      required
+                    >
+                    <label class="text-field__label" for="QuoteRequestCompanyName">
+                      {{- 'quote_request.company_name' | t }} <span aria-hidden="true">*</span>
+                    </label>
+                  </div>
+
+                  <div class="text-field__wrapper">
+                    <input
+                      type="text"
+                      id="QuoteRequestContactName"
+                      class="text-field__input"
+                      name="contact[{{ 'quote_request.contact_name' | t }}]"
+                      value="{{ customer.name }}"
+                      autocapitalize="words"
+                      autocomplete="name"
+                      placeholder="{{ 'customer.enter_text' | t }}"
+                    >
+                    <label class="text-field__label" for="QuoteRequestContactName">
+                      {{- 'quote_request.contact_name' | t -}}
+                    </label>
+                  </div>
+
+                  <div class="text-field__wrapper">
+                    <input
+                      type="email"
+                      id="QuoteRequestEmail"
+                      class="text-field__input"
+                      name="contact[email]"
+                      value="{{ customer.email }}"
+                      autocomplete="email"
+                      autocapitalize="off"
+                      autocorrect="off"
+                      placeholder="{{ 'customer.email' | t }}"
+                      required
+                    >
+                    <label class="text-field__label" for="QuoteRequestEmail">
+                      {{- 'customer.email' | t }} <span aria-hidden="true">*</span>
+                    </label>
+                  </div>
+
+                  <div class="text-field__wrapper">
+                    <input
+                      type="tel"
+                      id="QuoteRequestPhone"
+                      class="text-field__input"
+                      name="contact[{{ 'templates.contact.form.phone' | t }}]"
+                      value="{{ customer.phone }}"
+                      autocomplete="tel"
+                      placeholder="{{ 'customer.enter_text' | t }}"
+                      required
+                    >
+                    <label class="text-field__label" for="QuoteRequestPhone">
+                      {{- 'templates.contact.form.phone' | t }} <span aria-hidden="true">*</span>
+                    </label>
+                  </div>
+
+                  <div class="text-field__wrapper md:col-span-2">
+                    <input
+                      type="text"
+                      id="QuoteRequestCompanyAddress"
+                      class="text-field__input"
+                      name="contact[{{ 'quote_request.company_address' | t }}]"
+                      value="{{ customer.default_address.street }}"
+                      autocomplete="street-address"
+                      placeholder="{{ 'customer.enter_text' | t }}"
+                    >
+                    <label class="text-field__label" for="QuoteRequestCompanyAddress">
+                      {{- 'quote_request.company_address' | t -}}
+                    </label>
+                  </div>
+                </div>
+
+                <div class="text-area__wrapper field-container quote-request__notes flex flex-col mt-2">
+                  <label class="text-area__label field-label--static" for="QuoteRequestNotes">
+                    {{- 'quote_request.notes' | t -}}
+                  </label>
+                  <textarea
+                    id="QuoteRequestNotes"
+                    class="quote-request__notes-input text-field__input field-textarea--borderless flex-auto"
+                    rows="3"
+                    name="contact[{{ 'quote_request.notes' | t }}]"
+                    placeholder="{{ 'customer.message' | t }}"
+                  ></textarea>
+                  {%- if settings.quote_notes_message != blank -%}
+                    <p class="m-0 pt-2 text-x-small opacity-60">
+                      {{ settings.quote_notes_message }}
+                    </p>
+                  {%- endif -%}
+                </div>
+              </div>
+            </div>
+
+            <div class="flex-none flex flex-col gap-2 pt-3 pb-4 md:pb-6">
+              <div
+                class="quote-request__alert flash-message error-message flex items-center gap-2"
+                x-show="$store.xQuoteRequest.status === 'error' || $store.xQuoteRequest.status === 'no_items' || $store.xQuoteRequest.status === 'load_error'"
+                x-cloak
+                role="alert"
+              >
+                <span class="w-4 min-w-[16px]">{% render 'icon-all', icon: 'icon-error' %}</span>
+                <span class="text-small" x-show="$store.xQuoteRequest.status === 'no_items'">
+                  {{- 'quote_request.no_items_error' | t -}}
+                </span>
+                <span class="text-small" x-show="$store.xQuoteRequest.status === 'error'">
+                  {{- 'quote_request.error' | t -}}
+                </span>
+                <span class="text-small" x-show="$store.xQuoteRequest.status === 'load_error'">
+                  {{- 'quote_request.load_error' | t -}}
+                </span>
+              </div>
+
+              <div class="quote-request__submit-bar flex flex-col items-stretch gap-3 p-4 md:p-2 border border-solid color-bg-[rgba(var(--color-text),0.04)] color-border-[rgba(var(--color-line-and-border))] md:flex-row md:items-center md:justify-between md:gap-6 rounded-corners">
+                <p class="m-0 text-center md:text-start text-small opacity-60">
+                  {{ 'quote_request.submit_note' | t }}
+                </p>
+                <custom-button class="md:shrink-0">
+                  <button
+                    type="button"
+                    class="button button-primary button-medium relative"
+                    :class="{ 'pointer-events-none': $store.xQuoteRequest.isSubmitting }"
+                    :disabled="$store.xQuoteRequest.isSubmitting"
+                    :aria-disabled="$store.xQuoteRequest.isSubmitting"
+                    @click.prevent="emailTouched = true, validateForm(), $store.xQuoteRequest.attemptSubmit($el.closest('form'), isFormValid)"
+                  >
+                    <span class="button-text text-nowrap" :class="{ 'opacity-0': $store.xQuoteRequest.isSubmitting }">
+                      {{- 'quote_request.submit' | t -}}
+                    </span>
+                    <span
+                      class="inline-block w-5 h-5 animate-spin absolute top-[calc(50%-10px)] left-[calc(50%-10px)]"
+                      x-show="$store.xQuoteRequest.isSubmitting"
+                      x-cloak
+                    >
+                      {%- render 'icon-all', icon: 'icon-loading' -%}
+                    </span>
+                  </button>
+                </custom-button>
+              </div>
+            </div>
+          {%- endform -%}
+        </div>
+
+        <div
+          class="flex flex-col items-center gap-2 pt-3 pb-6 text-center"
+          x-show="$store.xQuoteRequest.status === 'success'"
+          x-cloak
+          role="status"
+        >
+          <span class="quote-request__success-icon flex items-center justify-center w-14 h-14 rounded-full message-success">
+            {%- render 'icon-all', icon: 'icon-check-success' -%}
+          </span>
+          <p class="m-0 h4 md:h5">{{ 'quote_request.success_title' | t }}</p>
+          <p class="quote-request__success-message w-full m-0 py-1 px-2 message-success text-small">
+            {{- 'quote_request.success' | t -}}
+          </p>
+        </div>
+      </div>
+    </div>
+  </template>
+{%- endif -%}

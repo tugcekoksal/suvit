@@ -1,0 +1,202 @@
+.section-main-product + .section-product-details {
+  float: left;
+  clear: left;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .section-main-product:has(.main-product__container.full-width-padded) + .section-product-details {
+    margin-left: 4rem;
+  }
+
+  .section-main-product:has(.main-product__container.full-width) + .section-product-details {
+    margin-left: 2rem;
+  }
+}
+
+.section-main-product:has(.main-product__container.page-width) + .section-product-details {
+  visibility: hidden;
+}
+
+.section-main-product:has(+ section:not(.section-product-details))::after {
+  clear: both;
+  content: var(--tw-content);
+  display: block;
+}
+
+.section-product-details + section,
+.shopify-section-group-footer-group {
+  clear: both;
+}
+
+.section-main-product ~ .section-product-details .product-details__section-width {
+  width: 100%;
+}
+
+.product-details__highlight-grid {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .product-details__highlight-grid {
+    -moz-column-gap: 2rem;
+    column-gap: 2rem;
+    row-gap: 1rem;
+  }
+}
+
+.product-details__highlight-grid > * {
+  flex: 1 1 100%;
+}
+
+@media (min-width: 768px) {
+  .section-main-product + .section-product-details .product-details {
+    padding-left: 0px;
+    padding-right: 1.25rem;
+  }
+}
+
+.section-main-product + .section-product-details .product-details {
+  max-width: unset;
+}
+
+.section-main-product + .section-product-details .product-details__highlight-grid {
+  display: none;
+}
+
+.product-details__specs-table li>span,
+.table_info_label {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-style: solid;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .product-details__specs-table li>span,
+  .table_info_label {
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
+  }
+}
+
+.product-details__specs-table li {
+  border-bottom-width: 1px;
+  border-color: rgba(var(--color-text-no-alpha) / 0.12);
+}
+
+.product-details__specs-table li:last-child {
+  border-bottom-width: 0px;
+}
+
+.animation-show {
+  transition-property: all;
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.product-details__highlight-item h1,
+.product-details__highlight-item h2,
+.product-details__highlight-item h3,
+.product-details__highlight-item h4,
+.product-details__highlight-item h5,
+.product-details__highlight-item h6 {
+  margin: 0px;
+}
+
+.shipping-policy-popup__container .shopify-policy__title > * {
+  font-size: var(--h3-font-size);
+}
+
+@media (max-width: 767px) {
+  .product-details__highlight-grid > *:not(:last-child)::before {
+    content: "";
+    position: absolute;
+    left: 0px;
+    right: 0px;
+    bottom: -1rem;
+    height: 1px;
+    width: 100%;
+    --tw-translate-y: 50%;
+    transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+    background-color: rgba(var(--color-text-no-alpha) / 0.06);
+  }
+}
+
+@media (min-width: 768px) {
+  .section-main-product + .section-product-details {
+    float: left;
+    clear: left;
+  }
+
+  .section-main-product:has(.main-product__container.media-default.page-width) + .section-product-details {
+    max-width: calc(var(--page-width) / 2 - 2px);
+    width: calc((100vw - var(--total-padding-page-width)) / 2 - 2px);
+  }
+
+  .section-main-product:has(.main-product__container.media-default.full-width-padded) + .section-product-details {
+    max-width: calc((100% - var(--total-padding-full-width-padded)) / 2 - 2px);
+  }
+
+  .section-main-product:has(.main-product__container.media-default.full-width) + .section-product-details {
+    max-width: calc((100% - var(--total-padding-full-width)) / 2 - 2px);
+  }
+
+  .section-main-product:has(.main-product__container.media-large.page-width) + .section-product-details {
+    max-width: calc(var(--page-width) * 2 / 3 - 2px);
+    width: calc((100vw - var(--total-padding-page-width)) * 2 / 3 - 2px);
+  }
+
+  .section-main-product:has(.main-product__container.media-large.full-width-padded) + .section-product-details {
+    max-width: calc((100% - var(--total-padding-full-width-padded)) * 2 / 3 - 2px);
+  }
+
+  .section-main-product:has(.main-product__container.media-large.full-width) + .section-product-details {
+    max-width: calc((100% - var(--total-padding-full-width)) * 2 / 3 - 2px);
+  }
+
+  .product-details__highlight-grid > *:only-child {
+    flex: 0 1 100%;
+  }
+
+  .product-details__highlight-grid[data-max-grid-column="3"] > *:nth-last-child(2):first-child,
+  .product-details__highlight-grid[data-max-grid-column="3"] > *:nth-last-child(2):first-child ~ * {
+    flex: 0 1 calc(50% - (2rem / 2));
+  }
+
+  .product-details__highlight-grid[data-max-grid-column="2"] > *:nth-child(n) {
+    flex: 0 1 calc(50% - (2rem / 2));
+  }
+
+  .product-details__highlight-grid[data-max-grid-column="3"] > *:nth-last-child(3):first-child,
+  .product-details__highlight-grid[data-max-grid-column="3"] > *:nth-last-child(3):first-child ~ * {
+    flex: 0 1 calc(33.33% - (4rem / 3));
+  }
+
+  .product-details__highlight-grid[data-max-grid-column="3"] > *:nth-child(n) {
+    flex: 0 1 calc(33.33% - (4rem / 3));
+  }
+
+  .product-details__highlight-grid[data-max-grid-column="4"] > *:nth-child(n) {
+    flex: 0 1 calc(25% - (6rem / 4));
+  }
+
+  .product-details__highlight-grid[data-max-grid-column="2"] > *:not(:nth-child(2n)):not(:last-child)::before,
+  .product-details__highlight-grid[data-max-grid-column="3"] > *:not(:nth-child(3n)):not(:last-child)::before,
+  .product-details__highlight-grid[data-max-grid-column="4"] > *:not(:nth-child(4n)):not(:last-child)::before {
+    content: "";
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    right: -1rem;
+    height: 100%;
+    width: 1px;
+    --tw-translate-x: -50%;
+    transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+    background-color: rgba(var(--color-text-no-alpha) / 0.06);
+  }
+}

@@ -1,0 +1,74 @@
+{% liquid
+  assign single_rate = 'shipping.single_rate' | t
+  assign multi_rate = 'shipping.multiple_rates' | t
+  assign no_rate = 'shipping.no_rates' | t
+  assign default_country = localization.country.name
+  if customer.default_address
+    assign default_country = customer.default_address.country
+  endif
+  if customer.default_address.province
+    assign default_province = customer.default_address.province
+  endif
+  if customer.default_address.zip
+    assign default_zip = customer.default_address.zip
+  endif
+
+  assign is_rounded_corners = false
+  if settings.edges_type == 'rounded_corners'
+    assign is_rounded_corners = true
+  endif
+%}
+
+<estimate-shipping-rate
+  class="estimate-shipping-cart__wrapper"
+  data-single="{{ single_rate }}"
+  data-multiple="{{ multi_rate }}"
+  data-no-rates="{{ no_rate }}"
+>
+  <div class="estimate-shipping-cart__container flex flex-col gap-4">
+    <div class="estimate-shipping-cart__country-wrapper w-full text-small">
+      <label class="block mb-2" for="cart-shipping-country">{{ 'shipping.country' | t }}</label>
+      <div class="relative">
+        <select id="cart-shipping-country" data-default="{{ default_country }}" class="country-select shipping-rate w-full pl-5 pr-10 rtl:pr-5 rtl:pl-10 pt-3 pb-3 appearance-none border bg-transparent color-border-[rgba(var(--color-line-and-border))] border-solid {% if is_rounded_corners %} rounded-md{% endif %}" name="country">
+          {{ country_option_tags }}
+        </select>
+        <span class="absolute top-1/2 -translate-y-1/2 w-2.5 right-5 rtl:right-auto rtl:left-5 cursor-pointer pointer-events-none">{% render 'icon-all', icon: 'icon-caret' %}</span>
+      </div>
+    </div>
+
+    <div class="estimate-shipping-cart__province-wrapper w-full province-container text-small"{% unless default_province %} hidden{% endunless %}>
+      <label class="block mb-2" for="cart-shipping-province">{{ 'shipping.province' | t }}</label>
+      <div class="relative">
+        <select id="cart-shipping-province"{% if default_province %} data-default="{{ default_province }}"{% endif %} class="province-select shipping-rate w-full pl-5 pr-10 rtl:pr-5 rtl:pl-10 pt-3 pb-3 bg-transparent appearance-none border border-solid color-border-[rgba(var(--color-line-and-border))] {% if is_rounded_corners %} rounded-md{% endif %}" name="province">
+        </select>
+        <span class="absolute top-1/2 -translate-y-1/2 w-2.5 right-5 rtl:right-auto rtl:left-5 cursor-pointer pointer-events-none">{% render 'icon-all', icon: 'icon-caret' %}</span>
+      </div>
+    </div>
+
+    <div class="estimate-shipping-cart__zip-wrapper w-full text-small">
+      <label class="block mb-2" for="cart-shipping-zip">{{ 'shipping.zip' | t }}</label>
+      <input id="cart-shipping-zip" class="zip-input w-full pl-5 pr-5 pt-3 pb-3 border bg-transparent border-solid color-border-[rgba(var(--color-line-and-border))] focus:outline-none {% if is_rounded_corners %} rounded-md{% endif %}" type="text"{% if default_zip %} value="{{ default_zip }}"{% endif %}>
+    </div>
+
+    <div class="estimate-shipping-cart__calculate-wrapper w-full flex flex-col justify-end">
+      <custom-button>
+        <button class="button button-primary h6 w-full pt-3 pb-3 pl-5 pr-5 relative {% if is_rounded_corners %} rounded-md{% endif %}" data-action="submit">
+          {% assign button_label = 'shipping.calculate' | t %}
+          <span class="button-label flex items-center justify-center text-small">
+            {% render 'button-label', button_label: button_label, show_button_style: 'primary' %}
+          </span>
+          <span class="spinner hidden inline-block w-5 h-5 animate-spin absolute top-[calc(50%-10px)] left-[calc(50%-10px)]">{% render 'icon-all', icon: 'icon-loading' %}</span>
+        </button>
+      </custom-button>
+    </div>
+  </div>
+
+  <div class="rates hidden flash-message success-message mt-2.5">
+    <div class="rates-heading"></div>
+    <div class="rates-text"></div>
+  </div>
+
+  <div class="errors hidden flash-message error-message mt-2.5">
+    <div class="errors-text"></div>
+  </div>
+</estimate-shipping-rate>

@@ -1,0 +1,57 @@
+{% doc %}
+  Renders a reusable <custom-tooltip> Web Component.
+
+  Place this snippet inside any element that has `position: relative`.
+  The parent element acts as the mouseenter/mouseleave trigger.
+  Tooltip placement is viewport-aware and flips top↔bottom automatically on every open.
+
+  @param content {String} - Content rendered inside the tooltip body. Required.
+  @param position {String} - Default placement: "top" | "bottom". Defaults to "top". The tooltip always auto-flips top↔bottom based on available viewport room.
+  @param align {String} - Horizontal alignment relative to the trigger (popover mode): "start" (default, direction-aware: LTR left / RTL right), "end" (the opposite edge), or "center".
+  @param list_align {String} - Alignment override when an ancestor has class "list-layout". Same values as `align`; defaults to `align`. Use when the list layout aligns content differently from the grid (e.g. the product card forces start-aligned content in list).
+  @param custom_class {String} - Additional CSS classes appended to the .tooltip-popup-wrapper.
+  @param arrow_class {String} - Classes controlling arrow horizontal alignment. Defaults to "mx-auto" (centered). Pass "ml-3" or "mr-3 ml-auto" to align with content.
+  @param list_position {String} - Position override when an ancestor has class "list-layout". Defaults to "bottom".
+  @param layout_class {String} - Horizontal placement and width utilities for the popup wrapper. Defaults to "left-2.5 right-2.5 w-[calc(100%-20px)]" (fills the relative parent). Override to center on a small trigger such as an icon, e.g. "left-[calc(50%+var(--left-tooltip,0px))] -translate-x-1/2 w-max max-w-[200px]".
+  @param clamp_boundary {String} - Class name (without the leading dot) of an ancestor the tooltip must stay within horizontally. When set, the component caps the popup width and shifts it back inside the boundary edges on every open. Requires the wrapper layout_class to consume the "--left-tooltip" CSS variable in its left offset.
+  @param enable_mobile {Boolean} - When true, the tooltip also works on touch/mobile: it toggles on tap of the trigger (desktop still uses hover). Defaults to false (desktop-only).
+
+  @example
+  {%- render 'custom-tooltip',
+    content: product.title,
+    position: 'top',
+    custom_class: 'my-extra-class'
+  -%}
+{% enddoc %}
+
+{%- liquid
+  assign tooltip_position = position | default: 'top'
+  assign tooltip_arrow_class = arrow_class | default: 'mx-auto'
+  assign tooltip_layout_class = layout_class | default: 'left-2.5 right-2.5 w-[calc(100%-20px)]'
+-%}
+
+<custom-tooltip
+  data-list-position="{{ list_position | default: 'bottom' }}"
+  {%- if align != blank %} data-tooltip-align="{{ align }}"{% endif -%}
+  {%- if list_align != blank %} data-list-tooltip-align="{{ list_align }}"{% endif -%}
+  {%- if enable_mobile %} data-enable-mobile="true"{% endif -%}
+  {%- if clamp_boundary != blank %} data-clamp-boundary="{{ clamp_boundary }}"{% endif -%}
+>
+  <div
+    class="tooltip-popup-wrapper absolute invisible z-20 !bg-transparent pointer-events-none flex flex-col {% unless rtl %} ltr{% endunless %} {{ tooltip_layout_class }} color-{{ settings.color_schemes_light }} dark-color-{{ settings.color_schemes_dark -}}
+      {%- if custom_class != blank %} {{ custom_class }}{% endif -%}"
+    data-tooltip-position="{{ tooltip_position }}"
+  >
+    <div class="tooltip-arrow-up triangle-tooltip relative z-10 w-fit {{ tooltip_arrow_class }}{% if tooltip_position == 'top' %} hidden{% endif %}">
+      <div class="triangle-up border-transparent"></div>
+      <div class="triangle-up-theme-bg absolute top-0 left-0 -z-10"></div>
+    </div>
+    <div class="color-bg-[rgba(var(--color-background))] bg-gradient-no-alpha overflow-hidden rounded-corners rounded-corners-sm shadow-small">
+      <div class="tooltip-content py-1.5 px-2 text-x-small p-break-words">{{ content }}</div>
+    </div>
+    <div class="tooltip-arrow-down triangle-tooltip relative z-10 w-fit {{ tooltip_arrow_class }}{% if tooltip_position == 'bottom' %} hidden{% endif %}">
+      <div class="triangle-down border-transparent"></div>
+      <div class="triangle-down-theme-bg absolute top-0 left-0 -z-10"></div>
+    </div>
+  </div>
+</custom-tooltip>

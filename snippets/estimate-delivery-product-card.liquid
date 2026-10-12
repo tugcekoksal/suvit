@@ -1,0 +1,27 @@
+{%- capture estimate_shipping_message -%}
+  {%- render 'estimate-shipping-message', product: product, variant: variant, default_message: settings.pc_est_message, disabled_text_animation: true, is_product_card: true -%}
+{%- endcapture -%}
+{%- assign message_update = estimate_shipping_message -%}
+{%- assign cutoff_time = settings.estimate_delivery_cutoff_hour | append: settings.estimate_delivery_cutoff_minute | plus: 0 -%}
+{%- if message_update != blank -%}
+  <div
+    class="x-estimate-delivery mb-3"
+    x-intersect.once="$store.xEstimateDelivery.countdownCutOffTime('{{ cutoff_time }}', '{{ 'sections.promotion_banner.hours' | t | downcase }}', '{{ 'sections.promotion_banner.mins' | t | downcase }}')"
+  >
+    {%- capture cut_off_time -%} 
+      <span x-html="$store.xEstimateDelivery.notification"></span>
+    {%- endcapture -%}
+    <div class="flex relative hover:pointer-events-auto text-x-small px-1.5 pt-1.5 pb-1.5 color-bg-[rgba(var(--color-text),0.06)] {% if settings.edges_type == 'rounded_corners' %} rounded{% endif %} pointer-events-none ">
+      <div class="relative flex gap-1 items-center rtl:flex-row-reverse">
+        <span class="w-4 h-4 inline-block shrink-0">
+          {% render 'icon-all', icon: 'delivery-date' %}
+        </span>
+        <div
+          class="estimate-content text-{{ content_alignment }} list-layout:text-left line-clamp-2 text-ellipsis p-break-words rte no-space"
+        >
+          {{ message_update | replace: 'time_to_cut_off', cut_off_time }}
+        </div>
+      </div>
+    </div>
+  </div>
+{%- endif -%}

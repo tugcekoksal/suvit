@@ -1,0 +1,113 @@
+{% liquid
+  assign image_ratio = 'auto'
+  case settings.cart_media_ratio
+    when 'square'
+      assign image_ratio = '1/1'
+    when 'landscape'
+      assign image_ratio = '4/3'
+    when 'portrait'
+      assign image_ratio = '2/3'
+    when 'wide'
+      assign image_ratio = '16/9'
+    when '3/4'
+      assign image_ratio = '3/4'
+  endcase
+%}
+
+{%- liquid
+  assign product_count = 0
+  assign product_ids = cart.items | map: 'product_id' | uniq | join: ', ' | append: ','
+  assign max_items = settings.cart_upsell_number_of_product_shown
+
+  for item in cart.items
+    if item.product.metafields.cart.upsell.value.count > 0
+      for prod in item.product.metafields.cart.upsell.value
+        if prod.available
+          assign product_id = prod.id | append: ','
+          unless product_ids contains product_id
+            assign product_ids = product_ids | append: product_id
+            assign product_count = product_count | plus: 1
+            echo '<div class="cart-drawer-upsell__item cart-upsell__item slide-item upsell-item__metafields color-bg-[rgba(var(--product-card-bg))] lg:bg-transparent pt-2 pb-2 md:pt-3 md:pb-3 pl-2 pr-2 lg:pl-0 lg:pr-0 lg:border-b border-solid'
+            if settings.edges_type == 'rounded_corners'
+              echo ' rounded-[10px] lg:rounded-none'
+            endif
+            if product_count == max_items
+              echo ' color-border-[rgba(var(--color-line-and-border))]'
+            endif
+            echo '" data-product-id="'
+            echo prod.id
+            echo '" view-event-payload="'
+            echo prod | standard_event_data: "view", context: "recommendation" | escape
+            echo '" x-intersect.once="window.MaximizeStorefrontEvents?.dispatchProductView($el)">'
+            render 'product-card-drawer-upsell', product: prod, image_ratio: image_ratio
+            assign overlay_id = "CartUpSellItem_Loading_" | append: prod.id
+            render 'cart-overlay-loading', id: overlay_id
+            echo '</div>'
+          endunless
+        endif
+        if product_count >= max_items
+          break
+        endif
+      endfor
+    endif
+  endfor
+  if product_count < max_items
+    for prod in settings.cart_upsell_product_list
+      if prod.available
+        assign product_id = prod.id | append: ','
+        unless product_ids contains product_id
+          assign product_ids = product_ids | append: product_id
+          assign product_count = product_count | plus: 1
+          echo '<div class="cart-drawer-upsell__item cart-upsell__item slide-item upsell-item__product-list color-bg-[rgba(var(--product-card-bg))] lg:bg-transparent pt-2 pb-2 md:pt-3 md:pb-3 pl-2 pr-2 lg:pl-0 lg:pr-0 lg:border-b border-solid'
+          if settings.edges_type == 'rounded_corners'
+            echo ' rounded-[10px] lg:rounded-none'
+          endif
+          if product_count == max_items
+            echo ' color-border-[rgba(var(--color-line-and-border))]'
+          endif
+          echo '" data-product-id="'
+          echo prod.id
+          echo '" view-event-payload="'
+          echo prod | standard_event_data: "view", context: "recommendation" | escape
+          echo '" x-intersect.once="window.MaximizeStorefrontEvents?.dispatchProductView($el)">'
+          render 'product-card-drawer-upsell', product: prod, image_ratio: image_ratio
+          assign overlay_id = "CartUpSellItem_Loading_" | append: prod.id
+          render 'cart-overlay-loading', id: overlay_id
+          echo '</div>'
+        endunless
+      endif
+      if product_count >= max_items
+        break
+      endif
+    endfor
+  endif
+-%}
+
+{% if product_count < max_items %}
+  <div class="cart-upsell__product-recommendations product-recommendations cart-drawer-upsell__product-recommendations hidden">
+    {% if recommendations.performed and recommendations.products_count > 0 %}
+      {% for recommendation in recommendations.products %}
+        {% assign product_id = recommendation.id | append: ',' %}
+        {% unless product_ids contains product_id %}
+          {% liquid
+            assign product_ids = product_ids | append: product_id
+            assign product_count = product_count | plus: 1
+          %}
+          <div
+            class="cart-drawer-upsell__item cart-upsell__item slide-item upsell-item__recommendation color-bg-[rgba(var(--product-card-bg))] lg:bg-transparent pl-2 pr-2 lg:pl-0 lg:pr-0 pt-2 pb-2 md:pt-3 md:pb-3 {% unless product_count == max_items %}lg:border-b border-solid color-border-[rgba(var(--color-line-and-border))]{% endunless %} {% if settings.edges_type == 'rounded_corners' %} rounded-[10px] lg:rounded-none{% endif %}"
+            data-product-id="{{ recommendation.id }}"
+            view-event-payload='{{ recommendation | standard_event_data: "view", context: "recommendation" | escape }}'
+            x-intersect.once="window.MaximizeStorefrontEvents?.dispatchProductView($el)"
+          >
+            {% render 'product-card-drawer-upsell', product: recommendation, image_ratio: image_ratio %}
+          </div>
+        {% endunless %}
+        {% liquid
+          if product_count >= max_items
+            break
+          endif
+        %}
+      {% endfor %}
+    {% endif %}
+  </div>
+{% endif %}

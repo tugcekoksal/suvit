@@ -1,0 +1,91 @@
+{% comment %}
+    Renders a block showing product review stars and count.
+
+    Accepts:
+    - product: {Object} Product Liquid object (optional)
+    - show_content_center: {Boolean} Show content center. Default: false
+		- is_product_page: {Boolean} Is product page. Default: false
+		- product_card: {Boolean} Is product card. Default: false
+		- custom_class: {String} Additional custom class. Default: ''
+    Usage:
+    {% render 'review-product', product: product, show_content_center: false, is_product_page: false, product_card: false, custom_class: '' %}
+{% endcomment %}
+{% liquid
+	assign star_haft = 0
+	assign star_fill = 0
+	assign star_empty = 0
+	assign rating_product = product.metafields.reviews.rating.value
+	if settings.product_reviews_app == 'loox'
+		assign rating_product = product.metafields.loox.avg_rating
+	endif
+	if settings.product_reviews_app == 'okendo'
+		assign rating_product = product.metafields.okendo.summaryData.reviewAverageValue
+	endif
+	if rating_product != blank
+		assign star_fill = rating_product.rating | floor
+		assign decimal = rating_product.rating | modulo: 1
+		assign scale_max = product.metafields.reviews.rating.value.scale_max
+		assign rating_count = product.metafields.reviews.rating_count
+		if settings.product_reviews_app == 'loox'
+			assign star_fill = rating_product | floor
+			assign decimal = rating_product | modulo: 1
+			assign rating_count = product.metafields.loox.num_reviews
+			assign scale_max = 5
+		endif
+		if settings.product_reviews_app == 'okendo'
+			assign star_fill = rating_product | floor
+			assign decimal = rating_product | modulo: 1
+			assign rating_count = product.metafields.okendo.summaryData.reviewCount
+			assign scale_max = 5
+		endif
+
+		if decimal >= 0.3 and decimal <= 0.7
+			assign star_haft = 1
+		elsif decimal > 0.7
+			assign star_fill = star_fill | plus: 1
+		endif
+		assign star_empty =  scale_max | minus: star_haft | minus: star_fill | floor
+		if star_empty > 0
+			assign star_empty = 'icon_empty_' | append: star_empty
+		else
+			assign star_empty = blank
+		endif
+		if star_fill > 0
+			assign star_fill = 'icon_fill_' | append: star_fill
+		else
+			assign star_fill = blank
+		endif
+	else
+		assign star_empty = 'icon_empty_' | append: 5
+	endif
+%}
+{{ "product-review.css" | asset_url| stylesheet_tag }}
+<div 
+	class="inline-flex flex-wrap {{ custom_class -}}
+	{%- if is_product_page %} mb-2 md:mb-2.5{% else %} mb-2{% endif %} quick-view:mb-2 md:quick-view:mb-2.5 items-center
+	{%- if product_card %} rtl:flex-row-reverse {% else %} w-full{% endif -%}
+	{%- if show_content_center %} justify-center{% endif -%}"
+>
+	{%- if settings.product_reviews_app == 'trustoo' -%}
+		<div class="custom-vstar-rating-widget" product-id="{{ product.id }}"></div>
+	{%- elsif settings.product_reviews_app == 'yotpo' -%}
+		<div class="yotpo bottomLine" data-product-id="{{ product.id }}"> </div>
+	{%- else -%}
+		<div class="rating gap-0.5 flex" role="img" aria-label="{{ 'accessibility.star_reviews_info' | t: rating_value: rating_product, rating_max: scale_max }}">
+			{% liquid
+				if star_fill != blank
+					render 'icon-review', icon: star_fill, icon_star: " w-[var(--rating-star-size)] h-[var(--rating-star-size)]"
+				endif
+				if star_haft > 0
+					render 'icon-review', icon: 'icon_haft', icon_star: " color-text-[rgba(var(--color-heading),0.12)] w-[var(--rating-star-size)] h-[var(--rating-star-size)]"
+				endif
+				if star_empty != blank
+					render 'icon-review', icon: star_empty, icon_star: " w-[var(--rating-star-size)] h-[var(--rating-star-size)]"
+				endif
+			%}
+		</div>
+		<div class="rating-count caption ms-1{% if product_card %} text-x-small{% else %} text-small{% endif %} color-text-[rgba(var(--color-text),0.6)]">
+			{%- if rating_count -%}({{ rating_count }}){% else %} (0) {%- endif %}
+		</div>
+	{%- endif  -%}
+</div>

@@ -1,0 +1,478 @@
+{% doc %}
+  Renders one orderable variant row — shared by the Quick order list block and the B2B order view
+  card, fetched lazily by each. No block/section context here, so it renders every part of itself;
+  the Quick order list block hides parts of it via its own scoped CSS instead.
+
+  Quantity input shows whenever orderable, regardless of price visibility; otherwise "Sold out" or
+  "--". Total stays "--" when the price is hidden (login-to-view-price) even if the qty input is
+  shown, so a queued quantity never leaks the unit price via qty * price.
+
+  @param {object} variant - The variant to render
+  @param {object} product - The variant's parent product (single-variant title fallback, image fallback)
+  @param {string} [hide_price] - 'true' when "Log in to view price" hides this product's prices
+  @param {boolean} [show_skus] - Show the variant SKU under its title. Default: true.
+  @param {boolean} [is_apply_preorder] - Whether this product is eligible for preorder per theme settings
+  @param {string} [message_preorder] - Preorder line-item property value
+  @param {boolean} [is_last_variant] - True when this is the last rendered row in its group (rounds the bottom corner)
+  @param {number} [index] - Position of this variant within its group; rotates the placeholder image when there's no real image. Default: 1
+  @param {string} [tooltip_clamp_boundary] - Ancestor class name the quantity-rule tooltip must stay within horizontally
+  @param {boolean} [is_b2b] - customer.b2b? — falls back to computing it here when omitted
+  @param {boolean} [rounded] - settings.edges_type == 'rounded_corners' — falls back when omitted
+  @param {number} [image_width] - Image cell width/crop in px. Default: 45 — same size for both
+    callers (QOL and OV variant rows), unlike the parent/group row image which differs per feature
+  @param {number} [image_height] - Image cell height/crop in px. Only forces a height when given —
+    omit to let `.order-row__image`'s aspect-ratio (block-setting driven for QOL) control it instead
+  @param {boolean} [standalone] - True when this row is rendered on its own, with no group/parent
+    row above it carrying the product title (the Quick order list renders a product with a single
+    variant that way). Standalone rows title themselves with the product and keep the variant name
+    as meta; rows inside a group/collapsible title themselves with the variant. Default: false.
+  @param {string} [row_class] - Extra classes appended to the root row div — lets each caller
+    section vary its own look (currently just padding) without editing this shared file. Default:
+    'px-3 py-3 lg:px-2 lg:py-2' (QOL's own value) — OV passes 'p-2 lg:p-4' to match its parent row
+
+  Icon/label/format params below are optional — the caller section hoists them once per fetch
+  (this row can render up to 250x); each falls back to its own render/translate when omitted.
+
+  @param {string} [icon_minus] - Pre-rendered 'icon-minus' markup
+  @param {string} [icon_plus] - Pre-rendered 'icon-plus' markup
+  @param {string} [icon_loading] - Pre-rendered 'icon-loading' markup
+  @param {string} [lbl_sku] - 'products.product.sku' | t
+  @param {string} [lbl_minus] - 'accessibility.minus' | t
+  @param {string} [lbl_plus] - 'accessibility.plus' | t
+  @param {string} [lbl_qty] - 'products.product.quantity.label' | t
+  @param {string} [lbl_inc] - 'bulk_order.rule.inc' | t
+  @param {string} [lbl_min] - 'bulk_order.rule.min' | t
+  @param {string} [lbl_max] - 'bulk_order.rule.max' | t
+  @param {boolean} [money_with_currency] - settings.currency_code_enable
+  @param {string} [zero_money] - 0 | money
+
+  @example
+  {% render 'variant-order-row',
+    variant: variant,
+    product: product,
+    hide_price: hide_price,
+    index: forloop.index
+  %}
+{% enddoc %}
+
+{%- liquid
+  if show_skus == null
+    assign show_skus = true
+  endif
+  if hide_price == null
+    assign hide_price = 'false'
+  endif
+  if image_width == null
+    assign image_width = 45
+  endif
+  if rounded == null
+    assign rounded = false
+    if settings.edges_type == 'rounded_corners'
+      assign rounded = true
+    endif
+  endif
+  if row_class == null
+    assign row_class = 'px-3 py-3 lg:px-2 lg:py-2'
+  endif
+
+  assign is_show_preorder_variant = false
+  if is_apply_preorder
+    if settings.preorder_show == 'yes'
+      if variant.inventory_management == null
+        assign is_show_preorder_variant = true
+      elsif variant.inventory_quantity > 0
+        assign is_show_preorder_variant = true
+      elsif variant.inventory_policy == 'continue'
+        assign is_show_preorder_variant = true
+      endif
+    elsif settings.preorder_show == 'on_back_ordered'
+      if variant.inventory_policy == 'continue' and variant.inventory_quantity < 1 and variant.inventory_management != null
+        assign is_show_preorder_variant = true
+      endif
+    endif
+  endif
+
+  assign is_available_or_preorder = false
+  if variant.available or is_show_preorder_variant
+    assign is_available_or_preorder = true
+  endif
+
+  assign is_sold_out_row = true
+  if is_available_or_preorder
+    assign is_sold_out_row = false
+  endif
+
+  comment
+    Quantity input stays available even when the price is hidden (login-to-view-price) — only
+    Total keeps the hide_price gate, since it would otherwise leak price via qty * unit price.
+  endcomment
+  assign show_qty_input = false
+  if is_available_or_preorder
+    assign show_qty_input = true
+  endif
+
+  assign show_total = false
+  if is_available_or_preorder and hide_price != 'true'
+    assign show_total = true
+  endif
+
+  comment
+    Only resolve what this branch actually renders.
+  endcomment
+  if show_qty_input
+    if icon_minus == null
+      capture icon_minus
+        render 'icon-all', icon: 'icon-minus'
+      endcapture
+    endif
+    if icon_plus == null
+      capture icon_plus
+        render 'icon-all', icon: 'icon-plus'
+      endcapture
+    endif
+    if icon_loading == null
+      capture icon_loading
+        render 'icon-all', icon: 'icon-loading'
+      endcapture
+    endif
+    if lbl_minus == null
+      assign lbl_minus = 'accessibility.minus' | t
+    endif
+    if lbl_plus == null
+      assign lbl_plus = 'accessibility.plus' | t
+    endif
+    if lbl_qty == null
+      assign lbl_qty = 'products.product.quantity.label' | t
+    endif
+  endif
+
+  if show_total and zero_money == null
+    assign zero_money = 0 | money
+  endif
+
+  if show_skus and variant.sku != blank and lbl_sku == null
+    assign lbl_sku = 'products.product.sku' | t
+  endif
+
+  assign row_placeholder_index = index | default: 1
+  assign row_placeholder_index = 'now' | date: '%M' | times: row_placeholder_index | modulo: 5 | plus: 1
+  assign row_placeholder = 'product_' | append: row_placeholder_index
+
+  assign variant_image = variant.featured_image | default: product.featured_image
+  assign variant_url = product.url | append: '?variant=' | append: variant.id
+
+  if standalone == nil
+    assign standalone = false
+  endif
+
+  assign variant_display_name = variant.title
+  if standalone
+    assign variant_display_name = product.title
+  endif
+
+  assign qol_row_meta = ''
+  if standalone
+    unless product.has_only_default_variant
+      assign qol_row_meta = variant.title
+    endunless
+    if show_skus and variant.sku != blank
+      if qol_row_meta != blank
+        assign qol_row_meta = qol_row_meta | append: '. ' | append: lbl_sku | append: ': ' | append: variant.sku
+      else
+        assign qol_row_meta = lbl_sku | append: ': ' | append: variant.sku
+      endif
+    endif
+  endif
+
+  comment
+    Compact array-of-arrays for price breaks avoids escaping quotes in the HTML attribute.
+  endcomment
+  assign row_breaks = ''
+  unless hide_price == 'true'
+    for pb in variant.quantity_price_breaks
+      assign row_breaks = row_breaks | append: '[' | append: pb.minimum_quantity | append: ',' | append: pb.price | append: ']'
+      unless forloop.last
+        assign row_breaks = row_breaks | append: ','
+      endunless
+    endfor
+  endunless
+
+  comment
+    Both emitted — computeMaxQty() in order-row-shared.js takes the smaller.
+  endcomment
+  assign row_inventory_max = ''
+  if variant.inventory_management == 'shopify' and variant.inventory_policy == 'deny'
+    assign row_inventory_max = variant.inventory_quantity
+  endif
+  assign row_cart_qty = cart | item_count_for_variant: variant.id
+
+  if is_b2b == null
+    assign is_b2b = false
+    if customer != blank and customer.b2b?
+      assign is_b2b = true
+    endif
+  endif
+
+  assign rule_inc = variant.quantity_rule.increment | default: 1
+  assign rule_min = variant.quantity_rule.min | default: 1
+  assign rule_max = variant.quantity_rule.max
+
+  comment
+    Only parts that differ from the default are spelled out.
+  endcomment
+  assign rule_summary = ''
+  if is_b2b
+    if lbl_inc == null
+      assign lbl_inc = 'bulk_order.rule.inc' | t
+    endif
+    if lbl_min == null
+      assign lbl_min = 'bulk_order.rule.min' | t
+    endif
+    if lbl_max == null
+      assign lbl_max = 'bulk_order.rule.max' | t
+    endif
+    if rule_inc > 1
+      assign rule_summary = rule_summary | append: ' . ' | append: lbl_inc | append: ': ' | append: rule_inc
+    endif
+    if rule_min > 1
+      assign rule_summary = rule_summary | append: ' . ' | append: lbl_min | append: ': ' | append: rule_min
+    endif
+    if rule_max != blank
+      assign rule_summary = rule_summary | append: ' . ' | append: lbl_max | append: ': ' | append: rule_max
+    endif
+    assign rule_summary = rule_summary | remove_first: ' . '
+  endif
+
+  assign qty_error_id = 'VariantQtyRuleError-' | append: variant.id
+
+  if money_with_currency == null
+    assign money_with_currency = settings.currency_code_enable
+  endif
+  if money_with_currency
+    assign row_price = variant.price | money_with_currency
+    assign row_compare = variant.compare_at_price | money_with_currency
+  else
+    assign row_price = variant.price | money
+    assign row_compare = variant.compare_at_price | money
+  endif
+-%}
+
+{%- comment -%} Always rendered, sold-out included — `data-sold-out` lets the QOL block's own CSS hide it. {%- endcomment -%}
+<div
+  class="qol-row order-view__row order-view__row--variant row-group__row w-full {{ row_class }} gap-y-1 gap-x-2 lg:gap-x-6 anm-fade-element{% if is_last_variant and rounded %} rounded-b-[10px]{% endif %}{% unless variant.available %} opacity-60{% endunless %}"
+  data-variant-id="{{ variant.id }}"
+  data-preorder="{{ is_show_preorder_variant }}"
+  data-sold-out="{{ is_sold_out_row }}"
+  data-available="{{ variant.available }}"
+  data-price="{{ variant.price }}"
+  data-cart-qty="{{ row_cart_qty }}"
+  data-sku="{{ variant.sku }}"
+  data-variant-title="{{ variant.title | escape }}"
+  data-compare-at-price="{{ variant.compare_at_price }}"
+  data-rule-min="{{ rule_min }}"
+  data-rule-max="{{ rule_max }}"
+  data-rule-inc="{{ rule_inc }}"
+  data-price-breaks="[{{ row_breaks }}]"
+  {%- if row_inventory_max != blank %}
+    data-inventory-max="{{ row_inventory_max }}"
+  {%- endif %}
+  data-fade-on-intersect
+>
+  <div class="order-row__cells">
+    <a
+      href="{{ variant_url }}"
+      class="order-row__image order-row__cell order-row__cell--media aspect-1/1 overflow-hidden shrink-0 rounded-corners lg:hidden block"
+      style="width: {{ image_width }}px;{% if image_height %} height: {{ image_height }}px;{% endif %}"
+    >
+      {%- if variant_image -%}
+        {{ variant_image | image_url: width: image_width, height: image_height | image_tag: loading: 'lazy', class: 'qol-image w-full h-full duration-300 object-cover' }}
+      {%- else -%}
+        {%- render 'placeholder-image', image_type: row_placeholder -%}
+      {%- endif -%}
+    </a>
+
+    <div
+      class="order-row__cell order-row__cell--media-title hidden lg:flex items-center gap-2 min-w-0"
+      style="grid-column: span 2;"
+    >
+      <a
+        href="{{ variant_url }}"
+        class="order-row__image aspect-1/1 overflow-hidden shrink-0 rounded-corners block"
+        style="width: {{ image_width }}px;{% if image_height %} height: {{ image_height }}px;{% endif %}"
+      >
+        {%- if variant_image -%}
+          {{ variant_image | image_url: width: image_width, height: image_height | image_tag: loading: 'lazy', class: 'qol-image w-full h-full duration-300 object-cover' }}
+        {%- else -%}
+          {%- render 'placeholder-image', image_type: row_placeholder -%}
+        {%- endif -%}
+      </a>
+      <div class="flex flex-col gap-0.5 min-w-0">
+        <a
+          href="{{ variant_url }}"
+          class="order-row__title heading title-link h6 md:h7 p-break-words whitespace-nowrap overflow-hidden text-ellipsis block"
+        >
+          {{- variant_display_name -}}
+        </a>
+        {%- if standalone -%}
+          {%- if qol_row_meta != blank -%}
+            <p class="order-row__meta text-x-small color-text-[rgba(var(--color-text),0.6)]">{{ qol_row_meta }}</p>
+          {%- endif -%}
+        {%- elsif show_skus and variant.sku != blank -%}
+          <p class="order-row__sku text-x-small color-text-[rgba(var(--color-text),0.6)]">{{ lbl_sku }}: {{ variant.sku }}</p>
+        {%- endif -%}
+      </div>
+    </div>
+
+    <div class="order-row__stack">
+      <div class="order-row__cell order-row__cell--product stack-cell--product flex flex-col gap-0.5 min-w-0 lg:hidden">
+        <a
+          href="{{ variant_url }}"
+          class="order-row__title heading title-link h6 md:h7 p-break-words whitespace-nowrap overflow-hidden text-ellipsis block"
+        >
+          {{- variant_display_name -}}
+        </a>
+        {%- if standalone -%}
+          {%- if qol_row_meta != blank -%}
+            <p class="order-row__meta text-x-small color-text-[rgba(var(--color-text),0.6)]">{{ qol_row_meta }}</p>
+          {%- endif -%}
+        {%- elsif show_skus and variant.sku != blank -%}
+          <p class="order-row__sku text-x-small color-text-[rgba(var(--color-text),0.6)]">{{ lbl_sku }}: {{ variant.sku }}</p>
+        {%- endif -%}
+      </div>
+
+      <div class="order-row__cell order-row__cell--status stack-cell--status flex flex-col justify-center">
+        {%- render 'inventory-status', variant: variant, is_show_preorder: is_show_preorder_variant, custom_class: 'text-small' -%}
+      </div>
+
+      <div class="order-row__cell order-row__cell--price stack-cell--price flex flex-col gap-0.5">
+        {%- if hide_price == 'true' -%}
+          {%- render 'guest-price-message', disabled_border: true, direction_label: 'col', class_wrapper: 'mb-1' -%}
+        {%- else -%}
+          <div class="flex flex-wrap items-baseline gap-1.5">
+            <span class="order-row__price-each font-semibold h5 md:h6">
+              <span
+                class="order-row__price-each-amount"
+                data-variant-id="{{ variant.id }}"
+              >
+                {{- row_price -}}
+              </span>
+            </span>
+            {%- if variant.compare_at_price > variant.price -%}
+              <s class="order-row__compare-price compare-at-price line-through h6 md:h7">{{ row_compare }}</s>
+            {%- endif -%}
+          </div>
+          {%- if variant.unit_price_measurement -%}
+            {%- comment -%} `order-row__unit-price`: quote-request.js lifts this text into the quote modal. {%- endcomment -%}
+            <span class="order-row__unit-price text-x-small color-text-[rgba(var(--color-text),0.8)]">
+              {{- variant.unit_price | money }} / {{ variant.unit_price_measurement.reference_value -}}
+              {{- variant.unit_price_measurement.reference_unit -}}
+            </span>
+          {%- endif -%}
+        {%- endif -%}
+      </div>
+
+      <div class="order-row__cell order-row__cell--qty stack-cell--qty flex">
+        {%- if show_qty_input -%}
+          {%- capture quantity_rule_tooltip -%}
+            {%- render 'quantity-rule-tooltip',
+              variant: variant,
+              product: product,
+              login_hide_price: hide_price,
+              disabled_rule_note: true,
+              clamp_boundary: tooltip_clamp_boundary
+            -%}
+          {%- endcapture -%}
+          <div class="order-row__qty-wrapper relative">
+            {%- render 'bulk-order-qty-error', id: qty_error_id, content_class: 'variant-qty-error-text' -%}
+            <div class="order-row__qty flex flex-col items-start gap-1{% if quantity_rule_tooltip != "" %} pt-2{% endif %}">
+              <div class="order-row__qty-controls relative flex w-fit items-center outline outline-1 color-outline-[rgba(var(--color-text),0.2)]{% if rounded %} rounded-md{% endif %}">
+                <button
+                  type="button"
+                  class="flex justify-center items-center cursor-pointer pt-2.5 pb-2.5 pl-3 pr-3 bg-transparent select-none"
+                  data-qty-step="-1"
+                  data-variant-id="{{ variant.id }}"
+                  aria-label="{{ lbl_minus }}"
+                >
+                  <span class="w-3 h-3 flex color-text-[rgba(var(--color-text))]">{{ icon_minus }}</span>
+                </button>
+                <input
+                  class="order-row__qty-input outer-spin-button color-text-[rgba(var(--color-text))] focus:outline-none text-medium text-center bg-transparent py-1.5 lg:py-2 w-6.5 lg:w-9"
+                  type="number"
+                  inputmode="numeric"
+                  name="quantity"
+                  data-variant-id="{{ variant.id }}"
+                  value="0"
+                  min="0"
+                  step="{{ rule_inc }}"
+                  {%- if rule_max %}
+                    max="{{ rule_max }}"
+                  {% endif %}
+                  aria-label="{{ lbl_qty }}"
+                >
+                <button
+                  type="button"
+                  class="flex justify-center items-center cursor-pointer pt-2.5 pb-2.5 pl-3 pr-3 bg-transparent select-none"
+                  data-qty-step="1"
+                  data-variant-id="{{ variant.id }}"
+                  aria-label="{{ lbl_plus }}"
+                >
+                  <span class="flex h-3 w-3 color-text-[rgba(var(--color-text))]">{{ icon_plus }}</span>
+                </button>
+                <span class="quantity-rule-tooltip-anchor inline-flex absolute right-1 -top-3 shrink-0">
+                  {{- quantity_rule_tooltip -}}
+                </span>
+              </div>
+              {%- if rule_summary != blank -%}
+                <span class="order-row__qty-rule text-x-small opacity-60 mt-1">{{ rule_summary }}</span>
+              {%- endif -%}
+            </div>
+            {%- if is_show_preorder_variant -%}
+              <div
+                class="order-row__preorder"
+                data-variant-id="{{ variant.id }}"
+                data-pre-order-name="{{ 'general.preorder.name' | t }}"
+                data-pre-order-value="{{ message_preorder }}"
+              ></div>
+            {%- endif -%}
+          </div>
+        {%- else -%}
+          {%- comment -%} Decoration only — the inventory-status cell already says "Sold out". {%- endcomment -%}
+          <span class="opacity-40" aria-hidden="true">--</span>
+        {%- endif -%}
+      </div>
+    </div>
+
+    <div
+      class="order-row__cell order-row__cell--total relative flex flex-col h5 md:h6"
+      data-variant-id="{{ variant.id }}"
+    >
+      {%- if show_total -%}
+        <span
+          class="order-row__total order-row__line-total compare-at-price font-semibold"
+          data-variant-id="{{ variant.id }}"
+        >
+          {{- zero_money -}}
+        </span>
+        <span
+          class="order-row__line-unit text-x-small color-text-[rgba(var(--color-text),0.6)]"
+          hidden
+        ></span>
+        <span
+          class="order-row__total-spinner hidden absolute right-0 w-4 h-4 animate-spin color-text-[rgba(var(--color-text))]"
+          aria-hidden="true"
+        >
+          {{ icon_loading }}
+        </span>
+      {%- else -%}
+        <span class="color-text-[rgba(var(--color-text),0.4)]">--</span>
+      {%- endif -%}
+    </div>
+
+    <div class="order-row__cell--toggle hidden lg:block"></div>
+  </div>
+
+  <p
+    class="order-row__error flash-message error-message text-x-small hidden"
+    data-variant-id="{{ variant.id }}"
+  ></p>
+</div>

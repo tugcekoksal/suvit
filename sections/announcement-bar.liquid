@@ -1,0 +1,1988 @@
+{% if section.blocks.size > 0 %}
+  {%- liquid
+    if section.settings.enable_country_selector and shop.enabled_currencies.size > 1
+      assign currency_selector = true
+    endif
+    if section.settings.enable_language_selector and shop.enabled_locales.size > 1 
+      assign locale_selector = true
+    endif
+
+    if section.settings.selectors_alignment == "left"
+      assign announcement_alignment = "right"
+    else
+      assign announcement_alignment = "left"
+    endif
+
+    assign block_size = section.blocks.size
+    for block in section.blocks
+      if block.type == 'free_shipping' and settings.enable_free_shipping == false
+        assign block_size = block_size | minus: 1
+      endif
+    endfor
+
+    assign enable_slider = false
+    if section.settings.carousel_style_on_desktop == 'slideshow' and block_size > 1
+      assign enable_slider = true
+    endif
+
+    assign enable_slider_arrows = false
+    if section.settings.show_navigation_arrows and enable_slider
+      assign enable_slider_arrows = true
+    endif
+
+    assign num_loop = 10
+    if block_size > 3
+      assign num_loop = 5
+    endif
+
+    assign duration = section.settings.change_bar_every | times: num_loop
+    assign default_image_alt = 'accessibility.default_alt' | t 
+
+    assign section_id_for_class = section.id
+    if request.visual_preview_mode
+      assign section_id_for_class = section_id_for_class | replace: '=', '\='
+    endif
+
+    assign rounded_corner = true
+    if section.settings.section_width == "full-width"
+      assign rounded_corner = false
+    elsif section.settings.section_width != "full-width" and section.settings.secondary_background == "section"
+      assign rounded_corner = false
+    endif
+  -%}
+  {% style %}
+    .section--{{ section_id_for_class }} {
+      padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+      padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+    }
+    @media screen and (min-width: 768px) {
+      .section--{{ section_id_for_class }} {
+        padding-top: {{ section.settings.padding_top }}px;
+        padding-bottom: {{ section.settings.padding_bottom }}px;
+      }
+    }
+  {% endstyle %}
+  {{ 'announcement-bar.css' | asset_url | stylesheet_tag }}
+  <div id="x-announcement" 
+    class="announcement section--{{ section_id_for_class }} {{ section.settings.section_width }} z-50 gradient md:block color-{{ section.settings.color_scheme_light }} dark-color-{{ section.settings.color_scheme_dark }} text-{{ section.settings.text_type_scale -}}
+      {%- if section.settings.enable_sticky_bar %} announcement-sticky{% endif -%}
+      {%- unless section.settings.enable_on_mobile %} hidden{% endunless -%}
+      {%- if settings.edges_type == 'rounded_corners' and rounded_corner %} md:rounded-[10px]{% else %} md:rounded-none{% endif -%}"
+    {% if section.settings.enable_sticky_bar %}
+      data-is-sticky="true"
+      x-init='$store.xHeaderMenu._syncHeaderHeightVar()'
+    {% endif %}
+  >
+    <div class="carousel-style-{{ section.settings.carousel_style_on_desktop }} flex md:min-h-[32px] gap-x-5 ltr{% if section.settings.selectors_alignment == "left" %} flex-row-reverse{% endif %}">
+      {% capture announcement_content %}
+        {% assign count_block_to_show = 0 %}
+        {%- for block in section.blocks -%}
+          {%- if block.settings.text != blank or block.type == 'free_shipping' and settings.enable_free_shipping -%}
+            {% assign count_block_to_show = count_block_to_show | plus: 1 %}
+            <div 
+              {% if block.settings.text contains '{count_down}' %}
+                x-data="{ loading: true, textLoad: ' - ', days: 0, hours: 0, minutes: 0, seconds: 0 }"
+                x-intersect.once='$nextTick(() => {
+                  $store.xHelper.countdown({
+                    "id": "{{ block.id }}",
+                    "timezone": {{ block.settings.timezone | default: 0 }},
+                    "end_year": {{ block.settings.end_year | default: 0 }},
+                    "end_month": {{ block.settings.end_month | default: 0 }},
+                    "end_day": {{ block.settings.end_day | default: 0 }},
+                    "end_hour": {{ block.settings.end_hour | default: 0 }},
+                    "end_minute": {{ block.settings.end_minute | default: 0 }}
+                  }, (canShow, s, m, h, d) => {
+                    days = d;
+                    hours = h;
+                    minutes = m;
+                    seconds = s;
+                    loading = false;
+                  })
+                })'
+              {% endif %}
+              x-slide-index="{{ forloop.index | minus: 1 }}"
+              id="Slide-{{ section.id }}-{{ forloop.index }}"
+              class="slide-item overflow-hidden flex items-center
+                {%- unless enable_slider %} whitespace-nowrap text-ellipsis{% endunless -%}
+                {%- if section.blocks.size == 1 %} w-full{% endif -%}
+                {%- if section.settings.carousel_style_on_desktop == 'continuous' %} md:overflow-visible md:flex md:items-center gap-x-5 gap-y-2{% endif -%}
+                {%- if section.settings.carousel_style_on_desktop == 'none' %} md:flex-1{% endif -%}
+                {%- if section.settings.text_alignment == 'side' %} justify-{{ announcement_alignment }} rtl:-justify-{{ announcement_alignment }}{% else %} justify-center{% endif -%}" 
+                {{ block.shopify_attributes }}
+            >
+              {%- if block.type == 'free_shipping' and settings.enable_free_shipping -%}
+                <div 
+                  id="announcement-free-shipping" 
+                  x-data="xFreeShipping('{{ section.id }}')"
+                  class="flex flex-wrap items-center announcement-bar-text sm:w-full gap-1 h-fit{% unless section.settings.text_alignment == 'side' %} justify-center{% endunless %}"
+                >
+                  {%- unless block.settings.icon == 'none' or block.settings.custom_icon_image == blank and block.settings.icon == 'another' and block.settings.another_icon == blank -%}
+                    <span class="inline-block relative announcement-icon announcement-icon-size-{{ section.settings.text_type_scale }}">
+                      {% if block.settings.custom_icon_image != blank %}
+                        <img
+                          src="{{ block.settings.custom_icon_image | image_url: width: 30 }}"
+                          alt="{{ block.settings.custom_icon_image.alt | default: default_image_alt | escape }}"
+                          loading="lazy"
+                          width="{{ block.settings.custom_icon_image.width }}"
+                          height="{{ block.settings.custom_icon_image.height }}"
+                          style="object-position: {{ block.settings.custom_icon_image.presentation.focal_point }}"
+                          class="object-cover absolute top-0 left-0 w-full h-full rounded-corners custom-icon-image_rounded-corners"
+                        >
+                      {% else %}
+                        {% if block.settings.icon == 'another' %}
+                          {% render 'icon-another', icon: block.settings.another_icon %}  
+                        {% else %}
+                          {% render 'icon-labels-bags', icon: block.settings.icon %}
+                        {% endif %}
+                      {% endif %}
+                    </span>
+                  {%- endunless -%}
+                  <a
+                    {% if block.settings.link != blank %}
+                      href="{{ block.settings.link }}"
+                    {% else %}
+                      role="link" aria-disabled="true"
+                    {% endif %}
+                    class="relative
+                      {%- if enable_slider %} whitespace-wrap{%- else %} whitespace-normal block overflow-hidden{% endif -%}
+                      {%- if section.settings.carousel_style_on_desktop == 'continuous' %} md:overflow-visible{%- else %} justify-start md:justify-{{ announcement_alignment }} rtl:md:-justify-{{ announcement_alignment }}{% unless section.settings.text_alignment == 'center' %} ltr:sm:text-left rtl:sm:text-right md:text-{{ announcement_alignment }}{% endunless %}{% endif -%}
+                    "
+                    {% if block.settings.open_new_window %} target="_blank"{% endif %}
+                    >
+                    {% render 'free-shipping', default_message: block.settings.default_message, show_custom_message: true, progress_message: block.settings.progress_message, success_message: block.settings.success_message, enable_progress: false, class: 'whitespace-nowrap text-ellipsis overflow-hidden' %}
+                  </a>
+                </div>
+              {% else %}
+                {% if block.settings.text contains '{count_down}' %}
+                  {% capture countdown %}
+                    <div class="countdown-timer__wrapper announcement__countdown-timer__wrapper text-center inline-flex items-center gap-x-1 text-{{ section.settings.text_type_scale }} whitespace-nowrap" style="--rounded-corners: 4px;">
+                      <div class="countdown-timer__item countdown--{{ block.id }} block relative w-full">
+                        <span class="flex flex-col items-center justify-center">
+                          <span x-html="loading?textLoad:days" class="timer--{{ block.id }}">-</span>
+                        </span>
+                      </div>
+                      <span class="countdown-timer__colon"> :</span>
+                      <div class="countdown-timer__item countdown--{{ block.id }} block relative w-full">
+                        <span class="flex flex-col items-center justify-center">
+                          <span x-html="loading?textLoad:hours" class="timer--{{ block.id }}">-</span>
+                        </span>
+                      </div>
+                      <span class="countdown-timer__colon"> :</span>
+                      <div class="countdown-timer__item countdown--{{ block.id }} block relative w-full">
+                        <span class="flex flex-col items-center justify-center">
+                          <span x-html="loading?textLoad:minutes" class="timer--{{ block.id }}">-</span>
+                        </span>
+                      </div>
+                      <span class="countdown-timer__colon"> :</span>
+                      <div class="countdown-timer__item countdown--{{ block.id }} block relative w-full">
+                        <span class="flex flex-col items-center justify-center">
+                          <span x-html="loading?textLoad:seconds" class="timer--{{ block.id }}">-</span>
+                        </span>
+                      </div>
+                    </div>
+                  {% endcapture %}
+                {% endif %}
+                <div class="flex flex-wrap items-center announcement-bar-text sm:w-full max-w-full gap-1 h-fit{% unless section.settings.text_alignment == 'side' %} justify-center{% endunless %}">
+                  {%- unless block.settings.icon == 'none' or block.settings.custom_icon_image == blank and block.settings.icon == 'another' and block.settings.another_icon == blank -%}
+                    <span class="inline-block relative announcement-icon announcement-icon-size-{{ section.settings.text_type_scale }}">
+                      {% if block.settings.custom_icon_image != blank %}
+                        <img
+                          src="{{ block.settings.custom_icon_image | image_url: width: 30 }}"
+                          alt="{{ block.settings.custom_icon_image.alt | default: default_image_alt | escape }}"
+                          loading="lazy"
+                          width="{{ block.settings.custom_icon_image.width }}"
+                          height="{{ block.settings.custom_icon_image.height }}"
+                          style="object-position: {{ block.settings.custom_icon_image.presentation.focal_point }}"
+                          class="object-cover absolute top-0 left-0 w-full h-full rounded-corners custom-icon-image_rounded-corners"
+                        >
+                      {% else %}
+                        {% if block.settings.icon == 'another' %}
+                          {% render 'icon-another', icon: block.settings.another_icon %}
+                        {% else %}
+                          {% render 'icon-labels-bags', icon: block.settings.icon %}
+                        {% endif %}
+                      {% endif %}
+                    </span>
+                  {%- endunless -%}
+                  {% assign text = block.settings.text | replace: "{count_down}", countdown %}
+                  <a
+                    {% if block.settings.link != blank %}
+                      href="{{ block.settings.link }}"
+                    {% else %}
+                      role="link" aria-disabled="true"
+                    {% endif %}
+                    class="relative items-center gap-x-4 overflow-hidden whitespace-normal
+                      {%- if block.settings.text contains '{count_down}' %} flex{%- else %} block{% endif -%}
+                      {%- unless section.settings.text_alignment == 'side' %} justify-center{% elsif section.settings.carousel_style_on_desktop != 'continuous' %} justify-start md:justify-{{ announcement_alignment }} rtl:md:-justify-{{ announcement_alignment }} ltr:sm:text-left rtl:sm:text-right md:text-{{ announcement_alignment }}{% endunless -%}
+                      {%- if section.settings.carousel_style_on_desktop == 'continuous' %} md:overflow-visible{%- else %} flex-wrap{% endif -%}
+                    "
+                    {% if block.settings.open_new_window %} target="_blank"{% endif %}
+                  >
+                    {{- text -}}
+                  </a>
+                  {%- case block.type -%}
+                    {%- when 'announcement' -%}
+                      {%- if block.settings.button_label != blank -%}
+                        <div class="announcement-button flex items-center ltr:ml-1.5 rtl:mr-1.5 m-0" style="--color-link: var(--color-heading-highlight)">
+                          {%- if block.settings.button_label != blank -%}
+                            {% assign button_class = 'whitespace-nowrap min-h-full text-' | append: section.settings.text_type_scale %}
+                            {% render 'button',
+                              button_style: block.settings.button_style,
+                              button_label: block.settings.button_label,
+                              button_link: block.settings.button_link,
+                              open_new_window_button: block.settings.open_new_window_button,
+                              class: button_class
+                          %}
+                          {%- endif -%}
+                        </div>
+                      {%- endif -%}
+                    {%- when 'promo-code' -%}
+                      {% if block.settings.button_label != blank %}
+                        {% style %}
+                          .coupon--{{ block.id }} {
+                            {%- unless block.settings.coupon_color.alpha == 0.0 -%}
+                              color: {{ block.settings.coupon_color }};
+                              border-color: {{ block.settings.coupon_color }};
+                            {%- endunless -%}
+                          }
+                          .dark .coupon--{{ block.id }} {
+                            {%- unless block.settings.coupon_color_dark.alpha == 0.0 -%}
+                              color: {{ block.settings.coupon_color_dark }};
+                              border-color: {{ block.settings.coupon_color_dark }};
+                            {% else %}
+                              color: var(--color-text);
+                              border-color: var(--color-text);
+                            {% endunless %}
+                          }
+                          {% endstyle %}
+                        <button :title="copySuccess?'{{ 'general.global.copied' | t }}':'{{ 'general.global.copy_code' | t }}'" x-data='xCouponCode' x-on:click="copyCode()" class="coupon--{{ block.id }} cursor-pointer border rounded-full border-dashed items-center overflow-hidden flex empty:hidden center pl-2 pr-2 pt-1 pb-1 md:pl-3 md:pr-2.5 ltr:mr-1.5 rtl:ml-1.5 text-{{ section.settings.text_type_scale }}">
+                          <span x-ref="code_value" class="whitespace-nowrap p-break-words text-[90%]">
+                            {{ block.settings.button_label | escape }}
+                          </span>
+                          <div class="ms-2 flex items-center">
+                            <span class="h-3 w-3 inline-block" x-show="!copySuccess"
+                              x-transition:enter="transition-all absolute ease-in-out duration-300"
+                              x-transition:enter-start="opacity-0 absolute transform translate-y-full"
+                              x-transition:enter-end="opacity-100 absolute transform translate-y-0"
+                              x-transition:leave="transition-all absolute ease-in-out duration-300"
+                              x-transition:leave-end="opacity-0 transform absolute -translate-y-full">
+                            {% render 'icon-all', icon: 'icon-copy' %}
+                            </span>
+                            <span class="h-3 w-3 inline-block" x-show="copySuccess" x-cloak
+                              x-transition:enter="transition-all ease-in-out duration-300"
+                              x-transition:enter-start="opacity-0 transform translate-y-full"
+                              x-transition:enter-end="opacity-100 transform translate-y-0"
+                              x-transition:leave="transition ease-in-out duration-300"
+                              x-transition:leave-end="opacity-0 transform -translate-y-full">
+                              {% render 'icon-all', icon: 'icon-check' %}
+                            </span>
+                          </div>
+                        </button>
+                        <script src="{{ 'coupon-code.js' | asset_url }}" defer></script>
+                      {% endif %}
+                  {% endcase %}
+                </div> 
+              {% endif %}
+            </div>
+          {%- endif -%}
+        {%- endfor -%}
+      {% endcapture %}
+      
+      {% if section.settings.carousel_style_on_desktop == 'continuous' %}
+        {% style %}
+          .announcement-content {
+            --duration: {{ duration }}s;
+            --direction: normal;
+          }
+        {% endstyle %}
+        <div 
+          class="announcement-content ltr flex flex-1 flex-nowrap whitespace-nowrap gap-x-10 overflow-hidden" 
+          x-intersect.once.margin.200px="$store.xScrollPromotion.load($el)"
+          @focusout="
+            if (!$el.contains(document.activeElement)) {
+              $el.scrollLeft = 0
+            }
+          "
+        >
+          {% for i in (1..2) %}
+            <div class="flex gap-x-10 shrink-0 min-w-full whitespace-nowrap items-center el_animate">
+              {% for i in (1..num_loop) %}
+              {{ announcement_content }}
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div 
+          x-data="{}"
+          x-intersect.once="$store.xSwiffy.load($el, {
+            'effect': 'slide',
+            'autoPlay': true,
+            'speed': {{ section.settings.change_bar_every | times: 1000 }},
+            'mediaQuery': 'min',
+            'autoPause': true,
+            'breakPoints':{
+              '768': {
+                'slidesPerView': 1
+              }
+            }
+          });"
+          class="swiffy-slider slider-nav-animation slider-nav-animation-fadein slider-item-snapstart slider-nav-autopause announcement-col-{{ announcement_alignment }} flex-1 min-w-0 flex w-full items-center
+            {%- unless enable_slider %} md:!swiffy-slider{% endunless -%}
+            {%- if section.settings.text_alignment == 'side' %} announcement-col-align-{{ announcement_alignment }}{% else %} announcement-col-align-center{% endif -%}
+            {%- if settings.lang_direction contains request.locale.iso_code %} rtl{% endif -%}"
+          style="--swiffy-slider-track-height: 3px;"
+        >
+          {% if enable_slider_arrows %}
+            {% capture button_prev %}
+              <button class="slider-nav slider-nav-pre icon static shrink-0 filter-none is-visible m-0 w-8 h-8 pb-2 pt-2 px-2 -rotate-180" aria-label="{{ 'accessibility.prev_button' | t }}">
+                {% render 'icon-all', icon: 'icon-caret-right' %}
+              </button>
+            {% endcapture %}
+            {% capture button_next %}
+              <button class="slider-nav slider-nav-next icon static shrink-0 filter-none is-visible m-0 w-8 h-8 pb-2 pt-2 px-2 rotate-0" aria-label="{{ 'accessibility.next_button' | t }}">
+                {% render 'icon-all', icon: 'icon-caret-right' %}
+              </button>
+            {% endcapture %}
+          {% endif %}
+          {% if enable_slider_arrows and section.settings.text_alignment == 'side' and section.settings.selectors_alignment == 'right' %}
+            <div class="slider-nav-wrapper flex flex-row">
+              {{ button_prev }}
+              {{ button_next }}
+            </div>
+          {% endif %}
+          {% if enable_slider_arrows and section.settings.text_alignment == 'center' %}
+            {{ button_prev }}
+          {% endif %}
+          <div class="slider-container hide-scrollbar grow
+            {%- unless enable_slider %} md:flex md:flex-nowrap md:ml-0 md:mr-0{% else %} cursor-grab{% endunless -%}
+            {%- if section.settings.carousel_style_on_desktop == 'none' and section.settings.text_alignment == 'center' %} md:justify-center{% endif -%}"
+          >
+            {{ announcement_content }}
+          </div>
+          {% if enable_slider_arrows and section.settings.text_alignment == 'center' %}
+            {{ button_next }}
+          {% endif %}
+          {% if enable_slider_arrows and section.settings.text_alignment == 'side' and section.settings.selectors_alignment == 'left' %}
+            <div class="slider-nav-wrapper flex flex-row">
+              {{ button_prev }}
+              {{ button_next }}
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+      {% if currency_selector or locale_selector %}
+        <div class="announcement-localization announcement-col-{{ section.settings.selectors_alignment }} hidden md:flex md:items-center{% if settings.lang_direction contains request.locale.iso_code %} rtl{% endif %}">
+          <div>
+            {% render 'localization-form', 
+              id: 'nav-localization', 
+              position: section.settings.selectors_alignment,
+              enable_country_selector: section.settings.enable_country_selector, 
+              enable_language_selector: section.settings.enable_language_selector
+            %}
+          </div>
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+{% endif %}
+{% schema %}
+{
+  "name": "t:announcement.name",
+  "class": "section-announcement maximize-section",
+  "max_blocks": 5,
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enable_on_mobile",
+      "label": "t:global.enable.enable_on_mobile",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "selectors_alignment",
+      "label": "t:announcement.settings.selectors_alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:global.position.left"
+        },
+        {
+          "value": "right",
+          "label": "t:global.position.right"
+        }
+      ],
+      "default": "right"
+    },
+    {
+      "type": "header",
+      "content": "t:announcement.settings.country_region_selector.header",
+      "info": "t:announcement.settings.country_region_selector.info"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_country_selector",
+      "label": "t:announcement.settings.country_region_selector.enable",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "t:announcement.settings.language_selector.header",
+      "info": "t:announcement.settings.language_selector.info"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_language_selector",
+      "label": "t:announcement.settings.language_selector.enable",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "t:announcement.settings.display.header"
+    },
+    {
+      "type": "select",
+      "id": "carousel_style_on_desktop",
+      "label": "t:announcement.settings.display.carousel_style_on_desktop.label",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:announcement.settings.display.carousel_style_on_desktop.option_1"
+        },
+        {
+          "value": "continuous",
+          "label": "t:announcement.settings.display.carousel_style_on_desktop.option_2"
+        },
+        {
+          "value": "slideshow",
+          "label": "t:announcement.settings.display.carousel_style_on_desktop.option_3"
+        }
+      ],
+      "default": "slideshow"
+    },
+    {
+      "type": "range",
+      "id": "change_bar_every",
+      "min": 2,
+      "max": 20,
+      "step": 1,
+      "unit": "s",
+      "label": "t:global.carousel.time_per_scroll",
+      "default": 4
+    },
+    {
+      "type": "checkbox",
+      "id": "show_navigation_arrows",
+      "label": "t:global.carousel.show_navigation_arrows",
+      "default": false,
+      "info": "t:global.carousel.show_navigation_arrows_info"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_sticky_bar",
+      "label": "t:announcement.settings.display.enable_sticky_bar",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "t:global.alignment.text",
+      "options": [
+        {
+          "value": "side",
+          "label": "t:global.position.side"
+        },
+        {
+          "value": "center",
+          "label": "t:global.position.center"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "text_type_scale",
+      "label": "t:global.text.text_size",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:global.size.small"
+        },
+        {
+          "value": "medium",
+          "label": "t:global.size.medium"
+        },
+        {
+          "value": "large",
+          "label": "t:global.size.large"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "select",
+      "label": "t:global.section.section_width.label",
+      "id": "section_width",
+      "options": [
+        {
+          "label": "t:global.section.section_width.option_1",
+          "value": "page-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_2",
+          "value": "full-width"
+        },
+          {
+          "label": "t:global.section.section_width.option_3",
+          "value": "full-width-padded"
+        }
+      ],
+      "default": "full-width"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.top_padding",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.bottom_padding",
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.colors"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "announcement",
+      "name": "t:announcement.blocks.announcement.name",
+      "limit": 3,
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "options": [
+            {
+              "label": "t:global.icon.options.none",
+              "value": "none"
+            },
+            {
+              "label": "t:global.icon.options.another",
+              "value": "another"
+            },
+            {
+              "label": "t:global.icon.options.authentic",
+              "value": "authentic"
+            },
+            {
+              "label": "t:global.icon.options.award",
+              "value": "award"
+            },
+            {
+              "label": "t:global.icon.options.customer_support",
+              "value": "customer-support"
+            },
+            {
+              "label": "t:global.icon.options.delivery_to_door",
+              "value": "delivery-to-door"
+            },
+            {
+              "label": "t:global.icon.options.eco_friendly",
+              "value": "eco-friendly"
+            },
+            {
+              "label": "t:global.icon.options.exchange",
+              "value": "exchange"
+            },
+            {
+              "label": "t:global.icon.options.express_shipping",
+              "value": "express-shipping"
+            },
+            {
+              "label": "t:global.icon.options.free_shipping",
+              "value": "free-shipping"
+            },
+            {
+              "label": "t:global.icon.options.in_person_support",
+              "value": "in-person-support"
+            },
+            {
+              "label": "t:global.icon.options.international_shipping",
+              "value": "international-shipping"
+            },
+            {
+              "label": "t:global.icon.options.live_chat",
+              "value": "live-chat"
+            },
+            {
+              "label": "t:global.icon.options.money_back",
+              "value": "money-back"
+            },
+            {
+              "label": "t:global.icon.options.no_hidden_fees",
+              "value": "no-hidden-fees"
+            },
+            {
+              "label": "t:global.icon.options.online_support",
+              "value": "online-support"
+            },
+            {
+              "label": "t:global.icon.options.organic",
+              "value": "organic"
+            },
+            {
+              "label": "t:global.icon.options.payment_secured",
+              "value": "payment-secured"
+            },
+            {
+              "label": "t:global.icon.options.pickup_in_store",
+              "value": "pickup-in-store"
+            },
+            {
+              "label": "t:global.icon.options.quality",
+              "value": "quality"
+            },
+            {
+              "label": "t:global.icon.options.refund",
+              "value": "refund"
+            },
+            {
+              "label": "t:global.icon.options.sustainable",
+              "value": "sustainable"
+            },
+            {
+              "label": "t:global.icon.options.trending",
+              "value": "trending"
+            },
+            {
+              "label": "t:global.icon.options.trust",
+              "value": "trust"
+            },
+            {
+              "label": "t:global.icon.options.warranty",
+              "value": "warranty"
+            }
+          ],
+          "default": "none",
+          "label": "t:global.icon.icon"
+        },
+        {
+          "type": "text",
+          "id": "another_icon",
+          "label": "t:global.icon.another_icon",
+          "info": "t:global.icon.another_icon_info"
+        },
+        {
+          "type": "image_picker",
+          "id": "custom_icon_image",
+          "label": "t:global.icon.custom_icon_image"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "default": "Hurry up! 30% OFF Sale Ends Soon {count_down}",
+          "label": "t:global.text.text",
+          "info": "t:announcement.blocks.announcement.settings.text_info"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "t:global.text.link"
+        },
+        {
+          "type": "checkbox",
+          "id": "open_new_window",
+          "default": false,
+          "label": "t:global.text.open_link_new_tab"
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "t:global.button.button_label"
+        },
+        {
+          "type": "url",
+          "id": "button_link",
+          "label": "t:global.button.button_link"
+        },
+        {
+          "type": "checkbox",
+          "id": "open_new_window_button",
+          "default": false,
+          "label": "t:global.text.open_link_new_tab"
+        },
+        {
+          "type": "select",
+          "id": "button_style",
+          "default": "text-link",
+          "label": "t:global.button.style.label",
+          "options": [
+            {
+              "value": "primary",
+              "label": "t:global.button.style.primary"
+            },
+            {
+              "value": "secondary",
+              "label": "t:global.button.style.secondary"
+            },
+            {
+              "value": "text-link",
+              "label": "t:global.button.style.text_link"
+            },
+            {
+              "value": "direction_link",
+              "label": "t:global.button.style.direction_link"
+            }
+          ]
+        },
+        {
+          "type": "header",
+          "content": "t:global.header.countdown_timer"
+        },
+        {
+          "type": "select",
+          "id": "timezone",
+          "options": [
+            {
+              "value": "-12",
+              "label": "GMT -12:00"
+            },
+            {
+              "value": "-11",
+              "label": "GMT -11:00"
+            },
+            {
+              "value": "-10",
+              "label": "GMT -10:00"
+            },
+            {
+              "value": "-9",
+              "label": "GMT -9:00"
+            },
+            {
+              "value": "-8",
+              "label": "GMT -8:00"
+            },
+            {
+              "value": "-7",
+              "label": "GMT -7:00"
+            },
+            {
+              "value": "-6",
+              "label": "GMT -6:00"
+            },
+            {
+              "value": "-5",
+              "label": "GMT -5:00"
+            },
+            {
+              "value": "-4",
+              "label": "GMT -4:00"
+            },
+            {
+              "value": "-3",
+              "label": "GMT -3:00"
+            },
+            {
+              "value": "-2",
+              "label": "GMT -2:00"
+            },
+            {
+              "value": "-1",
+              "label": "GMT -1:00"
+            },
+            {
+              "value": "0",
+              "label": "GMT"
+            },
+            {
+              "value": "1",
+              "label": "GMT +1:00"
+            },
+            {
+              "value": "2",
+              "label": "GMT +2:00"
+            },
+            {
+              "value": "3",
+              "label": "GMT +3:00"
+            },
+            {
+              "value": "4",
+              "label": "GMT +4:00"
+            },
+            {
+              "value": "5",
+              "label": "GMT +5:00"
+            },
+            {
+              "value": "6",
+              "label": "GMT +6:00"
+            },
+            {
+              "value": "7",
+              "label": "GMT +7:00"
+            },
+            {
+              "value": "8",
+              "label": "GMT +8:00"
+            },
+            {
+              "value": "9",
+              "label": "GMT +9:00"
+            },
+            {
+              "value": "10",
+              "label": "GMT +10:00"
+            },
+            {
+              "value": "11",
+              "label": "GMT +11:00"
+            },
+            {
+              "value": "12",
+              "label": "GMT +12:00"
+            },
+            {
+              "value": "13",
+              "label": "GMT +13:00"
+            },
+            {
+              "value": "14",
+              "label": "GMT +14:00"
+            }
+          ],
+          "default": "-4",
+          "label": "t:global.time.time_zone"
+        },
+        {
+          "type": "paragraph",
+          "content": "t:announcement.blocks.announcement.settings.countdown.paragraph"
+        },
+        {
+          "type": "number",
+          "id": "end_year",
+          "default": 2025,
+          "label": "t:global.time.year"
+        },
+        {
+          "type": "select",
+          "id": "end_month",
+          "options": [
+            {
+              "value": "1",
+              "label": "t:global.time.list_month.january"
+            },
+            {
+              "value": "2",
+              "label": "t:global.time.list_month.february"
+            },
+            {
+              "value": "3",
+              "label": "t:global.time.list_month.march"
+            },
+            {
+              "value": "4",
+              "label": "t:global.time.list_month.april"
+            },
+            {
+              "value": "5",
+              "label": "t:global.time.list_month.may"
+            },
+            {
+              "value": "6",
+              "label": "t:global.time.list_month.june"
+            },
+            {
+              "value": "7",
+              "label": "t:global.time.list_month.july"
+            },
+            {
+              "value": "8",
+              "label": "t:global.time.list_month.august"
+            },
+            {
+              "value": "9",
+              "label": "t:global.time.list_month.september"
+            },
+            {
+              "value": "10",
+              "label": "t:global.time.list_month.october"
+            },
+            {
+              "value": "11",
+              "label": "t:global.time.list_month.november"
+            },
+            {
+              "value": "12",
+              "label": "t:global.time.list_month.december"
+            }
+          ],
+          "default": "1",
+          "label": "t:global.time.month"
+        },
+        {
+          "type": "select",
+          "id": "end_day",
+          "options": [
+            {
+              "value": "1",
+              "label": "1"
+            },
+            {
+              "value": "2",
+              "label": "2"
+            },
+            {
+              "value": "3",
+              "label": "3"
+            },
+            {
+              "value": "4",
+              "label": "4"
+            },
+            {
+              "value": "5",
+              "label": "5"
+            },
+            {
+              "value": "6",
+              "label": "6"
+            },
+            {
+              "value": "7",
+              "label": "7"
+            },
+            {
+              "value": "8",
+              "label": "8"
+            },
+            {
+              "value": "9",
+              "label": "9"
+            },
+            {
+              "value": "10",
+              "label": "10"
+            },
+            {
+              "value": "11",
+              "label": "11"
+            },
+            {
+              "value": "12",
+              "label": "12"
+            },
+            {
+              "value": "13",
+              "label": "13"
+            },
+            {
+              "value": "14",
+              "label": "14"
+            },
+            {
+              "value": "15",
+              "label": "15"
+            },
+            {
+              "value": "16",
+              "label": "16"
+            },
+            {
+              "value": "17",
+              "label": "17"
+            },
+            {
+              "value": "18",
+              "label": "18"
+            },
+            {
+              "value": "19",
+              "label": "19"
+            },
+            {
+              "value": "20",
+              "label": "20"
+            },
+            {
+              "value": "21",
+              "label": "21"
+            },
+            {
+              "value": "22",
+              "label": "22"
+            },
+            {
+              "value": "23",
+              "label": "23"
+            },
+            {
+              "value": "24",
+              "label": "24"
+            },
+            {
+              "value": "25",
+              "label": "25"
+            },
+            {
+              "value": "26",
+              "label": "26"
+            },
+            {
+              "value": "27",
+              "label": "27"
+            },
+            {
+              "value": "28",
+              "label": "28"
+            },
+            {
+              "value": "29",
+              "label": "29"
+            },
+            {
+              "value": "30",
+              "label": "30"
+            },
+            {
+              "value": "31",
+              "label": "31"
+            }
+          ],
+          "default": "1",
+          "label": "t:global.time.day"
+        },
+        {
+          "type": "select",
+          "id": "end_hour",
+          "options": [
+            {
+              "value": "0",
+              "label": "12 AM"
+            },
+            {
+              "value": "1",
+              "label": "01 AM"
+            },
+            {
+              "value": "2",
+              "label": "02 AM"
+            },
+            {
+              "value": "3",
+              "label": "03 AM"
+            },
+            {
+              "value": "4",
+              "label": "04 AM"
+            },
+            {
+              "value": "5",
+              "label": "05 AM"
+            },
+            {
+              "value": "6",
+              "label": "06 AM"
+            },
+            {
+              "value": "7",
+              "label": "07 AM"
+            },
+            {
+              "value": "8",
+              "label": "08 AM"
+            },
+            {
+              "value": "9",
+              "label": "09 AM"
+            },
+            {
+              "value": "10",
+              "label": "10 AM"
+            },
+            {
+              "value": "11",
+              "label": "11 AM"
+            },
+            {
+              "value": "12",
+              "label": "12 PM"
+            },
+            {
+              "value": "13",
+              "label": "01 PM"
+            },
+            {
+              "value": "14",
+              "label": "02 PM"
+            },
+            {
+              "value": "15",
+              "label": "03 PM"
+            },
+            {
+              "value": "16",
+              "label": "04 PM"
+            },
+            {
+              "value": "17",
+              "label": "05 PM"
+            },
+            {
+              "value": "18",
+              "label": "06 PM"
+            },
+            {
+              "value": "19",
+              "label": "07 PM"
+            },
+            {
+              "value": "20",
+              "label": "08 PM"
+            },
+            {
+              "value": "21",
+              "label": "09 PM"
+            },
+            {
+              "value": "22",
+              "label": "10 PM"
+            },
+            {
+              "value": "23",
+              "label": "11 PM"
+            }
+          ],
+          "default": "1",
+          "label": "t:global.time.hour"
+        },
+        {
+          "type": "select",
+          "id": "end_minute",
+          "options": [
+            {
+              "value": "0",
+              "label": "00"
+            },
+            {
+              "value": "15",
+              "label": "15"
+            },
+            {
+              "value": "30",
+              "label": "30"
+            },
+            {
+              "value": "45",
+              "label": "45"
+            }
+          ],
+          "default": "0",
+          "label": "t:global.time.minute"
+        }
+      ]
+    },
+    {
+      "type": "promo-code",
+      "name": "t:announcement.blocks.promo_code.name",
+      "limit": 2,
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "options": [
+            {
+              "label": "t:global.icon.options.none",
+              "value": "none"
+            },
+            {
+              "label": "t:global.icon.options.another",
+              "value": "another"
+            },
+            {
+              "label": "t:global.icon.options.authentic",
+              "value": "authentic"
+            },
+            {
+              "label": "t:global.icon.options.award",
+              "value": "award"
+            },
+            {
+              "label": "t:global.icon.options.customer_support",
+              "value": "customer-support"
+            },
+            {
+              "label": "t:global.icon.options.delivery_to_door",
+              "value": "delivery-to-door"
+            },
+            {
+              "label": "t:global.icon.options.eco_friendly",
+              "value": "eco-friendly"
+            },
+            {
+              "label": "t:global.icon.options.exchange",
+              "value": "exchange"
+            },
+            {
+              "label": "t:global.icon.options.express_shipping",
+              "value": "express-shipping"
+            },
+            {
+              "label": "t:global.icon.options.free_shipping",
+              "value": "free-shipping"
+            },
+            {
+              "label": "t:global.icon.options.in_person_support",
+              "value": "in-person-support"
+            },
+            {
+              "label": "t:global.icon.options.international_shipping",
+              "value": "international-shipping"
+            },
+            {
+              "label": "t:global.icon.options.live_chat",
+              "value": "live-chat"
+            },
+            {
+              "label": "t:global.icon.options.money_back",
+              "value": "money-back"
+            },
+            {
+              "label": "t:global.icon.options.no_hidden_fees",
+              "value": "no-hidden-fees"
+            },
+            {
+              "label": "t:global.icon.options.online_support",
+              "value": "online-support"
+            },
+            {
+              "label": "t:global.icon.options.organic",
+              "value": "organic"
+            },
+            {
+              "label": "t:global.icon.options.payment_secured",
+              "value": "payment-secured"
+            },
+            {
+              "label": "t:global.icon.options.pickup_in_store",
+              "value": "pickup-in-store"
+            },
+            {
+              "label": "t:global.icon.options.quality",
+              "value": "quality"
+            },
+            {
+              "label": "t:global.icon.options.refund",
+              "value": "refund"
+            },
+            {
+              "label": "t:global.icon.options.sustainable",
+              "value": "sustainable"
+            },
+            {
+              "label": "t:global.icon.options.trending",
+              "value": "trending"
+            },
+            {
+              "label": "t:global.icon.options.trust",
+              "value": "trust"
+            },
+            {
+              "label": "t:global.icon.options.warranty",
+              "value": "warranty"
+            }
+          ],
+          "default": "none",
+          "label": "t:global.icon.icon"
+        },
+        {
+          "type": "text",
+          "id": "another_icon",
+          "label": "t:global.icon.another_icon",
+          "info": "t:global.icon.another_icon_info"
+        },
+        {
+          "type": "image_picker",
+          "id": "custom_icon_image",
+          "label": "t:global.icon.custom_icon_image"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "default": "Hurry up! 30% OFF Sale Ends Soon {count_down}",
+          "label": "t:global.text.text",
+          "info": "t:announcement.blocks.announcement.settings.text_info"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "t:global.text.link"
+        },
+        {
+          "type": "checkbox",
+          "id": "open_new_window",
+          "default": false,
+          "label": "t:global.text.open_link_new_tab"
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "t:global.text.coupon"
+        },
+        {
+          "type": "color",
+          "id": "coupon_color",
+          "label": "t:global.colors.coupon_color_light",
+          "default": "rgba(0,0,0,0)"
+        },
+        {
+          "type": "color",
+          "id": "coupon_color_dark",
+          "label": "t:global.colors.coupon_color_dark",
+          "default": "rgba(0,0,0,0)"
+        },
+        {
+          "type": "header",
+          "content": "t:global.header.countdown_timer"
+        },
+        {
+          "type": "select",
+          "id": "timezone",
+          "options": [
+            {
+              "value": "-12",
+              "label": "GMT -12:00"
+            },
+            {
+              "value": "-11",
+              "label": "GMT -11:00"
+            },
+            {
+              "value": "-10",
+              "label": "GMT -10:00"
+            },
+            {
+              "value": "-9",
+              "label": "GMT -9:00"
+            },
+            {
+              "value": "-8",
+              "label": "GMT -8:00"
+            },
+            {
+              "value": "-7",
+              "label": "GMT -7:00"
+            },
+            {
+              "value": "-6",
+              "label": "GMT -6:00"
+            },
+            {
+              "value": "-5",
+              "label": "GMT -5:00"
+            },
+            {
+              "value": "-4",
+              "label": "GMT -4:00"
+            },
+            {
+              "value": "-3",
+              "label": "GMT -3:00"
+            },
+            {
+              "value": "-2",
+              "label": "GMT -2:00"
+            },
+            {
+              "value": "-1",
+              "label": "GMT -1:00"
+            },
+            {
+              "value": "0",
+              "label": "GMT"
+            },
+            {
+              "value": "1",
+              "label": "GMT +1:00"
+            },
+            {
+              "value": "2",
+              "label": "GMT +2:00"
+            },
+            {
+              "value": "3",
+              "label": "GMT +3:00"
+            },
+            {
+              "value": "4",
+              "label": "GMT +4:00"
+            },
+            {
+              "value": "5",
+              "label": "GMT +5:00"
+            },
+            {
+              "value": "6",
+              "label": "GMT +6:00"
+            },
+            {
+              "value": "7",
+              "label": "GMT +7:00"
+            },
+            {
+              "value": "8",
+              "label": "GMT +8:00"
+            },
+            {
+              "value": "9",
+              "label": "GMT +9:00"
+            },
+            {
+              "value": "10",
+              "label": "GMT +10:00"
+            },
+            {
+              "value": "11",
+              "label": "GMT +11:00"
+            },
+            {
+              "value": "12",
+              "label": "GMT +12:00"
+            },
+            {
+              "value": "13",
+              "label": "GMT +13:00"
+            },
+            {
+              "value": "14",
+              "label": "GMT +14:00"
+            }
+          ],
+          "default": "-4",
+          "label": "t:global.time.time_zone"
+        },
+        {
+          "type": "paragraph",
+          "content": "t:announcement.blocks.announcement.settings.countdown.paragraph"
+        },
+        {
+          "type": "number",
+          "id": "end_year",
+          "default": 2025,
+          "label": "t:global.time.year"
+        },
+        {
+          "type": "select",
+          "id": "end_month",
+          "options": [
+            {
+              "value": "1",
+              "label": "t:global.time.list_month.january"
+            },
+            {
+              "value": "2",
+              "label": "t:global.time.list_month.february"
+            },
+            {
+              "value": "3",
+              "label": "t:global.time.list_month.march"
+            },
+            {
+              "value": "4",
+              "label": "t:global.time.list_month.april"
+            },
+            {
+              "value": "5",
+              "label": "t:global.time.list_month.may"
+            },
+            {
+              "value": "6",
+              "label": "t:global.time.list_month.june"
+            },
+            {
+              "value": "7",
+              "label": "t:global.time.list_month.july"
+            },
+            {
+              "value": "8",
+              "label": "t:global.time.list_month.august"
+            },
+            {
+              "value": "9",
+              "label": "t:global.time.list_month.september"
+            },
+            {
+              "value": "10",
+              "label": "t:global.time.list_month.october"
+            },
+            {
+              "value": "11",
+              "label": "t:global.time.list_month.november"
+            },
+            {
+              "value": "12",
+              "label": "t:global.time.list_month.december"
+            }
+          ],
+          "default": "1",
+          "label": "t:global.time.month"
+        },
+        {
+          "type": "select",
+          "id": "end_day",
+          "options": [
+            {
+              "value": "1",
+              "label": "1"
+            },
+            {
+              "value": "2",
+              "label": "2"
+            },
+            {
+              "value": "3",
+              "label": "3"
+            },
+            {
+              "value": "4",
+              "label": "4"
+            },
+            {
+              "value": "5",
+              "label": "5"
+            },
+            {
+              "value": "6",
+              "label": "6"
+            },
+            {
+              "value": "7",
+              "label": "7"
+            },
+            {
+              "value": "8",
+              "label": "8"
+            },
+            {
+              "value": "9",
+              "label": "9"
+            },
+            {
+              "value": "10",
+              "label": "10"
+            },
+            {
+              "value": "11",
+              "label": "11"
+            },
+            {
+              "value": "12",
+              "label": "12"
+            },
+            {
+              "value": "13",
+              "label": "13"
+            },
+            {
+              "value": "14",
+              "label": "14"
+            },
+            {
+              "value": "15",
+              "label": "15"
+            },
+            {
+              "value": "16",
+              "label": "16"
+            },
+            {
+              "value": "17",
+              "label": "17"
+            },
+            {
+              "value": "18",
+              "label": "18"
+            },
+            {
+              "value": "19",
+              "label": "19"
+            },
+            {
+              "value": "20",
+              "label": "20"
+            },
+            {
+              "value": "21",
+              "label": "21"
+            },
+            {
+              "value": "22",
+              "label": "22"
+            },
+            {
+              "value": "23",
+              "label": "23"
+            },
+            {
+              "value": "24",
+              "label": "24"
+            },
+            {
+              "value": "25",
+              "label": "25"
+            },
+            {
+              "value": "26",
+              "label": "26"
+            },
+            {
+              "value": "27",
+              "label": "27"
+            },
+            {
+              "value": "28",
+              "label": "28"
+            },
+            {
+              "value": "29",
+              "label": "29"
+            },
+            {
+              "value": "30",
+              "label": "30"
+            },
+            {
+              "value": "31",
+              "label": "31"
+            }
+          ],
+          "default": "1",
+          "label": "t:global.time.day"
+        },
+        {
+          "type": "select",
+          "id": "end_hour",
+          "options": [
+            {
+              "value": "0",
+              "label": "12 AM"
+            },
+            {
+              "value": "1",
+              "label": "01 AM"
+            },
+            {
+              "value": "2",
+              "label": "02 AM"
+            },
+            {
+              "value": "3",
+              "label": "03 AM"
+            },
+            {
+              "value": "4",
+              "label": "04 AM"
+            },
+            {
+              "value": "5",
+              "label": "05 AM"
+            },
+            {
+              "value": "6",
+              "label": "06 AM"
+            },
+            {
+              "value": "7",
+              "label": "07 AM"
+            },
+            {
+              "value": "8",
+              "label": "08 AM"
+            },
+            {
+              "value": "9",
+              "label": "09 AM"
+            },
+            {
+              "value": "10",
+              "label": "10 AM"
+            },
+            {
+              "value": "11",
+              "label": "11 AM"
+            },
+            {
+              "value": "12",
+              "label": "12 PM"
+            },
+            {
+              "value": "13",
+              "label": "01 PM"
+            },
+            {
+              "value": "14",
+              "label": "02 PM"
+            },
+            {
+              "value": "15",
+              "label": "03 PM"
+            },
+            {
+              "value": "16",
+              "label": "04 PM"
+            },
+            {
+              "value": "17",
+              "label": "05 PM"
+            },
+            {
+              "value": "18",
+              "label": "06 PM"
+            },
+            {
+              "value": "19",
+              "label": "07 PM"
+            },
+            {
+              "value": "20",
+              "label": "08 PM"
+            },
+            {
+              "value": "21",
+              "label": "09 PM"
+            },
+            {
+              "value": "22",
+              "label": "10 PM"
+            },
+            {
+              "value": "23",
+              "label": "11 PM"
+            }
+          ],
+          "default": "1",
+          "label": "t:global.time.hour"
+        },
+        {
+          "type": "select",
+          "id": "end_minute",
+          "options": [
+            {
+              "value": "0",
+              "label": "00"
+            },
+            {
+              "value": "15",
+              "label": "15"
+            },
+            {
+              "value": "30",
+              "label": "30"
+            },
+            {
+              "value": "45",
+              "label": "45"
+            }
+          ],
+          "default": "0",
+          "label": "t:global.time.minute"
+        }
+      ]
+    },
+    {
+      "type": "free_shipping",
+      "name": "t:announcement.blocks.free_shipping.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "options": [
+            {
+              "label": "t:global.icon.options.none",
+              "value": "none"
+            },
+            {
+              "label": "t:global.icon.options.another",
+              "value": "another"
+            },
+            {
+              "label": "t:global.icon.options.authentic",
+              "value": "authentic"
+            },
+            {
+              "label": "t:global.icon.options.award",
+              "value": "award"
+            },
+            {
+              "label": "t:global.icon.options.customer_support",
+              "value": "customer-support"
+            },
+            {
+              "label": "t:global.icon.options.delivery_to_door",
+              "value": "delivery-to-door"
+            },
+            {
+              "label": "t:global.icon.options.eco_friendly",
+              "value": "eco-friendly"
+            },
+            {
+              "label": "t:global.icon.options.exchange",
+              "value": "exchange"
+            },
+            {
+              "label": "t:global.icon.options.express_shipping",
+              "value": "express-shipping"
+            },
+            {
+              "label": "t:global.icon.options.free_shipping",
+              "value": "free-shipping"
+            },
+            {
+              "label": "t:global.icon.options.in_person_support",
+              "value": "in-person-support"
+            },
+            {
+              "label": "t:global.icon.options.international_shipping",
+              "value": "international-shipping"
+            },
+            {
+              "label": "t:global.icon.options.live_chat",
+              "value": "live-chat"
+            },
+            {
+              "label": "t:global.icon.options.money_back",
+              "value": "money-back"
+            },
+            {
+              "label": "t:global.icon.options.no_hidden_fees",
+              "value": "no-hidden-fees"
+            },
+            {
+              "label": "t:global.icon.options.online_support",
+              "value": "online-support"
+            },
+            {
+              "label": "t:global.icon.options.organic",
+              "value": "organic"
+            },
+            {
+              "label": "t:global.icon.options.payment_secured",
+              "value": "payment-secured"
+            },
+            {
+              "label": "t:global.icon.options.pickup_in_store",
+              "value": "pickup-in-store"
+            },
+            {
+              "label": "t:global.icon.options.quality",
+              "value": "quality"
+            },
+            {
+              "label": "t:global.icon.options.refund",
+              "value": "refund"
+            },
+            {
+              "label": "t:global.icon.options.sustainable",
+              "value": "sustainable"
+            },
+            {
+              "label": "t:global.icon.options.trending",
+              "value": "trending"
+            },
+            {
+              "label": "t:global.icon.options.trust",
+              "value": "trust"
+            },
+            {
+              "label": "t:global.icon.options.warranty",
+              "value": "warranty"
+            }
+          ],
+          "default": "none",
+          "label": "t:global.icon.icon"
+        },
+        {
+          "type": "text",
+          "id": "another_icon",
+          "label": "t:global.icon.another_icon",
+          "info": "t:global.icon.another_icon_info"
+        },
+        {
+          "type": "image_picker",
+          "id": "custom_icon_image",
+          "label": "t:global.icon.custom_icon_image"
+        },
+        {
+          "type": "text",
+          "id": "default_message",
+          "default": "Free Shipping for all orders over {fs_amount}",
+          "label": "t:announcement.blocks.free_shipping.default_message",
+          "info": "t:announcement.blocks.free_shipping.default_message_info"
+        },
+        {
+          "type": "text",
+          "id": "progress_message",
+          "default": "Only {amount_to_fs} away from free shipping",
+          "label": "t:announcement.blocks.free_shipping.progress_message",
+          "info": "t:announcement.blocks.free_shipping.progress_message_info"
+        },
+        {
+          "type": "text",
+          "id": "success_message",
+          "default": "Congratulations! Your orders are free shipped!",
+          "label": "t:announcement.blocks.free_shipping.success_message",
+          "info": "t:announcement.blocks.free_shipping.success_message_info"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "t:global.text.link"
+        },
+        {
+          "type": "checkbox",
+          "id": "open_new_window",
+          "default": false,
+          "label": "t:global.text.open_link_new_tab"
+        }
+      ]
+    }
+  ],
+  "default": {
+    "blocks": [
+      {
+        "type": "announcement"
+      }
+    ]
+  }
+}
+{% endschema %}

@@ -1,0 +1,227 @@
+<script
+  src="{{ 'variant-picker.js' | asset_url }}"
+  defer="defer"
+></script>
+
+{% assign list_associated_option_name = associated_option_name | split: ";" %}
+{% style %}
+  #Block-{{ block.id }} {
+    --swatch-option-width: {% if swatch_size == 'small' %}32px{% elsif swatch_size == 'medium' %}42px{% else %}48px{% endif %};
+    --swatch-option-height: {% if settings.swatch_style == 'natural' %}fit-content{% else %}{% if swatch_size == 'small' %}32px{% elsif swatch_size == 'medium' %}42px{% else %}48px{% endif %}{% endif %};
+  }
+  @media screen and (min-width: 768px) {
+    #Block-{{ block.id }} {
+      --swatch-option-width: {% if swatch_size == 'small' %}40px{% elsif swatch_size == 'medium' %}48px{% else %}64px{% endif %};
+      --swatch-option-height: {% if settings.swatch_style == 'natural' %}fit-content{% else %}{% if swatch_size == 'small' %}40px{% elsif swatch_size == 'medium' %}48px{% else %}64px{% endif %}{% endif %};
+    }
+  }
+{% endstyle %}
+<variant-picker
+  class="variant-picker__wrapper flex flex-col gap-5"
+  id="Block-{{ block.id }}"
+  data-url="{{ product.url }}"
+  data-section-id="{{ section.id }}"
+  data-current-variant-id="{{ variant.id }}"
+  data-enable-sticky-atc="{{ is_enable_sticky_atc }}"
+  data-main-product="{{ is_product_page }}"
+  data-product-id="{{ product.id }}"
+  data-product-title="{{ product.title }}"
+  data-product-handle="{{ product.handle }}"
+  {% comment %}x-data="xVariantPicker($el, '{{ product.id }}', '{{ section.id }}', '{{ block.settings.picker_type }}', '{{ product.url }}', {{ is_product_page }}, {{ is_enable_sticky_atc }})"{% endcomment %}
+  {% if product.featured_media.preview_image != blank %}
+    data-media-id="{{ product.featured_media.id }}"
+  {% endif %}
+>
+  {% for product_option in product.options_with_values %}
+    {% liquid
+      assign product_option_name = product_option.name | strip | escape
+      assign is_apply_size_chart = false
+      if enable_size_chart and size_chart_page != blank
+        for name in list_associated_option_name
+          assign name_strip = name | strip
+          if name_strip == product_option_name
+            assign is_apply_size_chart = true
+          endif
+        endfor
+      endif
+    %}
+
+    {% if is_apply_size_chart %}
+      {% capture size_chart %}
+        <div
+          class="variant-picker__size-chart text-small {% if show_content_center %} text-center{% endif %}"
+          x-data="xProductDrawer"
+        >
+          <div
+            id="isOpenSizeChart"
+            class="text-link relative inline-flex items-center cursor-pointer"
+            tabindex="0"
+            @click.prevent="openDrawer('#VariantPickerSizeChart__{{ block.id }}')"
+            @keyup.enter="openDrawer('#VariantPickerSizeChart__{{ block.id }}')"
+          >
+            <p>
+              {% if block.settings.size_chart_label != blank %}{{ block.settings.size_chart_label }}{% else %}{{ 'products.product.size_chart' | t }}{% endif %}
+            </p>
+          </div>
+          <template x-teleport="body">
+            <div
+                id="VariantPickerSizeChart__{{ block.id }}"
+                x-show="isShowDrawer"
+                x-cloak
+                class="size-chart-drawer__wrapper drawer__wrapper"
+            >
+              <div
+                id="SizeChart__Overlay__{{ block.id }}"
+                class="drawer__overlay"
+                x-show="isShowDrawer"
+                @click.prevent="closeDrawer(true)"
+              ></div>
+              <div
+                x-show="isShowDrawer"
+                class="size-chart__drawer__container drawer__container transform outline-none"
+                tabindex="0"
+                x-cloak
+                x-transition:enter-start="opacity-0 translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+                x-transition:enter-end="opacity-100 translate-y-0 md:translate-x-0"
+                x-transition:leave-end="opacity-0 translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+                x-intersect.full="$store.xFocusElement.trapFocus('VariantPickerSizeChart__{{ block.id }}', 'ClosePopUpLink__{{ block.id }}')"
+                @keyup.escape="closeDrawer();"
+              >
+
+                <div class="modal-title-container modal-title-padding-x pb-1 md:pb-2">
+                  <div class="modal-title-wrapper">
+                    <div class="grow flex items-center">
+                      <p class="h3">
+                        {{ size_chart_page.title | escape }}
+                      </p>
+                    </div>
+
+                    <button
+                      id="ClosePopUpLink__{{ block.id }}"
+                      @click="closeDrawer()"
+                      class="modal-title__button-close"
+                      @keyup.enter="closeDrawer()"
+                      @keydown.enter.prevent
+                    >
+                      <span class="button__close icon-close-large-desktop icon-close-large-mobile">{%- render 'icon-all', icon: 'icon-close' -%}</span>
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="size-chart-popup__content drawer__content scrollbar-body scrollbar-visible">
+                  {%- if size_chart_page.content != blank -%}
+                    <div class="rte">
+                      {{ size_chart_page.content | replace: '<meta charset="UTF-8">' }}
+                    </div>
+                  {%- endif -%}
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      {% endcapture %}
+    {% endif %}
+
+    {% if block.settings.picker_type == 'button' %}
+      <fieldset
+        class="variant-option__wrapper"
+        data-picker-type="button"
+        aria-labelledby="VariantLabel-{{ block.id }}-{{ product_option.position }}"
+        data-option-name="{{ product_option.name | escape }}"
+        data-option-position="{{ product_option.position }}"
+      >
+        <div 
+          id="VariantLabel-{{ block.id }}-{{ product_option.position }}"
+          class="flex pb-2.5 w-full {% if show_content_center %} flex-col{% else %} flex-row{% endif %}"
+        >
+          <div class="variant-option__name h5 md:h6 flex-auto{% if show_content_center %} text-center{% endif %}">
+            <span>{{ product_option.name | escape }}{% if block.settings.show_variant_label %}:{% endif %}</span>
+            {% if block.settings.show_variant_label %}
+              <span class="variant-option__selected-value" data-position="{{ product_option.position }}">{{ product_option.selected_value }}</span>
+
+              {% comment %}<span{% endcomment %}
+                {% comment %}:data-value="options[{{ product_option.position }} - 1]"{% endcomment %}
+                {% comment %}x-text="options[{{ product_option.position }} -1]"{% endcomment %}
+              {% comment %}></span>{% endcomment %}
+            {% endif %}
+          </div>
+          {% if is_apply_size_chart %}
+            {{ size_chart }}
+          {% endif %}
+        </div>
+        <div
+          class="variant-picker__product-option flex flex-wrap gap-1.5 {% if show_content_center %} justify-center{% endif %}"
+          data-picker-type="{{ block.settings.picker_type }}"
+        >
+          {% render 'variant-options', product: product, variant: variant, product_option: product_option, product_form_id: product_form_id, section: section, variant_picker_type: block.settings.picker_type, enable_color_swatches: block.settings.enable_color_swatches %}
+        </div>
+      </fieldset>
+    {% elsif block.settings.picker_type == 'dropdown' %}
+      <select-element
+        class="variant-option__wrapper dropdown-large w-full relative"
+        data-option-name="{{ product_option.name | escape }}"
+        data-option-position="{{ product_option.position }}"
+        data-picker-type="dropdown"
+      >
+        <legend class="flex flex-row pb-2.5 w-full">
+          <div class="variant-option__name h5 md:h6 flex-auto">
+            <span>{{ product_option.name | escape }}{% if block.settings.show_variant_label %}:{% endif %}</span>
+            {% if block.settings.show_variant_label %}
+              <span class="variant-option__selected-value" data-position="{{ product_option.position }}">{{ product_option.selected_value }}</span>
+            {% endif %}
+          </div>
+          {% if is_apply_size_chart %}
+            {{ size_chart }}
+          {% endif %}
+        </legend>
+
+        {% assign selected_value = product_option.selected_value %}
+        {% capture select_value_text %}
+          {% if selected_value.available %}
+            {{ selected_value | escape }}
+          {% else %}
+            {% if selected_value.variant.available == nil %}
+              {{ 'products.product.value_unavailable' | t: value: selected_value }}
+            {% else %}
+              {{ 'products.product.value_sold_out' | t: value: selected_value }}
+            {% endif %}
+          {% endif %}
+        {% endcapture %}
+        {% assign select_value_text = select_value_text | strip %}
+
+        <div class="relative">
+          <div
+            class="select-button cursor-pointer flex gap-2 justify-center items-center w-full rounded-corners"
+            role="button" tabindex="0" aria-pressed="false" aria-expanded="false" aria-describedby="ProductSiblingSelector"
+          >
+            <span
+              class="select-button__label variant-option__select-button__label flex items-start flex-auto whitespace-nowrap color-text-[rgba(var(--color-heading)) overflow-hidden text-ellipsis"
+              data-option-position="{{ product_option.position }}"
+              data-section-id="{{ section.id }}"
+              {% comment %}:data-value="options[{{ product_option.position }} - 1]"{% endcomment %}
+            >
+              {{ select_value_text }}
+            </span>
+            <span class="select-arrow transition-transform w-3 h-3 shrink-0 grow-0">{% render 'icon-all', icon: 'icon-caret' %}</span>
+          </div>
+          <div class="select-options-wrapper w-full max-h-64 scrollbar-visible scrollbar-body">
+            <ul
+              class="select-options variant-option__list max-h-64"
+              role="listbox"
+              aria-label="Select options {{ product_option.name }}"
+            >
+              {% render 'variant-options', product: product, variant: variant, product_option: product_option, product_form_id: product_form_id, section: section, variant_picker_type: block.settings.picker_type %}
+            </ul>
+          </div>
+          <label class="hidden">
+            <input
+              name="selected-option-{{ product.id }}"
+              class="select-option-selected"
+              value="{{ product_option.selected_value.name }}"
+            >
+          </label>
+        </div>
+      </select-element>
+    {% endif %}
+  {% endfor %}
+</variant-picker>

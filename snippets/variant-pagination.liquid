@@ -1,0 +1,93 @@
+{% doc %}
+  Variant pager shared by the Quick order list block and the B2B order view card. Own markup
+  (plain numbers, thin chevrons) rather than the theme's `pagination` snippet, and narrows
+  Shopify's window to current ±1 with pinned first/last and a "…" gap marker.
+
+  assets/quick-order-list.js and assets/order-view.js both catch clicks on
+  `.variant-pagination a[href]` to fetch that page instead of navigating.
+
+  @param {object} paginate - The paginate object of the caller's variants section
+
+  @example
+  {%- render 'variant-pagination', paginate: paginate -%}
+{% enddoc %}
+{%- if paginate.parts.size > 0 -%}
+  {%- liquid
+    assign vp_disabled = 'color-text-[rgba(var(--color-text),0.6)]'
+
+    assign vp_last = paginate.pages
+    assign vp_from = paginate.current_page | minus: 1
+    assign vp_to = paginate.current_page | plus: 1
+    assign vp_prev_shown = 0
+  -%}
+  <nav
+    class="variant-pagination flex items-center justify-center gap-1 py-4"
+    role="navigation"
+    aria-label="{{ 'general.pagination.label' | t }}"
+  >
+    {%- if paginate.previous -%}
+      <a
+        href="{{ paginate.previous.url }}"
+        class="flex items-center justify-center px-2 py-1"
+        aria-label="{{ 'general.pagination.previous' | t }}"
+      >
+        <span class="flex w-2 h-3 rotate-180 rtl:rotate-0">{%- render 'icon-all', icon: 'icon-caret-right' -%}</span>
+      </a>
+    {%- else -%}
+      <span class="flex items-center justify-center px-2 py-1 {{ vp_disabled }}" aria-hidden="true">
+        <span class="flex w-2 h-3 rotate-180 rtl:rotate-0">{%- render 'icon-all', icon: 'icon-caret-right' -%}</span>
+      </span>
+    {%- endif -%}
+
+    {%- for part in paginate.parts -%}
+      {%- liquid
+        comment
+          Shopify's non-numeric gap parts become 0 via `plus: 0` and drop out below.
+        endcomment
+        assign vp_num = part.title | plus: 0
+        assign vp_show = false
+        if vp_num > 0
+          if vp_num == 1 or vp_num == vp_last
+            assign vp_show = true
+          elsif vp_num >= vp_from and vp_num <= vp_to
+            assign vp_show = true
+          endif
+        endif
+      -%}
+      {%- if vp_show -%}
+        {%- assign vp_expected = vp_prev_shown | plus: 1 -%}
+        {%- if vp_prev_shown > 0 and vp_num > vp_expected -%}
+          <span class="px-1 py-1 text-small {{ vp_disabled }}" aria-hidden="true">…</span>
+        {%- endif -%}
+        {%- if vp_num == paginate.current_page -%}
+          <span
+            class="px-2 py-1 font-semibold color-text-[rgba(var(--color-heading))]"
+            aria-current="page"
+            aria-label="{{ 'general.pagination.page' | t: number: part.title }}"
+          >{{ part.title }}</span>
+        {%- else -%}
+          <a
+            href="{{ part.url }}"
+            class="px-2 py-1"
+            aria-label="{{ 'general.pagination.page' | t: number: part.title }}"
+          >{{ part.title }}</a>
+        {%- endif -%}
+        {%- assign vp_prev_shown = vp_num -%}
+      {%- endif -%}
+    {%- endfor -%}
+
+    {%- if paginate.next -%}
+      <a
+        href="{{ paginate.next.url }}"
+        class="flex items-center justify-center px-2 py-1"
+        aria-label="{{ 'general.pagination.next' | t }}"
+      >
+        <span class="flex w-2 h-3 rtl:rotate-180">{%- render 'icon-all', icon: 'icon-caret-right' -%}</span>
+      </a>
+    {%- else -%}
+      <span class="flex items-center justify-center px-2 py-1 {{ vp_disabled }}" aria-hidden="true">
+        <span class="flex w-2 h-3 rtl:rotate-180">{%- render 'icon-all', icon: 'icon-caret-right' -%}</span>
+      </span>
+    {%- endif -%}
+  </nav>
+{%- endif -%}

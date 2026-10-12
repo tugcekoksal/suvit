@@ -1,0 +1,60 @@
+{% style %}
+  .scroll-to-top__button svg {
+    fill: currentColor;
+  }
+  .scroll-to-top__button {
+    bottom: {{ settings.position_scroll_mobile | times: 3 | plus: 10 }}px;
+  }
+  @media(min-width: 768px) {
+    .scroll-to-top__button {
+      bottom: {{ settings.position_scroll | times: 3 | plus: 10 }}px;
+    }
+  }
+{% endstyle %}
+<div
+  x-data="xScrollTop"
+  x-init="scrollFunction()"
+  @scroll.window="scrollFunction()"
+  class="{%- unless settings.enable_scroll_top_mobile -%}hidden{%- endunless -%}{% unless settings.enable_scroll_top_desktop %} md:hidden{% else %} md:block{% endunless %}"
+>
+  <custom-button>
+    <button 
+      x-show="show" x-cloak 
+      @click="scrollTop()" 
+      class="scroll-to-top__button anm-button-secondary !fixed flex items-center justify-center color-text-[rgba(var(--color-secondary-button-text))] color-bg-[rgba(var(--color-secondary-button-no-alpha),0.6)] z-30 p-3 w-11 h-11 md:w-14 md:h-14 md:p-4 border-0 rounded-full overflow-hidden
+        {%- if settings.position_scroll_top == 'left' %} left-5{% elsif settings.position_scroll_top == 'right' %} right-5{% else %} left-1/2 -translate-x-1/2 {% endif -%}"
+      x-transition:enter="transition-all ease-in-out duration-500"
+      x-transition:enter-start="opacity-0 transform translate-y-1/3"
+      x-transition:enter-end="opacity-100 translate-y-0"
+      x-transition:leave="transition-all ease-in-out duration-500"
+      x-transition:leave-end="opacity-0 transform translate-y-1/3"
+      aria-label="scroll top"
+    >
+      {% if settings.svg_code_scroll_top == blank %}
+        <span class="inline-block w-5 h-5">
+          {% render 'icon-all', icon: 'icon-scroll-to-top' %}
+        </span>
+      {% else %}
+        {{ settings.svg_code_scroll_top }}
+      {% endif %}
+    </button>
+  </custom-button>
+</div>
+
+<script>
+  requestAnimationFrame(() => {
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('xScrollTop', () => ({
+        show: false,
+        scrollTop() {
+          window.scrollTo({top: 0, behavior: 'smooth'});
+        },
+        scrollFunction() {
+          const position = window.innerWidth < 1025 ? 300 : 900;
+          this.show = (document.body.scrollTop > position || document.documentElement.scrollTop > position)
+            ? true : false;
+        }
+      }));
+    });
+  });
+</script>

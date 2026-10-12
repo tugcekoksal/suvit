@@ -1,0 +1,462 @@
+{%- liquid
+  assign rtl = false
+
+  if settings.lang_direction contains request.locale.iso_code
+    assign rtl = true
+  endif
+  assign number_block_left = 0
+  assign number_block_right = 0
+  assign contain_menu = ''
+  assign count = 0
+
+    assign rounded_corner = true
+  if section.settings.section_width == "full-width"
+    assign rounded_corner = false
+  elsif section.settings.section_width != "full-width" and section.settings.secondary_background == "section"
+    assign rounded_corner = false
+  endif
+%}
+
+{%- for block in section.blocks -%}
+  {% if block.settings.desktop_position == "left" %}
+    {% assign number_block_left = number_block_left | plus: 1 %}
+    {%- if block.type == 'link_list'  -%}
+      {% assign contain_menu = 'left' %}
+    {%- endif -%}
+  {% endif %}
+  {% if block.settings.desktop_position == "right" %}
+    {%- if block.type == 'link_list'  -%}
+      {% assign contain_menu = 'right' %}
+    {%- endif -%}
+  {% endif %}
+{%- endfor -%}
+{% assign number_block_right = section.blocks.size | minus: number_block_left %}
+
+{%- style -%}
+.section-{{ section.id }}-padding {
+  padding-top: {{ section.settings.padding_top }}px;
+  padding-bottom: {{ section.settings.padding_bottom }}px;
+}
+{%- endstyle -%}
+{{ "utility-bar.css" | asset_url | stylesheet_tag }}
+<div class="hidden lg:block">{% render  "section-divider" %}</div>
+<div id="x-utility"
+    class="utility-bar-{{ section.id }} relative hidden lg:block text-small color-{{ section.settings.color_scheme_light }} dark-color-{{ section.settings.color_scheme_dark }} {{ section.settings.section_width }}
+    {%- if settings.edges_type == 'rounded_corners' and rounded_corner %} md:rounded-[10px]{% else %} md:rounded-none{% endif -%}">
+  <div class="flex justify-between gap-x-5 ltr items-center section-{{ section.id }}-padding">
+    {% if number_block_left > 0 %}
+      <div class="utility-bar-left h-full grow whitespace-nowrap{% if contain_menu == 'left' %} min-w-0{% endif %}">
+        <ul x-ref="linkList" class="link-list flex gap-x-3 items-center ltr">
+          {%- for block in section.blocks -%}
+            {% if block.settings.desktop_position == "left" %}
+              {% assign count = count | plus: 1 %}
+              {%- if block.type != 'link_list'  -%}
+                {% render 'utility-bar-item', block_type: block.type, block: block, position: 'left', contain_menu: contain_menu %}
+              {%- else -%}
+                <li class="utility-block whitespace-nowrap x-break-words overflow-hidden{% if rtl %} rtl{% endif %}" {{ block.shopify_attributes }}>
+                  <div x-ref="scrollNav" x-data="xScrollNav" class="scroll-container flex justify-end items-center whitespace-nowrap overflow-hidden">
+                    <button 
+                      x-show="show" x-cloak 
+                      class="w-9 h-9 relative min-w-[36px] p-3 cursor-pointer duration-300 inline-block -outline-offset-1{% if rtl %} rotate-0{% else %} rotate-180{% endif %}" 
+                      @click="scrollToLeft()"
+                      :disabled="isAtStart"
+                      x-bind:class="isAtStart && 'opacity-40 cursor-not-allowed'"
+                    >
+                      {% render 'icon-all', icon: 'icon-caret-right' %}
+                    </button>
+                    <div class="nav-content overflow-hidden">
+                      <ul x-ref="linkList" class="link-list flex px-0.5 gap-x-5 items-center overflow-x-auto scrollbar-hidden">
+                        {%- for link in block.settings.menu.links -%}
+                          <li class="pt-2.5 pb-2.5 lg:pt-0 lg:pb-0">
+                            <a href="{{ link.url }}" class="menu-link text-link-animation inline-flex items-center relative p-break-words">
+                              {{ link.title | escape }}
+                            </a>
+                          </li>
+                        {%- endfor -%}
+                      </ul>
+                    </div>
+                      
+                    <button 
+                      x-show="show" x-cloak 
+                      class="w-9 h-9 relative min-w-[36px] p-3 cursor-pointer duration-300 inline-block -outline-offset-1{% if rtl %} rotate-180{% else %} rotate-0{% endif %}" 
+                      @click="scrollToRight()"
+                      :disabled="isAtEnd"
+                      x-bind:class="isAtEnd && 'opacity-40 cursor-not-allowed'"
+                    >
+                      {% render 'icon-all', icon: 'icon-caret-right' %}
+                    </button>
+                  </div>
+                </li>
+              {%- endif -%}
+              {% unless number_block_left == count %}
+                <li class="spacing border-l opacity-80 h-4"></li>
+              {% endunless %}
+            {% endif %}
+          {%- endfor -%}
+        </ul>
+      </div>
+    {% endif %}
+    <div class="utility-bar-right grow whitespace-nowrap{% if contain_menu == 'right' %} min-w-0{% endif %}">
+      <ul x-ref="linkList" class="link-list flex gap-x-3 items-center justify-end ltr">
+        {% assign count = 0 %}
+        {%- for block in section.blocks reversed -%}
+          {% if block.settings.desktop_position == "right" %}
+            {% assign count = count | plus: 1 %}
+            {%- if block.type != 'link_list'  -%}
+              {% render 'utility-bar-item', block_type: block.type, block: block, position: 'right', contain_menu: contain_menu %}
+            {%- else -%}
+              <li class="utility-block whitespace-nowrap x-break-words overflow-hidden{% if rtl %} rtl{% endif %}" {{ block.shopify_attributes }}>
+                <div x-ref="scrollNav" x-data="xScrollNav" class="scroll-container flex justify-end items-center whitespace-nowrap overflow-hidden">
+                  <button 
+                    x-show="show"
+                    x-cloak
+                    class="w-9 h-9 relative min-w-[36px] p-3 cursor-pointer duration-300 inline-block -outline-offset-1{% if rtl %} rotate-0{% else %} rotate-180{% endif %}"
+                    @click="scrollToLeft()"
+                    :disabled="isAtStart"
+                    x-bind:class="isAtStart && 'opacity-40 cursor-not-allowed'"
+                  >
+                    {% render 'icon-all', icon: 'icon-caret-right' %}
+                  </button>
+                  <div class="nav-content overflow-hidden">
+                    <ul x-ref="linkList" class="link-list flex px-0.5 gap-x-5 items-center overflow-x-auto scrollbar-hidden">
+                      {%- for link in block.settings.menu.links -%}
+                        <li class="pt-2.5 pb-2.5 lg:pt-0 lg:pb-0">
+                          <a href="{{ link.url }}" class="menu-link text-link-animation inline-flex items-center relative p-break-words">
+                            {{ link.title | escape }}
+                          </a>
+                        </li>
+                      {%- endfor -%}
+                    </ul>
+                  </div>
+                    
+                  <button 
+                    x-show="show"
+                    x-cloak
+                    class="w-9 h-9 relative min-w-[36px] p-3 cursor-pointer duration-300 inline-block -outline-offset-1{% if rtl %} rotate-180{% else %} rotate-0{% endif %}"
+                    @click="scrollToRight()"
+                    :disabled="isAtEnd"
+                    x-bind:class="isAtEnd && 'opacity-40 cursor-not-allowed'"
+                  >
+                    {% render 'icon-all', icon: 'icon-caret-right' %}
+                  </button>
+                </div>
+              </li>
+            {%- endif -%}
+            {% unless number_block_right == count %}
+              <li class="spacing border-l opacity-80 h-4"></li>
+            {% endunless %}
+          {% endif %}
+        {%- endfor -%}
+      </ul>
+    </div>
+  </div>
+  <div id="utility-bar-mobile" class="link-list md:hidden utility-bar-mobile whitespace-nowrap">
+    <ul>
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'localization_selectors' -%}
+          {%- assign localization_selectors = block -%}
+        {%- elsif block.type == 'social_icons' -%}
+          {%- assign social_icons = block -%}
+        {%- elsif block.type == 'link_list' -%}
+          {%- for link in block.settings.menu.links -%}
+            <li>
+              <a href="{{ link.url }}" class="menu-link inline-flex items-center relative pt-2 pb-2 p-break-words">
+                {{ link.title | escape }}
+              </a>
+            </li>
+          {%- endfor -%}
+        {%- else -%}
+          {%- render 'utility-bar-item', block_type: block.type, block: block -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {%- if social_icons -%}
+        {%- render 'utility-bar-item', block_type: social_icons.type, block: social_icons -%}
+      {% endif %}
+    </ul>
+    {%- if localization_selectors -%}
+      {% liquid
+        assign show_localization = false
+        if localization_selectors.settings.enable_country_selector or localization_selectors.settings.enable_language_selector
+          assign show_localization = true
+        endif
+      %}
+      {%- if show_localization -%}
+        <div class="nav-localization__wrapper">
+          {% render 'localization-form',
+            id: 'nav-localization', 
+            enable_country_selector: localization_selectors.settings.enable_country_selector, 
+            enable_language_selector: localization_selectors.settings.enable_language_selector 
+            dropdown_animation: 'origin-bottom lg:origin-top'
+          %}
+        </div>
+      {%- endif -%}
+    {% endif %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:utility_bar.name",
+  "class": "maximize-section section-utility-bar",
+  "limit": 1,
+  "enabled_on": {
+    "groups": ["header"]
+  },
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:global.header.desktop_layout"
+    },
+    {
+      "type": "select",
+      "label": "t:global.section.section_width.label",
+      "id": "section_width",
+      "options": [
+        {
+          "label": "t:global.section.section_width.option_1",
+          "value": "page-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_2",
+          "value": "full-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_3",
+          "value": "full-width-padded"
+        }
+      ],
+      "default": "full-width"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "unit": "px",
+      "step": 1,
+      "default": 10,
+      "label": "t:global.section.top_padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "unit": "px",
+      "step": 1,
+      "default": 10,
+      "label": "t:global.section.bottom_padding"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_section_divider",
+      "default": false,
+      "label": "t:global.section.show_section_divider"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.colors"
+    },
+    {
+      "type": "paragraph",
+      "content": "t:utility_bar.settings.paragraph"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "link_list",
+      "name": "t:global.menu.menu",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "select",
+          "id": "desktop_position",
+          "label": "t:global.position.desktop_position",
+          "options": [
+            {
+              "value": "left",
+              "label": "t:global.position.left"
+            },
+            {
+              "value": "right",
+              "label": "t:global.position.right"
+            }
+          ],
+          "default": "left"
+        },
+        {
+          "type": "link_list",
+          "id": "menu",
+          "default": "main-menu",
+          "label": "t:global.menu.menu",
+          "info": "t:utility_bar.blocks.menu.settings.menu_info"
+        }
+      ]
+    },
+    {
+      "type": "phone_number",
+      "name": "t:global.form.phone",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "select",
+          "id": "desktop_position",
+          "label": "t:global.position.desktop_position",
+          "options": [
+            {
+              "value": "left",
+              "label": "t:global.position.left"
+            },
+            {
+              "value": "right",
+              "label": "t:global.position.right"
+            }
+          ],
+          "default": "right"
+        },
+        {
+          "type": "image_picker",
+          "id": "custom_icon_image",
+          "label": "t:global.icon.custom_icon_image"
+        },
+        {
+          "type": "text",
+          "id": "label",
+          "label": "t:global.form.phone",
+          "default": "(+1) 2345678901"
+        }
+      ]
+    },
+    {
+      "type": "email_address",
+      "name": "t:global.form.email_address",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "select",
+          "id": "desktop_position",
+          "label": "t:global.position.desktop_position",
+          "options": [
+            {
+              "value": "left",
+              "label": "t:global.position.left"
+            },
+            {
+              "value": "right",
+              "label": "t:global.position.right"
+            }
+          ],
+          "default": "right"
+        },
+        {
+          "type": "image_picker",
+          "id": "custom_icon_image",
+          "label": "t:global.icon.custom_icon_image"
+        },
+        {
+          "type": "text",
+          "id": "label",
+          "label": "t:global.form.email_address",
+          "default": "example@shopify.com"
+        }
+      ]
+    },
+    {
+      "type": "localization_selectors",
+      "name": "t:utility_bar.blocks.localization_selectors.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "select",
+          "id": "desktop_position",
+          "label": "t:global.position.desktop_position",
+          "options": [
+            {
+              "value": "left",
+              "label": "t:global.position.left"
+            },
+            {
+              "value": "right",
+              "label": "t:global.position.right"
+            }
+          ],
+          "default": "right"
+        },
+        {
+          "type": "checkbox",
+          "id": "enable_country_selector",
+          "label": "t:utility_bar.blocks.localization_selectors.settings.country_region_selector",
+          "default": false
+        },
+        {
+          "type": "checkbox",
+          "id": "enable_language_selector",
+          "label": "t:utility_bar.blocks.localization_selectors.settings.language_selector",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "social_icons",
+      "name": "t:popup.blocks.social_icons.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "select",
+          "id": "desktop_position",
+          "label": "t:global.position.desktop_position",
+          "options": [
+            {
+              "value": "left",
+              "label": "t:global.position.left"
+            },
+            {
+              "value": "right",
+              "label": "t:global.position.right"
+            }
+          ],
+          "default": "left"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:utility_bar.name",
+      "category": "t:global.category.menu",
+      "blocks": [
+        {
+          "type": "link_list",
+          "settings": {
+            "desktop_position": "left"
+          }
+        },
+        {
+          "type": "phone_number",
+          "settings": {
+            "desktop_position": "right"
+          }
+        },
+        {
+          "type": "email_address",
+          "settings": {
+            "desktop_position": "right"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

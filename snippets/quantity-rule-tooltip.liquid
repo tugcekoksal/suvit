@@ -1,0 +1,52 @@
+{%- doc -%}
+  Renders an info (ⓘ) trigger + hover tooltip describing a variant's Shopify quantity
+  rule (min / max / increment) and its volume-pricing price breaks. Reuses the shared
+  `custom-tooltip` web component for positioning/arrow/flip, and `quantity-rule-content`
+  for the inner content.
+
+  @param variant {Variant} - The variant whose quantity_rule / quantity_price_breaks to show. Required.
+  @param product {Product} - Used for `quantity_price_breaks_configured?`. Optional.
+  @param login_hide_price {String} - When 'true', hides all price info (volume-pricing table). Optional.
+  @param disabled_volume_pricing {Boolean} - When true, hides the volume-pricing table. Optional.
+  @param disabled_rule_note {Boolean} - When true, leaves only the volume-pricing table, so nothing
+    renders at all for a variant with a rule but no price breaks. For layouts that already show the
+    rule in the open next to the quantity box (bulk order). Optional.
+  @param clamp_boundary {String} - Ancestor class name the tooltip must stay within horizontally. Optional.
+  @param enable_mobile {Boolean} - Toggle tooltip on tap for touch devices. Defaults to true.
+
+  @example
+  {%- render 'quantity-rule-tooltip', variant: current_variant, login_hide_price: login_hide_price -%}
+{%- enddoc -%}
+{%- liquid
+  if enable_mobile == null
+    assign enable_mobile = true
+  endif
+  capture quantity_rule_tooltip_content
+    render 'quantity-rule-content', variant: variant, product: product, login_hide_price: login_hide_price, disabled_volume_pricing: disabled_volume_pricing, disabled_rule_note: disabled_rule_note
+  endcapture
+  assign quantity_rule_tooltip_content = quantity_rule_tooltip_content | strip
+-%}
+{%- if quantity_rule_tooltip_content != blank -%}
+  <div
+    class="quantity-rule-tooltip relative inline-flex items-center justify-center cursor-pointer p-1 rounded-full color-text-[rgba(var(--color-text),0.6)] {% if rtl %} rtl{% endif %}"
+    tabindex="0"
+    role="button"
+    aria-label="{{ 'products.product.quantity_rule.info_label' | t }}"
+  >
+    <span class="quantity-rule-tooltip__icon flex w-4 h-4">{% render 'icon-all', icon: 'icon-info' %}</span>
+    {%- comment -%}
+      The popup sizes itself to its content between a floor and a ceiling instead of the
+      old flat 266px min-width, which forced the popup wider than the design (and wider
+      than a narrow product card) even for a single "Maximum" row.
+    {%- endcomment -%}
+    {%- render 'custom-tooltip',
+      content: quantity_rule_tooltip_content,
+      position: 'top',
+      align: 'center',
+      enable_mobile: enable_mobile,
+      clamp_boundary: clamp_boundary,
+      layout_class: 'left-[calc(50%+var(--left-tooltip,0px))] -translate-x-1/2 w-max min-w-[170px] max-w-[266px]',
+      rtl: rtl
+    -%}
+  </div>
+{%- endif -%}

@@ -1,0 +1,205 @@
+{% liquid
+  if sizes == blank
+    if columns_desktop and max_columns_desktop and columns_mobile and max_columns_mobile
+      assign pct_desktop = columns_desktop | times: 100 | divided_by: max_columns_desktop
+      assign pct_mobile  = columns_mobile  | times: 100 | divided_by: max_columns_mobile
+      assign sizes = '(min-width: 768px) ' | append: pct_desktop | append: 'vw, ' | append: pct_mobile | append: 'vw'
+    else
+      assign sizes = '100vw'
+    endif
+  endif
+%}
+
+{% liquid
+  assign image_ratio = 1.0
+  assign image_mobile_ratio = 1.0
+  if image != blank and image.height > 0
+    assign image_ratio = image.width | times: 1.0 | divided_by: image.height
+  endif
+  if image_mobile != blank and image_mobile.height > 0
+    assign image_mobile_ratio = image_mobile.width | times: 1.0 | divided_by: image_mobile.height
+  endif
+
+  assign image_width = blank
+  assign image_mobile_width = blank
+
+  if image != blank
+    assign image_width = image.width
+  endif
+
+  if image_mobile != blank
+    assign image_mobile_width = image_mobile.width
+  endif
+
+  assign max_image_width = 3840
+  assign max_image_mobile_width = 1500
+
+  if image_width > max_image_width
+    assign image_width = max_image_width
+  endif
+
+  if image_mobile_width > max_image_mobile_width
+    assign image_mobile_width = max_image_mobile_width
+  endif
+
+  if image and columns_desktop and max_columns_desktop and columns_desktop < max_columns_desktop
+    assign max_image_width_render = max_image_width | times: columns_desktop | divided_by: max_columns_desktop
+    if image_width > max_image_width_render
+      assign image_width = max_image_width_render
+    endif
+  endif
+
+  if image_mobile and columns_mobile and max_columns_mobile and columns_mobile < max_columns_mobile
+    assign max_image_mobile_width_render = max_image_mobile_width | times: columns_mobile | divided_by: max_columns_mobile
+    if image_mobile_width > max_image_mobile_width_render
+      assign image_mobile_width = max_image_mobile_width_render
+    endif
+  endif
+
+  if image != blank and image_mobile == blank
+    assign mobile_floor = max_image_mobile_width
+    if columns_mobile and max_columns_mobile
+      assign mobile_floor = max_image_mobile_width | times: columns_mobile | divided_by: max_columns_mobile
+    endif
+    if image_width < mobile_floor
+      assign image_width = mobile_floor
+    endif
+  endif
+%}
+
+{% liquid
+  if image != blank
+    capture srcset
+      if image_mobile == blank
+        assign widths = '150,200,300,350,375,400,450,500,550,650,767,900,1100,1200,1350,1400,1500,1780,2000,3000,3840' | split: ','
+      else
+        assign widths = '767,900,1100,1200,1350,1400,1500,1780,2000,3000,3840' | split: ','
+      endif
+      for w in widths
+        assign w_num = w | plus: 0
+        if image_width > w_num
+          echo image | image_url: width: w_num
+          if forloop.last
+            echo ' ' | append: w_num | append: 'w'
+          else
+            echo ' ' | append: w_num | append: 'w, '
+          endif
+        else
+          echo image | image_url: width: image_width
+          echo ' ' | append: image_width | append: 'w'
+          break
+        endif
+      endfor
+    endcapture
+  endif
+
+  if image_mobile != blank
+    capture srcset_mobile
+      if image_desktop != blank
+        assign widths = '150,200,300,350,375,400,450,500,550,650,767' | split: ','
+      else
+        assign widths = '150,200,300,350,375,400,450,500,550,650,767,900,1100,1200,1350,1400,1500,1780,2000,3000,3840' | split: ','
+      endif
+      for w in widths
+        assign w_num = w | plus: 0
+        if image_mobile_width > w_num
+          echo image_mobile | image_url: width: w_num
+          if forloop.last
+            echo ' ' | append: w_num | append: 'w'
+          else
+            echo ' ' | append: w_num | append: 'w, '
+          endif
+        else
+          echo image_mobile | image_url: width: image_mobile_width
+          echo ' ' | append: image_mobile_width | append: 'w'
+          break
+        endif
+      endfor
+    endcapture
+  endif
+
+  assign image_height = image_width | divided_by: image_ratio | ceil
+  assign image_mobile_height = image_mobile_width | divided_by: image_mobile_ratio | ceil
+%}
+
+{% liquid
+  assign default_image_alt = 'accessibility.default_alt' | t
+  assign alt_image = alt | default: image.alt | default: default_image_alt | escape
+  assign alt_image_mobile = alt | default: image_mobile.alt | default: default_image_alt | escape
+%}
+
+{% if image != blank and image_mobile != blank %}
+  <picture>
+    <source
+      media="(max-width: 767px)"
+      srcset="{{ srcset_mobile }}"
+      sizes="{{ sizes }}"
+      width="{{ image_mobile_width }}"
+      height="{{ image_mobile_height }}"
+    >
+    <img
+      class="image-responsive-fp {{ image_class | escape }}"
+      style="--fp-mobile:{{ image_mobile.presentation.focal_point }}; --fp-desktop:{{ image.presentation.focal_point }};"
+      src="{{ image | image_url: width: image_width }}"
+      alt="{{ alt_image }}"
+      width="{{ image_width }}"
+      height="{{ image_height }}"
+      {% if loading == 'eager' %}
+        loading="eager"
+        fetchpriority="high"
+        decoding="sync"
+      {% else %}
+        loading="lazy"
+      {% endif %}
+      srcset="{{ srcset }}"
+      sizes="{{ sizes }}"
+    >
+  </picture>
+{% elsif image != blank and image_mobile == blank %}
+  <img
+    class="{{ image_class | escape }}"
+    src="{{ image | image_url: width: image_width }}"
+    alt="{{ alt_image }}"
+    width="{{ image_width }}"
+    height="{{ image_height }}"
+    {% if loading == 'eager' %}
+      loading="eager"
+      fetchpriority="high"
+      decoding="sync"
+    {% else %}
+      loading="lazy"
+    {% endif %}
+    srcset="{{ srcset }}"
+    sizes="{{ sizes }}"
+    {% if image.presentation.focal_point != blank %}
+      style="object-position:{{ image.presentation.focal_point }};"
+    {% endif %}
+  >
+{% elsif image == blank and image_mobile != blank %}
+  <div class="absolute top-0 left-0 hidden md:block w-full h-full object-cover">
+    {% if slideshow %}
+      {% render 'placeholder-image', image_type: 'slide' %}
+    {% else %}
+      {% render 'placeholder-image', image_type: 'image' %}
+    {% endif %}
+  </div>
+  <img
+    class="{{ image_mobile_class | escape }}"
+    src="{{ image_mobile | image_url: width: image_mobile_width }}"
+    alt="{{ alt_image_mobile }}"
+    width="{{ image_mobile_width }}"
+    height="{{ image_mobile_height }}"
+    {% if loading == 'eager' %}
+      loading="eager"
+      fetchpriority="high"
+      decoding="sync"
+    {% else %}
+      loading="lazy"
+    {% endif %}
+    srcset="{{ srcset_mobile }}"
+    sizes="{{ sizes }}"
+    {% if image_mobile.presentation.focal_point != blank %}
+      style="object-position:{{ image_mobile.presentation.focal_point }};"
+    {% endif %}
+  >
+{% endif %}

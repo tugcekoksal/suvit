@@ -1,0 +1,92 @@
+{% liquid
+    assign collections_list_size = predictive_search.resources.collections.size
+    assign exclude_collections_list = false
+    if settings.exclude_collections != blank
+      assign exclude_collections_list = settings.exclude_collections | map: 'id'
+      for collection in predictive_search.resources.collections
+        if exclude_collections_list contains collection.id
+          assign collections_list_size = collections_list_size | minus: 1
+        endif
+      endfor
+    endif
+  %}
+
+{%- if collections_list_size > 0 -%}
+  <div 
+    class="flex-1"
+  >
+    <p
+      id="predictive-search-collections"
+      class="predictive-search-heading h5 pb-2.5 md:pb-5 font-semibold"
+    >
+      {{ 'templates.search.collections' | t }}
+    </p>
+    <div class="predictive-result-item anm-reveal-container flex flex-col">
+      {%- for collection in predictive_search.resources.collections -%}
+        {% unless exclude_collections_list contains collection.id %}
+          <div class="block slide-item collection-item {%- if collection.url != blank %} media-hyperlink{% endif -%}">
+            <a
+              href="{{ collection.url }}"
+              class="anm-reveal-item flex relative h-full gap-x-2.5 flex-col"
+              data-active="false"
+            >
+              <div class="w-full relative mb-1.5">
+                <div
+                  class="relative overflow-hidden w-full float-left before:h-0 before:block before:pb-[120%] rounded-corners media-hyperlink"
+                >
+                  {%- if collection.featured_image != blank -%}
+                    {%- capture sizes -%}
+                      (min-width: {{ settings.page_width }}px) calc((100vw - 10rem) / 3), (min-width: 768px) calc((100vw - 5rem) / 2), calc(80vw / 1)
+                    {%- endcapture -%}
+                    <img
+                      srcset="
+                        {{ collection.featured_image | image_url: width: 225 }} 225w,
+                        {{ collection.featured_image | image_url: width: 375 }} 375w,
+                        {{ collection.featured_image | image_url: width: 450 }} 450w,
+                        {{ collection.featured_image | image_url: width: 750 }} 750w,
+                        {{ collection.featured_image | image_url: width: 900 }} 900w,
+                        {{ collection.featured_image | image_url: width: 1100 }} 1100w,
+                        {{ collection.featured_image | image_url: width: 1500 }} 1500w,
+                        {{ collection.featured_image | image_url: width: 1780 }} 1780w
+                      "
+                      src="{{ collection.featured_image | image_url: width: 450 }}"
+                      alt="{{ collection.featured_image.alt }}"
+                      width="{{ collection.featured_image.width }}"
+                      loading="lazy"
+                      sizes="{{ sizes }}"
+                      height="{{ collection.featured_image.height }}"
+                      class="h-full w-full object-cover absolute top-0 left-0 image-hover rounded-corners anm-image-hover"
+                    >
+                  {%- else -%}
+                    <div
+                      class="absolute top-0 left-0 w-full h-full rounded-corners"
+                    >
+                      {% liquid
+                        assign index = 1
+                        assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+                        assign placeholder_collection_name = 'collection_' | append: index
+                      %}
+                      {% render 'placeholder-image', image_type: placeholder_collection_name %}
+                    </div>
+                  {%- endif -%}
+                </div>
+              </div>
+              <div
+                class="flex-1"
+              >
+                <p class="h6 search_heading p-break-words leading-tight link-reveal">{{ collection.title | escape }}</p>
+              </div>
+              <div class="collection-count">{{ collection.products.size }} items</div>
+            </a>
+          </div>
+        {% endunless %}
+      {%- endfor -%}
+    </div>
+  </div>
+{% else %}
+  <div class="msg-no-result w-full">
+    <p class="text-center">
+      {{ 'templates.search.no_results' | t: terms: predictive_search.terms }}
+    </p>
+  </div>
+{%- endif -%}

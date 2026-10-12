@@ -1,0 +1,660 @@
+{% comment %}
+  Renders facets (filtering and sorting)
+
+  Accepts:
+  - results: {Object} Collection or Search object
+  - enable_filtering: {Boolean} Show filtering when true
+  - enable_sorting: {Boolean} Show sorting when true
+  - filter_type: {String} Type of filter
+  - products_per_page: {int} number of products of 1 page
+  - collection_page: {Boolean} belongs to the collection page
+  - search_page: {Boolean} belongs to the search page
+  - show_filter: {Boolean} Do not show filter when collection size < 1 or filter.type = price_range
+  - b2b_order_view: {Boolean} B2B order view is on, so the layout toggle becomes
+    "View products / Quick order" and stays available on mobile
+  Usage:
+  {% render 'facets', results: collection, enable_filtering: true, enable_sorting: true %}
+{% endcomment %}
+{%- liquid
+  assign sort_by = results.sort_by | default: results.default_sort_by
+  assign total_active_values = 0
+  if results.url
+    assign results_url = results.url
+  else
+    assign terms = results.terms | escape
+    assign results_url = '?q=' | append: terms | append: '&options%5Bprefix%5D=last&sort_by=' | append: sort_by
+  endif
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  else
+    assign is_rtl = false
+  endif
+
+  assign filter_used = filter_used | split: ";"
+-%}
+{% capture active_filters_html %}
+  <ul class="active-filter flex flex-wrap gap-1 mt-2 md:mt-3">
+    {%- for filter in results.filters -%}
+      {%- for value in filter.active_values -%}
+        <li>
+          <button id="Button-{{ value.param_name }}" @click.prevent="removeFilter(`{{ value.url_to_remove }}`)" class="px-2 py-1 cursor-pointer flex items-center bg-secondary{% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}">
+            <span class="active-filter-control text-small text-initial p-break-words">
+              {{ value.label | escape }}
+            </span>
+            <span class="hover:rotate-90 transition-transform duration-[var(--button-animation-duration)] md:w-2.5 md:h-2.5 md:min-w-[10px] min-w-[8px] ml-2 rtl:mr-2 rtl:ml-0 w-2 h-2 cursor-pointer inline-block">{% render 'icon-all', icon: 'icon-close' %}</span>
+          </button>
+        </li>
+      {%- endfor -%}
+      {% if filter.type == "price_range" %}
+        {%- if filter.min_value.value != nil or filter.max_value.value != nil -%}
+          <li>
+            <button id="Button-{{ filter.param_name }}" @click.prevent="removeFilter(`{{ filter.url_to_remove }}`)" class="px-2 py-1 cursor-pointer flex items-center bg-secondary{% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}">
+              <span class="active-filter-control text-small text-initial p-break-words {% if is_rtl %} ltr{% endif %}">
+                {% if filter.min_value.value %}
+                  {% if settings.currency_code_enable %}
+                    {{ filter.min_value.value | money_with_currency }}
+                  {% else %}
+                    {{ filter.min_value.value | money }}
+                  {% endif %}
+                {% else %}
+                  {% if settings.currency_code_enable %}
+                    {{ 0 | money_with_currency }}
+                  {% else %}
+                    {{ 0 | money }}
+                  {% endif %}
+                {% endif %} - 
+                {% if filter.max_value.value %}
+                  {% if settings.currency_code_enable %}
+                    {{ filter.max_value.value | money_with_currency }}
+                  {% else %}
+                    {{ filter.max_value.value | money }}
+                  {% endif %}
+                {% else %}
+                  {% if settings.currency_code_enable %}
+                    {{ filter.range_max | money_with_currency }}
+                  {% else %}
+                    {{ filter.range_max | money }}
+                  {% endif %}
+                {% endif %}
+              </span>
+              <span class="hover:rotate-90 transition-transform duration-[var(--button-animation-duration)] ml-2 rtl:mr-2 rtl:ml-0 md:w-2.5 md:h-2.5 md:min-w-[10px] min-w-[8px] w-2 h-2 inline-block">{% render 'icon-all', icon: 'icon-close' %}</span>
+            </button>
+          </li>
+        {%- endif -%}
+      {% endif %}
+    {%- endfor -%}
+    <li class="flex items-center type-aside:hidden">
+      <button @click.prevent="removeFilter(`{{ results_url }}`)" class="cursor-pointer px-2 py-1 text-small" role="button">
+        <span class="text-link">
+          {{ 'templates.search.clear_all' | t }}
+        </span>
+      </button>
+    </li>
+  </ul>
+{% endcapture %}
+
+<div 
+  class="facets-filter__wrapper relative
+    {%- if filter_type == 'above' %}{% if section.settings.default_hide_filtering %} filter-aside:md:block{% else %} filter-aside:md:hidden{% endif %}{% endif -%}
+  "
+  {% if enable_filtering and results.filters != empty %}
+    data-enable-filter="true"
+  {% endif %}
+>
+  {%- if section.settings.enable_collection_count -%}
+    <p id="FacetsProductCount" class="hidden">
+      {%- if results.results_count -%}
+        {{ 'templates.search.results_with_count' | t: terms: results.terms, count: results.results_count }}
+      {%- elsif results.products_count == results.all_products_count -%}
+        {{ 'products.facets.product_count_simple' | t: count: results.products_count }}
+      {%- else -%}
+        {{ 'products.facets.product_count' | t: product_count: results.products_count, count: results.all_products_count }}
+      {%- endif -%}
+    </p>
+  {% elsif search_page %}
+    <p id="FacetsProductCount" class="hidden">
+      {%- if search.results_count -%}
+        {{ 'templates.search.results_with_count' | t: terms: search.terms, count: search.results_count }}
+      {%- elsif search.products_count == search.all_products_count -%}
+        {{ 'products.facets.product_count_simple' | t: count: search.products_count }}
+      {%- else -%}
+        {{ 'products.facets.product_count' | t: product_count: search.products_count, count: search.all_products_count }}
+      {%- endif -%}
+    </p>
+  {% endif %}
+  <div class="facets">
+    <template x-teleport="#header-filter" id="FacetsContainerBar">
+      <div class="pb-1 md:pb-3" id="FacetsWrapperBar" data-sticky-filter="{% if sticky_filter %}true{% else %}false{% endif %}">
+        <div
+          class="w-full flex justify-between gap-3 border color-border-[rgba(var(--color-text),0.12)] {% if enable_filtering %} pl-1 pr-1{% else %} pl-3 pr-3{% endif %} pt-1 pb-1 rounded-corners{% if b2b_order_view %} md:flex-nowrap{% endif %}"
+          {% if sticky_filter %} x-effect="setFilterHeaderHeight()"{% endif %}
+        >
+        <div class="w-1/2 min-w-0 md:w-auto flex justify-start items-center">
+            {% if enable_filtering and results.filters != empty %}
+              <div id="ButtonFilterWrapper" class="{% unless show_filter %}md:hidden{% endunless %}">
+                <custom-button>
+                  <button 
+                  id="btn-filter"
+                  class="anm-button-secondary flex items-center px-2.5 py-2 md:pt-2.5 md:pb-2.5 md:pl-3.5 md:pr-3.5 gap-2 md:flex btn-facets {% if filter_type != 'drawer' %} md:hidden{% endif %} {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}" 
+                  @click.prevent="isShow = true; $store.xMaximizeDrawer.handleOpen('#FacetsFilterDrawer');">
+                  <span class="w-4.5 h-3.5 md:w-5 md:h-4 color-text-[rgba(var(--color-text))]">
+                    {% render 'icon-all', icon: 'icon-filter' %}
+                  </span>
+                  <span class="h7 {% if enable_sorting %} hidden md:block{% endif %} color-text-[rgba(var(--color-text))]" tabindex="-1">{{ 'products.facets.filter_by_label' | t }}</span>
+                  {% if enable_sorting %}
+                    <span class="md:hidden h6 color-text-[rgba(var(--color-text))]" tabindex="-1">{{ 'products.facets.filter_by_label' | t }}</span>
+                  {% endif %}
+                </button>
+                </custom-button>
+                {% if filter_type != 'drawer' %}
+                  <button 
+                    id="btn-filter-aside"
+                    class="items-center pt-2.5 pb-2.5 pl-3.5 pr-3.5 gap-2 cursor-pointer hidden md:flex btn-facets {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}" 
+                    @click.prevent="showFilterAside = !showFilterAside">
+                    <span class="w-4.5 h-3.5 md:w-5 md:h-4 color-text-[rgba(var(--color-text))]">
+                      {% render 'icon-all', icon: 'icon-filter' %}
+                    </span>
+                    <span class="h7 color-text-[rgba(var(--color-text))]" tabindex="-1">{{ 'products.facets.filter_by_label' | t }}</span>
+                  </button>
+                {% endif %}
+              </div>
+            {% endif %}
+            <div class="{% if enable_filtering %}hidden{% endif %} md:flex items-center">
+              {%- if section.settings.enable_collection_count -%}
+                <p id="ProductCount_header" 
+                  class="text-small{% if enable_filtering and results.filters != empty and show_filter %} rtl:pr-3 rtl:md:pr-5 ltr:pl-3 ltr:md:pl-5{% else %} rtl:pr-1 ltr:pl-1{% endif %}"
+                  x-bind:class="isLoading && 'loading'"
+                >
+                  {%- if results.results_count -%}
+                    {{ 'templates.search.results_with_count' | t: terms: results.terms, count: results.results_count }}
+                  {%- elsif results.products_count == results.all_products_count -%}
+                    {{ 'products.facets.product_count_simple' | t: count: results.products_count }}
+                  {%- else -%}
+                    {{ 'products.facets.product_count' | t: product_count: results.products_count, count: results.all_products_count }}
+                  {%- endif -%}
+                </p>
+              {%- endif -%}
+              {% if search_page and section.settings.enable_result_count %}
+                <p 
+                  id="ProductCount_header" 
+                  class="{% if enable_filtering and results.filters != empty and show_filter %} md:border-solid{% if is_rtl %} pr-4{% else %} pl-4{% endif %}{% endif %}"
+                  x-bind:class="isLoading && 'loading'"
+                >
+                  {%- if search.results_count -%}
+                    {{ 'templates.search.results_with_count' | t: terms: search.terms, count: search.results_count }}
+                  {%- elsif search.products_count == search.all_products_count -%}
+                    {{ 'products.facets.product_count_simple' | t: count: search.products_count }}
+                  {%- else -%}
+                    {{ 'products.facets.product_count' | t: product_count: search.products_count, count: search.all_products_count }}
+                  {%- endif -%}
+                </p>
+              {% endif %}
+            </div>
+          </div>
+         
+          {%- comment -%}
+            ml-auto only matters with the B2B switch present: it keeps sort and the switch together at
+            the end of the bar, instead of justify-between spreading three children apart.
+          {%- endcomment -%}
+          <div class="w-1/2 min-w-0 md:w-auto flex items-center justify-end py-1.5 md:py-0{% if b2b_order_view %} ml-auto{% endif %}">
+            {%- if enable_sorting -%}
+              <select-element
+                class="sorting-selector dropdown-large flex justify-end gap-x-1 items-center text-small w-full md:w-auto"
+                data-picker-type="dropdown"
+              >
+                <p class="whitespace-nowrap min-w-0 shrink-0">
+                  {{ 'products.facets.sort_by_label' | t }}
+                </p>
+                <div class="select relative block max-w-full min-w-0">
+                  {%- assign sort_by = results.sort_by | default: results.default_sort_by -%}
+                  <div 
+                    class="select-button outline-0 flex flex-row items-center text-left rtl:text-right p-0 md:p-2 focus-visible:outline-current focus-visible:outline-1"
+                    role="button" tabindex="0" aria-pressed="false" aria-expanded="false" aria-describedby="SortBy" data-no-outline="true"
+                  >
+                    <span 
+                      class="select-button__label min-w-[6rem] md:min-w-[10rem] line-clamp-1{% if is_rtl %} pl-7 {% else %} pr-7{% endif %} select-text font-semibold p-break-words"
+                      data-section-id="{{ section.id }}"
+                      style="font-family: var(--body-font-family);"
+                      x-text="sortOption"
+                    >
+                    </span>
+                    <span class="select-arrow transition-transform absolute top-1/2{% if is_rtl %} left-2{% else %} right-2{% endif %} -translate-y-1/2 w-2.5">{% render 'icon-all', icon: 'icon-caret' %}</span>
+                  </div>
+                  <div class="select-options-wrapper before:shadow-md w-max max-w-[9rem] md:max-w-none right-0 md:right-auto scrollbar-visible scrollbar-body shadow-medium">
+                    <ul 
+                      role="listbox"
+                      class="select-options select-listbox rounded-corners max-h-64"
+                      aria-label="Sort by"
+  
+                      {% unless currency_selector %} :class="$el.closest('.utility-block') && 'mt-[3px]'"{% endunless %}
+                    >
+                    {%- for option in results.sort_options -%}
+                      <li 
+                        {% if option.value == sort_by %}
+                          x-init="sortOption = '{{ option.name }}'"
+                        {% endif %}
+                        class="sorting-option select-option rounded-corners p-break-words" 
+                        tabindex="-1"
+                        value="{{ option.value | escape }}"
+                        data-option-name="{{ option.name | escape }}"
+                        data-value="{{ option.value }}"
+                        data-select-value="{{ option.name }}"
+                        data-type="dropdown"
+                        role="option"
+                        :aria-selected="{% if sort_by == option.value %} true{% else %} false{% endif %}"
+                      >
+                        {{ option.name }}
+                      </li>
+                    {%- endfor -%}
+                    </ul>
+                  </div>
+                </div>
+                <label class="hidden">
+                  <input
+                    id="SelectSortByOption"
+                    form="FacetFiltersForm"
+                    name="sort_by"
+                    aria-label="Sort by"
+                    aria-describedby="a11y-refresh-page-message"
+                    class="select-option-selected"
+                    value="{{ sort_by }}"
+                  >
+                </label>
+              </select-element>
+            {%- endif -%}
+            {% unless search_page %}
+              {%- comment -%}
+                The B2B "View products / Quick order" switch is rendered further down as a direct
+                child of the bar: on mobile it needs a full-width row of its own, which it cannot
+                get from inside this half-width column.
+              {%- endcomment -%}
+              {%- unless b2b_order_view -%}
+                <div class="toogle-layout__button-group hidden md:flex gap-1{% if is_rtl %} mr-3 md:mr-6{% else %} ml-3 md:ml-6{% endif %}">
+                  <custom-button>
+                  <button @click="toggleLayout(true)" :class="listLayout && 'color-text-[rgba(var(--color-button))]'" class="inline-block w-9 h-9 px-2 py-2 cursor-pointer btn-facets anm-button-secondary  {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}" aria-label="list layout">{% render 'icon-all', icon: 'icon-list' %}</button>
+                  </custom-button>
+                  <custom-button>
+                  <button @click="toggleLayout(false)" :class="!listLayout && 'color-text-[rgba(var(--color-button))]'" class="btn-facets {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %} inline-block w-9 h-9 px-2 py-2 cursor-pointer anm-button-secondary" aria-label="Grid layout">{% render 'icon-all', icon: 'icon-grid' %}</button>
+                  </custom-button>
+                </div>
+              {%- endunless -%}
+            {% endunless %}
+          </div>
+          {% unless search_page %}
+            {%- if b2b_order_view -%}
+              {%- comment -%}
+                B2B order view: the two layouts are no longer "grid vs list" but two ways to order,
+                so each button carries its name — and only the INACTIVE one spells it out; the
+                active view is already the one on screen. Grid first, matching the design. Unlike
+                the plain icon toggle this stays available on mobile, where it wraps onto its own
+                centred row under the bar (labels stay desktop-only there, as before).
+              {%- endcomment -%}
+              <div class="toogle-layout__button-group order-view-switch flex w-fit justify-center gap-1 md:w-auto md:justify-end md:ml-6">
+                <custom-button>
+                  <button
+                    @click="toggleLayout(false)"
+                    :class="!listLayout && 'is-active color-text-[rgba(var(--color-button))]'"
+                    class="btn-facets anm-button-secondary flex items-center gap-2 px-3 py-2 cursor-pointer{% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+                    aria-label="{{ 'order_view.view_products' | t }}"
+                  >
+                    <span class="flex w-4.5 h-4.5 shrink-0">{% render 'icon-all', icon: 'icon-grid' %}</span>
+                    {%- comment -%}
+                      Starts hidden and Alpine adds `md:block` to the inactive one — the reverse
+                      would flash both labels before Alpine runs.
+                    {%- endcomment -%}
+                    <span class="toogle-layout__label text-small whitespace-nowrap hidden" :class="listLayout && 'md:block'">{{ 'order_view.view_products' | t }}</span>
+                  </button>
+                </custom-button>
+                <custom-button>
+                  <button
+                    @click="toggleLayout(true)"
+                    :class="listLayout && 'is-active color-text-[rgba(var(--color-button))]'"
+                    class="btn-facets anm-button-secondary flex items-center gap-2 px-3 py-2 cursor-pointer{% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+                    aria-label="{{ 'order_view.quick_order' | t }}"
+                  >
+                    <span class="flex w-4.5 h-4.5 shrink-0">{% render 'icon-all', icon: 'icon-list' %}</span>
+                    <span class="toogle-layout__label text-small whitespace-nowrap hidden" :class="!listLayout && 'md:block'">{{ 'order_view.quick_order' | t }}</span>
+                  </button>
+                </custom-button>
+              </div>
+            {%- endif -%}
+          {% endunless %}
+        </div>
+
+        {% if show_filter %}
+          <div 
+            id="ActiveFilterTag" 
+            class="flex facets-filter__active-filter-tag
+              {%- if filter_type == 'above' %}
+                {%- if only_show_advanded_filter %} md:flex
+                {%- else %}
+                  {%- if section.settings.default_hide_filtering %} filter-aside:md:hidden md:flex{% else %} filter-aside:md:flex md:hidden{% endif -%}
+                {%- endif -%}
+              {%- else %} md:flex
+              {%- endif -%}
+            "
+          >
+            {% if active_filters_html contains 'active-filter-control' %}
+              {{ active_filters_html }}
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </template>
+    {% if show_filter %}
+      {% if only_show_advanded_filter and enable_sorting == false %}
+        <div id="active-filter-tag" class="hidden md:block">
+          {% if active_filters_html contains 'active-filter-control' %}
+            <ul class="active-filter flex flex-wrap gap-1 my-2.5{% if filter_type != 'above' %} md:mb-5{% endif %}">
+              {%- for filter in results.filters -%}
+                {%- for value in filter.active_values -%}
+                  <li>
+                    <button @click.prevent="removeFilter(`{{ value.url_to_remove }}`)" class="px-3 py-1.5 cursor-pointer flex items-center color-bg-[rgba(var(--color-text),0.05)]{% if settings.edges_type == 'rounded_corners' %} rounded{% endif %}">
+                      <span class="active-filter-control text-small text-initial p-break-words">
+                        {{ value.label | escape }}
+                      </span>
+                      <span class="hover:rotate-90 transition-transform duration-[var(--button-animation-duration)] md:w-2.5 md:h-2.5 md:min-w-[10px] min-w-[8px] ml-2 rtl:mr-2 rtl:ml-0 w-2 h-2 cursor-pointer inline-block">{% render 'icon-all', icon: 'icon-close' %}</span>
+                    </button>
+                  </li>
+                {%- endfor -%}
+                {% if filter.type == "price_range" %}
+                  {%- if filter.min_value.value != nil or filter.max_value.value != nil -%}
+                    <li>
+                      <button @click.prevent="removeFilter(`{{ filter.url_to_remove }}`)" class="px-3 py-1.5 cursor-pointer flex items-center color-bg-[rgba(var(--color-text),0.05)]{% if settings.edges_type == 'rounded_corners' %} rounded{% endif %}">
+                        <span class="active-filter-control text-small text-initial p-break-words {% if is_rtl %} ltr{% endif %}">
+                          {% if filter.min_value.value %}
+                            {% if settings.currency_code_enable %}
+                              {{ filter.min_value.value | money_with_currency }}
+                            {% else %}
+                              {{ filter.min_value.value | money }}
+                            {% endif %}
+                          {% else %}
+                            {% if settings.currency_code_enable %}
+                              {{ 0 | money_with_currency }}
+                            {% else %}
+                              {{ 0 | money }}
+                            {% endif %}
+                          {% endif %} - 
+                          {% if filter.max_value.value %}
+                            {% if settings.currency_code_enable %}
+                              {{ filter.max_value.value | money_with_currency }}
+                            {% else %}
+                              {{ filter.max_value.value | money }}
+                            {% endif %}
+                          {% else %}
+                            {% if settings.currency_code_enable %}
+                              {{ filter.range_max | money_with_currency }}
+                            {% else %}
+                              {{ filter.range_max | money }}
+                            {% endif %}
+                          {% endif %}
+                        </span>
+                        <span class="hover:rotate-90 transition-transform duration-[var(--button-animation-duration)] ml-2 rtl:mr-2 rtl:ml-0 md:w-2.5 md:h-2.5 md:min-w-[10px] min-w-[8px] w-2 h-2 inline-block">{% render 'icon-all', icon: 'icon-close' %}</span>
+                      </button>
+                    </li>
+                  {%- endif -%}
+                {% endif %}
+              {%- endfor -%}
+              <li class="flex items-center type-aside:hidden ml-2 md:ml-4 rtl:ml-0 rtl:mr-2 rtl:md:mr-4 rtl:md:ml-0">
+                <button @click.prevent="removeFilter(`{{ results_url }}`)" id="ButtonClearAllDrawer" class="inline-block cursor-pointer relative text-small">
+                  <span class="text-link">
+                    {{ 'templates.search.clear_all' | t }}
+                  </span>
+                </button>
+              </li>
+            </ul>
+          {% endif %}
+        </div>
+      {% endif %}
+      {% if enable_filtering and results.filters != empty %}
+        {% if filter_type != 'drawer' %}
+          <form class="grid form-aside" id="FacetFormAside">
+            {%- if results.terms -%}
+              <input type="hidden" name="q" value="{{ results.terms | escape }}">
+              <input name="options[prefix]" type="hidden" value="last">
+            {%- endif -%}
+            {% comment %} filter aside {% endcomment %}
+            {% if filter_type == 'aside' %}
+              <div class="overflow-auto scrollbar-body scrollbar hidden md:block type-aside {% if is_rtl %} pl-2.5{% else %} pr-2.5{% endif %}">
+                <div id="active-filter-tag">
+                  <div class="flex justify-between mb-6">
+                    <p class="h5 color-text-[rgba(var(--color-heading))]">{{ 'products.facets.filter_by_label' | t }}</p>
+                  </div>
+                </div>
+                <div class="active-filter-options">
+                  {% if section.settings.enable_advanced_filter and filter_used != blank %}
+                    {%- for filter in results.filters -%}
+                      {% unless filter_used contains filter.label %}
+                        {% render 'input-filter', 
+                          filter: filter,
+                          filter_type: 'aside',
+                          index: forloop.index,
+                          expand_filter: expand_filter
+                        %}
+                      {% endunless %}
+                    {%- endfor -%}
+                  {% else %}
+                    {%- for filter in results.filters -%}
+                      {% render 'input-filter', 
+                        filter: filter,
+                        filter_type: 'aside',
+                        index: forloop.index,
+                        expand_filter: expand_filter
+                      %}
+                    {%- endfor -%}
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+            {% comment %} end filter aside {% endcomment %}
+            {% if filter_type == 'above' %}
+              <div class="md:flex items-center flex-wrap gap-2 hidden{% if sticky_filter %} pt-0.5{% endif %}">
+                {% if section.settings.enable_advanced_filter and filter_used != blank %}
+                  {%- for filter in results.filters -%}
+                    {% unless filter_used contains filter.label %}
+                      {% if filter.param_name == 'filter.v.availability' %}
+                        {% capture availability_filter %}
+                          {% render 'input-filter', 
+                            filter: filter,
+                            filter_type: 'above',
+                            index: forloop.index,
+                            filter_above: true,
+                            expand_filter: false
+                          %}
+                        {% endcapture %}
+                      {% else %}
+                        {% render 'input-filter', 
+                          filter: filter,
+                          filter_type: 'above',
+                          index: forloop.index,
+                          filter_above: true,
+                          expand_filter: false
+                        %}
+                      {% endif %}
+                    {% endunless %}
+                  {%- endfor -%}
+                  {{ availability_filter }}
+                {% else %}
+                  {%- for filter in results.filters -%}
+                    {% if filter.param_name == 'filter.v.availability' %}
+                      {% capture availability_filter %}
+                        {% render 'input-filter', 
+                          filter: filter,
+                          filter_type: 'above',
+                          index: forloop.index,
+                          filter_above: true,
+                          expand_filter: false
+                        %}
+                      {% endcapture %}
+                    {% else %}
+                      {% render 'input-filter', 
+                        filter: filter,
+                        filter_type: 'above',
+                        index: forloop.index,
+                        filter_above: true,
+                        expand_filter: false
+                      %}
+                    {% endif %}
+                  {%- endfor -%}
+                  {{ availability_filter }}
+                {% endif %}
+              </div>
+              <div id="active-filter-tag" class="hidden md:block md:mb-3">
+                {%- if active_filters_html contains 'active-filter-control' -%}
+                  {{- active_filters_html -}}
+                {%- endif -%}
+              </div>
+            {% endif %}
+            {% if results.current_vendor or results.current_type %}
+              <input type="hidden" name="q" value="{{ results.current_vendor }}{{ results.current_type }}">
+            {% endif %}
+          </form>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+<form id="FacetsFormFilter" class="grid form-drawer filter-aside:md:hidden">
+  {%- if results.terms -%}
+    <input type="hidden" name="q" value="{{ results.terms | escape }}">
+    <input name="options[prefix]" type="hidden" value="last">
+  {%- endif -%}
+  {% if enable_filtering and results.filters != empty %}
+    <div x-show="isShow" 
+      id="FacetsFilterDrawer"
+      class="drawer__wrapper"
+      @keyup.escape="isShow=false; _filterRemoveFocus(); $store.xMaximizeDrawer.handleClose();" x-cloak>
+      <div x-show="isShow" class="drawer__overlay cart-drawer__overlay" @click.prevent="isShow = false; $store.xMaximizeDrawer.handleClose();"></div>
+      <div 
+        class="drawer__container filter-drawer__container transform md:max-w-[430px] overflow-hidden" 
+        x-show="isShow"
+        x-cloak 
+        x-intersect.full="_filterFocus()"
+        x-transition:enter-start="opacity-0 translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+        x-transition:enter-end="opacity-100 translate-y-0 md:translate-x-0"
+        x-transition:leave-end="opacity-0 translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+      >  
+        <div class="modal-title-container border-b border-solid md:border-b-0 px-4 md:px-7.5 md:pb-2">
+          <div class="modal-title-wrapper">
+            <div class="grow flex items-center">
+              <div class="w-full">
+                {%- unless results.filters == empty -%}
+                  <p class="font-semibold h4 mb-0.5" tabindex="-1">{{ 'products.facets.filter_by_label' | t }}</p>
+                {%- endunless -%}
+                <div class="text-small md:hidden">
+                  {%- if section.settings.enable_collection_count -%}
+                    <p id="ProductCountDrawer" class="md:border-l md:border-solid">
+                      {%- if results.results_count -%}
+                        {{ 'templates.search.results_with_count' | t: terms: results.terms, count: results.results_count }}
+                      {%- elsif results.products_count == results.all_products_count -%}
+                        {{ 'products.facets.product_count_simple' | t: count: results.products_count }}
+                      {%- else -%}
+                        {{ 'products.facets.product_count' | t: product_count: results.products_count, count: results.all_products_count }}
+                      {%- endif -%}
+                    </p>
+                  {%- endif -%}
+                  {% if search_page %}
+                    <p id="ProductCountDrawer" class="md:border-l md:border-solid">
+                      {%- if search.results_count -%}
+                        {{ 'templates.search.results_with_count' | t: terms: search.terms, count: search.results_count }}
+                      {%- elsif search.products_count == search.all_products_count -%}
+                        {{ 'products.facets.product_count_simple' | t: count: search.products_count }}
+                      {%- else -%}
+                        {{ 'products.facets.product_count' | t: product_count: search.products_count, count: search.all_products_count }}
+                      {%- endif -%}
+                    </p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <button 
+              id="CloseFilterDrawer" 
+              class="modal-title__button-close" 
+              @click.prevent="_filterRemoveFocus(); isShow = false; $store.xMaximizeDrawer.handleClose();"
+              aria-label="{{ 'accessibility.close' | t }}"
+            >
+              <span class="button__close icon-close-large-desktop icon-close-large-mobile">
+                {% render 'icon-all', icon: 'icon-close' %}
+              </span>
+            </button>
+          </div>
+        </div>
+        
+        <div class="filter-drawer__content overflow-auto scrollbar-body scrollbar grow">
+          <div class="drawer__content scrollbar-body scrollbar-visible">  
+            {% if show_filter %}
+              {% if active_filters_html contains 'active-filter-control' %}
+                <div class="{% if filter_type != 'drawer' %}md:hidden{% endif %} pt-2 md:pt-0 md:mb-4" id="active-filter-tag-mobile">
+                  {{ active_filters_html }}
+                </div>
+              {% endif %}
+              <div class="mobile-advanced-filter md:hidden my-4">
+                {{- advanced_filter_content -}}
+              </div>
+              {% if section.settings.enable_advanced_filter and filter_used != blank %}
+                {%- for filter in results.filters -%} 
+                  {% liquid
+                    if filter.type == "price_range"
+                      if filter.min_value.value != nil or filter.max_value.value != nil
+                        assign total_active_values = total_active_values | plus: 1
+                      endif
+                    else
+                      assign total_active_values = total_active_values | plus: filter.active_values.size
+                    endif
+                  %}
+                  {% unless filter_used contains filter.label %}
+                    {% render 'input-filter', 
+                      filter: filter,
+                      filter_type: 'drawer',
+                      index: forloop.index,
+                      expand_filter: expand_filter
+                    %}
+                  {% endunless %}
+                {%- endfor -%}
+              {% else %}
+                {%- for filter in results.filters -%}
+                  {% liquid
+                    if filter.type == "price_range"
+                      if filter.min_value.value != nil or filter.max_value.value != nil
+                        assign total_active_values = total_active_values | plus: 1
+                      endif
+                    else
+                      assign total_active_values = total_active_values | plus: filter.active_values.size
+                    endif
+                  %}
+                  {% render 'input-filter', 
+                    filter: filter,
+                    filter_type: 'drawer',
+                    index: forloop.index,
+                    expand_filter: expand_filter
+                  %}
+                {%- endfor -%}
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+        <div class="filter-drawer__button-apply__wrapper flex px-4 md:px-7.5 pt-4 md:pb-7.5 md:-mb-7.5 pb-4 -mb-4 bg-gradient shadow-medium">
+          <custom-button>
+            <div 
+              class="filter-drawer__button-apply w-full button button-primary empty:hidden cursor-pointer inline-block py-3 px-4 md:px-6"
+              @click.prevent="_filterRemoveFocus(); isShow = false; $store.xMaximizeDrawer.handleClose();"
+              tabindex="0"
+              @keyup.enter="_filterRemoveFocus(); isShow = false; $store.xMaximizeDrawer.handleClose();"
+            >
+              {% capture button_label %}
+                <span>{{ 'products.facets.apply' | t }} ({{ total_active_values }})</span>
+              {% endcapture %}
+              {% render 'button-label', button_label: button_label, show_button_style: 'primary' %}
+            </div>
+          </custom-button>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  {% comment %} end filter drawer {% endcomment %}
+  {% if results.current_vendor or results.current_type %}
+    <input type="hidden" name="q" value="{{ results.current_vendor }}{{ results.current_type }}">
+  {% endif %}
+</form>
+<script src="{{ 'facets.js' | asset_url }}" defer="defer"></script>

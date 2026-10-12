@@ -1,0 +1,689 @@
+{% style %}
+  .section--{{ section.id }} {
+    padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+    padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+  }
+  @media (min-width: 1024px) {
+    .section--{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+{% endstyle %}
+{{ "product-picker.css" |  asset_url |  stylesheet_tag }}
+{% render 'section-divider' %}
+
+<div class="section--{{ section.id }} color-{{ section.settings.color_scheme_light.id }} relative dark-color-{{ section.settings.color_scheme_dark.id }} {{ section.settings.section_width }} rounded-corners-container">
+  <div class="section-product-picker__container flex items-center">
+    <div class="product-picker-image__wrapper absolute top-0 left-0 w-full h-full rounded-corners-container overflow-hidden">
+      {% liquid
+        assign image_url_mobile = section.settings.image
+        assign image_url_desktop = section.settings.image
+        if section.settings.mobile_image != blank
+          assign image_url_mobile = section.settings.mobile_image
+        endif
+      %}
+      {% assign default_image_alt = 'accessibility.default_alt' | t %}
+      {% if image_url_mobile != blank %}
+        <img
+          srcset="
+            {{ image_url_mobile | image_url: width: 225 }} 225w,
+            {{ image_url_mobile | image_url: width: 350 }} 350w,
+            {{ image_url_mobile | image_url: width: 450 }} 450w,
+            {{ image_url_mobile | image_url: width: 750 }} 750w,
+            {{ image_url_mobile | image_url: width: 900 }} 900w,
+            {{ image_url_mobile | image_url: width: 1100 }} 1100w
+          "
+          loading="lazy"
+          sizes="100vw"
+          src="{{ image_url_mobile | image_url: width: 3840 }}"
+          alt="{{ image_url_mobile.alt | default: default_image_alt | escape }}"
+          class="object-cover lg:hidden h-full w-full image-{{ section.id }}"
+          width="{{ image_url_mobile.width }}"
+          height="{{ image_url_mobile.height }}"
+        >
+      {% endif %}
+      {% if image_url_desktop != blank %}
+        <img
+          srcset="
+            {{ image_url_desktop | image_url: width: 750 }} 750w,
+            {{ image_url_desktop | image_url: width: 900 }} 900w,
+            {{ image_url_desktop | image_url: width: 1100 }} 1100w,
+            {{ image_url_desktop | image_url: width: 1500 }} 1500w,
+            {{ image_url_desktop | image_url: width: 1780 }} 1780w,
+            {{ image_url_desktop | image_url: width: 2000 }} 2000w,
+            {{ image_url_desktop | image_url: width: 3000 }} 3000w,
+            {{ image_url_desktop | image_url: width: 3840 }} 3840w
+          "
+          loading="lazy"
+          sizes="100vw"
+          src="{{ image_url_desktop | image_url: width: 3840 }}"
+          alt="{{ image_url_desktop.alt | default: default_image_alt | escape }}"
+          class="object-cover hidden lg:block h-full w-full image-{{ section.id }}"
+          width="{{ image_url_desktop.width }}"
+          height="{{ image_url_desktop.height }}"
+        >
+      {% endif %}
+      {% if section.index == 1 and section.location == 'template' and image_url_desktop != blank %}
+        <div class="hidden">
+          {{
+            image_url_desktop
+            | image_url: width: 3840
+            | image_tag: loading: 'eager', fetchpriority: 'high', decoding: 'sync', width: image_url_desktop.width, height: image_url_desktop.height, sizes: "100vw", widths: '750, 900, 1100, 1500, 1780, 2000, 3000, 3840', class: 'w-full h-full object-cover', preload: true
+          }}
+          {% if image_url_mobile %}
+            {{ image_url_mobile | image_url: width: 1100 | image_tag: loading: 'eager', fetchpriority: 'high', decoding: 'sync', width: image_url_desktop.width, height: image_url_desktop.height, sizes: '100vw', widths: '375, 450, 750, 900, 1100', class: 'w-full h-full object-cover', preload: true }}
+          {% endif %}
+        </div>
+      {% endif %}
+      <div class="overlay-image absolute scheme-image-overlay transition-opacity top-0 left-0 right-0 bottom-0 opacity-{{ section.settings.overlay_opacity }}"></div>
+    </div>
+    <div class="product-picker-content__wrapper w-full h-full min-h-full flex flex-col gap-x-4 items-center justify-center {% if section.settings.layout_on_large_screens == 'vertical' %} lg:flex-row{% endif %} relative mx-0">
+      <div class="product-picker-text-content__group w-full flex flex-col gap-0.5 empty:hidden text-{{ section.settings.text_alignment }} {% if section.settings.heading != blank or section.settings.text != blank %} heading-content-spacing{% endif %}">
+        {%- if section.settings.heading != blank -%}
+          <{{ section.settings.heading_tag }} class="product-picker-heading heading-{{ section.settings.heading_size }} block">
+            {%
+              render 'text-highlight',
+              id: section.id,
+              text: section.settings.heading,
+              highlight_effect: section.settings.highlight_effect,
+              text_transform: section.settings.text_transform
+            %}
+          </{{ section.settings.heading_tag }}>
+        {%- endif -%}
+        {%- if section.settings.text != blank -%}
+          <div class="product-picker-text text-{{ section.id }} rte">
+            {%
+              render 'text-highlight',
+              id: section.id,
+              text: section.settings.text,
+              highlight_effect: section.settings.highlight_effect,
+              text_transform: section.settings.text_transform
+            %}
+          </div>
+        {%- endif -%}
+      </div>
+      <div class="product-picker-filter__wrapper min-w-[35%] w-full {% if section.settings.layout_on_large_screens == "vertical" %} lg:min-w-[unset] lg:max-w-[450px]{% endif %}">
+        <div class="product-picker-filter__container w-full rounded-corners bg-gradient color-bg-[rgba(var(--color-background))] relative {% if image_url_mobile %} px-4 py-4{% endif %} {% if section.settings.layout_on_large_screens == 'vertical' %} lg:px-8 lg:py-8 {% else %} {% if image_url_desktop %} lg:px-6.5 lg:py-6.5 {% else %} lg:px-0 lg:py-0{% endif %}{% endif %}">
+          <form
+            id="ProductPicker-{{ section.id }}"
+            x-ref="form_{{ section.id }}"
+          >
+            <div
+              class="w-full justify-center gap-2.5 flex pb-[1px] flex-col {% if section.settings.layout_on_large_screens == "horizontal" %}  lg:flex-row lg:items-stretch{% else %} items-start{% endif %}"
+              x-data="xProductPicker('{{ section.settings.price_filter_style }}', '{{ section.id }}')"
+            >
+              <div class="collection-filter w-full flex-1 min-w-0">
+                <select-element
+                  class="product-filter__wrapper w-full h-fit relative dropdown-large rounded-corners"
+                  @maximize:select-element:change="handleCollectionSelectChange($event)"
+                  data-select-type="product-picker"
+                  data-no-require="true"
+                  x-ref="collection_select"
+                >
+                  <div class="relative h-full">
+                    <div
+                      class="select-button h-full color-bg-[rgba(var(--element-background))] cursor-pointer flex justify-center items-center w-full gap-2.5 pt-3.5 pb-3.5 pl-4 pr-4 lg:pt-[15px] lg:pb-[15px] lg:pl-5 lg:pr-5 rounded-corners
+                        {%- if section.blocks.size <= 0 %} cursor-not-allowed opacity-70{% endif -%}"
+                      role="button" tabindex="0" aria-pressed="false" aria-expanded="false" aria-describedby="{{ 'sections.product-picker.select' | t }}"
+                    >
+                      <span class="select-button__label flex items-start flex-auto whitespace-nowrap pr-[22px] rtl:pl-[22px] overflow-hidden">
+                        {% liquid
+                          assign select_collection_label = 'sections.product-picker.choose_a_category' | t
+                          if section.settings.collection_select_placeholder != blank
+                            assign select_collection_label = section.settings.collection_select_placeholder
+                          endif
+                        %}
+                        {{ select_collection_label }}
+                      </span>
+                      <span class="w-3 h-3 shrink-0">{% render 'icon-all', icon: 'icon-caret' %}</span>
+                    </div>
+                    {% if section.blocks.size > 0 %}
+                      <div class="select-options-wrapper scrollbar-visible scrollbar-body max-h-96 color-bg-gradient-[rgba(var(--color-background))] z-40">
+                        <ul
+                          class="select-options"
+                          role="listbox"
+                          aria-label="{{ 'sections.product-picker.select' | t }}"
+                        >
+                          {%- for block in section.blocks -%}
+                            {%- if block.settings.collection != blank -%}
+                              <li
+                                class="select-option rounded-corners"
+                                data-select-value="{{ block.settings.collection_name | default: block.settings.collection.title }}"
+                                data-value="{{ block.settings.collection.url }}"
+                                data-filters='
+                                  [
+                                    {
+                                      "filter": "{{ block.settings.filter_name_1 }}",
+                                      "title": "{{ block.settings.title_1 }}",
+                                      "dropdownFormat": "{{ block.settings.dropdown_option_format_1 }}"
+                                    },
+                                    {
+                                      "filter": "{{ block.settings.filter_name_2 }}",
+                                      "title": "{{ block.settings.title_2 }}",
+                                      "dropdownFormat": "{{ block.settings.dropdown_option_format_2 }}"
+                                    },
+                                    {
+                                      "filter": "{{ block.settings.filter_name_3 }}",
+                                      "title": "{{ block.settings.title_3 }}",
+                                      "dropdownFormat": "{{ block.settings.dropdown_option_format_3 }}"
+                                    }
+                                  ]
+                                '
+                                role="option"
+                                aria-selected="false"
+                                tabindex="-1"
+                              >
+                                {{ block.settings.collection_name | default: block.settings.collection.title }}
+                              </li>
+                            {%- endif -%}
+                          {%- endfor -%}
+                        </ul>
+                      </div>
+                      <label class="hidden">
+                        <input
+                          class="select-option-selected"
+                          value=""
+                        >
+                      </label>
+                    {% endif %}
+                  </div>
+                </select-element>
+              </div>
+              {% for i in (1..3) %}
+                {% liquid
+                  assign setting_label = "filter_placeholder_" | append: i 
+                  assign filter_placeholder = section.settings[setting_label]
+                  if filter_placeholder == blank
+                    assign filter_placeholder = 'sections.product-picker.select' | t
+                  endif
+                %}
+                <div
+                  class="filter-{{ i }}__wrapper collection-filter-wrapper w-full flex-1 min-w-0"
+                  data-filter-placeholder="{{ filter_placeholder }}"
+                  @maximize:select-element:change="handleOptionChange()"
+                >
+                  <div class="h-full">
+                    <div class="relative h-full">
+                      <div
+                        class="select-button h-full disabled-cursor color-bg-[rgba(var(--element-background))] flex justify-center items-center w-full pt-3.5 pb-3.5 pl-4 pr-4 lg:pt-[15px] lg:pb-[15px] lg:pl-5 lg:pr-5{% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+                        aria-expanded="false"
+                        role="button"
+                      >
+                        <span class="select-button__label flex items-start flex-auto whitespace-nowrap pr-[22px] rtl:pl-[22px] overflow-hidden"> {{ filter_placeholder }} </span>
+                        <span class="w-3 h-3 shrink-0">{% render 'icon-all', icon: 'icon-caret' %}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+              <div class="button-wrapper w-full flex-1">
+                <custom-button>
+                  <button
+                    class="button w-full h-full button-primary flex-1"
+                    type="button"
+                    @click="handleClick($event)"
+                    :class="!collectionUrl && 'cursor-not-allowed'"
+                    :aria-disabled="!collectionUrl ? 'true' : 'false'"
+                  >
+                    <span x-show="showResultText === false">{{ 'sections.product-picker.search' | t }}</span>
+                    <span
+                      x-show="showResultText !== false"
+                      x-cloak
+                      x-text="showResultText"
+                    ></span>
+                  </button>
+                </custom-button>
+              </div>
+              <div
+                class="product-picker-loading absolute top-0 left-0 color-bg-[rgba(var(--color-text),0.06)] opacity-30 w-full h-full"
+                x-show="isLoading"
+                x-cloak
+              >
+                <span class="inline-block w-7.5 h-7.5 animate-spin absolute top-[calc(50%-10px)] left-[calc(50%-10px)]">{% render 'icon-all', icon: 'icon-loading' %}</span>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="{{ 'product-picker.js' | asset_url }}" defer></script>
+<script src="{{ 'price-range.js' | asset_url }}" defer></script>
+{% schema %}
+{
+  "name": "t:product_picker.name",
+  "tag": "section",
+  "class": "maximize-section section-product-picker",
+  "disabled_on": {
+    "groups": ["header", "footer", "aside"]
+  },
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:global.text.heading",
+      "default": "Explore Our Collections",
+      "info": "t:global.text.highlight_info"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "t:global.text.heading_size",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:global.size.small"
+        },
+        {
+          "value": "medium",
+          "label": "t:global.size.medium"
+        },
+        {
+          "value": "large",
+          "label": "t:global.size.large"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "default": "h2",
+      "label": "t:global.text.heading_tag",
+      "options": [
+        {
+          "value": "h1",
+          "label": "H1"
+        },
+        {
+          "value": "h2",
+          "label": "H2"
+        },
+        {
+          "value": "h3",
+          "label": "H3"
+        },
+        {
+          "value": "h4",
+          "label": "H4"
+        },
+        {
+          "value": "h5",
+          "label": "H5"
+        },
+        {
+          "value": "h6",
+          "label": "H6"
+        },
+        {
+          "value": "p",
+          "label": "p"
+        }
+      ]
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "t:global.text.text",
+      "default": "<p>Discover a curated selection of products designed to fit your style and needs. Browse our latest arrivals and bestsellers with ease.</p>",
+      "info": "t:global.text.highlight_info"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:global.position.left"
+        },
+        {
+          "value": "center",
+          "label": "t:global.position.center"
+        },
+        {
+          "value": "right",
+          "label": "t:global.position.right"
+        }
+      ],
+      "default": "center",
+      "label": "t:global.alignment.text"
+    },
+    {
+      "type": "select",
+      "id": "highlight_effect",
+      "label": "t:global.text.highlight_effect.label",
+      "options": [
+        {
+          "value": "underline",
+          "label": "t:global.text.highlight_effect.option_1"
+        },
+        {
+          "value": "marker",
+          "label": "t:global.text.highlight_effect.option_2"
+        },
+        {
+          "value": "text-color-change",
+          "label": "t:global.text.highlight_effect.option_3"
+        },
+        {
+          "value": "shadow",
+          "label": "t:global.text.highlight_effect.option_4"
+        }
+      ],
+      "default": "underline"
+    },
+    {
+      "type": "select",
+      "id": "text_transform",
+      "label": "t:global.text.transform.label",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:global.text.transform.none"
+        },
+        {
+          "value": "italic",
+          "label": "t:global.text.transform.italic"
+        },
+        {
+          "value": "uppercase",
+          "label": "t:global.text.transform.uppercase"
+        },
+        {
+          "value": "both",
+          "label": "t:global.text.transform.italic_and_uppercase"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:global.image.image"
+    },
+    {
+      "type": "image_picker",
+      "id": "mobile_image",
+      "label": "t:global.image.mobile_image"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "%",
+      "label": "t:global.overlay.overlay_opacity",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "t:product_picker.settings.navigation_panel.header"
+    },
+    {
+      "type": "select",
+      "id": "layout_on_large_screens",
+      "label": "t:drawer_menu.blocks.drawer_menu.settings.promotions.layout_promotion",
+      "options": [
+        {
+          "value": "horizontal",
+          "label": "t:global.direction.horizontal"
+        },
+        {
+          "value": "vertical",
+          "label": "t:global.direction.vertical"
+        }
+      ],
+      "default": "horizontal"
+    },
+    {
+      "type": "text",
+      "id": "collection_select_placeholder",
+      "label": "t:product_picker.settings.navigation_panel.collection_select_placeholder"
+    },
+    {
+      "type": "text",
+      "id": "filter_placeholder_1",
+      "label": "t:product_picker.settings.navigation_panel.filter_1_placeholder"
+    },
+        {
+      "type": "text",
+      "id": "filter_placeholder_2",
+      "label": "t:product_picker.settings.navigation_panel.filter_2_placeholder"
+    },
+        {
+      "type": "text",
+      "id": "filter_placeholder_3",
+      "label": "t:product_picker.settings.navigation_panel.filter_3_placeholder"
+    },
+    {
+      "type": "select",
+      "id": "price_filter_style",
+      "label": "t:product_picker.settings.navigation_panel.price_filter_style.label",
+      "options": [
+        {
+          "value": "range",
+          "label": "t:product_picker.settings.navigation_panel.price_filter_style.option_1"
+        },
+        {
+          "value": "input",
+          "label": "t:product_picker.settings.navigation_panel.price_filter_style.option_2"
+        },
+        {
+          "value": "both",
+          "label": "t:product_picker.settings.navigation_panel.price_filter_style.option_3"
+        }
+      ],
+      "default": "range"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "select",
+      "label": "t:global.section.section_width.label",
+      "id": "section_width",
+      "options": [
+        {
+          "label": "t:global.section.section_width.option_1",
+          "value": "page-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_2",
+          "value": "full-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_3",
+          "value": "full-width-padded"
+        }
+      ],
+      "default": "full-width"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.top_padding",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.bottom_padding",
+      "default": 0
+    },
+    {
+      "type": "checkbox",
+      "id": "show_section_divider",
+      "label": "t:global.section.show_section_divider",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.colors"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "collection",
+      "name": "t:global.collection.collection",
+      "settings": [
+        {
+          "type": "collection",
+          "id": "collection",
+          "label": "t:global.collection.collection"
+        },
+        {
+          "type": "text",
+          "id": "collection_name",
+          "label": "t:product_picker.blocks.collection.settings.alternative_collection_name"
+        },
+        {
+          "type": "header",
+          "content": "t:product_picker.blocks.collection.settings.filter_1.header"
+        },
+        {
+          "type": "text",
+          "id": "filter_name_1",
+          "label": "t:product_picker.blocks.collection.settings.filter_1.filter_name",
+          "info": "t:product_picker.blocks.collection.settings.filter_1.filter_name_info"
+        },
+        {
+          "type": "text",
+          "id": "title_1",
+          "label": "t:global.text.title"
+        },
+        {
+          "type": "select",
+          "id": "dropdown_option_format_1",
+          "label": "t:product_picker.blocks.collection.settings.filter_1.dropdown_option_format.label",
+          "options": [
+            {
+              "value": "text",
+              "label": "t:product_picker.blocks.collection.settings.filter_1.dropdown_option_format.option_1"
+            },
+            {
+              "value": "small_image",
+              "label": "t:product_picker.blocks.collection.settings.filter_1.dropdown_option_format.option_2"
+            },
+            {
+              "value": "large_image",
+              "label": "t:product_picker.blocks.collection.settings.filter_1.dropdown_option_format.option_3"
+            }
+          ],
+          "default": "text"
+        },
+        {
+          "type": "header",
+          "content": "t:product_picker.blocks.collection.settings.filter_2.header"
+        },
+        {
+          "type": "text",
+          "id": "filter_name_2",
+          "label": "t:product_picker.blocks.collection.settings.filter_1.filter_name",
+          "info": "t:product_picker.blocks.collection.settings.filter_1.filter_name_info"
+        },
+        {
+          "type": "text",
+          "id": "title_2",
+          "label": "t:global.text.title"
+        },
+        {
+          "type": "select",
+          "id": "dropdown_option_format_2",
+          "label": "t:product_picker.blocks.collection.settings.filter_1.dropdown_option_format.label",
+          "options": [
+            {
+              "value": "text",
+              "label": "t:product_picker.blocks.collection.settings.filter_1.dropdown_option_format.option_1"
+            },
+            {
+              "value": "small_image",
+              "label": "t:product_picker.blocks.collection.settings.filter_1.dropdown_option_format.option_2"
+            },
+            {
+              "value": "large_image",
+              "label": "t:product_picker.blocks.collection.settings.filter_1.dropdown_option_format.option_3"
+            }
+          ],
+          "default": "text"
+        },
+        {
+          "type": "header",
+          "content": "t:product_picker.blocks.collection.settings.filter_3.header"
+        },
+        {
+          "type": "text",
+          "id": "filter_name_3",
+          "label": "t:product_picker.blocks.collection.settings.filter_1.filter_name",
+          "info": "t:product_picker.blocks.collection.settings.filter_1.filter_name_info"
+        },
+        {
+          "type": "text",
+          "id": "title_3",
+          "label": "t:global.text.title"
+        },
+        {
+          "type": "select",
+          "id": "dropdown_option_format_3",
+          "label": "t:product_picker.blocks.collection.settings.filter_1.dropdown_option_format.label",
+          "options": [
+            {
+              "value": "text",
+              "label": "t:product_picker.blocks.collection.settings.filter_1.dropdown_option_format.option_1"
+            },
+            {
+              "value": "small_image",
+              "label": "t:product_picker.blocks.collection.settings.filter_1.dropdown_option_format.option_2"
+            },
+            {
+              "value": "large_image",
+              "label": "t:product_picker.blocks.collection.settings.filter_1.dropdown_option_format.option_3"
+            }
+          ],
+          "default": "text"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:product_picker.name",
+      "category": "t:global.category.products",
+      "blocks": [
+        {
+          "type": "collection"
+        },
+        {
+          "type": "collection"
+        },
+        {
+          "type": "collection"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

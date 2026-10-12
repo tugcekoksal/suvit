@@ -1,0 +1,53 @@
+{%- liquid
+  assign mode = settings.login_to_view_price
+  assign can_view = false
+
+  if mode == 'none'
+    assign can_view = true
+  elsif customer == blank
+    assign can_view = false
+  else
+      assign has_tags_to_check = true
+
+    if mode == 'b2b' and customer.b2b?
+      assign can_view = true
+    else
+      assign tag_list = settings.login_to_view_price_customer_tags | split: ','
+      assign has_tags_to_check = false
+      for tag_item in tag_list
+        assign str_tag_item = tag_item | strip | downcase
+        if str_tag_item != blank 
+          assign has_tags_to_check = true
+          break
+        endif
+      endfor
+
+      if has_tags_to_check == false
+        if mode == 'logged_in'
+          assign can_view = true
+        endif
+      else
+        assign has_valid_tag = false
+        for customer_tag in customer.tags
+          assign str_customer_tag = customer_tag | strip | downcase
+          for tag_item in tag_list
+            assign str_tag_item = tag_item | strip | downcase
+            if str_customer_tag == str_tag_item
+              assign has_valid_tag = true
+              break
+            endif
+          endfor
+          
+          if has_valid_tag
+            break
+          endif
+        endfor
+
+        if has_valid_tag
+          assign can_view = true
+        endif
+      endif
+    endif
+  endif
+-%}
+{{- can_view -}}

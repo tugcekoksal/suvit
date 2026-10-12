@@ -1,0 +1,101 @@
+{% comment %}
+  Accepts:
+     - product: {Object} Product Object
+     - variant: {Object} Variant Object
+     - is_show_preorder: {Boolean} Whether the current variant is pre-orderable (only applied for single-variant products)
+     - is_preorder_product: {Boolean} Every orderable variant is pre-order. Shows the pre-order
+       status regardless of variant count; the caller works this out.
+
+   Usage:
+  {% render 'pc-inventory-status',
+  	product: product
+  %}
+{% endcomment %}
+{% liquid
+  assign low_stock_threshold = settings.low_stock_threshold | plus: 0
+  assign low_stock_message = settings.low_stock_message
+  assign in_stock_message = settings.in_stock_message
+  if customer != blank and customer.b2b?
+    assign low_stock_threshold = settings.b2b_low_stock_threshold | plus: 0
+    assign low_stock_message = settings.b2b_low_stock_message
+    assign in_stock_message = settings.b2b_in_stock_message
+  endif
+%}
+
+{% liquid
+  assign inventory_status = 'in-stock'
+  assign track_inventory_status = true
+  assign inventory_quantity = 0
+  for variant in product.variants
+    if variant.inventory_management == 'shopify'
+      assign inventory_quantity = inventory_quantity | plus: variant.inventory_quantity
+      if variant.inventory_policy == "continue"
+        assign inventory_policy = 'continue'
+      endif
+    else
+      assign track_inventory_status = false
+    endif
+  endfor
+
+  comment
+    Pre-order is a merchant override of the stock wording, so it outranks every count below.
+  endcomment
+  assign show_preorder_status = false
+  if is_preorder_product
+    assign show_preorder_status = true
+  elsif product.has_only_default_variant and is_show_preorder
+    assign show_preorder_status = true
+  endif
+
+  if show_preorder_status
+    assign inventory_status = 'pre-order'
+    assign inventory_text = settings.pre_order_status_label
+    if inventory_text == blank
+      assign inventory_text = 'products.product.inventory_status.in_stock' | t
+    endif
+  elsif inventory_quantity > 0
+    if inventory_quantity <= low_stock_threshold
+      assign inventory_status = 'low-stock'
+      assign inventory_text = 'products.product.inventory_status.low_stock' | t
+
+      if low_stock_message != blank
+        assign inventory_text = low_stock_message | replace: '{qty}', inventory_quantity
+      endif
+    else
+      assign inventory_status = 'in-stock'
+      assign inventory_text = 'products.product.inventory_status.in_stock' | t
+      if in_stock_message != blank
+        assign inventory_text = in_stock_message | replace: '{qty}', inventory_quantity
+      endif
+    endif
+  else
+    if inventory_policy == 'continue'
+      assign inventory_status = 'out-of-stock-continue-selling'
+      if settings.out_of_stock_continue_selling_label != blank
+        assign inventory_text = settings.out_of_stock_continue_selling_label
+      else
+        assign inventory_text = 'products.product.inventory_status.out_of_stock_continue_selling' | t
+      endif
+    else
+      assign inventory_status = 'out-of-stock'
+      assign inventory_text = 'products.product.inventory_status.out_of_stock' | t
+    endif
+  endif
+  unless track_inventory_status or inventory_status == 'pre-order'
+    assign inventory_status = 'in-stock'
+    assign inventory_text = 'products.product.inventory_status.in_stock' | t
+  endunless
+%}
+
+<div
+  class="product-info__inventory-status anm-fade-element" data-fade-on-intersect
+  data-inventory-status="{{ inventory_status }}"
+>
+  <span
+    class="product-info__inventory-label text-small flex items-center gap-1.5 rtl:flex-row-reverse rtl:pr-1 ltr:pl-1"
+    data-inventory-status="{{ inventory_status }}"
+  >
+    <span class="product-info__inventory-dot relative after:animate-ping after:bg-inherit after:absolute after:w-full after:h-full after:rounded-full after:top-0 after:left-0"></span>
+    <span class="flex-1 p-break-words">{{ inventory_text }}</span>
+  </span>
+</div>

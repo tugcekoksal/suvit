@@ -1,0 +1,415 @@
+{% comment %}
+  Renders cart drawer
+
+  Usage:
+  {% render 'cart-drawer' %}
+{% endcomment %}
+
+{% liquid
+  assign color_schemes_light = settings.color_schemes_light | append: ''
+  assign color_schemes_light = settings.color_schemes | where: 'id', color_schemes_light | first
+  assign color_schemes_dark = settings.color_schemes_dark | append: ''
+  assign color_schemes_dark = settings.color_schemes | where: 'id', color_schemes_dark | first
+%}
+
+{%- liquid
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  else
+    assign is_rtl = false
+  endif
+
+  assign is_rounded_conners = false
+  if settings.edges_type == 'rounded_corners'
+    assign is_rounded_conners = true
+  endif
+-%}
+<style>
+  cart-drawer[loading] .cart-drawer__items__wrapper {
+    pointer-events: none;
+  }
+
+  #CartDrawer__Wrapper {
+    display: none;
+    overflow: hidden;
+  }
+
+  #CartDrawer__Wrapper.is-visible {
+    display: block;
+  }
+
+  @media (min-width: 768px) {
+    #CartDrawer__Wrapper.is-visible {
+      display: flex;
+    }
+  }
+
+  #CartDrawer__Container {
+    transition: opacity 300ms ease, transform 300ms ease;
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  @media (min-width: 768px) {
+    #CartDrawer__Container {
+      transform: translateX(33.333%);
+    }
+    cart-drawer[data-rtl="true"] #CartDrawer__Container {
+      transform: translateX(-33.333%);
+    }
+  }
+
+  cart-drawer[open] #CartDrawer__Container {
+    opacity: 1;
+    transform: none;
+  }
+
+  #CartDrawer__Upsell {
+    display: none;
+    transition: opacity 300ms ease, transform 300ms ease;
+    opacity: 0;
+    transform: translateY(30%);
+  }
+
+  #CartDrawer__Upsell.is-visible {
+    display: flex;
+  }
+
+  @media (min-width: 768px) {
+    #CartDrawer__Upsell {
+      transform: translateX(10%);
+    }
+    cart-drawer[data-rtl="true"] #CartDrawer__Upsell {
+      transform: translateX(-10%);
+    }
+  }
+
+  cart-drawer[upsell-open] #CartDrawer__Upsell {
+    opacity: 1;
+    transform: none;
+  }
+</style>
+<cart-drawer
+  id="CartDrawer"
+  data-quote-root="cart-drawer"
+  data-section-id="{{ section.id }}"
+  data-rtl="{{ is_rtl }}"
+  class="cart-wrapper-{{ section.id }} color-{{ color_schemes_light.id }} dark-color-{{ color_schemes_dark.id }}"
+  {% if settings.mini_cart_enable_upsell %}data-upsell-script="{{ 'cart-drawer-upsell.js' | asset_url }}"{% endif %}
+  {% if settings.enable_estimate_shipping or settings.auto_calculate_shipping %}data-estimate-shipping-script="{{ 'estimate-shipping-rate.js' | asset_url }}"{% endif %}
+  {% if settings.cart_enable_terms_and_conditions %}data-cart-term-script="{{ 'cart-term.js' | asset_url }}"{% endif %}
+  {% if settings.show_cart_custom_field and settings.cart_custom_field_label != blank %}data-cart-fields-script="{{ 'cart-fields.js' | asset_url }}"{% endif %}
+  {% if settings.cart_enable_featured_discount %}data-coupon-code-script="{{ 'coupon-code.js' | asset_url }}"{% endif %}
+>
+  <div
+    id="CartDrawer__Wrapper"
+    class="drawer__wrapper cart-drawer__wrapper"
+    tabindex="0"
+  >
+    <div
+      id="CartDrawer__Overlay"
+      class="drawer__overlay cart-drawer__overlay"
+      data-close-drawer
+    ></div>
+
+    <div
+      class="cart-drawer__container drawer__container transform pt-0 pb-0 md:pb-0 md:!w-[487px] flex flex-col md:overflow-y-visible outline-none"
+      id="CartDrawer__Container"
+      tabindex="0"
+      role="dialog"
+      aria-modal="true"
+      aria-label="{{ 'sections.cart.title' | t }}"
+    >
+      <div class="modal-title-container cart-drawer__padding-x">
+        <div class="modal-title-wrapper">
+          <div class="grow flex items-center">
+            <p class="cart-drawer__title relative h4 flex-auto w-fit">{{ 'sections.cart.title' | t }}</p>
+          </div>
+  
+          <button
+            id="CloseCart"
+            class="modal-title__button-close"
+            data-close-drawer
+            aria-label="{{ 'accessibility.close' | t }}"
+          >
+            <span class="button__close icon-close-large-desktop icon-close-large-mobile">{% render 'icon-all', icon: 'icon-close' %}</span>
+          </button>
+        </div>
+      </div>
+
+      {% comment %}<div class="cart-drawer__header cart-drawer__padding-x pb-2.5 md:pb-4 md:pt-5 flex flex-col rounded-t-[var(--border-radius-drawer)] border-b border-solid sm:shadow-cart-drawer-header">{% endcomment %}
+      {% if cart != empty and settings.enable_free_shipping or settings.estimate_show_in_cart == 'show_cart' and settings.message_estimate_cart != blank %}
+        {% capture shipping_and_delivery_cart %}
+          {% render 'shipping-and-delivery-cart', container_id: '#CartDrawer__ShippingDelivery', is_cart_drawer: true %}
+        {% endcapture %}
+        {% assign shipping_and_delivery_cart = shipping_and_delivery_cart | strip %}
+        {% if shipping_and_delivery_cart != '' %}
+          <div
+            id="CartDrawer__ShippingDelivery"
+            class="cart__shipping-and-delivery-wrapper text-small cart-drawer__padding-x py-3 md:py-4 {% unless cart == empty %} sm:shadow-cart-drawer-header{% endunless %} empty:hidden"
+          >
+            {{- shipping_and_delivery_cart -}}
+          </div>
+        {% endif %}
+      {% endif %}
+
+      {%- if cart == empty -%}
+        <div class="cart-drawer__empty__wrapper pl-6 pr-6 flex flex-col justify-center gap-4 md:gap-6 items-center text-center pt-20 pb-20 border-t border-solid color-border-[rgba(var(--color-line-and-border))] {% if is_rounded_conners %} rounded-t-[10px]{% endif %}">
+          <div class="w-12 md:w-w-18 color-text-[rgba(var(--color-icon-header))] opacity-60">
+            {% render "icon-cart", icon: 'icon-cart' %}
+          </div>
+          <p class="">{{ 'sections.cart.empty' | t }}</p>
+          <div class="text-center">
+            <custom-button>
+              <a
+                href="{{ settings.cart_continue_shopping_link }}"
+                class="button button-primary relative cursor-pointer"
+              >
+                {{ 'general.continue_shopping' | t }}
+              </a>
+            </custom-button>
+          </div>
+        </div>
+      {% else %}
+        <div class="cart-drawer__body scrollbar-body scrollbar-visible overflow-y-auto lg:overflow-y-hidden flex flex-col flex-auto border-t border-solid {% if is_rounded_conners %} rounded-t-[10px]{% endif %}">
+          <div class="cart-drawer__items__wrapper flex-none overflow-y-auto overflow-x-hidden scrollbar-body scrollbar-visible md:flex-auto cart-drawer__padding-x {% if is_rounded_conners %} rounded-t-[10px] clip-path-[10px]{% endif %}">
+            <form
+              action="{{ routes.cart_url }}"
+              method="post"
+              id="CartDrawerForm"
+              class="relative"
+            >
+              {% render 'cart-drawer-items', is_rounded_conners: is_rounded_conners, is_rtl: is_rtl %}
+            </form>
+          </div>
+
+          {% if settings.mini_cart_enable_upsell %}
+            {% liquid
+              assign first_cart_item = cart.items | first
+              assign product_id_upsell = first_cart_item.product.id
+            %}
+            <cart-drawer-upsell
+              data-section-id="cart-upsell-recommendations"
+              data-product-upsell-id="{{ product_id_upsell }}"
+              data-limit="10"
+              data-intent="related"
+              data-max-items="{{ settings.cart_upsell_number_of_product_shown }}"
+            >
+              <div
+                class="cart-drawer__upsell__wrapper bg-gradient z-10 flex flex-col h-fit lg:h-full lg:absolute border-t lg:border-t-0 border-solid color-border-[rgba(var(--color-line-and-border))] w-full lg:w-[367px] {% if is_rtl %} lg:left-[489px]{% else %} lg:right-[489px]{% endif %} lg:h-full lg:top-0 {% if is_rounded_conners %} rounded-[10px] lg:rounded-[20px]{% endif %}"
+                id="CartDrawer__Upsell"
+              >
+                {% if settings.cart_enable_featured_discount or settings.enable_estimate_shipping or settings.enable_share_cart %}
+                  <div
+                    id="CartDrawer__Upsell__Overlay"
+                    class="absolute color-bg-[rgba(var(--color-overlay))] opacity-80 top-0 right-0 bottom-0 left-0 z-30 hidden {% if settings.edges_type == 'rounded_corners' %} rounded-[var(--border-radius-drawer)]{% endif %}"
+                    data-upsell-overlay
+                  ></div>
+                {% endif %}
+
+                <div class="pt-4 pb-2.5 md:py-4">
+                  <div class="cart-drawer-upsell__header cart-drawer__padding-x flex flex-row gap-2 items-center md:min-h-[44px] md:py-0">
+                    <p class="relative flex-auto h4">{{ settings.cart_upsell_section_label }}</p>
+  
+                    <div class="cart-drawer-upsell__slider__wrapper slider-nav__wrapper flex lg:hidden">
+                      <div class="cart-drawer-upsell__nav h-6 w-6 cursor-pointer relative">
+                        <div class="absolute p-1.5 {% if is_rtl %}-rotate-90{% else %}rotate-90{% endif %}">
+                          {% render 'icon-all', icon: 'icon-caret' %}
+                        </div>
+                      </div>
+                      <div class="cart-drawer-upsell__nav slider-nav-next h-6 w-6  cursor-pointer relative">
+                        <div class="absolute p-1.5 {% if is_rtl %}rotate-90{% else %}-rotate-90{% endif %}">{% render 'icon-all', icon: 'icon-caret' %}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="h-full block lg:overflow-y-auto overflow-x-hidden lg:border-t border-solid color-border-[rgba(var(--color-line-and-border))] {% if is_rounded_conners %} rounded-t-[10px] rounded-b-[20px]{% endif %}"
+                >
+                  <div
+                    id="CartDrawer__Upsell__Wrapper"
+                    class="cart-drawer-upsell__wrapper cart-drawer__padding-x product-recommendations__slider swiffy-slider lg:!swiffy-slider slider-item-1 overflow-x-auto pb-3 lg:max-h-[calc(100%-30px)] scrollbar-body scrollbar-visible"
+                    x-intersect.once="$store.xSwiffy.load($el, {
+                        'effect': 'slide',
+                        'mediaQuery': 'max',
+                        'customElement': {
+                          'sliderNavs': '#CartDrawer__Upsell .cart-drawer-upsell__nav'
+                        },
+                        'isLoop': false,
+                        'breakPoints': {
+                          '1024': {
+                            'slidesPerView': 1
+                          }
+                        }
+                      })
+                    "
+                  >
+                    <div
+                      class="slider-container lg:grid-flow-row lg:gap-0 lg:overflow-visible"
+                      id="CartDrawer__Upsell__Container"
+                    >
+                      {% render 'cart-drawer-upsell' %}
+                    </div>
+                    <div class="hidden">
+                      {% render "progress-bar", show_on_mobile: false %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </cart-drawer-upsell>
+          {% endif %}
+
+          {% render 'cart-drawer-custom-accordion', is_rounded_conners: is_rounded_conners, is_rtl: is_rtl %}
+
+          {% if cart.items_subtotal_price > cart.total_price %}
+            {% liquid
+              assign is_show_custom_fields = false
+
+              if settings.show_cart_custom_field and settings.cart_custom_field_label != blank
+                assign is_show_custom_fields = true
+              endif
+            %}
+            <div class="cart-drawer__subtotal-wrapper cart-drawer__padding-x {% unless settings.cart_enable_featured_discount or settings.enable_estimate_shipping or settings.cart_show_note or settings.enable_share_cart or is_show_custom_fields %} border-t border-solid color-border-[rgba(var(--color-line-and-border))] {% if is_rounded_conners %} rounded-t-[10px]{% endif %}{% endunless %}">
+              {% liquid
+                assign money_cart_subtotal_price = cart.items_subtotal_price | money
+                if settings.currency_code_enable
+                  assign money_cart_subtotal_price = cart.items_subtotal_price | money_with_currency
+                endif
+              %}
+              <div class="flex text-medium color-text-[rgba(var(--color-heading),0.8)] pt-3 pb-3 font-base-heading">
+                <p class="cart-drawer__subtotal-label flex-auto font-base">{{ 'sections.cart.subtotal' | t }}</p>
+                <p class="cart-drawer__subtotal h5 md:h6">
+                  <span class="color-text-[rgba(var(--color-heading),0.8)]">{{ money_cart_subtotal_price }}</span>
+                </p>
+              </div>
+            </div>
+
+            {% if cart.cart_level_discount_applications.size > 0 %}
+              {% liquid
+                assign total_discount = 0
+                for cart_item_discount in cart.cart_level_discount_applications
+                  assign total_discount = total_discount | plus: cart_item_discount.total_allocated_amount
+                endfor
+                assign total_discount_price = total_discount | money
+                if settings.currency_code_enable
+                  assign total_discount_price = total_discount | money_with_currency
+                endif
+              %}
+              <div class="cart-drawer__list-discounts-wrapper cart__list-discounts cart-drawer__padding-x pb-3">
+                <div
+                  class="w-full accordion color-bg-[rgba(var(--color-sale-price),0.06)] pt-2.5 pb-2.5 pl-3 pr-3{% if is_rounded_conners %} rounded-md{% endif %}"
+                  x-data="{open: false}"
+                >
+                  <div
+                    class="cart-drawer__list-discounts-header flex relative flex-row gap-2.5 items-center w-full cursor-pointer text-medium color-text-[rgba(var(--color-heading),0.8)]"
+                    @click="open = !open"
+                    @keyup.enter="open = !open"
+                    tabindex="0"
+                  >
+                    <div class="cart-drawer__list-discounts-title flex-auto p-break-words font-base-heading">{{ 'sections.cart.discount' | t }}</div>
+                    <div class="cart-drawer__list-discounts-total flex flex-row gap-2 font-base-heading">
+                      <div class="h5 md:h6"><span class="color-text-[rgba(var(--color-sale-price))]">{{ total_discount_price }}</span></div>
+                      <div
+                        class="w-2.5 min-w-[10px] relative duration-500"
+                        :class="open ? 'rotate-180' : 'rotate-0'"
+                      >
+                        {% render 'icon-all', icon: 'icon-caret' %}
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    x-show="open"
+                    x-collapse
+                    x-cloak
+                  >
+                    <div
+                      class="cart-drawer__list-discounts-container flex flex-col pt-1.5 pb-1.5 text-x-small {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+                      role="list"
+                      aria-label="{{ 'customer.order.discount' | t }}"
+                    >
+                      {%- for discount in cart.cart_level_discount_applications -%}
+                        {% liquid
+                          assign amount_discount_price = discount.total_allocated_amount | money
+                          if settings.currency_code_enable
+                            assign amount_discount_price = discount.total_allocated_amount | money_with_currency
+                          endif
+                        %}
+                        <div class="cart-drawer___discount flex flex-row w-full items-center {% if is_rtl %} {% else %} {% endif %}" role="listitem">
+                          <div class="flex-auto flex flex-row gap-1.5">
+                            <div
+                              class="w-4"
+                            >
+                              {%- render 'icon-all', icon: 'icon-discount' -%}
+                            </div>
+                            <div
+                              class="discount-title"
+                              data-discount-title="{{ discount.title | escape }}"
+                            >
+                              {{ discount.title }}
+                            </div>
+                          </div>
+                          <div>-{{ amount_discount_price }}</div>
+                        </div>
+                      {%- endfor -%}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+          {% endif %}
+          {% liquid
+            assign discount_codes = cart.cart_level_discount_applications | where: 'type', 'discount_code' | map: 'title'
+              for item in cart.items
+                for allocation in item.line_level_discount_allocations
+                  if allocation.discount_application.type == 'discount_code'
+                    assign discount_codes = item.line_level_discount_allocations | slice: forloop.index0 | map: 'discount_application' | map: 'title' | concat: discount_codes
+                  endif
+                endfor
+              endfor
+
+            assign discount_codes = discount_codes | uniq
+          %}
+          {% if discount_codes.size > 0  %}
+            <coupon-code data-section-id="{{ section.id }}" class="cart-drawer__padding-x pb-4">
+              <ul class="cart-discount__codes flex md:gap-x-1 gap-y-1 gap-x-[7px] flex-wrap">
+                {% for discount_code in discount_codes %}
+                  <li
+                    class="cart-discount__code-item w-fit color-bg-[rgba(var(--color-sale-price),0.06)] py-[5px] px-2.5 flex gap-2{% if is_rounded_conners %} rounded-md{% endif %}"
+                    data-discount-code="{{ discount_code }}"
+                  >
+                    {% assign discount_code_safe = discount_code | escape | replace: "&lt;", "<" | replace: "&gt;", ">" | replace: "&amp;", "&" %}
+                    {% assign discount_code_truncated = discount_code_safe | truncate: 23 , '...' %}
+                    <p class="cart-discount__code-title" data-discount-title="{{ discount_code | escape }}">
+                      {{ discount_code_truncated }}
+                    </p>
+                    <button 
+                      type="button"
+                      data-action="remove" 
+                      data-remove-code="{{ discount_code | escape }}"
+                      class="inline-flex items-center justify-center py-[5px] px-2.5 -mx-2.5 -my-[5px] relative cursor-pointer color-text-[rgba(var(--color-text))] transition-opacity duration-200 min-w-7 min-h-7 shrink-0"
+                      aria-label="Remove discount {{ discount_code | escape }}"
+                    >
+                      <span class="discount-icon-remove w-2.5 h-2.5 md:w-3 md:h-3">
+                       {% render 'icon-all', icon: 'icon-close' %}
+                      </span>
+                      <span class="discount-spinner animate-spin w-4 h-4 md:w-5 md:h-5 absolute inset-0 m-auto invisible">
+                        {% render 'icon-all', icon: 'icon-loading' %}
+                      </span>
+                    </button>
+                  </li>
+                {% endfor %}
+              </ul>
+              <p class="discount-message-failure flash-message color-text-[rgba(var(--error-message-color))] mt-2 w-full px-0 hidden">{{ 'general.cart.removeDiscountFailure' | t | escape }}</p>
+            </coupon-code>
+          {% endif %}
+
+          {% render 'cart-drawer-summary', is_rounded_conners: is_rounded_conners %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</cart-drawer>
+<script src="{{ 'cart-drawer.js' | asset_url }}" defer></script>
+
+
+

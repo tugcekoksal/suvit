@@ -1,0 +1,374 @@
+{% comment %}
+  ============================================================
+  HEADER SEARCH — unified snippet
+  Params:
+    type    — "desktop" | "mobile"
+    minimal — true = icon-only trigger
+
+  Layout is resolved internally from section.settings:
+    desktop_search_popup_layout == 'full'
+    show_mobile_search_bar → show_search_bar_on_mobile
+
+  use_full_layout = true  → real full layout
+  use_full_layout = false → minimised / compact popup layout
+  ============================================================
+{% endcomment %}
+
+{% if settings.search_bar_enabled != 'none' %}
+  {% liquid
+    assign search_type = ''
+    if settings.predictive_search_show_products
+      assign search_type = search_type | append: ',product'
+    endif
+    if settings.predictive_search_show_articles
+      assign search_type = search_type | append: ',article'
+    endif
+    if settings.predictive_search_show_collections
+      assign search_type = search_type | append: ',collection'
+    endif
+    if settings.predictive_search_show_pages
+      assign search_type = search_type | append: ',page'
+    endif
+    assign search_type = 'query' | append: search_type
+
+    assign is_search_refined = false
+    if settings.search_bar_enabled == 'refined'
+      assign is_search_refined = true
+    endif
+
+    assign responsive_search = false
+    if section.settings.logo_position == 'logo-on-top'
+      if section.settings.section_width == 'page-width' and settings.page_width < 1200
+        assign minimal = true
+      else
+        assign responsive_search = true
+      endif
+    endif
+
+    assign use_full_layout = false
+    if type == 'desktop' and section.settings.desktop_search_popup_layout == 'full'
+      assign use_full_layout = true
+    endif
+    if type == 'mobile' and section.settings.show_search_bar_on_mobile == false
+      assign use_full_layout = true
+    endif
+  %}
+
+  <div
+    x-data="xModalSearch('{{ search_type }}', {{ settings.search_desktop_maximum_results }}, {{ settings.search_mobile_maximum_results }}, '{{ 'templates.search.product_type_default' | t }}')"
+    class="header-search flex lg:flex items-center{% unless minimal %} justify-center{% endunless %}{% if use_full_layout %} {% if responsive_search %} md:justify-start 2xl:justify-center{% endif %}{% endif %} color-{{ section.settings.search_color_scheme_light }} dark-color-{{ section.settings.search_color_scheme_dark }}"
+    @keydown.escape="close(); $store.xMaximizeDrawer.handleClose();"
+    @click.away="isFocusedSearchForm && close()"
+  >
+    {% comment %} Icon trigger — full layout responsive fallback {% endcomment %}
+    {% if use_full_layout or is_compact %}
+      {% if minimal or responsive_search %}
+        <a
+          id="SearchOpen"
+          href="{{ routes.search_url }}"
+          aria-label="{{ 'general.search.search' | t }}"
+          role="button"
+          class="flex items-center px-1 py-1{% if responsive_search %} 2xl:hidden{% endif %} cursor-pointer justify-center focus-inset md:relative md:top-auto bg-none rtl:right-0 rtl:md:right-auto ltr:left-0 ltr:md:left-auto"
+          @click.prevent="open();$store.xHeaderMenu.hideMenu('main-menu-item');"
+        >
+          <span class="icon w-5 h-5 lg:w-6 lg:h-6 translate-y-0">{% render 'icon-all', icon: 'icon-search' %}</span>
+        </a>
+      {% endif %}
+    {% endif %}
+
+    <div
+      id="FormSearch__{{ type }}"
+      x-ref="open_search"
+      {% if use_full_layout %}
+        {% if minimal %}
+          class="form-search-wrapper full-layout search-popup fixed flex flex-col md:absolute left-0 top-0 origin-top invisible h-full opacity-0 ease-in-out overflow-hidden"
+        {% else %}
+          class="form-search-wrapper full-layout w-full"
+        {% endif %}
+        :class="isFocusedSearchForm ? 'is-open' : ''"
+      {% else %}
+        {% if minimal %}
+          class="form-search-wrapper search-popup relative hidden md:flex flex-col md:absolute left-0 top-0 origin-top h-full ease-in-out overflow-hidden invisible"
+        {% else %}
+          class="form-search-wrapper search-bar-mobile w-full"
+        {% endif %}
+        :class="isFocusedSearchForm ? '!visible !block is-open' : ''"
+      {% endif %}
+    >
+      {% if use_full_layout %}
+        <div
+          class="fixed top-0 bottom-0 right-0 left-0 duration-500 color-bg-[rgba(var(--color-background))] bg-gradient"
+          :class="isFocusedSearchForm ? 'opacity-100 delay-500' : 'opacity-0 invisible'"
+          x-cloak
+        ></div>
+      {% else %}
+        {% comment %} Handle top for search in transparent header and normal header {% endcomment %}
+        <div
+          class="header-search__scrim--compact fixed {% if transparent %} top-[var(--header-bottom-position)]{% else %} top-0{% endif %} lg:top-0 -z-10 lg:z-30 bottom-0 right-0 left-0 transition-opacity duration-500 cursor-pointer"
+          :class="isFocusedSearchForm ? '' : 'opacity-0 invisible'"
+          x-cloak
+          x-on:click="close(); $store.xFocusElement.removeTrapFocus();"
+        ></div>
+      {% endif %}
+
+      {% if use_full_layout %}
+        <div class="w-full flex justify-end">
+          <button
+            id="SearchClose__{{ type }}"
+            class="focus-inset cursor-pointer modal__button-close hidden"
+            x-on:click="close(); $store.xFocusElement.removeTrapFocus();"
+            x-ref="close_button"
+            :class="isFocusedSearchForm && '!block'"
+            aria-label="{{ 'accessibility.close' | t }}"
+          >
+            <span class="button__close icon-close-large-desktop icon-close-large-mobile">{% render 'icon-all', icon: 'icon-close' %}</span>
+          </button>
+        </div>
+      {% endif %}
+
+      <div
+        class="search-box-wrapper relative{% unless use_full_layout %} mt-3 lg:mt-0{% endunless %} md:top-0{% if use_full_layout %} {% if responsive_search %} hidden 2xl:block{% endif %}{% endif %}{% if settings.predictive_search_enabled %} w-full{% endif %}"
+        data-loading-text="{{ 'accessibility.loading' | t }}"
+        {% if use_full_layout %}
+          :class="isFocusedSearchForm && 'page-width !block'"
+        {% endif %}
+        {% if use_full_layout == false and type == 'mobile' %}@click="$store.xMobileNav.show = false;"{% endif %}
+      >
+        <div
+          {% unless use_full_layout %}
+            id="SearchBarFixed__{{ type }}"
+          {% endunless %}
+          x-ref="search_bar_fixed"
+          class="mx-auto w-full relative{% unless use_full_layout %} header-search__bar--compact z-50 px-0 py-0 lg:py-2 lg:px-2 rounded-corners{% endunless %}"
+          {% if use_full_layout %}
+            :class="isFocusedSearchForm && 'border-b pb-2 md:pb-5'"
+          {% else %}
+            :class="isFocusedSearchForm ? 'lg:!fixed left-0 right-0 search-expand-open' : 'search-expand-closed'"
+          {% endif %}
+        >
+          <div
+            class="header-search-inner h-full w-full field flex items-center border rounded-corners{% unless use_full_layout %} color-bg-[rgba(var(--color-background))] py-1 lg:py-1.5{% if is_search_refined %} px-1 lg:px-1.5{% endif %}{% else %} py-1.5{% if is_search_refined %} px-1.5{% endif %}{% endunless %}"
+            {% if use_full_layout %}
+              :class="isFocusedSearchForm && 'border-none'"
+            {% endif %}
+          >
+            {% if is_search_refined %}
+              <select-element
+                class="header-search-refined dropdown-large rtl:ml-5 ltr:mr-5 {% unless use_full_layout %} max-w-[40%] {% endunless %}"
+                data-picker-type="dropdown"
+              >
+                <div class="select relative">
+                  <div
+                    class="select-button rounded-corners relative flex justify-between items-center rounded-corners color-bg-[rgba(var(--color-text),0.06)] color-text-[rgba(var(--color-text))] text-small rtl:text-right ltr:text-left cursor-pointer max-w-full {% if use_full_layout %} w-28 lg:w-36 xl:w-[10.5rem] gap-4 lg:gap-5 py-2 px-4 md:py-1.5 md:px-3{% else %} w-[120px] lg:w-36 xl:w-[10.5rem] gap-2 lg:gap-5 py-2 px-3 md:py-1.5 md:px-3{% endif %}"
+                    role="button"
+                    tabindex="0"
+                    aria-expanded="false"
+                    aria-controls="CategoriesList"
+                    aria-describedby="CategoriesHeading"
+                    {% if use_full_layout %}
+                      x-bind:class="isFocusedSearchForm && 'md:px-5 md:py-3'"
+                    {% endif %}
+                    @click="fetchRefinedSearch(); $store.xHeaderMenu.hideMenu('main-menu-item')"
+                  >
+                    <span
+                      class="select-button__label line-clamp-1 flex-1 p-break-words"
+                      data-section-id="{{ section.id }}"
+                    >
+                      {{ 'templates.search.product_type_default' | t }}
+                    </span>
+                    <span class="select-arrow transition-transform w-2.5 h-2.5 flex">{% render 'icon-all', icon: 'icon-caret' %}</span>
+                    <div
+                      class="absolute inset-0 flex justify-center items-center color-bg-[rgba(var(--color-overlay),0.2)] rounded-corners"
+                      x-show="loadingProductType === 'loading'"
+                      x-cloak
+                    >
+                      <span class="w-4 h-4 right-3 animate-spin left-1/2">{% render 'icon-all', icon: 'icon-loading' %}</span>
+                    </div>
+                  </div>
+                  <div
+                    class="select-options-wrapper scrollbar-visible scrollbar-body color-bg-gradient-[var(--gradient-background)]"
+                    data-adjust-position="false"
+                  >
+                    <ul
+                      role="listbox"
+                      class="select-options hidden"
+                      aria-label="CategoriesList"
+                    >
+                      <li
+                        tabindex="-1"
+                        class="select-option hidden"
+                        data-type="dropdown"
+                        aria-selected="true"
+                        role="option"
+                        data-no-instant
+                        data-value="{{ 'templates.search.product_type_default' | t }}"
+                        data-select-value="{{ 'templates.search.product_type_default' | t }}"
+                        @click="setProductType($el, true)"
+                        @keydown.enter="setProductType($el, true)"
+                        @keydown.space="setProductType($el, true)"
+                      >
+                        {{ 'templates.search.product_type_default' | t }}
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                <label class="hidden">
+                  <input
+                    name="product_type"
+                    class="select-option-selected"
+                    value="product_type:"
+                    data-disclosure-input
+                    @change="handleChangeProductType()"
+                  >
+                </label>
+              </select-element>
+            {% endif %}
+
+            <form
+              id="form-search-{{ section.id }}"
+              class="form-search grow z-0"
+              action="{{ routes.search_url }}"
+              method="get"
+              role="search"
+            >
+              <label
+                for="search-in-modal-{{ type }}"
+                class="hidden"
+              >
+                {{- 'general.search.search' | t -}}
+              </label>
+              <input
+                id="search-in-modal-{{ type }}"
+                class="peer input-search py-1.5 {% if use_full_layout %}text-small{% else %}lg:text-small{% endif %} focus-visible:outline-none w-full rtl:pl-20 rtl:md:pl-[70px] ltr:pr-20 ltr:md:pr-[70px] appearance-none relative outline-none bg-transparent placeholder:text-current color-text-[rgba(var(--color-text),1)] placeholder-shown:color-text-[rgba(var(--color-text),0.6)]{% unless is_search_refined %} ps-5{% endunless %}"
+                type="search"
+                {% if use_full_layout %}
+                  x-bind:class="isFocusedSearchForm && 'md:py-3 text-medium'"
+                {% endif %}
+                name="q"
+                value=""
+                x-on:keydown="handleKeyUpModal($event)"
+                @input.debounce.500ms="handleChangeInput()"
+                @click="{% if transparent %} $store.xHeaderMenu._syncHeaderBottomNow(); {% endif %}focusForm();"
+                placeholder="{{ settings.search_bar_default_message }}"
+                x-ref="input_search"
+              >
+              <input
+                type="hidden"
+                name="type"
+                value="product"
+              >
+              <input
+                type="hidden"
+                :value="productTypeSelected == '{{ 'templates.search.product_type_default' | t }}' ? '' : productTypeSelected"
+                name="filter.p.product_type"
+                x-bind:disabled="productTypeSelected == '{{ 'templates.search.product_type_default' | t }}'"
+              >
+              <button
+                class="btn-search {% if use_full_layout %} form-button{% endif %} absolute none_border w-8 h-8 p-[7px] md:p-1.5 bg-none text-current rtl:left-3.5 ltr:right-3.5 top-1/2 -translate-y-1/2"
+                aria-label="{{ 'general.search.search' | t }}"
+                {% if type == 'mobile' and use_full_layout == false %}
+                  type="button"
+                  @click="
+                    () => {
+                      if (isFocusedSearchForm) {
+                        $event.preventDefault();
+                        close();
+                      } else {
+                        $el.closest('form').submit();
+                      }
+                    }
+                  "
+                {% endif %}
+              >
+                <span
+                  {% if type == 'mobile' and use_full_layout == false %}
+                    x-show="!isFocusedSearchForm"
+                  {% endif %}
+                >
+                  {%- render 'icon-all', icon: 'icon-search' -%}
+                </span>
+                {% if type == 'mobile' and use_full_layout == false %}
+                  <span
+                    x-show="isFocusedSearchForm"
+                    x-cloak
+                  >
+                    {%- render 'icon-all', icon: 'icon-close' -%}
+                  </span>
+                {% endif %}
+              </button>
+              {% if settings.show_speech_search %}
+                <button
+                  class="search__speech {% if use_full_layout %} form-button{% endif %} absolute cursor-pointer w-8 h-8 p-[7px] md:p-1.5 rtl:left-12 ltr:right-12 top-1/2 -translate-y-1/2 bg-none text-current"
+                  x-data="xSpeechSearch($el)"
+                  x-show="show"
+                  x-cloak
+                  type="button"
+                  tabindex="0"
+                  aria-label="{{ 'general.search.voice' | t }}"
+                >
+                  {% render 'icon-all', icon: 'icon-voice' %}
+                </button>
+              {% endif %}
+              {%- capture suggest_search -%}
+                {%- render 'suggest-search' -%}
+              {%- endcapture -%}
+              <div
+                x-ref="search_content"
+                {% if use_full_layout %}
+                  class="header-search__results header-search__results--full absolute top-full mt-4 md:mt-7.5 w-full left-0 lg:pb-4"
+                  x-transition:enter="transition-[500ms_500ms] ease-out"
+                {% else %}
+                  class="header-search__results header-search__results--compact fixed lg:absolute top-[var(--input-search-to-top)] lg:top-[calc(100%-8px)] color-bg-[rgba(var(--color-background))] lg:color-bg-[rgba(var(--color-background-header))] border-t-[12px] lg:border-t-0 border-[rgba(var(--color-background-header))] px-2 lg:pt-1 lg:pb-2 h-fit w-full left-0 {% if settings.edges_type == 'rounded_corners' %}rounded-b-[10px]{% endif %}"
+                  x-transition:enter="transition-[500ms_500ms] transition-opacity ease-out"
+                {% endif %}
+                x-show="isFocusedSearchForm && (result !== '' {% if suggest_search != blank %} || showSuggest {% endif %})"
+                x-transition:enter-start="opacity-0 transform translate-y-[30px]"
+                x-transition:enter-end="opacity-100 transform translate-y-0"
+                x-transition:leave="ease-in"
+                x-transition:leave-start="opacity-100 transform translate-y-0"
+                x-transition:leave-end="opacity-0 transform translate-y-[30px]"
+                x-cloak
+                x-intersect.full="$store.xFocusElement.trapFocus('FormSearch__{{ type }}', 'search-in-modal-{{ type }}');"
+              >
+                <div
+                  id="search-result"
+                  class="{% if use_full_layout %} h-full {% else %} rounded-corners pb-4{% endif %} color-bg-[rgba(var(--color-background))]"
+                  tabindex="-1"
+                  data-predictive-search
+                  x-html="result"
+                  x-cloak
+                  x-show="loading == false && openResults"
+                  x-transition:enter="transition-[500ms_500ms] ease-out"
+                  x-transition:enter-start="opacity-0"
+                  x-transition:enter-end="opacity-100"
+                ></div>
+
+                {%- capture suggest_search -%}
+                  {%- render 'suggest-search' -%}
+                {%- endcapture -%}
+                {% if suggest_search != blank %}
+                  <div
+                    id="suggest-search"
+                    class="{% if use_full_layout %} h-full {% else %} rounded-corners pb-4{% endif %} color-bg-[rgba(var(--color-background))] lg:pb-5"
+                    tabindex="-1"
+                    data-predictive-search
+                    x-cloak
+                    x-show="showSuggest && isFocusedSearchForm"
+                  >
+                    {{- suggest_search -}}
+                  </div>
+                {% endif %}
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="element-end-modal h-0 w-0 absolute pointer-events-none"
+        :tabindex="isFocusedSearchForm ? '0' : '-1'"
+        @focus="document.getElementById('SearchClose__{{ type }}')?.focus()"
+      ></div>
+    </div>
+  </div>
+{% endif %}

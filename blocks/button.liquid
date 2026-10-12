@@ -1,0 +1,244 @@
+{% liquid
+  assign button_style = block.settings.button_style
+  assign button_link = block.settings.button_link
+  assign button_size = block.settings.button_size
+  assign button_label = block.settings.button_label
+%}
+{% if button_label != blank %}
+  {% style %}
+    .block-{{ block.id }} {
+      --pad-top: {{ block.settings.desktop_padding_top }}px;
+      --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+      --pad-left: {{ block.settings.desktop_padding_left }}px;
+      --pad-right: {{ block.settings.desktop_padding_right }}px;
+      --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+      --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+      --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+      --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+    }
+  {% endstyle %}
+
+  <div
+    class="block-button block-{{ block.id }} maximize-block block-padding h-fit shrink-0 z-10{% if button_style != 'text-link' %} flex{% endif %}"
+    data-block-id="{{ block.id }}"
+    {{ block.shopify_attributes }}
+  >
+    <custom-button>
+      <a
+        class="block-button__link button empty:hidden cursor-pointer w-fit min-w-6 md:min-h-6 min-h-5
+        {%- if button_style == 'primary' %} inline-block button-primary button-{{ button_size -}}
+        {%- elsif button_style == 'secondary' %} inline-block button-secondary button-{{ button_size -}}
+        {%- elsif button_style == 'direction_link' %} direction_link button-no-padding anm-button-arrow_push shrink-0
+        {%- else %} button-link button-no-padding anm-button-{{ settings.button_link_hover_animation -}}{% endif -%}
+        {%- if button_link == blank %} hover:cursor-not-allowed opacity-70{% endif -%}"
+        {% if button_link != blank %}
+          href="{{ button_link }}"
+          {% if block.settings.open_new_window %}
+            target="_blank"
+          {% endif %}
+        {% else %}
+          role="link"
+          aria-disabled="true"
+          tabindex="0"
+          {% if inheritFunction %}
+            @keyup.enter="$el.parentNode.click()"
+          {% endif %}
+        {% endif %}
+      >
+        {% render 'button-label', button_label: block.settings.button_label, show_button_style: button_style %}
+      </a>
+    </custom-button>
+  </div>
+{% endif %}
+{% schema %}
+{
+  "name": "Button",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:global.button.button_label",
+      "default": "Button"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "t:global.button.button_link"
+    },
+    {
+      "type": "checkbox",
+      "id": "open_new_window",
+      "default": false,
+      "label": "t:global.text.open_link_new_tab"
+    },
+    {
+      "type": "header",
+      "content": "Style"
+    },
+    {
+      "type": "select",
+      "id": "button_size",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small"
+        },
+        {
+          "value": "medium",
+          "label": "Medium"
+        },
+        {
+          "value": "large",
+          "label": "Large"
+        }
+      ],
+      "label": "Button size",
+      "default": "medium"
+    },
+    {
+      "type": "select",
+      "id": "button_style",
+      "options": [
+        {
+          "value": "primary",
+          "label": "t:global.button.style.primary"
+        },
+        {
+          "value": "secondary",
+          "label": "t:global.button.style.secondary"
+        },
+        {
+          "value": "link",
+          "label": "t:global.button.style.text_link"
+        },
+        {
+          "value": "direction_link",
+          "label": "t:global.button.style.direction_link"
+        }
+      ],
+      "label": "t:global.button.style.label",
+      "default": "primary"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "select",
+      "id": "spacing_choose_device",
+      "label": "Choose device",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "Desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "Mobile"
+        }
+      ],
+      "default": "desktop",
+      "info": "Desktop and Mobile settings are configured separately."
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Button",
+      "category": "Basic"
+    }
+  ]
+}
+{% endschema %}

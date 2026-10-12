@@ -1,0 +1,477 @@
+{% assign settings = block.settings %}
+
+{% liquid
+  assign class_horizontal_alignment = ''
+  case settings.mobile_horizontal_alignment
+    when 'left'
+      assign class_horizontal_alignment = class_horizontal_alignment | append: 'items-start'
+    when 'center'
+      assign class_horizontal_alignment = class_horizontal_alignment | append: 'items-center'
+    when 'right'
+      assign class_horizontal_alignment = class_horizontal_alignment | append: 'items-end'
+  endcase
+
+  case settings.desktop_horizontal_alignment
+    when 'left'
+      assign class_horizontal_alignment = class_horizontal_alignment | append: ' md:items-start'
+    when 'center'
+      assign class_horizontal_alignment = class_horizontal_alignment | append: ' md:items-center'
+    when 'right'
+      assign class_horizontal_alignment = class_horizontal_alignment | append: ' md:items-end'
+  endcase
+
+  assign class_text_align = 'text-' | append: settings.mobile_horizontal_alignment | append: ' md:text-' | append: settings.desktop_horizontal_alignment
+%}
+
+{% liquid
+  assign class_vertical_alignment = ''
+  case settings.mobile_vertical_alignment
+    when 'top'
+      assign class_vertical_alignment = class_vertical_alignment | append: 'justify-start'
+    when 'middle'
+      assign class_vertical_alignment = class_vertical_alignment | append: 'justify-center'
+    when 'bottom'
+      assign class_vertical_alignment = class_vertical_alignment | append: 'justify-end'
+  endcase
+
+  case settings.desktop_vertical_alignment
+    when 'top'
+      assign class_vertical_alignment = class_vertical_alignment | append: ' md:justify-start'
+    when 'middle'
+      assign class_vertical_alignment = class_vertical_alignment | append: ' md:justify-center'
+    when 'bottom'
+      assign class_vertical_alignment = class_vertical_alignment | append: ' md:justify-end'
+  endcase
+%}
+
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ settings.desktop_padding_top }}px;
+    --pad-bottom: {{ settings.desktop_padding_bottom }}px;
+    --pad-left: {{ settings.desktop_padding_left }}px;
+    --pad-right: {{ settings.desktop_padding_right }}px;
+    --pad-top-m: {{ settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ settings.mobile_padding_left }}px;
+    --pad-right-m: {{ settings.mobile_padding_right }}px;
+  }
+  .block-{{ block.id }} .variant-picker__product-option,
+  .block-{{ block.id }} .block__qty-add-to-cart  {
+    justify-content: {{ settings.mobile_horizontal_alignment }}
+  }
+  .block-product-details__container__{{ block.id }} {
+    padding: {{ settings.inner_padding_vertical_mobile }}px {{ settings.inner_padding_horizontal_mobile }}px;
+  }
+
+  @media screen and (min-width: 768px) {
+    .block-{{ block.id }} .variant-picker__product-option,
+    .block-{{ block.id }} .block__qty-add-to-cart {
+      justify-content: {{ settings.desktop_horizontal_alignment }}
+    }
+
+    .block-product-details__container__{{ block.id }} {
+      padding: {{ settings.inner_padding_vertical_desktop }}px {{ settings.inner_padding_horizontal_desktop }}px;
+    }
+  }
+{% endstyle %}
+
+<div
+  class="block-product-details block-{{ block.id }} block-padding maximize-block grow min-w-0 color-{{ block.settings.color_scheme_light }} dark-color-{{ block.settings.color_scheme_dark }} rounded-corners flex flex-col h-full {{ class_vertical_alignment }} {{ class_text_align }}"
+  data-block-id="{{ block.id }}"
+  {{ block.shopify_attributes }}
+>
+  <div 
+    class="block-product-details__container block-product-details__container__{{ block.id }} flex flex-col {{ class_horizontal_alignment }} sticky top-5 border-solid
+      {%- if settings.show_border_mobile %} sm:border{% endif -%}
+      {%- if settings.show_border %} md:border{% endif %} rounded-corners"
+  >
+    {% content_for 'blocks' %}
+  </div>
+</div>
+{% schema  %}
+{
+  "name": "t:product_details.name",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:global.alignment.alignment"
+    },
+    {
+      "type": "paragraph",
+      "content": "t:product_showcase.product_details.vertical_alignment"
+    },
+    {
+      "type": "select",
+      "id": "desktop_vertical_alignment",
+      "label": "t:global.section.desktop",
+      "options": [
+        {
+          "value": "top",
+          "label": "t:global.position.top"
+        },
+        {
+          "value": "middle",
+          "label": "t:global.position.middle"
+        },
+        {
+          "value": "bottom",
+          "label": "t:global.position.bottom"
+        }
+      ],
+      "default": "middle"
+    },
+    {
+      "type": "select",
+      "id": "mobile_vertical_alignment",
+      "label": "t:global.section.mobile",
+      "options": [
+        {
+          "value": "top",
+          "label": "t:global.position.top"
+        },
+        {
+          "value": "middle",
+          "label": "t:global.position.middle"
+        },
+        {
+          "value": "bottom",
+          "label": "t:global.position.bottom"
+        }
+      ],
+      "default": "middle"
+    },
+    {
+      "type": "paragraph",
+      "content": "t:product_showcase.product_details.horizontal_alignment"
+    },
+    {
+      "type": "text_alignment",
+      "id": "desktop_horizontal_alignment",
+      "label": "t:global.section.desktop",
+      "default": "left"
+    },
+    {
+      "type": "text_alignment",
+      "id": "mobile_horizontal_alignment",
+      "label": "t:global.section.mobile",
+      "default": "left"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.style"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_border",
+      "label": "Show border (desktop)",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_border_mobile",
+      "label": "Show border (mobile)",
+      "default": false
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    },
+    {
+      "type": "header",
+      "content": "Inner Spacing"
+    },
+    {
+      "type": "select",
+      "id": "device_inner_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_vertical_desktop",
+      "label": "Inner vertical",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_inner_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_horizontal_desktop",
+      "label": "Inner horizontal",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_inner_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_vertical_mobile",
+      "label": "Inner vertical",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_inner_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_horizontal_mobile",
+      "label": "Inner horizontal",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_inner_padding == 'mobile' }}"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "select",
+      "id": "device_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "vendor"
+    },
+    {
+      "type": "product-title"
+    },
+    {
+      "type": "price"
+    },
+    {
+      "type": "volume-pricing"
+    },
+    {
+      "type": "inventory-status"
+    },
+    {
+      "type": "rating"
+    },
+    {
+      "type": "identifier"
+    },
+    {
+      "type": "variant-picker"
+    },
+    {
+      "type": "_buy-buttons"
+    },
+    {
+      "type": "countdown-timer"
+    },
+    {
+      "type": "text"
+    },
+    {
+      "type": "heading"
+    },
+    {
+      "type": "subheading"
+    },
+    {
+      "type": "button"
+    },
+    {
+      "type": "icon"
+    },
+    {
+      "type": "counter"
+    },
+    {
+      "type": "_items-list"
+    },
+    {
+      "type": "_group"
+    },
+    {
+      "type": "image"
+    },
+    {
+      "type": "video"
+    },
+    {
+      "type": "social-sharing"
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "custom-html"
+    },
+    {
+      "type": "_interactive-link"
+    },
+    {
+      "type": "payment-methods"
+    },
+    {
+      "type": "estimate-delivery-time"
+    },
+    {
+      "type": "_collapsible-tab"
+    },
+    {
+      "type": "table-of-information"
+    },
+    {
+      "type": "email-signup"
+    },
+    {
+      "type": "back-in-stock-alert"
+    },
+    {
+      "type": "collection-link"
+    },
+    {
+      "type": "labels-and-badges"
+    },
+    {
+      "type": "featured-icons"
+    },
+    {
+      "type": "_disclosures"
+    },
+    {
+      "type": "@app"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Product Details",
+      "category": "t:global.product.product"
+    }
+  ]
+}
+{% endschema %}

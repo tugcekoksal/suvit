@@ -1,0 +1,210 @@
+{% comment %}
+  Renders a breadcrumbs.
+
+  Accepts:
+  - show_image_banner: {Boolean} Setting showing image after/before breadcrumbs
+  - background_color_light: {String} Background color light,
+  - text_color_light: {String} Text color light,
+  - text_link_color_light: {String} Text link color light,
+  - background_color_dark: {String} Background color dark,
+  - text_color_dark: {String} Text color dark,
+  - text_link_color_dark: {String} Text link color dark,
+  Usage:
+  {% render 'breadcrumbs',
+    background_color_light: background_color_light,
+    text_color_light: text_color_light,
+    text_link_color_light: text_link_color_light,
+    background_color_dark: background_color_dark,
+    text_color_dark: text_color_dark,
+    text_link_color_dark: text_link_color_dark
+  %}
+{% endcomment %}
+{% liquid
+  if settings.show_breadcrumbs_border
+    assign class_border = "border-b border-t"
+  endif
+  assign icon_breadcrumbs = settings.breadcrumbs_separator
+
+  assign enable_microdata_schema = false
+  if settings.enable_schema_breadcrumb
+    assign enable_microdata_schema = true
+  endif
+%}
+{%- style -%}
+  .breadcrumbs-{{ section.id }}:not(.dark .breadcrumbs-{{ section.id }}) {
+    {% if background_color_light != blank and background_color_light.alpha != 0.0  %}
+      --color-breadcrumb-background: {{ background_color_light.red }} {{ background_color_light.green }} {{ background_color_light.blue }} / {{ background_color_light.alpha }};
+    {% endif %}
+    {% if text_color_light != blank and text_color_light.alpha != 0.0  %}
+      --color-breadcrumb-text: {{ text_color_light.red }} {{ text_color_light.green }} {{ text_color_light.blue }} / {{ text_color_light.alpha }};
+    {% endif %}
+    {% if text_link_color_light != blank and text_link_color_light.alpha != 0.0  %}
+      --color-breadcrumb-text-link: {{ text_link_color_light.red }} {{ text_link_color_light.green }} {{ text_link_color_light.blue }} / {{ text_link_color_light.alpha }};
+    {% endif %}
+  }
+  .dark .breadcrumbs-{{ section.id }} {
+    {% if background_color_dark != blank and background_color_dark.alpha != 0.0  %}
+      --color-breadcrumb-background: {{ background_color_dark.red }} {{ background_color_dark.green }} {{ background_color_dark.blue }} / {{ background_color_dark.alpha }};
+    {% endif %}
+    {% if text_color_dark != blank and text_color_dark.alpha != 0.0  %}
+      --color-breadcrumb-text: {{ text_color_dark.red }} {{ text_color_dark.green }} {{ text_color_dark.blue }} / {{ text_color_dark.alpha }};
+    {% endif %}
+    {% if text_link_color_dark != blank and text_link_color_dark.alpha != 0.0  %}
+      --color-breadcrumb-text-link: {{ text_link_color_dark.red }} {{ text_link_color_dark.green }} {{ text_link_color_dark.blue }} / {{ text_link_color_dark.alpha }};
+    {% endif %}
+  }
+  .breadcrumbs-{{ section.id }} {
+    --color-text: var(--color-breadcrumb-text);
+    --color-link: var(--color-breadcrumb-text-link);
+  }
+{%- endstyle -%}
+<div class="breadcrumbs-{{ section.id }} ml-0 mr-0 color-bg-[rgba(var(--color-breadcrumb-background))] color-text-[rgba(var(--color-breadcrumb-text))] ltr {{ class_border -}}
+  {%- if settings.edges_type == 'rounded_corners' %} my-1{% endif -%}
+  {%- if settings.edges_type == 'rounded_corners' and background_color_light != blank or settings.breadcrumbs_background_color.alpha != 0.0 %} brb-rounded-corners{% endif -%}
+  {%- if settings.edges_type == 'rounded_corners' and background_color_dark != blank or settings.breadcrumbs_background_color_dark.alpha != 0.0%} brb-rounded-corners-dark{%- else %} brb-square-corners{% endif -%}"
+>
+  <div class="py-3 md:py-4 px-4 md:px-8">
+    {% unless template == 'index' or template == 'cart' %}
+      <div class="capitalize text-small {{ settings.breadcrumbs_mobile_alignment }} md:{{ settings.breadcrumbs_desktop_alignment }}" 
+        role="navigation" aria-label="breadcrumbs"
+      >
+        <a 
+          class="color-text-[rgba(var(--color-breadcrumb-text-link))] relative h-fit before-link text-link inline-text-link"
+          href="{{ routes.root_url }}" 
+          title="Home"
+        >{{ 'general.breadcrumbs.home' | t }}</a>
+        <span class="breadcrumb__divider color-border-[rgba(var(--color-breadcrumb-text))] color-text-[rgba(var(--color-breadcrumb-text))]{% if icon_breadcrumbs == "—" %} w-2.5 border-b{% endif %} inline-block bottom-1 ml-1 mr-1" aria-hidden="true">
+          {% if icon_breadcrumbs != "—" %}{{ icon_breadcrumbs  }}{% endif %}
+        </span>
+        {% if template contains 'page' %}
+          {% if enable_microdata_schema %}
+            {% assign first_brb_item = request.host | append: request.path %}
+            {% assign first_brb_item_name = page.title | escape %}
+          {% endif %}
+          <span>{{ page.title | escape }}</span>
+        {% elsif template contains 'product' %}
+          {% if collection %}
+            {% if enable_microdata_schema %}
+              {% assign first_brb_item = request.origin | append: collection.url %}
+              {% assign first_brb_item_name = collection.title %}
+              {% assign second_brb_item = request.origin | append: request.path %}
+              {% assign second_brb_item_name = product.title %}
+            {% endif %}
+            <a
+              class="color-text-[rgba(var(--color-breadcrumb-text-link))] relative h-fit before-link text-link inline-text-link"
+              href="{{ collection.url }}"
+              title="{{ collection.title }}"
+            >{{ collection.title | escape }}</a>
+            <span class="breadcrumb__divider color-border-[rgba(var(--color-breadcrumb-text))] color-text-[rgba(var(--color-breadcrumb-text))]{% if icon_breadcrumbs == "—" %} w-2.5 border-b{% endif %} inline-block bottom-1 ml-1 mr-1" aria-hidden="true">
+              {% if icon_breadcrumbs != "—" %}{{ icon_breadcrumbs  }}{% endif %}
+            </span>
+          {% else %}
+            {% if enable_microdata_schema %}
+              {% assign first_brb_item = request.origin | append: request.path %}
+              {% assign first_brb_item_name = product.title %}
+            {% endif %}
+          {% endif %}
+          <span>{{ product.title | escape }}</span>
+        {% elsif template contains 'collection' and collection.handle %}
+          {% if current_tags %}
+            {% if enable_microdata_schema %}
+              {% assign first_brb_item = request.origin | append: collection.url %}
+              {% assign first_brb_item_name = collection.title %}
+              {% assign second_brb_item = request.origin | append: request.path %}
+              {% assign second_brb_item_name = current_tags | join: " + " | capitalize %}
+            {% endif %}
+            <a 
+              class="color-text-[rgba(var(--color-breadcrumb-text-link))] relative h-fit before-link text-link inline-text-link"
+              href="{{ collection.url }}" 
+              title="{{ collection.title }}"
+            >{{ collection.title | escape }}</a>
+            <span class="breadcrumb__divider color-border-[rgba(var(--color-breadcrumb-text))] color-text-[rgba(var(--color-breadcrumb-text))]{% if icon_breadcrumbs == "—" %} w-2.5 border-b{% endif %} inline-block bottom-1 ml-1 mr-1" aria-hidden="true">
+              {% if icon_breadcrumbs != "—" %}{{ icon_breadcrumbs  }}{% endif %}
+            </span>
+            <span>{{ current_tags | join: " + " }}</span>
+          {% else %}
+            {% if enable_microdata_schema %}
+              {% assign first_brb_item = request.origin | append: collection.url %}
+              {% assign first_brb_item_name = collection.title %}
+            {% endif %}
+            <span>{{ collection.title | escape }}</span>
+          {% endif %}
+        {% elsif template == 'blog' %}
+          {% if current_tags %}
+            {% if enable_microdata_schema %}
+              {% assign first_brb_item = request.origin | append: blog.url %}
+              {% assign first_brb_item_name = blog.title %}
+              {% assign second_brb_item = request.origin | append: request.path %}
+              {% assign second_brb_item_name = current_tags | join: " + " | capitalize %}
+            {% endif %}
+            <a 
+              class="color-text-[rgba(var(--color-breadcrumb-text-link))] relative h-fit before-link text-link inline-text-link"
+              href="{{ blog.url }}" 
+              title="{{ blog.title }}"
+            >{{ blog.title | escape }}</a>
+            <span class="breadcrumb__divider color-border-[rgba(var(--color-breadcrumb-text))] color-text-[rgba(var(--color-breadcrumb-text))]{% if icon_breadcrumbs == "—" %} w-2.5 border-b{% endif %} inline-block bottom-1 ml-1 mr-1" aria-hidden="true">
+              {% if icon_breadcrumbs != "—" %}{{ icon_breadcrumbs  }}{% endif %}
+            </span>
+            <span>{{ current_tags | join: " + " }}</span>
+          {% else %}
+            {% if enable_microdata_schema %}
+              {% assign first_brb_item = request.origin | append: blog.url %}
+              {% assign first_brb_item_name = blog.title %}
+            {% endif %}
+            <span>{{ blog.title | escape }}</span>
+          {% endif %}
+        {% elsif template == 'article' %}
+          {% if enable_microdata_schema %}
+            {% assign first_brb_item = request.origin | append: blog.url %}
+            {% assign first_brb_item_name = blog.title %}
+            {% assign second_brb_item = request.origin | append: request.path %}
+            {% assign second_brb_item_name = article.title %}
+          {% endif %}
+          <a 
+            class="color-text-[rgba(var(--color-breadcrumb-text-link))] relative h-fit text-link inline-text-link"
+            href="{{ blog.url }}" 
+            title="{{ blog.title }}"
+          >{{ blog.title | escape }}</a>
+          <span class="breadcrumb__divider color-border-[rgba(var(--color-breadcrumb-text))] color-text-[rgba(var(--color-breadcrumb-text))]{% if icon_breadcrumbs == "—" %} w-2.5 border-b{% endif %} inline-block bottom-1 ml-1 mr-1" aria-hidden="true">
+            {% if icon_breadcrumbs != "—" %}{{ icon_breadcrumbs  }}{% endif %}
+          </span>
+          <span>{{ article.title | escape }}</span>
+        {% else %}
+        <span>{{ page_title | escape }}</span>
+        {% endif %}
+      </div>
+    {% endunless %}
+  </div>
+</div>
+{% if enable_microdata_schema %}
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement":
+      [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "item":
+          {
+            "@id": "{{ first_brb_item }}",
+            "name": "{{ first_brb_item_name }}"
+          }
+        }
+        {%- if second_brb_item %}
+        ,
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "item":
+          {
+            "@id": "{{ second_brb_item }}",
+            "name": "{{ second_brb_item_name }}"
+          }
+        }
+        {% endif %}
+      ]
+    }
+  </script>
+{% endif %}

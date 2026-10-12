@@ -1,0 +1,131 @@
+@layer components {
+  .flow-cards__container {
+    overflow: initial;
+  }
+
+  .flow-card {
+    transform-origin: 50% 50%;
+    transform: rotate(6deg);
+    z-index: 1;
+    opacity: 0.5;
+  }
+
+  .flow-card.flow-card--current {
+    z-index: 10;
+    opacity: 1;
+    transform: none;
+    box-shadow: 0 8px 12px rgba(var(--color-heading), 0.18);
+  }
+
+  .flow-card--out.flow-card--next {
+    animation: flowCardOut var(--flow-card-duration) linear;
+    will-change: transform, opacity;
+  }
+  .flow-card--out.flow-card--prev {
+    animation: flowCardPrev var(--flow-card-duration) linear;
+    will-change: transform, opacity;
+  }
+  .flow-card.flow-card--current-1 {
+    transform: rotate(3deg);
+    opacity: 1;
+    z-index: 8;
+    box-shadow: 0 6px 10px rgba(var(--color-heading), 0.12);
+  }
+  .flow-card.flow-card--current-2 {
+    z-index: 5;
+    opacity: 1;
+    transform: rotate(6deg);
+    box-shadow: 0 4px 8px rgba(var(--color-heading), 0.06);
+  }
+  .progress-bar-active-width {
+    background: rgba(var(--color-text));
+    height: 3px;
+    transition: all .4s ease;
+  }
+  .flow-card__heading-item.is-visible.disabled {
+    opacity: 0.6;
+  }
+  @media screen and (min-width: 1024px) {
+    .flow-card--current {
+      transform: none;
+    }
+    .flow-card.flow-card--current-1 {
+      transform: rotate(4deg);
+    }
+    .flow-card.flow-card--current-2 {
+      transform: rotate(6deg);
+    }
+  }
+  @media screen and (max-width: 1023px) {
+    .display-mobile {
+      display: block !important;
+    }
+    .mobile-h-auto {
+      height: auto !important;
+    }
+    .flow-card__heading-item.disabled {
+      display: none;
+    }
+    .flow-card-content-item .flow-card__heading-item {
+      animation: fadeInUpHeading var(--flow-card-duration) linear;
+    }
+    .flow-card-content-item .flow-card__content-item {
+      animation: fadeContent var(--flow-card-duration) linear;
+    }
+    @keyframes fadeInUpHeading {
+      0% {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      50% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  }
+}
+@keyframes flowCardOut {
+  0% {
+    z-index: 20;
+    transform: matrix(1, 0, 0, 1, 0, 0);
+    opacity: 1;
+  }
+  40% {
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateX(100px) rotate(6deg);
+    opacity: 0;
+  }
+  70% {
+    opacity: 0;
+    z-index: 5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes flowCardPrev {
+  0% {
+    z-index: 20;
+    transform: matrix(1, 0, 0, 1, 0, 0);
+    opacity: 1;
+  }
+  40% {
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateX(-50px) rotate(-6deg);
+    opacity: 0;
+  }
+  70% {
+    opacity: 0;
+    z-index: 5;
+  }
+  100% {
+    opacity: 1;
+  }
+}

@@ -1,0 +1,1912 @@
+{%- liquid
+  assign bo_is_b2b = false
+  if customer != blank and customer.b2b?
+    assign bo_is_b2b = true
+  endif
+  assign bo_full = true
+  if section.settings.only_show_for_b2b and bo_is_b2b == false and request.design_mode == false
+    assign bo_full = false
+  endif
+
+  capture bo_can_request_quote
+    render 'can-request-quote'
+  endcapture
+  assign bo_can_request_quote = bo_can_request_quote | strip
+-%}
+
+{%- style -%}
+  .section--{{ section.id }} {
+    padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+    padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+    --bulk-order-image-ratio: 1;
+  }
+  @media screen and (min-width: 768px) {
+    .section--{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+{%- endstyle -%}
+
+{{ 'order-row-shared.css' | asset_url | stylesheet_tag }}
+{{ 'bulk-order.css' | asset_url | stylesheet_tag }}
+
+{%- if section.settings.show_section_divider -%}{% render 'section-divider' %}{%- endif -%}
+
+{%- if settings.currency_code_enable -%}
+  {%- assign money_format = shop.money_with_currency_format | strip_html -%}
+{%- else -%}
+  {%- assign money_format = shop.money_format | strip_html -%}
+{%- endif -%}
+
+<div
+  class="section--{{ section.id }} bulk-order rounded-corners-container {{ section.settings.section_width }} color-{{ section.settings.color_scheme_light }} dark-color-{{ section.settings.color_scheme_dark }}"
+  {%- if bo_full %}
+    x-data="xBulkOrder('{{ money_format | escape }}')"
+  {%- endif %}
+  data-quote-root="bulk-order"
+  data-section-id="{{ section.id }}"
+  {{ section.shopify_attributes }}
+>
+  {%- if bo_full -%}
+    <script
+      type="application/json"
+      data-bulk-order-strings
+    >
+      {
+        "in_stock": "{{ 'products.product.inventory_status.in_stock' | t }}",
+        "add_to_cart_failed": "{{ 'bulk_order.errors.add_to_cart_failed' | t }}",
+        "network_error": "{{ 'bulk_order.import_popup.errors.network_error' | t }}",
+        "restore_failed": "{{ 'bulk_order.errors.restore_failed' | t }}",
+        "max_quantity_in_cart": "{{ 'bulk_order.errors.max_quantity_in_cart' | t }}",
+        "cart_error": "{{ 'sections.cart.cart_error' | t }}",
+        "blocking_cart_error": "{{ 'bulk_order.errors.blocking_cart_error' | t | replace: '&#39;', "'" }}",
+        "no_results": "{{ 'bulk_order.no_results' | t: terms: '__QUERY__' }}",
+        "searching": "{{ 'bulk_order.searching' | t }}",
+        "results_found": "{{ 'bulk_order.results_found' | t: count: '[[COUNT]]' }}",
+        "quantity_label": "{{ 'customer.order.quantity' | t }}",
+        "remove_item": "{{ 'bulk_order.remove_item' | t }}",
+        "items_selected": "{{ 'bulk_order.items_selected' | t: count: '[[COUNT]]' }}",
+        "footer_total_label": "{{ 'bulk_order.footer_total_label' | t: amount: '[[AMOUNT]]' }}",
+        "sku_label": "{{ 'customer.order.sku' | t }}",
+        "add_product": "{{ 'bulk_order.add_product' | t }}",
+        "added": "{{ 'bulk_order.added' | t }}",
+        "rule_inc": "{{ 'bulk_order.rule.inc' | t }}",
+        "rule_min": "{{ 'bulk_order.rule.min' | t }}",
+        "rule_max": "{{ 'bulk_order.rule.max' | t }}",
+        "price_from": {{ 'products.product.price.from_price_html' | t: price: '[[PRICE]]' | json }},
+        "preorder_key": "{{ 'general.preorder.name' | t }}",
+        "preorder_message": "{{ settings.message_preorder_cart | default: 'general.preorder.message_preorder' }}"
+      }
+    </script>
+
+    {%- comment -%} Rendered server-side once, read into JS and injected per-row via x-html. {%- endcomment -%}
+    <template data-bulk-order-price-hidden-label>
+      {% liquid
+        assign show_b2b_register = false
+        if settings.b2b_registration_label != blank
+          assign show_b2b_register = true
+        endif
+      %}
+      {%- if customer == blank -%}
+        {%- liquid
+          assign login_url = routes.account_login_url
+          assign label = settings.login_to_view_price_label
+          assign link_open = '<a href="' | append: login_url | append: '" rel="nofollow" class="text-link font-medium">'
+          assign rendered_label = ''
+          assign bracket_parts = label | split: '['
+          for part in bracket_parts
+            if forloop.first
+              assign rendered_label = rendered_label | append: part
+              continue
+            endif
+            if part contains ']'
+              assign pair = part | split: ']'
+              assign link_text = pair[0] | strip
+              assign after_text = part | remove_first: pair[0] | remove_first: ']'
+              if login_url != blank and link_text != blank
+                assign rendered_label = rendered_label | append: link_open | append: link_text | append: '</a>' | append: after_text
+              else
+                assign rendered_label = rendered_label | append: link_text | append: after_text
+              endif
+            else
+              assign rendered_label = rendered_label | append: '[' | append: part
+            endif
+          endfor
+        -%}
+        {{ rendered_label }}
+      {%- else -%}
+        {{ settings.login_to_view_price_restricted_label | replace: '<a ', '<a rel="nofollow" class="text-link font-medium"' }}
+      {%- endif -%}
+      {%- if show_b2b_register -%}
+        <p class="login-to-view-price__b2b-link font-semibold">
+          {%- if settings.b2b_registration_link != blank -%}
+            <a
+              href="{{ settings.b2b_registration_link }}"
+              class="text-link font-medium"
+              {% if settings.open_new_window %}
+                target="_blank"
+                rel="noopener"
+              {% endif %}
+            >
+              {{- settings.b2b_registration_label -}}
+            </a>
+          {%- else -%}
+            {{- settings.b2b_registration_label -}}
+          {%- endif -%}
+        </p>
+      {%- endif -%}
+    </template>
+  {%- endif -%}
+
+  {%- if section.settings.subheading != blank or section.settings.heading != blank or section.settings.text != blank -%}
+    <div class="bulk-order__heading-block text-{{ section.settings.mobile_heading_alignment }} lg:text-{{ section.settings.desktop_heading_alignment }} mb-4">
+      {%- if section.settings.subheading != blank -%}
+        <p class="subheading mb-2">{{- section.settings.subheading | escape -}}</p>
+      {%- endif -%}
+      {%- if section.settings.heading != blank -%}
+        <{{ section.settings.heading_tag }} class="heading-{{ section.settings.heading_size }} block p-break-words">
+          {%- render 'text-highlight', id: section.id, text: section.settings.heading, highlight_effect: section.settings.highlight_effect, text_transform: section.settings.text_transform, disable_animation_fade: true -%}
+        </{{ section.settings.heading_tag }}>
+      {%- endif -%}
+      {%- if section.settings.text != blank -%}
+        <div class="rte text-{{ section.settings.text_size }} mt-3">
+          {% render 'text-highlight', id: section.id, text: section.settings.text, highlight_effect: section.settings.highlight_effect, text_transform: section.settings.text_transform, allow_html: true %}
+        </div>
+      {%- endif -%}
+    </div>
+  {%- endif -%}
+
+  {%- if bo_full -%}
+    {%- comment -%} Kept outside the results panel — screen readers ignore mutations inside a display:none panel. {%- endcomment -%}
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      class="sr-only"
+      x-text="searchStatusText"
+    ></div>
+
+    <div class="bulk-order__search-bar relative flex items-center justify-center gap-1 mb-4">
+      <div
+        id="bulk-order-search-{{ section.id }}"
+        x-ref="searchRegion"
+        class="bulk-order__search relative w-full"
+        :class="dropdownOpen && searchQuery.length > 0 && 'is-search-open'"
+        role="search"
+        @click.away="dropdownOpen && closeDropdown()"
+        @keydown.escape.prevent="closeDropdown(true)"
+      >
+        <div class="relative w-full">
+          <input
+            type="search"
+            id="bulk-order-search-input-{{ section.id }}"
+            class="w-full py-2.5 lg:py-4 border-2 border-solid color-border-[rgba(var(--color-line-and-border))] focus-visible:color-border-[rgba(var(--color-text),0.6)] text-medium {% if settings.edges_type == 'rounded_corners' %} rounded-full {% endif %} ps-6 pe-11 bg-transparent outline-none appearance-none placeholder:color-text-[rgba(var(--color-text),0.6)]"
+            placeholder="{{ 'bulk_order.search_placeholder' | t }}"
+            aria-label="{{ 'bulk_order.search_placeholder' | t }}"
+            autocomplete="off"
+            :disabled="isImporting"
+            x-ref="searchInput"
+            x-model="searchQuery"
+            @input="onSearchInput()"
+            @focus="openDropdown()"
+            @keydown.arrow-down.prevent="focusFirstRow()"
+            @keydown.enter.prevent="onSearchEnter()"
+          >
+          <span class="absolute inset-y-0 end-4 flex items-center w-5 opacity-50 pointer-events-none">
+            <span
+              class="w-full"
+              x-show="!isSearching"
+            >
+              {%- render 'icon-all', icon: 'icon-search' -%}
+            </span>
+            <span
+              class="w-full animate-spin"
+              x-show="isSearching"
+              x-cloak
+            >
+              {%- render 'icon-all', icon: 'icon-loading' -%}
+            </span>
+          </span>
+        </div>
+
+        {%- comment -%} hasSearched keeps this hidden until a search actually returns, not on every keystroke. {%- endcomment -%}
+        <div
+          x-show="dropdownOpen && searchQuery.length > 0 && hasSearched"
+          x-cloak
+          x-transition:enter="transition ease-out duration-200"
+          x-transition:enter-start="opacity-0 -translate-y-2"
+          x-transition:enter-end="opacity-100 translate-y-0"
+          x-transition:leave="transition ease-in duration-150"
+          x-transition:leave-start="opacity-100 translate-y-0"
+          x-transition:leave-end="opacity-0 -translate-y-2"
+          class="bulk-order__dropdown absolute left-0 right-0 z-50 p-3 lg:p-5 flex flex-col overflow-hidden color-bg-gradient-[var(--gradient-background)] border border-solid color-border-[rgba(var(--color-line-and-border))] rounded-corners"
+          x-ref="dropdownPanel"
+        >
+          <div
+            class="bulk-order__dropdown-scroll flex-auto min-h-0 overflow-x-hidden scrollbar-body scrollbar-visible"
+          >
+            <div
+              x-show="searchError"
+              x-cloak
+              class="flex items-center justify-center text-center py-10 px-5"
+            >
+              <p
+                class="text-sm opacity-50"
+                x-text="searchError"
+              ></p>
+            </div>
+
+            <div
+              x-show="!searchError && filteredGroups.length === 0"
+              class="flex items-center justify-center text-center py-10 px-5"
+            >
+              <p
+                class="text-sm opacity-50"
+                x-text="_strings.no_results.replace('__QUERY__', searchQuery)"
+              ></p>
+            </div>
+
+            {%- comment -%} Plain list, not listbox/grid — those roles forbid interactive descendants or promise column nav we can't deliver. {%- endcomment -%}
+            <ul
+              x-show="!searchError && filteredGroups.length > 0"
+              class="flex flex-col gap-0.5 w-full"
+            >
+              <template
+                x-for="group in filteredGroups"
+                :key="group.productId"
+              >
+                <li
+                  class="bulk-order__dropdown-group row-group flex flex-col rounded-corners"
+                  :class="{ 'is-open row-group--open': !group.isSingleVariant && !dropdownCollapsed[group.productId] }"
+                >
+                  <template x-if="!group.isSingleVariant">
+                    <div
+                      class="bulk-order__dropdown-row bulk-order__dropdown-row--parent row-group__header cursor-pointer relative grid items-center gap-4 p-2"
+                      {% if settings.edges_type == 'rounded_corners' %}
+                      :class="!dropdownCollapsed[group.productId] ? 'rounded-t-[10px]' : 'rounded-corners'"
+                      {% endif %}
+                      @click="addProduct(group.productId)"
+                    >
+                      <div class="bulk-order__dropdown-cell-media shrink-0">
+                        <button
+                          type="button"
+                          class="sr-only"
+                          data-bulk-nav
+                          :aria-label="groupActionLabel(group)"
+                          :aria-disabled="groupActionDisabled(group)"
+                          @click.stop="addProduct(group.productId)"
+                        ></button>
+                        <div class="bulk-order__dropdown-thumb-wrap relative">
+                          <template x-if="group.productImage">
+                            <img
+                              :src="getImgUrl(group.productImage)"
+                              :alt="group.productTitle"
+                              width="52"
+                              height="52"
+                              loading="lazy"
+                              class="bulk-order__dropdown-thumb rounded-corners object-cover aspect-[var(--bulk-order-image-ratio)]"
+                            >
+                          </template>
+                          <template x-if="!group.productImage">
+                            <div class="bulk-order__dropdown-thumb overflow-hidden rounded-corners aspect-[var(--bulk-order-image-ratio)]">{%- render 'placeholder-image', image_type: 'product_1' -%}</div>
+                          </template>
+                        </div>
+                      </div>
+                      <div class="bulk-order__dropdown-info flex flex-col gap-0.5 min-w-0">
+                        <span
+                          class="h5 lg:h7 font-semibold whitespace-nowrap overflow-hidden text-ellipsis"
+                          x-text="group.productTitle"
+                        ></span>
+                      </div>
+                      <div
+                        class="bulk-order__dropdown-cell-inventory hidden lg:block min-w-0"
+                      ></div>
+                      <div class="bulk-order__dropdown-cell-action">
+                        <div
+                          class="bulk-order__dropdown-cell-price text-left"
+                        >
+                          <template x-if="!group.priceHidden">
+                            <span
+                              class="h6 font-semibold color-text-[rgba(var(--color-price))]"
+                              x-text="_strings.price_from.replace('[[PRICE]]', group.minPriceFormatted)"
+                            ></span>
+                          </template>
+                          <template x-if="group.priceHidden">
+                            <div
+                              class="text-small leading-snug"
+                              x-html="_priceHiddenLabel"
+                              @click.stop
+                            ></div>
+                          </template>
+                        </div>
+                        <div
+                          class="bulk-order__dropdown-cell-qty hidden lg:flex flex-col items-start gap-1"
+                        >
+                          <span
+                            class="opacity-40"
+                            aria-hidden="true"
+                            >--</span
+                          >
+                        </div>
+                        <div
+                          class="bulk-order__dropdown-cell-toggle flex items-center justify-center"
+                        >
+                          <button
+                            type="button"
+                            class="bulk-order__group-toggle flex items-center justify-center w-6.5 h-6.5 p-2 lg:w-8 lg:h-8 rounded-full transition-transform shrink-0 cursor-pointer text-inherit"
+                            :class="{ '-rotate-180': !dropdownCollapsed[group.productId], 'color-bg-[rgba(var(--color-text),0.12)]': !dropdownCollapsed[group.productId], 'color-bg-[rgba(var(--color-text),0.06)]': dropdownCollapsed[group.productId] }"
+                            :aria-expanded="!dropdownCollapsed[group.productId]"
+                            :aria-controls="'bo-group-' + group.productId"
+                            :aria-label="(dropdownCollapsed[group.productId] ? '{{ 'accessibility.open' | t }}' : '{{ 'accessibility.close' | t }}') + ' ' + group.productTitle"
+                            @click.stop="toggleDropdownGroup(group.productId)"
+                          >
+                            {%- render 'icon-all', icon: 'icon-caret' -%}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+
+                  <div
+                    :id="'bo-group-' + group.productId"
+                    x-show="group.isSingleVariant || !dropdownCollapsed[group.productId]"
+                    x-collapse
+                    class="flex flex-col"
+                    :class="!group.isSingleVariant && 'mb-2'"
+                  >
+                    <template
+                      x-for="(row, rowIndex) in group.variants"
+                      :key="row.variantId"
+                    >
+                      <div
+                        class="bulk-order__dropdown-row row-group__row relative grid items-center gap-4 p-2"
+                        :class="{ 'bulk-order__dropdown-row--soldout': !row.available, 'cursor-pointer': !isAdded(row.variantId){%- if settings.edges_type == 'rounded_corners' %}, 'rounded-corners': group.isSingleVariant, 'rounded-b-[10px]': !group.isSingleVariant && rowIndex === group.variants.length - 1 {% endif -%}}"
+                        @click="addVariant(row.variantId)"
+                      >
+                        <div
+                          class="bulk-order__dropdown-cell-media shrink-0"
+                          :class="{ 'opacity-50': !row.available }"
+                        >
+                          <button
+                            type="button"
+                            class="sr-only"
+                            data-bulk-nav
+                            :aria-label="rowActionLabel(row)"
+                            :aria-disabled="rowActionDisabled(row)"
+                            @click.stop="addVariant(row.variantId)"
+                          ></button>
+                          <div class="bulk-order__dropdown-thumb-wrap relative">
+                            <template x-if="row.image">
+                              <img
+                                :src="getImgUrl(row.image)"
+                                :alt="row.productTitle"
+                                width="52"
+                                height="52"
+                                loading="lazy"
+                                class="bulk-order__dropdown-thumb rounded-corners object-cover aspect-[var(--bulk-order-image-ratio)]"
+                              >
+                            </template>
+                            <template x-if="!row.image">
+                              <div class="bulk-order__dropdown-thumb overflow-hidden rounded-corners aspect-[var(--bulk-order-image-ratio)]">{%- render 'placeholder-image', image_type: 'product_1' -%}</div>
+                            </template>
+                            {%- comment -%} Tick icon is decorative — .sr-only text states "Added" for AT users. {%- endcomment -%}
+                            <span
+                              x-show="isAdded(row.variantId)"
+                              x-cloak
+                              class="bulk-order__dropdown-badge"
+                            >
+                              {%- render 'icon-all', icon: 'icon-check' -%}
+                              <span
+                                class="sr-only"
+                                x-text="_strings.added"
+                              ></span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div class="order-row__stack">
+                          <div
+                            class="bulk-order__dropdown-info stack-cell--product flex flex-col gap-0.5 min-w-0"
+                            :class="{ 'opacity-50': !row.available }"
+                          >
+                            <span
+                              class="h7 font-semibold whitespace-nowrap overflow-hidden text-ellipsis z-0"
+                              x-text="row.isSingleVariant ? row.productTitle : (row.variantTitle || row.productTitle)"
+                            ></span>
+                            <span
+                              class="text-x-small opacity-60"
+                              x-show="!row.isSingleVariant && row.sku"
+                              x-text="row.sku"
+                            ></span>
+                            <span
+                              class="text-x-small opacity-60"
+                              x-show="row.isSingleVariant && (row.variantTitle || row.sku)"
+                            >
+                              <span x-show="row.variantTitle" x-text="row.variantTitle"></span>
+                              <span x-show="row.variantTitle && row.sku"> · </span>
+                              <span x-show="row.sku" x-text="row.sku"></span>
+                            </span>
+                          </div>
+                          <div
+                            class="bulk-order__dropdown-cell-inventory stack-cell--status min-w-0"
+                            :class="{ 'opacity-50': !row.available }"
+                          >
+                            <div
+                              class="product-info__inventory-status"
+                              :data-inventory-status="row.inventoryStatus"
+                            >
+                              <span class="product-info__inventory-label text-small flex items-center gap-1.5">
+                                <span class="flex relative mx-1">
+                                  <span class="product-info__inventory-dot animate-ping absolute flex h-full w-full rounded-full opacity-75"></span>
+                                  <span class="product-info__inventory-dot flex"></span>
+                                </span>
+                                <span x-text="row.inventoryText"></span>
+                              </span>
+                            </div>
+                          </div>
+
+                          <div
+                            class="bulk-order__dropdown-cell-price stack-cell--price text-left"
+                            :class="{ 'opacity-50': !row.available && !row.priceHidden }"
+                          >
+                            <template x-if="!row.priceHidden">
+                              <span
+                                class="h4 lg:h6 font-semibold color-text-[rgba(var(--color-price))]"
+                                x-text="rowUnitPriceFormatted(row)"
+                              ></span>
+                            </template>
+                            <template x-if="row.priceHidden">
+                              <div
+                                class="text-small leading-snug"
+                                x-html="_priceHiddenLabel"
+                                @click.stop
+                              ></div>
+                            </template>
+                          </div>
+
+                          <div
+                            class="bulk-order__dropdown-cell-qty stack-cell--qty flex flex-col items-start gap-1"
+                            @click.stop
+                          >
+                            <template x-if="row.available && !row.priceHidden">
+                              <div
+                                class="flex flex-col items-start gap-1"
+                                :class="{ 'pt-2.5': row.tooltipHtml }"
+                              >
+                                <div class="flex items-center gap-1 relative">
+                                  <div class="relative">
+                                    <div
+                                      class="inline-flex items-center rounded-corners-md overflow-hidden border color-border-[rgba(var(--color-text),0.2)]"
+                                      role="group"
+                                      :aria-label="_strings.quantity_label + ' ' + row.productTitle"
+                                    >
+                                      {%- comment -%} aria-disabled, not disabled — stays focusable; changeRowQty() enforces the bound. {%- endcomment -%}
+                                      <button
+                                        type="button"
+                                        class="flex items-center justify-center p-2.5 bg-transparent border-0 cursor-pointer select-none leading-none shrink-0 text-inherit"
+                                        :class="{ 'opacity-40': atQtyBound(row, -1) }"
+                                        :aria-disabled="atQtyBound(row, -1)"
+                                        @click="changeRowQty(row.variantId, -1, $el.parentElement.querySelector('input'))"
+                                        @mousedown.prevent
+                                        :aria-label="_strings.quantity_label + ' {{ 'accessibility.minus' | t | downcase }}'"
+                                      >
+                                        <span class="w-3 h-3 flex color-text-[rgba(var(--color-text))]">{% render 'icon-all', icon: 'icon-minus' %}</span>
+                                      </button>
+                                      <input
+                                        type="number"
+                                        class="w-10 h-9 text-center text-medium border-0 bg-transparent outline-none text-inherit appearance-none"
+                                        :value="getRowQty(row.variantId)"
+                                        :name="'bo-qty-' + row.variantId"
+                                        inputmode="numeric"
+                                        :min="_ruleFor(row).min"
+                                        :max="_ruleFor(row).max"
+                                        :step="_ruleFor(row).increment"
+                                        :aria-label="_strings.quantity_label + ' ' + rowFullTitle(row)"
+                                        @blur="setRowQty(row.variantId, $event)"
+                                        @keydown.enter.prevent="setRowQty(row.variantId, $event)"
+                                      >
+                                      <button
+                                        type="button"
+                                        class="flex items-center justify-center p-2.5 bg-transparent border-0 cursor-pointer select-none leading-none shrink-0 text-inherit"
+                                        :class="{ 'opacity-40': atQtyBound(row, 1) }"
+                                        :aria-disabled="atQtyBound(row, 1)"
+                                        @click="changeRowQty(row.variantId, 1, $el.parentElement.querySelector('input'))"
+                                        @mousedown.prevent
+                                        :aria-label="_strings.quantity_label + ' {{ 'accessibility.plus' | t | downcase }}'"
+                                      >
+                                        <span class="flex h-3 w-3 color-text-[rgba(var(--color-text))]">{% render 'icon-all', icon: 'icon-plus' %}</span>
+                                      </button>
+                                    </div>
+                                    {%- render 'bulk-order-qty-error', error_expr: 'qtyErrors[row.variantId]' -%}
+                                  </div>
+                                  <span
+                                    class="quantity-rule-tooltip-anchor inline-flex absolute right-1 -top-3 z-10"
+                                    x-html="row.tooltipHtml"
+                                  ></span>
+                                </div>
+                                <span
+                                  class="bulk-order__dropdown-rule text-x-small opacity-60"
+                                  x-show="ruleSummary(row)"
+                                  x-text="ruleSummary(row)"
+                                ></span>
+                              </div>
+                            </template>
+                            {%- comment -%} Decoration: the inventory cell already says "Out of stock". {%- endcomment -%}
+                            <template x-if="!row.available">
+                              <span
+                                class="opacity-40"
+                                aria-hidden="true"
+                                >--</span
+                              >
+                            </template>
+                          </div>
+                        </div>
+
+                        {%- comment -%} Empty placeholder — keeps this column reserved so the row lines up with the parent's toggle column. {%- endcomment -%}
+                        <div
+                          class="bulk-order__dropdown-cell-toggle hidden lg:block"
+                          aria-hidden="true"
+                        ></div>
+                      </div>
+                    </template>
+                  </div>
+                </li>
+              </template>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      x-data="xBulkOrderImport('{{ money_format | escape }}')"
+    >
+      <script
+        type="application/json"
+        data-bulk-order-import-strings
+      >
+        {
+          "upload_button": "{{ 'bulk_order.import_popup.upload_button' | t }}",
+          "import_label": "{{ 'bulk_order.import_popup.import_button' | t }}",
+          "importing_label": "{{ 'bulk_order.import_popup.importing_label' | t }}",
+          "preview_message": "{{ 'bulk_order.import_popup.preview_message' | t }}",
+          "success_message": "{{ 'bulk_order.import_popup.success_message' | t }}",
+          "row_error_label": "{{ 'bulk_order.import_popup.row_error_label' | t }}",
+          "errors": {
+            "invalid_file_type": "{{ 'bulk_order.import_popup.errors.invalid_file_type' | t }}",
+            "empty_file": "{{ 'bulk_order.import_popup.errors.empty_file' | t }}",
+            "invalid_row_format": "{{ 'bulk_order.import_popup.errors.invalid_row_format' | t }}",
+            "missing_required_field": "{{ 'bulk_order.import_popup.errors.missing_required_field' | t }}",
+            "invalid_qty": "{{ 'bulk_order.import_popup.errors.invalid_qty' | t }}",
+            "too_many_rows": "{{ 'bulk_order.import_popup.errors.too_many_rows' | t }}",
+            "duplicate_sku": "{{ 'bulk_order.import_popup.errors.duplicate_sku' | t }}",
+            "qty_violates_rule": "{{ 'bulk_order.import_popup.errors.qty_violates_rule' | t | replace: '&#39;', "'" }}",
+            "no_match": "{{ 'bulk_order.import_popup.errors.no_match' | t }}",
+            "ambiguous_match": "{{ 'bulk_order.import_popup.errors.ambiguous_match' | t }}",
+            "search_failed": "{{ 'bulk_order.import_popup.errors.search_failed' | t }}",
+            "network_error": "{{ 'bulk_order.import_popup.errors.network_error' | t }}"
+          }
+        }
+      </script>
+
+      <input
+        type="file"
+        id="bulk-order-import-file-{{ section.id }}"
+        class="sr-only"
+        accept=".csv"
+        x-ref="importFileInput"
+        @change="onFilePicked($event)"
+      >
+
+      <template x-if="hasItems && hasUsedCsvImport">
+        <div class="bulk-order__csv-controls bulk-order__csv-controls--compact">
+          {%- render 'bulk-order-import-controls' -%}
+        </div>
+      </template>
+
+      <div
+        class="bulk-order__import-progress"
+        x-show="hasImportProgress"
+        x-collapse
+        x-transition:leave="transition-opacity duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        x-cloak
+      >
+        <div class="bulk-order__import-progress-messages flex flex-col gap-1.5 w-full text-start">
+          <p
+            class="bulk-order__import-progress-success text-small"
+            x-show="importResultMessage"
+            x-cloak
+            x-text="importResultMessage"
+          ></p>
+          <div
+            class="bulk-order__import-progress-error-summary flash-message error-message flex flex-col gap-1 text-x-small w-full"
+            x-show="importResultErrorLines.length > 0 || ambiguousGroups.length > 0"
+            x-cloak
+          >
+            <template
+              x-for="(line, index) in importResultErrorLines"
+              :key="index"
+            >
+              <span x-text="line"></span>
+            </template>
+            <div
+              x-show="ambiguousGroups.length > 0"
+              x-cloak
+              class="inline-block"
+            >
+              <span x-text="ambiguousSummaryText"></span>
+              <button
+                type="button"
+                x-show="!ambiguousButtonHidden"
+                class="text-link text-x-small rounded-none shrink-0"
+                @click="openAmbiguousPopup()"
+              >
+                {{ 'bulk_order.popup_title' | t }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        x-show="!hasItems && !hasUsedCsvImport"
+        x-cloak
+        class="bulk-order__getting-started rounded-corners"
+      >
+        <div class="bulk-order__getting-started-row rounded-corners">
+          <span class="bulk-order__getting-started-icon rounded-corners">{%- render 'icon-all', icon: 'icon-search' -%}</span>
+          <div class="bulk-order__getting-started-text">
+            <p class="font-semibold h6">{{ 'bulk_order.getting_started.search_title' | t }}</p>
+          </div>
+        </div>
+
+        <div class="bulk-order__getting-started-row bulk-order__getting-started-row--csv rounded-corners">
+          <div class="bulk-order__csv-info">
+            <span class="bulk-order__getting-started-icon rounded-corners">{%- render 'icon-all', icon: 'document' -%}</span>
+            <div class="bulk-order__getting-started-text">
+              <p class="font-semibold h6">{{ 'bulk_order.getting_started.csv_title' | t }}</p>
+              <p class="text-small">{{ 'bulk_order.getting_started.csv_description' | t }}</p>
+              <div>
+                <custom-button>
+                  <button
+                    type="button"
+                    class="h7 button button-link button-no-padding anm-button-{{ settings.button_link_hover_animation }}"
+                    @click="downloadExampleFile()"
+                  >
+                    {%- assign download_example_label = 'bulk_order.import_popup.download_example' | t -%}
+                    {%- render 'button-label', button_label: download_example_label, show_button_style: 'text-link' -%}
+                  </button>
+                </custom-button>
+              </div>
+            </div>
+          </div>
+          <div class="bulk-order__csv-controls">
+            {%- render 'bulk-order-import-controls' -%}
+          </div>
+        </div>
+      </div>
+
+      <div
+        x-show="showImportConfirm"
+        x-cloak
+        x-transition:enter="transition-opacity duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="header-search__scrim--compact fixed inset-0 z-[70] cursor-pointer"
+        @click="closeImportConfirm()"
+        aria-hidden="true"
+      ></div>
+
+      <div
+        x-show="showImportConfirm"
+        x-cloak
+        class="bulk-order__remove-all-popup fixed inset-0 z-[70] pointer-events-none"
+        @keydown.escape.window="closeImportConfirm()"
+      >
+        <div
+          x-show="showImportConfirm"
+          x-transition:enter="transition-all duration-300 ease-out"
+          x-transition:enter-start="opacity-0 translate-y-1/3"
+          x-transition:enter-end="opacity-100 translate-y-0"
+          x-transition:leave="transition-all duration-200 ease-in"
+          x-transition:leave-start="opacity-100 translate-y-0"
+          x-transition:leave-end="opacity-0 translate-y-1/3"
+          class="bulk-order__remove-all-popup-panel scrollbar-body scrollbar-visible color-bg-gradient-[var(--gradient-background)] rounded-corners"
+          role="dialog"
+          aria-modal="true"
+          aria-describedby="bulk-order-import-confirm-description-{{ section.id }}"
+          id="bulk-order-import-confirm-dialog"
+          x-ref="importConfirmDialog"
+        >
+          <div class="bulk-order__remove-all-popup-header">
+            <button
+              type="button"
+              class="bulk-order__remove-all-popup-close focus-inset cursor-pointer flex"
+              id="bulk-order-import-confirm-close"
+              x-ref="importConfirmCloseBtn"
+              @click="closeImportConfirm()"
+              aria-label="{{ 'accessibility.close' | t }}"
+            >
+              <span class="button__close icon-close-small-desktop icon-close-small-mobile">{%- render 'icon-all', icon: 'icon-close' -%}</span>
+            </button>
+          </div>
+
+          <div class="bulk-order__remove-all-popup-body text-center">
+            <p
+              id="bulk-order-import-confirm-description-{{ section.id }}"
+              class="bulk-order__remove-all-popup-description text-medium"
+            >
+              {{ 'bulk_order.import_confirm.description_html' | t }}
+            </p>
+          </div>
+
+          <div class="bulk-order__remove-all-popup-footer">
+            <custom-button>
+              <button
+                type="button"
+                class="button button-small button-primary"
+                @click="closeImportConfirm()"
+              >
+                <span class="text-nowrap">{{ 'general.global.cancel' | t }}</span>
+              </button>
+            </custom-button>
+            <custom-button>
+              <button
+                type="button"
+                class="button button-link button-no-padding anm-button-{{ settings.button_link_hover_animation }}"
+                @click="confirmImport()"
+              >
+                {%- assign import_confirm_label = 'bulk_order.import_popup.import_button' | t -%}
+                {%- render 'button-label', button_label: import_confirm_label, show_button_style: 'text-link' -%}
+              </button>
+            </custom-button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        x-show="showAmbiguousPopup"
+        x-cloak
+        x-transition:enter="transition-opacity duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="header-search__scrim--compact fixed inset-0 z-[70] cursor-pointer"
+        @click="closeAmbiguousPopup()"
+        aria-hidden="true"
+      ></div>
+
+      <div
+        x-show="showAmbiguousPopup"
+        x-cloak
+        class="bulk-order__ambiguous-popup fixed inset-0 z-[70] pointer-events-none flex items-center justify-center px-4"
+        @keydown.escape.window="closeAmbiguousPopup()"
+      >
+        <div
+          x-show="showAmbiguousPopup"
+          x-transition:enter="transition-all duration-300 ease-out"
+          x-transition:enter-start="opacity-0 translate-y-1/3"
+          x-transition:enter-end="opacity-100 translate-y-0"
+          x-transition:leave="transition-all duration-200 ease-in"
+          x-transition:leave-start="opacity-100 translate-y-0"
+          x-transition:leave-end="opacity-0 translate-y-1/3"
+          class="bulk-order__ambiguous-popup-panel pointer-events-auto w-full color-bg-gradient-[var(--gradient-background)] rounded-corners flex flex-col"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bulk-order-ambiguous-title"
+          id="bulk-order-ambiguous-dialog"
+          x-ref="ambiguousDialog"
+        >
+          <div class="bulk-order__ambiguous-popup-header flex items-center justify-between py-2 ps-4 pe-2">
+            <p
+              id="bulk-order-ambiguous-title"
+              class="h4 lg:h5"
+            >
+              {{ 'bulk_order.popup_title' | t }}
+            </p>
+            <button
+              type="button"
+              class="focus-inset cursor-pointer flex"
+              id="bulk-order-ambiguous-close"
+              x-ref="ambiguousCloseBtn"
+              @click="closeAmbiguousPopup()"
+              aria-label="{{ 'accessibility.close' | t }}"
+            >
+              <span class="button__close icon-close-medium-desktop icon-close-medium-mobile">{%- render 'icon-all', icon: 'icon-close' -%}</span>
+            </button>
+          </div>
+
+          <div class="bulk-order__ambiguous-popup-body flex-auto min-h-0 overflow-y-auto scrollbar-body scrollbar-visible px-4">
+            <div class="bulk-order__table-header-mobile uppercase text-small color-text-[rgba(var(--color-text),0.8)] color-border-[rgba(var(--color-line-and-border))]">
+              <span>{{ 'customer.order.product' | t }}</span>
+              <span>{{ 'customer.order.total' | t }}</span>
+            </div>
+            <div class="bulk-order__table-header uppercase text-small color-text-[rgba(var(--color-text),0.8)] color-border-[rgba(var(--color-line-and-border))]">
+              <span style="grid-column: span 2;">{{ 'customer.order.product' | t }}</span>
+              <span>{{ 'bulk_order.column_inventory' | t }}</span>
+              <span>{{ 'customer.order.price' | t }}</span>
+              <span>{{ 'customer.order.quantity' | t }}</span>
+              <span>{{ 'customer.order.total' | t }}</span>
+            </div>
+
+            <template
+              x-for="group in ambiguousGroups"
+              :key="group.sku"
+            >
+              <div class="bulk-order__table-group row-group row-group--open rounded-corners mb-4">
+                <div class="row-group__header flex items-center gap-4 p-2{% if settings.edges_type == 'rounded_corners' %} rounded-t-[10px]{% endif %}">
+                  {%- comment -%} x-effect, not :checked — this Alpine build's :checked uses setAttribute, which stops working once a checkbox is clicked. {%- endcomment -%}
+                  <input
+                    type="checkbox"
+                    class="bulk-order__ambiguous-checkbox shrink-0"
+                    x-effect="$el.checked = isGroupFullySelected(group)"
+                    :aria-label="'SKU ' + group.sku"
+                    @change="toggleAmbiguousGroupSelection(group, $event)"
+                  >
+                  <span
+                    class="text-medium font-semibold color-text-[rgba(var(--color-text),0.8)]"
+                    x-text="'SKU: ' + group.sku"
+                  ></span>
+                </div>
+
+                <template
+                  x-for="(candidate, candidateIndex) in group.candidates"
+                  :key="candidate.variantId"
+                >
+                  <label
+                    class="bulk-order__table-row row-group__row cursor-pointer"
+                    {% if settings.edges_type == 'rounded_corners' %}
+                    :class="{ 'rounded-b-[10px]': candidateIndex === group.candidates.length - 1 }"
+                    {% endif %}
+                  >
+                    <div class="bulk-order__table-row-media shrink-0 flex items-center gap-4">
+                      <input
+                        type="checkbox"
+                        class="bulk-order__ambiguous-checkbox shrink-0"
+                        x-effect="$el.checked = !!selectedCandidates[candidate.variantId]"
+                        @change="toggleCandidateSelection(candidate.variantId)"
+                      >
+                      <img
+                        x-show="candidate.image"
+                        :src="getImgUrl(candidate.image)"
+                        :alt="candidate.productTitle"
+                        width="45"
+                        height="45"
+                        loading="lazy"
+                        class="bulk-order__table-row-image--child rounded-corners object-cover shrink-0"
+                      >
+                      <div
+                        x-show="!candidate.image"
+                        class="bulk-order__table-row-image--child overflow-hidden shrink-0 rounded-corners"
+                      >
+                        {%- render 'placeholder-image', image_type: 'product_2' -%}
+                      </div>
+                    </div>
+                    <div class="order-row__stack">
+                      <div class="bulk-order__table-row-info stack-cell--product">
+                        <span
+                          class="h6 lg:h7 font-semibold whitespace-nowrap overflow-hidden text-ellipsis"
+                          x-text="candidate.productTitle"
+                        ></span>
+                        <span
+                          x-show="candidate.variantTitle"
+                          class="text-x-small color-text-[rgba(var(--color-text-no-alpha),0.6)] whitespace-nowrap overflow-hidden text-ellipsis"
+                          x-text="candidate.variantTitle"
+                        ></span>
+                      </div>
+                      <div class="bulk-order__table-row-inventory stack-cell--status">
+                        <div
+                          class="product-info__inventory-status"
+                          :data-inventory-status="candidate.inventoryStatus"
+                        >
+                          <span class="product-info__inventory-label text-small flex items-center gap-1.5">
+                            <span class="flex relative mx-1">
+                              <span class="product-info__inventory-dot animate-ping absolute flex h-full w-full rounded-full opacity-75"></span>
+                              <span class="product-info__inventory-dot flex"></span>
+                            </span>
+                            <span x-text="candidate.inventoryText"></span>
+                          </span>
+                        </div>
+                      </div>
+                      <div class="bulk-order__table-row-price stack-cell--price">
+                        <span
+                          class="font-semibold color-text-[rgba(var(--color-price))] h5 lg:h6"
+                          x-text="candidate.priceFormatted"
+                        ></span>
+                      </div>
+                      {%- comment -%} Mobile has no column headers, so spell out "Quantity" there only. {%- endcomment -%}
+                      <div class="bulk-order__table-row-qty stack-cell--qty">
+                        <span
+                          class="text-medium lg:hidden"
+                          x-text="'{{ 'customer.order.quantity' | t }}: ' + candidate.qty"
+                        ></span>
+                        <span
+                          class="text-medium hidden lg:block"
+                          x-text="candidate.qty"
+                        ></span>
+                      </div>
+                    </div>
+                    <div
+                      class="bulk-order__table-row-total color-text-[rgba(var(--color-price))] h5 lg:h6 font-semibold min-w-[48px]"
+                      x-text="ambiguousCandidateTotal(candidate)"
+                    ></div>
+                  </label>
+                </template>
+              </div>
+            </template>
+          </div>
+
+          <div class="bulk-order__ambiguous-popup-footer p-4 flex justify-center">
+            <custom-button>
+              <button
+                type="button"
+                class="button button-primary"
+                :disabled="!hasSelectedCandidates"
+                :aria-disabled="!hasSelectedCandidates"
+                @click="confirmAddAmbiguousSelection()"
+              >
+                <span class="button-text">{{ 'bulk_order.add_product' | t }}</span>
+              </button>
+            </custom-button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="bulk-order__table{% if section.settings.show_border %} border border-solid color-border-[rgba(var(--color-line-and-border))] p-2 lg:p-4 rounded-corners{% endif %}"
+      x-show="hasItems"
+      x-cloak
+    >
+      <div class="bulk-order__table-header-mobile color-border-[rgba(var(--color-line-and-border))]">
+        <span>{{ 'customer.order.product' | t }}</span>
+        <span>{{ 'customer.order.total' | t }}</span>
+      </div>
+
+      <div class="bulk-order__table-header color-border-[rgba(var(--color-line-and-border))]">
+        <span></span>
+        <span>{{ 'customer.order.product' | t }}</span>
+        <span>{{ 'bulk_order.column_inventory' | t }}</span>
+        <span>{{ 'customer.order.price' | t }}</span>
+        <span>{{ 'customer.order.quantity' | t }}</span>
+        <span>{{ 'customer.order.total' | t }}</span>
+        <span></span>
+      </div>
+
+      <div
+        class="bulk-order__table-list scrollbar-body scrollbar-visible rounded-corners"
+        role="list"
+        aria-label="{{ 'customer.order.product' | t }}"
+      >
+        <template
+          x-for="group in groupedItems"
+          :key="group.productId"
+        >
+          <div
+            class="bulk-order__table-group row-group"
+            :class="{ 'bulk-order__table-group--open row-group--open': !group.isFlat && !collapsedGroups[group.productId] }"
+          >
+            <div
+              x-show="!group.isFlat"
+              class="bulk-order__table-row bulk-order__table-row--group-header row-group__header"
+              {% if settings.edges_type == 'rounded_corners' %}
+              :class="!collapsedGroups[group.productId] ? 'rounded-t-[10px]' : 'rounded-corners'"
+              {% endif %}
+              role="button"
+              tabindex="0"
+              :aria-expanded="!collapsedGroups[group.productId]"
+              @click="if (!$event.target.closest('a')) { toggleGroup(group.productId) }"
+              @keyup.enter="toggleGroup(group.productId)"
+            >
+              <div class="bulk-order__table-row-media shrink-0">
+                <a
+                  :href="group.items[0].url"
+                  class="contents"
+                  tabindex="-1"
+                  aria-hidden="true"
+                >
+                  <img
+                    x-show="group.items[0].productImage"
+                    :src="getImgUrl(group.items[0].productImage)"
+                    :alt="group.items[0].productTitle"
+                    width="52"
+                    height="52"
+                    loading="lazy"
+                    class="bulk-order__table-row-image rounded-corners object-cover shrink-0"
+                  >
+                  <div
+                    x-show="!group.items[0].productImage"
+                    class="bulk-order__table-row-image overflow-hidden shrink-0 rounded-corners"
+                  >
+                    {%- render 'placeholder-image', image_type: 'product_2' -%}
+                  </div>
+                </a>
+              </div>
+              <div class="bulk-order__table-row-info">
+                <a
+                  :href="group.items[0].url"
+                  class="h5 font-semibold whitespace-nowrap overflow-hidden text-ellipsis title-link"
+                  x-text="group.items[0].productTitle"
+                ></a>
+
+                <div class="flex flex-col items-start mt-0.5 flex-wrap lg:hidden">
+                  <template x-if="!group.items.every(item => item.priceHidden)">
+                    <span
+                      class="font-semibold color-text-[rgba(var(--color-price))] h4"
+                      x-text="getGroupPriceLabel(group)"
+                    ></span>
+                  </template>
+                  <template x-if="group.items.every(item => item.priceHidden)">
+                    <div
+                      class="text-small leading-snug"
+                      x-html="_priceHiddenLabel"
+                      @click.stop
+                    ></div>
+                  </template>
+                </div>
+              </div>
+
+              <div class="bulk-order__table-row-inventory"></div>
+
+              <div class="bulk-order__table-row-price">
+                <template x-if="!group.items.every(item => item.priceHidden)">
+                  <span
+                    class="font-semibold color-text-[rgba(var(--color-price))] h5"
+                    x-text="getGroupPriceLabel(group)"
+                  ></span>
+                </template>
+                <template x-if="group.items.every(item => item.priceHidden)">
+                  <div
+                    class="text-small leading-snug"
+                    x-html="_priceHiddenLabel"
+                    @click.stop
+                  ></div>
+                </template>
+              </div>
+
+              <div class="bulk-order__table-row-qty color-text-[rgba(var(--color-text),0.5)]">--</div>
+
+              <div class="bulk-order__table-row-action">
+                <div
+                  class="bulk-order__table-row-total h4 font-semibold min-w-[48px] pt-0.5 lg:pt-0"
+                  x-text="getGroupTotal(group)"
+                ></div>
+
+                <div class="bulk-order__table-row-remove">
+                  <button
+                    type="button"
+                    class="flex items-center justify-center bg-transparent border-0 cursor-pointer p-1.5 lg:p-2 text-inherit shrink-0 w-6.5 h-6.5 lg:w-8 lg:h-8"
+                    @click.stop="openRemoveGroupConfirm(group.productId)"
+                    :aria-label="_strings.remove_item + ' ' + group.items[0].productTitle"
+                  >
+                    <span
+                      class="w-full h-full"
+                      aria-hidden="true"
+                    >
+                      {%- render 'icon-all', icon: 'icon-remove' -%}
+                    </span>
+                  </button>
+                  <span
+                    class="bulk-order__group-toggle flex items-center justify-center w-6.5 h-6.5 p-2 lg:w-8 lg:h-8 rounded-full transition-transform shrink-0"
+                    :class="{ '-rotate-180': !collapsedGroups[group.productId], 'color-bg-[rgba(var(--color-text),0.12)]': !collapsedGroups[group.productId], 'color-bg-[rgba(var(--color-text),0.06)]': collapsedGroups[group.productId] }"
+                    aria-hidden="true"
+                  >
+                    {%- render 'icon-all', icon: 'icon-caret' -%}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <template
+              x-for="(item, itemIndex) in group.items"
+              :key="item.variantId"
+            >
+              <div
+                class="bulk-order__table-row-collapse-wrapper"
+                x-show="group.isFlat || !collapsedGroups[group.productId]"
+                x-collapse
+              >
+                <div
+                  class="bulk-order__table-row row-group__row"
+                  {% if settings.edges_type == 'rounded_corners' %}
+                  :class="{ 'rounded-corners': group.isFlat, 'rounded-b-[10px]': !group.isFlat && itemIndex === group.items.length - 1 }"
+                  {% endif %}
+                  role="listitem"
+                >
+                  <div
+                    x-show="item.hasError"
+                    class="bulk-order__table-row-error self-center"
+                  >
+                    <span
+                      class="flash-message error-message w-fit inline-block"
+                      x-text="item.errorMessage"
+                    ></span>
+                  </div>
+
+                  <div
+                    x-show="!item.hasError"
+                    class="bulk-order__table-row-media shrink-0"
+                    :class="{ 'opacity-50': !item.available }"
+                  >
+                    <div
+                      x-show="item.isLoading"
+                      class="bg-skeleton rounded-corners-md shrink-0"
+                      :class="group.isFlat ? 'bulk-order__table-row-image' : 'bulk-order__table-row-image--child'"
+                    ></div>
+                    <a
+                      x-show="!item.isLoading"
+                      :href="variantUrl(item)"
+                      class="contents"
+                      tabindex="-1"
+                      aria-hidden="true"
+                    >
+                      <template x-if="!item.isLoading">
+                        <img
+                          x-show="item.image"
+                          :src="getImgUrl(item.image)"
+                          :alt="item.productTitle"
+                          :width="group.isFlat ? 52 : 45"
+                          :height="group.isFlat ? 52 : 45"
+                          loading="lazy"
+                          class="rounded-corners object-cover shrink-0"
+                          :class="group.isFlat ? 'bulk-order__table-row-image' : 'bulk-order__table-row-image--child'"
+                        >
+                      </template>
+                      <div
+                        x-show="!item.isLoading && !item.image"
+                        class="overflow-hidden shrink-0 rounded-corners"
+                        :class="group.isFlat ? 'bulk-order__table-row-image' : 'bulk-order__table-row-image--child'"
+                      >
+                        {%- render 'placeholder-image', image_type: 'product_2' -%}
+                      </div>
+                    </a>
+                  </div>
+
+                  <div class="order-row__stack">
+                    <div
+                      x-show="!item.hasError"
+                      class="bulk-order__table-row-info stack-cell--product"
+                      :class="{ 'opacity-50': !item.available }"
+                    >
+                      <div
+                        x-show="item.isLoading"
+                        class="bg-skeleton h-4 w-4/5 rounded-corners-md"
+                      ></div>
+                      <a
+                        x-show="!item.isLoading"
+                        :href="variantUrl(item)"
+                        class="h5 font-semibold whitespace-nowrap overflow-hidden text-ellipsis title-link z-10"
+                        x-text="group.isFlat ? item.productTitle : item.variantTitle"
+                      ></a>
+
+                      <div
+                        x-show="item.isLoading"
+                        class="bg-skeleton h-3 w-4/5 rounded-corners-md mt-1"
+                      ></div>
+                      <span
+                        x-show="!item.isLoading && ((group.isFlat && item.variantTitle) || item.sku)"
+                        class="text-x-small font-bold color-text-[rgba(var(--color-text),0.6)]"
+                      >
+                        <span
+                          x-show="group.isFlat && item.variantTitle"
+                          x-text="item.variantTitle"
+                        ></span
+                        ><span x-show="group.isFlat && item.variantTitle && item.sku"> · </span
+                        ><span
+                          x-show="item.sku"
+                          x-text="item.sku"
+                        ></span>
+                      </span>
+                    </div>
+
+                    <div
+                      x-show="!item.hasError"
+                      class="bulk-order__table-row-inventory stack-cell--status"
+                      :class="{ 'opacity-50': !item.available }"
+                    >
+                      <div
+                        x-show="item.isLoading"
+                        class="bg-skeleton h-5 w-4/5 rounded-corners-md"
+                      ></div>
+                      <div
+                        x-show="!item.isLoading"
+                        class="product-info__inventory-status"
+                        :data-inventory-status="item.inventoryStatus"
+                      >
+                        <span class="product-info__inventory-label text-small flex items-center gap-1.5">
+                          <span class="flex relative mx-1">
+                            <span class="product-info__inventory-dot animate-ping absolute flex h-full w-full rounded-full opacity-75"></span>
+                            <span class="product-info__inventory-dot flex"></span>
+                          </span>
+                          <span x-text="item.inventoryText"></span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div
+                      x-show="!item.hasError"
+                      class="bulk-order__table-row-price stack-cell--price"
+                      :class="{ 'opacity-50': !item.available }"
+                    >
+                      <div
+                        x-show="item.isLoading"
+                        class="bg-skeleton h-5 w-4/5 rounded-corners-md"
+                      ></div>
+                      <template x-if="!item.isLoading && !item.priceHidden">
+                        <span
+                          class="font-semibold color-text-[rgba(var(--color-price))] h5"
+                          x-text="itemUnitPriceFormatted(item)"
+                        ></span>
+                      </template>
+                      <template x-if="!item.isLoading && item.priceHidden">
+                        <div
+                          class="text-small leading-snug"
+                          x-html="_priceHiddenLabel"
+                          @click.stop
+                        ></div>
+                      </template>
+                    </div>
+
+                    {%- comment -%} Skeleton stays a direct child of the cell — its %-width needs a definite-width parent, not the shrink-to-fit w-fit wrapper below. {%- endcomment -%}
+                    <div
+                      x-show="!item.hasError"
+                      class="bulk-order__table-row-qty stack-cell--qty relative flex flex-col items-start gap-1"
+                      :class="{ 'opacity-50': !item.available, 'pt-2.5': item.tooltipHtml }"
+                    >
+                      <div
+                        x-show="item.isLoading"
+                        class="bg-skeleton h-11 w-4/5 rounded-corners-md"
+                      ></div>
+                      <span
+                        x-show="!item.isLoading && !item.available"
+                        class="opacity-40"
+                        aria-hidden="true"
+                        >--</span
+                      >
+                      <div
+                        x-show="!item.isLoading && item.available"
+                        class="relative w-fit"
+                      >
+                        <div
+                          class="inline-flex items-center rounded-corners-md  border color-border-[rgba(var(--color-text),0.2)]"
+                          role="group"
+                          :aria-label="_strings.quantity_label + ' ' + item.productTitle"
+                        >
+                          <div
+                            class="flex items-center justify-center px-3 py-3.5 bg-transparent cursor-pointer select-none text-medium leading-none shrink-0 text-inherit"
+                            tabindex="0"
+                            role="button"
+                            @click.prevent="changeTableQty(item.variantId, -1)"
+                            @keyup.enter="changeTableQty(item.variantId, -1)"
+                            :aria-label="_strings.quantity_label + ' {{ 'accessibility.minus' | t | downcase }}'"
+                          >
+                            <span class="w-3 h-3 flex color-text-[rgba(var(--color-text))]">{% render 'icon-all', icon: 'icon-minus' %}</span>
+                          </div>
+                          <input
+                            type="number"
+                            class="w-9 h-10 text-center text-medium border-0 bg-transparent outline-none text-inherit appearance-none"
+                            :value="item.qty"
+                            :name="'table-qty-' + item.variantId"
+                            min="1"
+                            :aria-label="_strings.quantity_label + ' ' + item.productTitle"
+                            @change="setTableQty(item.variantId, $event)"
+                          >
+                          <div
+                            class="flex items-center justify-center px-3 py-3.5 bg-transparent cursor-pointer select-none text-medium leading-none shrink-0 text-inherit"
+                            tabindex="0"
+                            role="button"
+                            @click.prevent="changeTableQty(item.variantId, 1)"
+                            @keyup.enter="changeTableQty(item.variantId, 1)"
+                            :aria-label="_strings.quantity_label + ' {{ 'accessibility.plus' | t | downcase }}'"
+                          >
+                            <span class="flex h-3 w-3 color-text-[rgba(var(--color-text))]">{% render 'icon-all', icon: 'icon-plus' %}</span>
+                          </div>
+                        </div>
+                        {%- render 'bulk-order-qty-error', error_expr: 'tableQtyErrors[item.variantId]' -%}
+                        {%- comment -%} `|| ''` is load-bearing — x-html would otherwise render the literal text "undefined". {%- endcomment -%}
+                        <span
+                          class="quantity-rule-tooltip-anchor inline-flex absolute right-1 -top-3 z-10"
+                          x-html="item.tooltipHtml || ''"
+                        ></span>
+                      </div>
+                      <span
+                        class="bulk-order__table-rule text-x-small opacity-60"
+                        x-show="!item.isLoading && item.available && ruleSummary(item)"
+                        x-text="ruleSummary(item)"
+                      ></span>
+                    </div>
+                  </div>
+
+                  <div class="bulk-order__table-row-action">
+                    <div
+                      x-show="!item.hasError"
+                      class="bulk-order__table-row-total h4 font-semibold min-w-[48px]"
+                      :class="{ 'opacity-50': !item.available }"
+                    >
+                      <div
+                        x-show="item.isLoading"
+                        class="bg-skeleton h-5 w-full rounded-corners-md"
+                      ></div>
+                      <span
+                        x-show="!item.isLoading"
+                        x-text="getItemTotal(item)"
+                      ></span>
+                    </div>
+
+                    <div
+                      x-show="!item.hasError"
+                      class="bulk-order__table-row-remove"
+                    >
+                      <button
+                        type="button"
+                        class="flex items-center justify-center bg-transparent border-0 cursor-pointer p-1.5 lg:p-2 text-inherit shrink-0 w-6.5 h-6.5 lg:w-8 lg:h-8"
+                        @click="openRemoveItemConfirm(item.variantId)"
+                        :aria-label="_strings.remove_item + ' ' + item.productTitle"
+                      >
+                        <span
+                          class="w-full h-full"
+                          aria-hidden="true"
+                        >
+                          {%- render 'icon-all', icon: 'icon-remove' -%}
+                        </span>
+                      </button>
+                      <span
+                        class="hidden lg:block w-4 h-4 shrink-0"
+                        aria-hidden="true"
+                      ></span>
+                    </div>
+                  </div>
+
+                  <div
+                    x-show="item.submitErrorMessage"
+                    class="bulk-order__table-row-submit-error"
+                  >
+                    <span
+                      class="flash-message error-message w-fit inline-block"
+                      x-text="item.submitErrorMessage"
+                    ></span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+
+      <p
+        x-show="submitError"
+        x-text="submitError"
+        class="color-text-[rgba(var(--error-message-color))] text-sm mt-3"
+      ></p>
+
+      <div
+        class="bulk-order__table-footer rounded-corners color-bg-[rgba(var(--color-text),0.06)] p-4 mt-2 lg:mt-3"
+      >
+        <div class="bulk-order__table-footer-summary gap-3">
+          <div class="bulk-order__table-footer-info gap-3">
+            <span
+              class="text-small color-text-[rgba(var(--color-text),0.6)]"
+              x-text="selectedCountText"
+            ></span>
+            <span class="text-medium">
+              <span x-text="grandTotalLabelText"></span>
+              <span
+                class="bulk-order__table-footer-total-amount font-semibold"
+                x-text="grandTotalAmountFormatted"
+              ></span>
+            </span>
+          </div>
+          <div class="bulk-order__table-footer-actions gap-3 md:gap-4">
+            <div class="flex gap-1">
+              {%- unless settings.hide_cart -%}
+                <custom-button>
+                  <button
+                    type="button"
+                    class="button button-primary button-medium relative"
+                    :class="{ 'pointer-events-none': isSubmitting }"
+                    :disabled="isSubmitting || isImporting || !hasReadyItems"
+                    :aria-disabled="isSubmitting || isImporting || !hasReadyItems"
+                    @click="handleSubmit()"
+                  >
+                    <span
+                      class="button-text text-nowrap"
+                      :class="{ 'opacity-0': isSubmitting }"
+                    >
+                      {{- 'products.product.add_to_cart' | t -}}
+                    </span>
+                    <span
+                      class="inline-block w-5 h-5 animate-spin absolute top-[calc(50%-10px)] left-[calc(50%-10px)]"
+                      x-show="isSubmitting"
+                      x-cloak
+                    >
+                      {%- render 'icon-all', icon: 'icon-loading' -%}
+                    </span>
+                  </button>
+                </custom-button>
+              {%- endunless -%}
+            {%- if bo_can_request_quote == 'true' -%}
+              <custom-button>
+                <button
+                  type="button"
+                  class="button button-secondary button-medium relative"
+                  :disabled="isSubmitting || !hasItems"
+                  :aria-disabled="isSubmitting || !hasItems"
+                  data-quote-request-open
+                  data-quote-source="bulk-order"
+                >
+                  <span class="button-text text-nowrap">{{ 'quote_request.button_label' | t }}</span>
+                </button>
+              </custom-button>
+            {%- endif -%}
+            </div>
+          <custom-button>
+            <button
+              type="button"
+              class="button button-link button-no-padding anm-button-{{ settings.button_link_hover_animation }}"
+              :disabled="isSubmitting"
+              :aria-disabled="isSubmitting"
+              @click="openRemoveAllConfirm()"
+            >
+              {%- assign clear_all_label = 'bulk_order.remove_all' | t -%}
+              {%- render 'button-label', button_label: clear_all_label, show_button_style: 'text-link' -%}
+            </button>
+          </custom-button>
+        </div>
+      </div>
+    </div>
+  {%- else -%}
+    {%- comment -%} B2B gate: section restricted to B2B customers. Guest -> log in prompt; logged-in without B2B access -> contact prompt. {%- endcomment -%}
+    {%- liquid
+      if customer == blank
+        assign gate_title = 'bulk_order.gate.guest_title' | t
+        assign gate_text = 'bulk_order.gate.guest_text' | t
+      else
+        assign gate_title = 'bulk_order.gate.no_access_title' | t
+        assign gate_text = 'bulk_order.gate.no_access_text' | t: shop_name: shop.name
+      endif
+    -%}
+    <div class="bulk-order__empty flex flex-col items-center">
+      <span class="block w-24 h-24 opacity-40">
+        {%- render 'icon-cart', icon: 'icon-cart' -%}
+      </span>
+      <div class="flex flex-col items-center gap-2 max-w-[600px] text-center">
+        <p class="h4 color-text-[rgba(var(--color-heading))]">{{ gate_title }}</p>
+        <p class="text-medium">{{ gate_text }}</p>
+        {%- if customer == blank -%}
+          <div class="pt-4">
+            <custom-button>
+              <a
+                href="{{ routes.account_login_url }}"
+                class="button button-primary button-medium"
+              >
+                <span class="button-text">{{ 'bulk_order.gate.login' | t }}</span>
+              </a>
+            </custom-button>
+          </div>
+        {%- elsif section.settings.contact_label != blank -%}
+          <div class="pt-4">
+            <custom-button>
+              <a
+                href="{{ section.settings.contact_link | default: '#' }}"
+                class="button button-primary button-medium"
+                {% if section.settings.contact_link_new_tab %}
+                  target="_blank" rel="noopener"
+                {% endif %}
+              >
+                <span class="button-text">{{ section.settings.contact_label | escape }}</span>
+              </a>
+            </custom-button>
+          </div>
+        {%- endif -%}
+      </div>
+    </div>
+  {%- endif -%}
+
+  <div
+    x-show="showRemoveAllConfirm"
+    x-cloak
+    x-transition:enter="transition-opacity duration-300"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="transition-opacity duration-200"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+    class="header-search__scrim--compact fixed inset-0 z-[70] cursor-pointer"
+    @click="closeRemoveAllConfirm()"
+    aria-hidden="true"
+  ></div>
+
+  <div
+    x-show="showRemoveAllConfirm"
+    x-cloak
+    class="bulk-order__remove-all-popup fixed inset-0 z-[70] pointer-events-none"
+    @keydown.escape.window="closeRemoveAllConfirm()"
+  >
+    <div
+      x-show="showRemoveAllConfirm"
+      x-transition:enter="transition-all duration-300 ease-out"
+      x-transition:enter-start="opacity-0 translate-y-1/3"
+      x-transition:enter-end="opacity-100 translate-y-0"
+      x-transition:leave="transition-all duration-200 ease-in"
+      x-transition:leave-start="opacity-100 translate-y-0"
+      x-transition:leave-end="opacity-0 translate-y-1/3"
+      class="bulk-order__remove-all-popup-panel scrollbar-body scrollbar-visible color-bg-gradient-[var(--gradient-background)] rounded-corners"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="bulk-order-remove-all-title-{{ section.id }}"
+      id="bulk-order-remove-all-dialog"
+      x-ref="removeAllDialog"
+    >
+      <div class="bulk-order__remove-all-popup-header">
+        <button
+          type="button"
+          class="bulk-order__remove-all-popup-close focus-inset cursor-pointer flex"
+          id="bulk-order-remove-all-close"
+          x-ref="removeAllCloseBtn"
+          @click="closeRemoveAllConfirm()"
+          aria-label="{{ 'accessibility.close' | t }}"
+        >
+          <span class="button__close icon-close-small-desktop icon-close-small-mobile">{%- render 'icon-all', icon: 'icon-close' -%}</span>
+        </button>
+      </div>
+
+      <div class="bulk-order__remove-all-popup-body text-center">
+        <p
+          id="bulk-order-remove-all-title-{{ section.id }}"
+          class="bulk-order__remove-all-popup-title text-medium"
+        >
+          {{ 'bulk_order.remove_all_confirm.title' | t }}
+        </p>
+        <p class="bulk-order__remove-all-popup-description text-medium">
+          {{ 'bulk_order.remove_all_confirm.description' | t }}
+        </p>
+      </div>
+
+      <div class="bulk-order__remove-all-popup-footer">
+        <custom-button>
+          <button
+            type="button"
+            class="button button-small button-primary"
+            @click="closeRemoveAllConfirm()"
+          >
+            <span class="text-nowrap">{{ 'general.global.cancel' | t }}</span>
+          </button>
+        </custom-button>
+        <custom-button>
+          <button
+            type="button"
+            class="button button-link button-no-padding anm-button-{{ settings.button_link_hover_animation }}"
+            @click="confirmClearAll()"
+          >
+            {%- assign remove_all_confirm_label = 'bulk_order.remove_all_confirm.confirm' | t -%}
+            {%- render 'button-label', button_label: remove_all_confirm_label, show_button_style: 'text-link' -%}
+          </button>
+        </custom-button>
+      </div>
+    </div>
+  </div>
+
+  <div
+    x-show="showRemoveItemConfirm"
+    x-cloak
+    x-transition:enter="transition-opacity duration-300"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="transition-opacity duration-200"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+    class="header-search__scrim--compact fixed inset-0 z-[70] cursor-pointer"
+    @click="closeRemoveItemConfirm()"
+    aria-hidden="true"
+  ></div>
+
+  <div
+    x-show="showRemoveItemConfirm"
+    x-cloak
+    class="bulk-order__remove-all-popup fixed inset-0 z-[70] pointer-events-none"
+    @keydown.escape.window="closeRemoveItemConfirm()"
+  >
+    <div
+      x-show="showRemoveItemConfirm"
+      x-transition:enter="transition-all duration-300 ease-out"
+      x-transition:enter-start="opacity-0 translate-y-1/3"
+      x-transition:enter-end="opacity-100 translate-y-0"
+      x-transition:leave="transition-all duration-200 ease-in"
+      x-transition:leave-start="opacity-100 translate-y-0"
+      x-transition:leave-end="opacity-0 translate-y-1/3"
+      class="bulk-order__remove-all-popup-panel scrollbar-body scrollbar-visible color-bg-gradient-[var(--gradient-background)] rounded-corners"
+      role="dialog"
+      aria-modal="true"
+      aria-describedby="bulk-order-remove-item-description-{{ section.id }}"
+      id="bulk-order-remove-item-dialog"
+      x-ref="removeItemDialog"
+    >
+      <div class="bulk-order__remove-all-popup-header">
+        <button
+          type="button"
+          class="bulk-order__remove-all-popup-close focus-inset cursor-pointer flex"
+          id="bulk-order-remove-item-close"
+          x-ref="removeItemCloseBtn"
+          @click="closeRemoveItemConfirm()"
+          aria-label="{{ 'accessibility.close' | t }}"
+        >
+          <span class="button__close icon-close-small-desktop icon-close-small-mobile">{%- render 'icon-all', icon: 'icon-close' -%}</span>
+        </button>
+      </div>
+
+      <div class="bulk-order__remove-all-popup-body text-center">
+        <p
+          id="bulk-order-remove-item-description-{{ section.id }}"
+          class="bulk-order__remove-all-popup-description text-medium"
+        >
+          {{ 'bulk_order.remove_item_confirm.description' | t }}
+        </p>
+      </div>
+
+      <div class="bulk-order__remove-all-popup-footer">
+        <custom-button>
+          <button
+            type="button"
+            class="button button-small button-primary"
+            @click="closeRemoveItemConfirm()"
+          >
+            <span class="text-nowrap">{{ 'general.global.cancel' | t }}</span>
+          </button>
+        </custom-button>
+        <custom-button>
+          <button
+            type="button"
+            class="button button-link button-no-padding anm-button-{{ settings.button_link_hover_animation }}"
+            @click="confirmRemoveItem()"
+          >
+            {%- assign remove_item_confirm_label = 'accessibility.remove' | t -%}
+            {%- render 'button-label', button_label: remove_item_confirm_label, show_button_style: 'text-link' -%}
+          </button>
+        </custom-button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{%- if bo_full -%}
+  <script
+    src="{{ 'bulk-order.js' | asset_url }}"
+    defer
+  ></script>
+  <script
+    src="{{ 'bulk-order-import.js' | asset_url }}"
+    defer
+  ></script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:bulk_order.name",
+  "tag": "section",
+  "class": "maximize-section section-bulk-order",
+  "limit": 1,
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:global.header.content"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "t:global.text.subheading"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:global.text.heading",
+      "default": "Bulk order",
+      "info": "t:global.text.highlight_info"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "t:global.text.heading_size",
+      "options": [
+        { "value": "small", "label": "t:global.size.small" },
+        { "value": "medium", "label": "t:global.size.medium" },
+        { "value": "large", "label": "t:global.size.large" }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "label": "t:global.text.heading_tag",
+      "options": [
+        { "value": "h1", "label": "H1" },
+        { "value": "h2", "label": "H2" },
+        { "value": "h3", "label": "H3" },
+        { "value": "h4", "label": "H4" },
+        { "value": "h5", "label": "H5" },
+        { "value": "h6", "label": "H6" },
+        { "value": "p", "label": "p" }
+      ],
+      "default": "h2"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "t:global.text.text",
+      "info": "t:global.text.highlight_info"
+    },
+    {
+      "type": "select",
+      "id": "text_size",
+      "label": "t:global.text.text_size",
+      "options": [
+        { "value": "small", "label": "t:global.size.small" },
+        { "value": "medium", "label": "t:global.size.medium" },
+        { "value": "large", "label": "t:global.size.large" }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "select",
+      "id": "highlight_effect",
+      "label": "t:global.text.highlight_effect.label",
+      "options": [
+        { "value": "underline", "label": "t:global.text.highlight_effect.option_1" },
+        { "value": "marker", "label": "t:global.text.highlight_effect.option_2" },
+        { "value": "text-color-change", "label": "t:global.text.highlight_effect.option_3" },
+        { "value": "shadow", "label": "t:global.text.highlight_effect.option_4" }
+      ],
+      "default": "underline"
+    },
+    {
+      "type": "select",
+      "id": "text_transform",
+      "label": "t:global.text.transform.label",
+      "options": [
+        { "value": "none", "label": "t:global.text.transform.none" },
+        { "value": "italic", "label": "t:global.text.transform.italic" },
+        { "value": "uppercase", "label": "t:global.text.transform.uppercase" },
+        { "value": "both", "label": "t:global.text.transform.italic_and_uppercase" }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "select",
+      "id": "desktop_heading_alignment",
+      "label": "t:bulk_order.settings.desktop_heading_alignment",
+      "options": [
+        { "value": "left", "label": "t:global.position.left" },
+        { "value": "center", "label": "t:global.position.center" },
+        { "value": "right", "label": "t:global.position.right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "mobile_heading_alignment",
+      "label": "t:global.position.mobile_heading_alignment",
+      "options": [
+        { "value": "left", "label": "t:global.position.left" },
+        { "value": "center", "label": "t:global.position.center" },
+        { "value": "right", "label": "t:global.position.right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "t:bulk_order.settings.b2b_header"
+    },
+    {
+      "type": "checkbox",
+      "id": "only_show_for_b2b",
+      "label": "t:bulk_order.settings.only_show_for_b2b",
+      "info": "t:bulk_order.settings.only_show_for_b2b_info",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "contact_label",
+      "label": "t:bulk_order.settings.contact_label",
+      "info": "t:bulk_order.settings.contact_label_info",
+      "default": "Contact us",
+      "visible_if": "{{ section.settings.only_show_for_b2b }}"
+    },
+    {
+      "type": "url",
+      "id": "contact_link",
+      "label": "t:bulk_order.settings.contact_link",
+      "visible_if": "{{ section.settings.only_show_for_b2b }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "contact_link_new_tab",
+      "label": "t:bulk_order.settings.contact_link_new_tab",
+      "default": false,
+      "visible_if": "{{ section.settings.only_show_for_b2b }}"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "select",
+      "label": "t:global.section.section_width.label",
+      "id": "section_width",
+      "options": [
+        {
+          "label": "t:global.section.section_width.option_1",
+          "value": "page-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_2",
+          "value": "full-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_3",
+          "value": "full-width-padded"
+        }
+      ],
+      "default": "page-width"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.section.top_padding",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.section.bottom_padding",
+      "default": 32
+    },
+    {
+      "type": "checkbox",
+      "id": "show_section_divider",
+      "label": "t:global.section.show_section_divider",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.colors"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_border",
+      "label": "t:bulk_order.settings.show_border",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:bulk_order.name"
+    }
+  ]
+}
+{% endschema %}

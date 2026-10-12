@@ -1,0 +1,329 @@
+{% comment %}theme-check-disable ImgLazyLoading{% endcomment %}
+{%- liquid
+  assign popular_term = settings.search_bar_popular_search_term | split: ','
+  assign popular_products = settings.search_bar_popular_products
+  assign popular_collections = settings.search_bar_popular_collections
+  assign collections_list_size = popular_collections.count
+  assign store_discovery = settings.search_bar_store_discovery
+  assign compact_search = false
+  if settings.search_bar_desktop_layout == 'compact'
+    assign compact_search = true
+  endif
+
+  assign exclude_collections_list = false
+  if settings.exclude_collections != blank
+    assign exclude_collections_list = settings.exclude_collections | map: 'id'
+    for collection in popular_collections
+      if exclude_collections_list contains collection.id
+        assign collections_list_size = collections_list_size | minus: 1
+      endif
+    endfor
+  endif
+
+  assign has_card_content = false
+  if popular_products != blank or collections_list_size > 0
+    assign has_card_content = true
+  endif
+-%}
+
+{%- if popular_term.size > 0 or store_discovery.links.size > 0 or popular_products != blank or collections_list_size > 0 -%}
+  <template x-if="!isFirstLoading">
+    <div class="search-page:color-bg-[rgba(var(--color-background))] h-full flex flex-col pt-6">
+      <div class="header-search__compact-max-height overflow-auto search-page:max-h-[45vh] scrollbar-body scrollbar-visible flex-auto px-4">
+        <div class="psr__wrapper flex flex-col lg:flex-row gap-5 md:gap-7.5">
+          {%- if popular_term.size > 0 or store_discovery.links.size > 0 -%}
+            <div class="ss-suggestions__wrapper {% if has_card_content %} lg:max-w-[310px] w-fit{% endif %}">
+              {%- if popular_term.size > 0 -%}
+                <div class=" flex-1">
+                  <p
+                    id="suggest-search-popular-term"
+                    class="suggest-search-heading h5 pb-2.5 md:pb-4 font-semibold empty:hidden"
+                  >
+                    {{- settings.search_bar_popular_terms_title -}}
+                  </p>
+                  <ul
+                    id="suggest-search-popular-term-list"
+                    class="flex flex-wrap gap-1.5"
+                    role="group"
+                    aria-labelledby="suggest-search-popular-term-list"
+                  >
+                    {% for term in popular_term %}
+                      <custom-button>
+                        <li
+                          id="suggest-search-popular-term-{{ forloop.index }}"
+                          class="suggest-search__list-item color-bg-[rgba(var(--color-text),0.06)] color-text-[rgba(var(--color-text))] rounded-corners-md w-fit anm-button-secondary"
+                          role="option"
+                          aria-selected="false"
+                        >
+                          <a
+                            href="{{ routes.search_url }}?q={{ term | url_param_escape }}&options[prefix]=last&type=product"
+                            class="search_heading suggest-search-item px-2.5 md:px-4 py-1.5 md:py-2 inline-block x-break-words relative"
+                          >
+                            {{ term }}
+                          </a>
+                        </li>
+                      </custom-button>
+                    {%- endfor -%}
+                  </ul>
+                </div>
+              {%- endif -%}
+              {%- if store_discovery.links.size > 0 -%}
+                <div class="ss-store-discovery flex-1 {%- if popular_term.size > 0 %} pt-5 md:pt-7.5{% endif %}">
+                  <p
+                    id="suggestSearchSearchDiscovery"
+                    class="suggest-search-heading h5 pb-2.5 md:pb-4 font-semibold empty:hidden"
+                  >
+                    {{- settings.search_bar_store_discovery_title -}}
+                  </p>
+                  <div class="predictive-result-item flex flex-wrap gap-1.5 ">
+                    {%- for link in store_discovery.links -%}
+                      <custom-button>
+                        <div class="block color-bg-[rgba(var(--color-text),0.06)] color-text-[rgba(var(--color-text))] rounded-corners-md w-fit anm-button-secondary">
+                          <a
+                            href="{{ link.url }}"
+                            class="search_heading suggest-search-item relative px-2.5 md:px-4 py-1.5 md:py-2 inline-block x-break-words"
+                          >
+                            {{ link.title | escape }}
+                          </a>
+                        </div>
+                      </custom-button>
+                    {%- endfor -%}
+                  </div>
+                </div>
+              {%- endif -%}
+            </div>
+          {% endif %}
+
+          {% if has_card_content %}
+            <div class="ss-contents__wrapper w-full flex flex-col {% if compact_search %} md:flex-row {% endif %} gap-5 md:gap-7.5">
+              {%- if popular_products != blank -%}
+                <div class="flex-1">
+                  <p
+                    id="suggest-search-products"
+                    class="suggest-search-heading h5 font-semibold pb-2.5 md:pb-4 empty:hidden"
+                  >
+                    {{- settings.search_bar_popular_products_title -}}
+                  </p>
+                  <div
+                    class="swiffy-slider overflow-hidden slider-item-snapstart enable-effect-hover"
+                    {% if popular_products.count > 2 and compact_search == false %}
+                      x-intersect.once="
+                        $store.xSwiffy.load($el, {
+                          'isLoop': false,
+                          'mediaQuery': 'max',
+                          'breakPoints':{
+                            '767': {
+                              'slidesPerView': 2
+                            },
+                            '1023': {
+                              'slidesPerView': 4
+                            }
+                          },
+                        });
+                      "
+                    {% endif %}
+                  >
+                    {% if popular_products.count > 4 and compact_search == false %}
+                      {% render 'slider-navigation-button', class_nav_button: "md:!flex" %}
+                    {% endif %}
+                    <ul
+                      role="listbox"
+                      aria-labelledby="suggest-search-products"
+                      class="suggest-search-product-list{% if compact_search %}flex flex-col gap-1.5{% else %} slider-container slider-item-show2 md:slider-item-show4 gap-3.5{% endif %}"
+                      data-mobile-gap="14px"
+                      data-desktop-gap="14px"
+                    >
+                      {%- for product in popular_products -%}
+                        <li
+                          id="suggest-search-product-{{ forloop.index }}"
+                          role="option"
+                          aria-selected="false"
+                          class="slide-item"
+                        >
+                          <div class="flex relative h-full  gap-x-2.5 {% unless compact_search %} flex-col {% endunless %}">
+                            <a
+                              href="{{ product.url }}"
+                              class="{% if compact_search %}w-24{% else %}w-full{% endif %} relative mb-1.5 media-hyperlink"
+                            >
+                              <div
+                                class="relative overflow-hidden w-full float-left before:h-0 before:block rounded-corners {% unless settings.pc_media_ratio == "auto" %} before:pb-[{{ settings.pc_media_ratio }}%]{% else %}{% if product.featured_media.media_type == "model" %} pb-[100%]{% endif %}{% endunless %}"
+                                {% if settings.pc_media_ratio == 'auto' and product.featured_media and product.featured_media.media_type != 'model' %}
+                                  style="padding-bottom: {{ 1 | divided_by: product.featured_media.aspect_ratio | times: 100 }}%;"
+                                {% endif %}
+                              >
+                                {%- if product.featured_media != blank -%}
+                                  {% liquid
+                                    assign img_product = product.featured_media
+                                    assign alt_product = product.featured_media.alt | split: "#" | first | escape
+                                  %}
+                                  {%- capture sizes -%}
+                                    (min-width: 1024px) calc((100vw) / 4), (min-width: 768px) calc((100vw) / 2), 100vw
+                                  {%- endcapture -%}
+                                  {% render 'image', 
+                                    img_class: "h-full w-full object-cover absolute top-0 left-0 image-hover rounded-corners anm-image-hover", 
+                                    img: img_product, 
+                                    alt: alt_product, 
+                                    img_width: 1024, 
+                                    sizes: sizes, 
+                                    eager_loading: false 
+                                  %}
+                                {%- else -%}
+                                  <div class="{% unless settings.pc_media_ratio == "auto" %} absolute{% endunless %} top-0 left-0 w-full h-full rounded-corners">
+                                    {% liquid
+                                      assign index = 1
+                                      assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+                                      assign placeholder_product_name = 'product_' | append: index
+                                    %}
+                                    {% render 'placeholder-image', image_type: placeholder_product_name %}
+                                  </div>
+                                {%- endif -%}
+                              </div>
+                            </a>
+                            <div class="flex-1">
+                              {%- if settings.search_bar_product_card_show_vendor -%}
+                                <div class="mb-1 p-break-words tracking-widest {% if compact_search %} text-x-small {% else %} text-small{% endif %} color-text-[rgba(var(--color-text),0.6)]">
+                                  {{ product.vendor }}
+                                </div>
+                              {%- endif -%}
+                              <a
+                                href="{{ product.url }}"
+                                class="mb-1 title-link"
+                              >
+                                <h7 class="h7 p-break-words">{{ product.title | escape }}</h7>
+                              </a>
+                              {%- if settings.search_bar_product_card_show_ratings -%}
+                                <div class="">
+                                  {% render 'review-product', product: product, is_comparison: true %}
+                                </div>
+                              {%- endif -%}
+                              {%- if settings.search_bar_product_card_show_price -%}
+                                {%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+                                {%- assign login_hide_price = login_hide_price | strip -%}
+                                 {%liquid
+                                    assign direction_label= 'row'
+                                    if compact_search
+                                      assign direction_label = 'col'
+                                    endif
+                                  %}
+                                {% if login_hide_price == 'true' %}
+                                  {% render 'guest-price-message', disabled_border: true, direction_label: direction_label %}
+                                {% else %}
+                                  {% render 'price',
+                                    product: product,
+                                    use_variant: true,
+                                    show_badges: false,
+                                    price_wrapper: 'h6',
+                                    show_b2b_price_label: true
+                                  %}
+                                {% endif %}
+                              {%- endif -%}
+                            </div>
+                          </div>
+                        </li>
+                      {%- endfor -%}
+                    </ul>
+                    {% if popular_products.count > 2 and compact_search == false %}
+                      {% render 'progress-bar' %}
+                    {% endif %}
+                  </div>
+                </div>
+              {% endif %}
+
+              {%- if collections_list_size > 0 -%}
+                <div class="flex-1">
+                  <p
+                    id="suggest-search-collections"
+                    class="suggest-search-heading h5 pb-2.5 md:pb-4 font-semibold empty:hidden"
+                  >
+                    {{- settings.search_bar_popular_collections_title -}}
+                  </p>
+                  <div
+                    class="swiffy-slider overflow-hidden slider-item-snapstart enable-effect-hover"
+                    {% if collections_list_size > 2 and compact_search == false %}
+                      x-intersect.once="
+                        $store.xSwiffy.load($el, {
+                          'isLoop': false,
+                          'mediaQuery': 'max',
+                          'breakPoints':{
+                            '767': {
+                              'slidesPerView': 2
+                            },
+                            '1023': {
+                              'slidesPerView': 4
+                            }
+                          },
+                        });
+                      "
+                    {% endif %}
+                  >
+                    {% if collections_list_size > 4 and compact_search == false %}
+                      {% render 'slider-navigation-button', class_nav_button: "md:!flex"  %}
+                    {% endif %}
+                    <div
+                      class="suggest-search-item{% if compact_search %} flex flex-col gap-1.5{% else %} slider-container slider-item-show2 md:slider-item-show4 gap-3.5{% endif %}"
+                      data-mobile-gap="14px"
+                      data-desktop-gap="14px"
+                    >
+                      {%- for collection in popular_collections -%}
+                        {% unless exclude_collections_list contains collection.id %}
+                          <div class="block slide-item">
+                            <div class="flex relative disable-effect h-full  gap-x-2.5 {% unless compact_search %} flex-col {% endunless %}">
+                              <a
+                                href="{{ collection.url }}"
+                                class="{% if compact_search %}w-24{% else %}w-full{% endif %} relative mb-1.5 media-hyperlink"
+                              >
+                                <div class="relative overflow-hidden w-full float-left before:h-0 before:block before:pb-[100%] rounded-corners">
+                                  {%- if collection.featured_image != blank -%}
+                                    {% liquid
+                                      assign img_collection = collection.featured_image
+                                      assign alt_collection = collection.featured_image.alt | split: "#" | first | escape
+                                    %}
+                                    {%- capture sizes_collection -%}
+                                      (min-width: 1024px) calc((100vw) / 4), (min-width: 768px) calc((100vw) / 2), 100vw
+                                    {%- endcapture -%}
+                                    {% render 'image', 
+                                      img_class: "h-full w-full object-cover absolute top-0 left-0 image-hover rounded-corners anm-image-hover", 
+                                      img: img_collection, 
+                                      alt: alt_collection, 
+                                      img_width: 1024, 
+                                      sizes: sizes_collection, 
+                                      eager_loading: false 
+                                    %}
+                                  {%- else -%}
+                                    <div class="absolute top-0 left-0 w-full h-full rounded-corners">
+                                      {% liquid
+                                        assign index = 1
+                                        assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+                                        assign placeholder_collection_name = 'collection_' | append: index
+                                      %}
+                                      {% render 'placeholder-image', image_type: placeholder_collection_name %}
+                                    </div>
+                                  {%- endif -%}
+                                </div>
+                              </a>
+                              <a
+                                href="{{ collection.url }}"
+                                class="flex-1 h-fit link-reveal"
+                              >
+                                <h7 class="search_heading disable-effect p-break-words leading-tight h7">
+                                  {{ collection.title | escape }}
+                                </h7>
+                              </a>
+                            </div>
+                          </div>
+                        {% endunless %}
+                      {%- endfor -%}
+                    </div>
+                    {% if collections_list_size > 2 and compact_search == false %}
+                      {% render 'progress-bar' %}
+                    {% endif %}
+                  </div>
+                </div>
+              {%- endif -%}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </template>
+{%- endif -%}

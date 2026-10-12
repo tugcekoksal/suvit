@@ -1,0 +1,217 @@
+{% comment %}
+    Renders an article card for a given blog with settings to either show the image or not.
+
+    Accepts:
+    - blog: {Object} Blog object
+    - section: {Object} Section object
+    - article: {Object} Article object
+    - show_image: {Boolean} Show image or not?
+    - item_secondary_background: {Boolean} Secondary background
+    - columns_desktop: {Number} columns desktop
+    - image-ratio: {String} Image ratio
+    - show_name_blog: {Boolean} Show name
+    - show_date: {Boolean} Show date
+    - show_tag: {Boolean} Show tag
+    - show_author: {Boolean} Show author
+    - show_comment_counts: {Boolean} Show comment counts
+    - show_excerpt: {Boolean} Show excerpt
+    - content_alignment: {String} Content alignment
+    - image_mobile_position: {String} Mobile image position
+    - show_read_more: {Boolean} Show read more button
+    - button_read_more_label: {String} Button read more label
+    - title_size: {String} Title size.
+    Usage:
+    {% render 'article-card-blog-post', blog: blog, article: article %}
+{% endcomment %}
+{%- liquid
+  assign has_image = false
+  if show_image and article.image
+    assign has_image = true
+  endif
+
+  if show_tag and article.tags.size > 0
+    assign show_tag = true
+  else
+    assign show_tag = false
+  endif
+  
+  assign has_secondary_bg = true
+  if has_image or is_default_blog
+    unless item_secondary_background
+      assign has_secondary_bg = false
+    endunless
+  endif
+
+  assign has_image_or_default_image = has_image
+  if is_default_blog and show_image
+   assign has_image_or_default_image = true
+  endif
+
+  assign columns_tablet = 1
+  if columns_desktop > 1
+   assign columns_tablet = 2
+  endif
+
+  assign content_alignment_rtl = 'center'
+  if content_alignment == 'left'
+   assign content_alignment_rtl = 'right'
+  elsif content_alignment == 'right'
+    assign content_alignment_rtl = 'left'
+  endif
+-%}
+<div
+  class="w-full rounded-corners gap-y-2.5 md:gap-y-3 h-full flex flex-col
+    {%- if has_image_or_default_image and image_mobile_position == 'aside' %} grid grid-cols-2 md:flex md:flex-col gap-x-2.5{% endif -%}
+    {%- if has_secondary_bg %} bg-secondary{% endif -%}"
+>
+  {% if has_image %}
+    {%- capture sizes -%}
+      {%- if section.settings.section_width != 'page-width' -%} (min-width: 1024px) calc(100vw / {{ columns_tablet }}),
+      {%- else -%} (min-width: {{ settings.page_width }}px) calc({{ settings.page_width }}px / {{ columns_desktop }}), 
+      {%- endif %} (min-width: 768px) calc(100vw / {{ columns_tablet }}),
+      {%- if has_image and image_mobile_position == 'aside' %} 50vw
+      {%- else %} 100vw
+      {%- endif -%}
+    {%- endcapture -%}
+    {%- if section.index == 1 and section.location == 'template' -%}
+      <div class="hidden">
+        {{ article.image.src | image_url: width: 1500 | image_tag: widths: '225, 375, 450, 750, 900, 1100, 1500, 1780, 2000', preload: true, loading: 'lazy' }}
+      </div>
+    {%- endif -%}
+    <a href="{{ article.url }}" class="w-full rounded-corners {% unless image_ratio == "auto" %}{% endunless %} media-hyperlink overflow-hidden">
+      <img
+        srcset="{{ article.image.src | image_url: width: 225 }} 225w,
+        {{ article.image.src | image_url: width: 375 }} 375w,
+        {{ article.image.src | image_url: width: 450 }} 450w,
+        {{ article.image.src | image_url: width: 750 }} 750w,
+        {{ article.image.src | image_url: width: 900 }} 900w,
+        {{ article.image.src | image_url: width: 1100 }} 1100w,
+        {{ article.image.src | image_url: width: 1500 }} 1500w,
+        {{ article.image.src | image_url: width: 1780 }} 1780w,
+        {{ article.image.src | image_url: width: 2000 }} 2000w,
+        {{ article.image.src | image_url }} {{ article.image.src.width }}w"
+        src="{{ article.image.src | image_url: width: 1780 }}"
+        alt="{{ article.image.src.alt | default: article.title | escape }}"
+        sizes="{{- sizes -}}"
+        class="w-full rounded-corners aspect-{{ image_ratio }} md:h-auto md:aspect-{{ image_ratio }} object-cover object-center image-hover blog-post_card-image anm-image-hover"
+        {% if section.index == 1 and section.location == 'template' %}
+          loading="eager"
+          fetchpriority="high"
+          decoding="sync"
+        {% else %}
+          loading="lazy"
+        {% endif %}  
+        width="{{ article.image.width }}"
+        height="{{ article.image.height }}"
+      >
+    </a>
+  {% elsif is_default_blog and show_image %}
+    <div class="w-full">
+      <div class="w-full rounded-corners overflow-hidden aspect-{{ image_ratio }} md:h-auto md:aspect-{{ image_ratio }} object-cover object-center image-hover blog-post_card-image">
+        {% render 'placeholder-image', image_type: 'image' %}
+      </div>
+    </div>
+  {% endif %}
+  <div
+    class="flex flex-grow justify-between items-{{ content_alignment }} flex-col md:pb-7.5 pb-4
+      {%- unless show_tag and article.tags.size > 0 %}{% if show_read_more %} gap-y-4 lg:gap-y-[18px]{% endif %}{% endunless -%}
+      {%- if has_image_or_default_image and image_mobile_position == 'aside' %}{% if has_secondary_bg %} pt-4 pr-4 rtl:pr-0 rtl:pl-4{% else %} pl-0 pr-0 pt-0{% endif -%}
+      {%- else %}{% if has_secondary_bg %} pl-4 pr-4{% else %} pl-0 pr-0{% endif %}{% unless has_image_or_default_image %} pt-4{% else %} pt-0{% endunless -%}
+      {%- endif -%}
+      {%- if has_secondary_bg %} md:pl-7.5 md:pr-7.5 rtl:md:pr-7.5 md:pt-0{% unless has_image_or_default_image %} md:pt-7.5{% endunless %}{% else %} md:pl-0 md:pr-0{% endif -%}
+    "
+  >
+    <div class="flex flex-col items-{{ content_alignment }} rtl:items-{{ content_alignment_rtl }} w-full">
+      {%- if show_name_blog -%}
+        <p class="text-{{ content_alignment }} line-clamp-1 mb-1.5">{{ blog.title }}</p>
+      {%- endif -%}
+      {% unless is_default_blog %}
+        <a href="{{ article.url }}" class="title-link max-w-full">
+      {% endunless %}
+        <p class="article-card_heading h6 block-title-size heading-{{ title_size }} w-full text-{{ content_alignment }} break-words">
+          {% if is_default_blog %}
+            {{ 'sections.featured_blog.onboarding_title' | t }}
+          {% else %}  
+            {{ article.title }}
+          {% endif %}  
+        </p>
+      {% unless is_default_blog %}
+        </a>
+      {% endunless %}
+      {% if show_author or show_date or show_comment_counts %}
+        <div class="text-small text-{{ content_alignment }} justify-{{ content_alignment }} rtl:justify-{{ content_alignment_rtl }} color-text-[rgba(var(--color-heading),0.4)] tracking-wider inline-flex items-center flex-wrap mt-1.5">
+          {%- if show_author -%}
+            <span class="p-break-words mr-2 rtl:ml-2 rtl:mr-0 blog-post_card-author">{{ article.author }}.</span>
+          {%- endif -%}
+          {%- if show_date -%}
+            {% if is_default_blog %}
+              {{ 'sections.featured_blog.onboarding_date' | t }}
+            {% else %}
+              <span class="p-break-words{% if show_comment_counts and article.comments_count > 0 and blog.comments_enabled? %} mr-2 rtl:mr-0 rtl:ml-2{% endif %} blog-post_card-date">{{ article.published_at | date: '%b %d, %Y' }}</span>
+            {% endif %} 
+          {%- endif -%}
+          {%- if show_comment_counts and article.comments_count > 0 and blog.comments_enabled? -%}
+            <div class="flex{% if show_author or show_date %} border-l pl-2 rtl:pl-0 rtl:pr-2 rtl:border-r rtl:border-l-0{% endif %} items-center blog-post_card-comment-count gap-x-1">
+              <span class="icon-small">{% render 'icon-all', icon: 'icon-comment' %}</span>
+              <span >{{ article.comments_count }}</span>
+            </div>
+          {%- endif -%}
+        </div>
+        {% endif %}
+      {%- if show_excerpt and article.excerpt_or_content.size or is_default_blog -%}
+        <div class="md:mt-3 mt-2.5 max-w-full{% if has_image_or_default_image %} line-clamp-2{% else %} line-clamp-4{% endif %}">
+          <p class="text-{{ content_alignment }} blog-post_card-excerpt p-break-words">
+            {% if is_default_blog %}
+              {{ 'sections.featured_blog.onboarding_content' | t }}
+            {% else %}
+              {{ article.excerpt_or_content | replace: '<a', '<a class="effect-inline"' | strip_html }}
+            {% endif %}
+          </p>
+        </div> 
+      {%- endif -%} 
+    </div>  
+    <div class="flex flex-col items-{{ content_alignment }} rtl:items-{{ content_alignment_rtl }} w-full">
+      {%- if show_tag -%}
+        {% style %} 
+          .blog-tag--{{ section.id }} {
+            --rounded-corners: 4px;
+          }
+        {% endstyle %}
+        <ul class="text-x-small gap-1 flex flex-wrap mt-2.5 md:mt-3 justify-{{ content_alignment }} rtl:justify-{{ content_alignment_rtl }} w-full">
+          {%- for tag in article.tags -%}
+            <custom-button>
+              <li class="inline-block cursor-pointer blog-tag--{{ section.id }} bg-secondary max-w-full rounded-corners pl-2.5 pr-2.5 pt-1 pb-1 blog-post_card-tag anm-button-secondary">
+                <a class="max-w-full" href="{{ blog.url }}/tagged/{{ tag | handle }}">
+                  <span class="line-clamp-1 break-words">#{{ tag }}</span>
+                </a>
+              </li>
+            </custom-button>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+      {%- if show_read_more -%}
+        {% style %} 
+          .blog-button--{{ section.id }} {
+            --rounded-corners: 6px;
+          }
+        {% endstyle %}
+        {% liquid 
+          assign button_label = 'sections.featured_blog.read_now' | t 
+          if button_read_more_label != blank
+            assign button_label = button_read_more_label
+          endif
+          assign class_button = 'blog-post_card-read-more button-link p-break-words inline-flex'
+          if show_tag
+            assign class_button = class_button | append: ' md:mt-4.5 mt-5.5'
+          endif
+        %}
+        {% render 'button',
+          button_style: 'text-link',
+          button_label: button_label,
+          button_link: article.url,
+          class: class_button
+        %}
+      {%- endif -%}
+    </div>
+  </div>
+</div>

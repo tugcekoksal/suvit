@@ -1,0 +1,129 @@
+{% style %}
+  .section--{{ section.id }} {
+    padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+    padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+  }
+  @media (min-width: 768px) {
+    .section--{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="section--{{ section.id }} customer activate page-width px-5">
+  <h1 class="h2 leading-tight text-center anm-fade-element" data-fade-on-intersect>
+    {{ 'customer.activate_account.title' | t }}
+  </h1>
+  <p class="mt-2 mb-6 lg:mt-3 lg:mb-10 text-center anm-fade-element" data-fade-on-intersect>
+    {{ 'customer.activate_account.subtext' | t }}
+  </p>
+  <div class="max-w-[570px] mr-auto ml-auto">
+    {%- form 'activate_customer_password' -%}
+      <div class="text-field__wrapper field mb-3 lg:mb-3.5 mx-auto">
+        <input
+          id="password"
+          class="text-field__input"
+          type="password"
+          autocapitalize="words"
+          name="customer[password]"
+          autocomplete="new-password"
+          placeholder="{{ 'customer.activate_account.password' | t }}"
+          {% if form.errors contains 'password' %}
+            aria-invalid="true"
+            aria-describedby="password-error"
+          {% endif %}
+        >
+        <label
+          for="password"
+          class="text-field__label"
+        >
+          {{ 'customer.activate_account.password' | t }}
+        </label>
+      </div>
+      {%- if form.errors contains 'password' -%}
+        <p id="password-error" class="form__message text-normal flex items-center pb-1.5 mb-3 text-xx-small">
+          <span class="color-text-[rgba(var(--error-background-color))] inline-block w-3 mr-2">
+            {%- render 'icon-all', icon: 'icon-error' %}
+          </span>
+          {{ form.errors.translated_fields.password | capitalize }}
+          {{ form.errors.messages.password }}
+        </p>
+      {%- endif -%}
+
+      <div class="text-field__wrapper field mx-auto">
+        <input
+          id="password_confirmation"
+          class="text-field__input"
+          type="password"
+          name="customer[password_confirmation]"
+          autocomplete="new-password"
+          placeholder="{{ 'customer.activate_account.password_confirm' | t }}"
+          {% if form.errors contains 'password' %}
+            aria-invalid="true"
+            aria-describedby="password_confirmation-error"
+          {% endif %}
+        >
+        <label
+          for="password_confirmation"
+          class="text-field__label"
+        >
+          {{ 'customer.activate_account.password_confirm' | t }}
+        </label>
+      </div>
+      {%- if form.errors contains 'password_confirmation' -%}
+        <p id="password_confirmation-error" class="form__message flex items-center pb-1.5 mt-3 text-normal text-xx-small">
+          {{ form.errors.translated_fields.password_confirmation | capitalize }}
+          {{ form.errors.messages.password_confirmation }}
+        </p>
+      {%- endif -%}
+
+      <custom-button>
+        <button class="button button-primary mx-auto relative flex flex-1 justify-center w-full mt-4 lg:mt-5 leading-normal pt-2.5 pb-2.5 lg:pt-3.5 lg:pb-3.5 cursor-pointer empty:hidden pointer-events-auto">
+          {% assign button_label = 'customer.activate_account.submit' | t %}
+            {% render 'button-label', button_label: button_label, show_button_style: 'primary' %}
+        </button>
+      </custom-button>
+      <button
+        name="decline"
+        class="relative flex flex-1 justify-center mx-auto mt-5 leading-normal cursor-pointer empty:hidden pointer-events-auto"
+      >
+        <a class="not-icon underline underline-offset-2">
+          {{- 'customer.activate_account.cancel' | t -}}
+        </a>
+      </button>
+    {%- endform -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:main_active_account.name",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.top_padding",
+      "default": 52
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.bottom_padding",
+      "default": 52
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,151 @@
+{% doc %} 
+  Documentation: icon sith text
+
+  Renders a an icon with optional heading, text.
+  Supports custom styling, layout options, and grid display settings.
+
+  @param icon_type - {String} Identifier used to determine which predefined icon set to render.
+  @param icon - {String} Name of the icon or image.
+  @param [another_icon] - {String} Additional icon class name if icon is another icon.
+  @param [custom_icon_image] - {String} Custom image object used instead of a predefined icon.
+  @param [icon_size] - {Number} Height and width of the icon in pixels.
+  @param [heading] - {String} Heading text displayed above the description text.
+  @param [link] - {String} URL applied to heading.
+  @param [open_new_window] - {Boolean} If true, the link opens in a new tab.
+  @param text - {String} Main descriptive text content.
+  @param custom_class - {String} Additional CSS classes applied to the outermost wrapper.
+  @param wrapper_class - {String} CSS classes applied to the wrapper element.
+  @param [wrapper_scheme] - {String} Color scheme classes applied to the wrapper.
+  @param [wrapper_background] - {String} Custom background value.
+  @param wrapper_rounded_class - {String} Border-radius utility class for the wrapper.
+  @param content_class - {String} CSS classes applied to the content container.
+  @param [heading_class] - {String} CSS classes applied to the heading element.
+  @param text_class - {String} CSS classes applied to the text element.
+  @param currentId - {String} Identifier used for scoping.
+  @param [is_grid_on_desktop] - {Boolean} If true, display items in grid layout on desktop.
+  @param [is_grid_on_mobile] - {Boolean} If true, display items in grid layout on mobile.
+  @param [show_border] - {Boolean} If true, displays a border around the component.
+  @param [content_container_class] - {String} CSS classes applied to the inner content layout container.
+
+  @example
+  {%- render 'icon-with-text',
+    icon_type: 'icon_labels_bags',
+    icon: 'authentic',
+    another_icon: 'badminton',
+    custom_icon_image: image,
+    icon_size: 16,
+    heading: 'heading',
+    link: '/',
+    open_new_window: false,
+    text: 'text',
+    custom_class: 'absolute inset-0 flex',
+    wrapper_class: 'p-1.5',
+    wrapper_scheme: 'color-scheme-block color-scheme-1 dark-color-scheme-3',
+    wrapper_background: 'rgba(var(--color-background))',
+    wrapper_rounded_class: 'rounded-corners',
+    content_class: 'flex items-center',
+    heading_class: 'h6 md:h7 p-break-words',
+    text_class: 'p-break-words',
+    currentId: 'product-card',
+    is_grid_on_desktop: false,
+    is_grid_on_mobile: false,
+    show_border: false,
+    content_container_class: 'flex justify-center'
+  -%}
+{% enddoc %}
+
+{% liquid
+  assign icon_size = icon_size | default: 16
+%}
+
+{% capture content %}
+  <div class="icon-with-text__content h-full flex {{ content_class }}">
+    <div data-tooltip-exclude="true" class="icon-with-text__icon relative inline-block shrink-0 w-[var(--icon-size)] h-[var(--icon-size)] empty:hidden">
+      {%- case icon_type -%}
+        {%- when 'file_reference' -%}
+          <img
+            src="{{ icon | image_url: width: icon_size }}"
+            alt="{{ icon.value.alt | default: icon.type | escape }}"
+            loading="lazy"
+            width="{{ icon.value.width }}"
+            height="{{ icon.value.height }}"
+            class="object-cover absolute inset-0 w-full h-full rounded-corners custom-icon-image_rounded-corners"
+          >
+        {%- when 'custom_icon_image' -%}
+          {%- assign default_image_alt = 'accessibility.default_alt' | t -%}
+          <img
+            src="{{ custom_icon_image | image_url: width: icon_size }}"
+            alt="{{ custom_icon_image.alt | default: default_image_alt | escape }}"
+            loading="lazy"
+            width="{{ custom_icon_image.width }}"
+            height="{{ custom_icon_image.height }}"
+            style="object-position: {{ custom_icon_image.presentation.focal_point }}"
+            class="object-cover absolute inset-0 w-full h-full rounded-corners custom-icon-image_rounded-corners"
+          >
+        {%- when 'icon_another' -%}
+          {%- render 'icon-another', icon: another_icon -%}
+        {%- when 'single_line_text_field' -%}
+          {%- render 'icon-another', icon: icon -%}
+        {%- when 'icon_labels_bags' %}
+          {%- render 'icon-labels-bags', icon: icon -%}
+        {%- else -%}
+      {%- endcase -%}
+    </div>
+    {% if heading != blank or text != blank %}
+      {% if heading != '' or text != '' %}
+        <div class="flex flex-col gap-0.5 min-w-0">
+          {% if heading != '' and heading != blank %}
+            {% if link %}
+              <a
+                class="icon-with-text__heading {%- unless is_grid_on_mobile %} line-clamp-1{% else %} line-clamp-none{% endunless -%}{%- unless is_grid_on_desktop %} md:line-clamp-1{% else %} md:line-clamp-none{% endunless %} title-link heading-{{ currentId }}{% if heading_class %} {{ heading_class }}{% else %} h6 md:h7{% endif %}"
+                href="{{ link }}"
+                {% if open_new_window %}
+                  target="_blank"
+                {% endif %}
+              >
+                {{- heading | escape -}}
+              </a>
+            {% else %}
+              <p 
+                class="icon-with-text__heading {%- unless is_grid_on_mobile %} line-clamp-1{% else %} line-clamp-none{% endunless -%}{%- unless is_grid_on_desktop %} md:line-clamp-1{% else %} md:line-clamp-none{% endunless %} heading-{{ currentId }}{% if heading_class %} {{ heading_class }}{% else %} h5 md:h6{% endif %}"
+              >
+                {{- heading | escape -}}
+              </p>
+            {% endif %}
+            
+          {% endif %}
+          {% if text != '' and text != blank %}
+            <div 
+              class="icon-with-text__text {%- unless is_grid_on_mobile %} line-clamp-1{% else %} line-clamp-none{% endunless -%}{%- unless is_grid_on_desktop %} md:line-clamp-1{% else %} md:line-clamp-none{% endunless %} {{ text_class }}"
+            >
+              {{- text -}}
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+{% endcapture %}
+<div
+  class="icon-with-text z-10 icon-with-text__{{ currentId }} {{ custom_class }}"
+>
+  <div class="icon-with-text__content__box w-full h-full overflow-hidden">
+    <div class="w-full h-full icon-with-text__content__container {{ content_container_class }}">
+      <div 
+        class="icon-with-text__content__wrapper container__tooltip-trigger icon-with-text-content-visible h-full max-w-full text-ellipsis ltr:text-left rtl:text-right {{ wrapper_class }} color-bg-[{{ wrapper_background }}] {{ wrapper_scheme }} {{ wrapper_rounded_class -}}
+          {%- if show_border %} border border-box color-border-[rgba(var(--color-text),0.2)] {% endif -%}
+          {%- if is_grid_on_mobile %} w-full{% else %} w-fit{% endif -%}
+          {%- if is_grid_on_desktop %} md:w-full{% else %} md:w-fit md:max-w-full{% endif -%}
+          {%- if settings.lang_direction contains request.locale.iso_code %} rtl{% endif -%}
+        "
+        data-is-no-text="
+          {%- if heading != blank or text != blank -%}
+            {%- if heading != '' or text != '' %}false{% else %}true{% endif -%}
+          {%- else %}true{% endif -%}
+        "
+      >
+        {{ content }}
+      </div>
+    </div>
+  </div>
+</div>

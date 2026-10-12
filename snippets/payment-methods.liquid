@@ -1,0 +1,63 @@
+{% if show_background %}
+  {% style %}
+    .maximize-theme:not(.dark) .block--{{ blockId }} {
+      {% if background_color_light.alpha != 0.0 %}
+        --color-background: {{ background_color_light.red }} {{ background_color_light.green }} {{ background_color_light.blue }} / {{ background_color_light.alpha }};
+      {% endif %}
+      {% if heading_color_light.alpha != 0.0 %}
+        --color-heading: {{ heading_color_light.red }} {{ heading_color_light.green }} {{ heading_color_light.blue }} / {{ heading_color_light.alpha }};
+      {% endif %}
+      {% if text_color_light.alpha != 0.0 %}
+        --color-text: {{ text_color_light.red }} {{ text_color_light.green }} {{ text_color_light.blue }} / {{ text_color_light.alpha }};
+      {% endif %}
+    }
+
+    .maximize-theme.dark .block--{{ blockId }} {
+      {% if background_color_dark.alpha != 0.0 %}
+        --color-background: {{ background_color_dark.red }} {{ background_color_dark.green }} {{ background_color_dark.blue }} / {{ background_color_dark.alpha }};
+      {% endif %}
+      {% if heading_color_dark.alpha != 0.0 %}
+        --color-heading: {{ heading_color_dark.red }} {{ heading_color_dark.green }} {{ heading_color_dark.blue }} / {{ heading_color_dark.alpha }};
+      {% endif %}
+    {% if text_color_dark.alpha != 0.0 %}
+      --color-text: {{ text_color_dark.red }} {{ text_color_dark.green }} {{ text_color_dark.blue }} / {{ text_color_dark.alpha }};
+    {% endif %}
+    }
+  {% endstyle %}
+{% endif %}
+
+<div class="block--{{ blockId }} color-bg-[rgba(var(--color-background))] flex flex-col w-full{% if is_rtl %} rtl{% endif %}{% if show_content_center %} justify-center items-center text-center{% endif %}{% if show_background %} rounded-corners border border-dotted color-border-[rgba(var(--color-line-and-border)] pt-4 pb-4 pl-4 pr-4{% endif %}">
+  {% if heading != blank %}
+    <p class="pb-4 anm-fade-element h5 md:h6" data-fade-on-intersect>{{ heading }}</p>
+  {% endif %}
+  <div class="pb-2.5">
+    {% if custom_payment != blank %}
+      {% assign enabled_payment_types = custom_payment | remove: ' ' | split: ',' %}
+      <ul
+        class="flex gap-y-2 gap-x-1.5 flex-wrap"
+        role="list"
+      >
+        {%- for type in enabled_payment_types -%}
+          <li class="payment-method__item anm-fade-element" data-fade-on-intersect>
+            {{ type | payment_type_svg_tag }}
+          </li>
+        {%- endfor -%}
+      </ul>
+    {% else %}
+      <ul
+        class="flex gap-y-2 gap-x-1.5 flex-wrap"
+        role="list"
+      >
+        {%- for type in shop.enabled_payment_types -%}
+          <li class="payment-method__item anm-fade-element" data-fade-on-intersect>
+            {{ type | payment_type_svg_tag }}
+          </li>
+        {%- endfor -%}
+      </ul>
+    {% endif %}
+  </div>
+
+  {% if text != blank %}
+    <p class="color-text-[rgba(var(--color-text))] text-small anm-fade-element" data-fade-on-intersect>{{ text }}</p>
+  {% endif %}
+</div>

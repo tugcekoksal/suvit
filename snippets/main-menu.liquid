@@ -1,0 +1,253 @@
+{% if section.blocks.size > 0 or section.settings.menu != blank %}
+  {% liquid
+    assign has_label = false
+    assign fixed_position = false
+    if section.blocks.size > 0
+      for block in section.blocks
+        if block.settings.label != blank
+          assign has_label = true
+        endif
+        if block.type == 'drawer_menu'
+          assign category_block = block
+        elsif block.type == "button"
+          assign button_block = block
+        elsif block.type == "withdrawal_request" and block.settings.button_style != 'text'
+          assign withdrawal_request_button = block
+        endif
+        if has_label and category_block and button_block and withdrawal_request_button
+          break
+        endif
+      endfor
+    endif
+
+    if section.settings.enable_menu_highlight
+      assign all_highlight_menu = section.settings.highlight_menus | newline_to_br | strip_newlines | split: '<br />'
+      assign list_all_highlight_menu = all_highlight_menu | join: '||' | prepend: '||' | append: '||' | escape
+    endif
+  %}
+  {% liquid
+    if category_block
+      assign show_1st_menu_image = category_block.settings.show_1st_menu_image
+      assign collection_metafield_1st = category_block.settings.collection_image_metafield
+      assign show_second_level_image = category_block.settings.show_second_level_collection_image
+      assign show_2nd_level_menu_image = category_block.settings.show_2nd_level_menu_image
+      assign collection_metafield = category_block.settings.collection_image_metafield_3
+      assign image_ratio = category_block.settings.image_ratio
+      assign fixed_position = category_block.settings.drawer_menu_fixed
+      assign drawer_position = category_block.settings.menu_position
+    endif
+  %}
+  <div 
+    class="flex gap-8 w-full
+      {%- if section.settings.logo_position == 'compact' %} min-w-0 rtl:pr-7.5 ltr:pl-7.5 items-center{% else %} items-end{% endif -%}
+      {%- if drawer_position == 'right' %} flex-row-reverse rtl:flex-row{% else %} rtl:flex-row-reverse{% endif -%}"
+  >
+    {% if fixed_position and category_block.settings.menu != blank %}
+      {% liquid
+        unless section.settings.logo_position == 'compact'
+          assign class_wrapper = "mt-4"
+        endunless
+      %}
+      {% render 'drawer-menu',
+        block: category_block,
+        menu_source: category_block.settings.menu,
+        is_block_menu: true,
+        desktop_menu_selection: desktop_motion,
+        menu_title: category_block.settings.heading,
+        trigger_icon: category_block.settings.trigger_icon,
+        show_1st_menu_image: show_1st_menu_image,
+        collection_metafield_1st: collection_metafield_1st,
+        show_second_level_image: show_second_level_image,
+        show_2nd_level_menu_image: show_2nd_level_menu_image,
+        collection_metafield_2nd: collection_metafield,
+        image_ratio: image_ratio,
+        column_desktop: category_block.settings.max_columns,
+        column_gap: category_block.settings.column_gap,
+        class_wrapper: class_wrapper
+      %}
+    {% endif %}
+    <div
+      class="header-container relative grow min-w-0 hidden lg:flex gap-2 items-center
+        {%- if section.settings.desktop_menu_alignment == 'start' %} justify-start rtl:justify-end{% elsif section.settings.desktop_menu_alignment == 'end' %} justify-end rtl:justify-start{% else %} justify-center{% endif -%}
+      "
+      x-data="xScrollMenu"
+    >
+      {% liquid
+        assign is_compact = false
+        if section.settings.logo_position == 'compact'
+          assign is_compact = true
+        endif
+        assign padding_classes = ''
+        
+        if has_label
+          assign padding_classes = 'pt-6'
+          if is_compact
+            assign padding_classes = padding_classes | append: ' pb-6'
+          elsif category_block and fixed_position
+            unless button_block or withdrawal_request_button 
+              assign padding_classes = padding_classes | append: ' pb-2'
+            endunless
+          endif
+        elsif is_compact == false
+          assign padding_classes = 'pt-3'
+          unless category_block
+            assign padding_classes = padding_classes | append: ' pb-0.5'
+          else
+            unless button_block or withdrawal_request_button
+              assign padding_classes = padding_classes | append: ' pb-2'
+            elsif fixed_position
+              assign padding_classes = padding_classes | append: ' pb-0.5'
+            endunless
+          endunless
+        endif
+      %}
+      <button
+        class="scroll-nav main-menu-scroll-prev rounded-none disabled:opacity-40 z-20 disabled:cursor-not-allowed rtl:justify-end {{ padding_classes }}"
+        x-show="isScrollable && !isAtStart"
+        x-cloak
+        @click="scrollLeft"
+        :disabled="isAtStart"
+        aria-label="{{ 'header.main_menu.scroll_left' | t }}"
+      >
+        <span class="rotate-180">{% render 'icon-all', icon: 'icon-nav-arrow' %}</span>
+      </button>
+      <nav
+        class="main-menu-nav overflow-x-auto scrollbar-hidden px-0.5 {{ padding_classes }}"
+        x-ref="menuList"
+        @scroll="checkScroll()"
+        {% if desktop_motion == 'click' %}
+          @click.outside="$store.xHeaderMenu.hideMenu('main-menu-item')"
+        {% endif %}
+      >
+        <ul class="main-nav flex-nowrap w-max empty:hidden items-center{% if section.settings.logo_position != 'compact' %} mx-auto{% endif %}">
+          {%- if section.settings.menu != blank -%}
+            {%- for link in section.settings.menu.links -%}
+              {%- liquid
+                assign is_link = false
+                if link.links != blank
+                  assign is_link = true
+                endif
+              -%}
+
+              <li
+                {% if desktop_motion == 'hover' %}
+                  x-on:mouseover="$store.xHeaderMenu.selectItem($el, 'menu'); $el.classList.add('is-focus');"
+                {% else %}
+                  x-on:mouseover="$el.classList.add('is-focus');"
+                {% endif %}
+                @mouseleave="$el.classList.remove('is-focus');"
+                @focusin="$el.classList.add('is-focus');"
+                @focusout="$el.classList.remove('is-focus'); $store.xHeaderMenu.handleFocusOut($el, $event)"
+                class="first-menu-item menu-item main-menu-item"
+              >
+                <div class="relative is-focus:color-text-[rgba(var(--color-highlight))]">
+                  <a
+                    href="{{ link.url }}"
+                    class="link whitespace-nowrap is-focus:color-text-[rgba(var(--color-highlight))] item-spacing pl-[15px] pr-[15px] cursor-pointer x-break-words relative
+                      {%- if is_link %} menu-parent-link flex items-center{% else %} inline-block{% endif -%}
+                      {%- if link.current or link.child_active %} active{% endif -%}"
+                    {% if is_link %}
+                      x-init="$store.xHeaderMenu.isTouch && $store.xHeaderMenu.touchItem($el, 'menu')"
+                    {% endif %}
+                    {% if desktop_motion == 'click' and is_link %}
+                      @click="$store.xHeaderMenu.selectItem($el.closest('li'), 'menu', false, $event);"
+                    {% endif %}
+                  >
+                    {% if all_highlight_menu != blank %}
+                      {% liquid
+                        assign is_highlight = false
+                        assign menu_item = '||' | append: link.title | append: '||' | escape
+                        if list_all_highlight_menu contains menu_item
+                          assign is_highlight = true
+                        endif
+                      %}
+                      {% if is_highlight %}
+                        {% render 'highlight-menu-item', highlight_effect: section.settings.highlight_effect, menu_title: link.title, section_id: section.id %}
+                      {% else %}
+                        <span>{{ link.title | escape }}</span>
+                      {% endif %}
+                    {% else %}
+                      <span>{{ link.title | escape }}</span>
+                    {% endif %}
+                    {%- if is_link -%}
+                      <span
+                        class="icon-caret w-5 h-5 ps-2"
+                        tabindex="0"
+                        @keyup.enter="$store.xHeaderMenu.handleKeyupElement($el.closest('li'));"
+                      >
+                        {%- render 'icon-all', icon: 'icon-caret' -%}
+                      </span>
+                    {%- endif -%}
+                  </a>
+                </div>
+                {% render 'tree-menu', link: link, is_link: is_link, desktop_motion: desktop_motion %}
+              </li>
+            {%- endfor -%}
+          {%- endif -%}
+          {%- for block in section.blocks -%}
+            {% if block.type == 'button' or block.type == 'withdrawal_request' or block.settings.heading != blank %}
+              {% assign is_highlight = false %}
+              {% if block.type != 'button' and block.type != 'withdrawal_request' %}
+                {% liquid
+                  assign menu_item = '||' | append: block.settings.heading | append: '||' | escape
+                  if list_all_highlight_menu contains menu_item
+                    assign is_highlight = true
+                  endif
+                %}
+              {% endif %}
+              {% if block.type != 'drawer_menu' %}
+                <li
+                  {% unless block.type == 'tree_menu' %}
+                    x-data="xFirstLoadItem"
+                  {% endunless %}
+                  class="menu-item{% if block.type != "button" %} main-menu-item first-menu-item{% endif %}{% if block.type == "product_menu" %} product-menu-item__lv0{% endif %}{% if block.type == "button" and block.settings.button_label == blank %} hidden{% endif %}"
+                  {% if desktop_motion == 'hover' %}
+                    x-on:mouseover="$store.xHeaderMenu.selectItem($el, 'menu'); {% unless block.type == "tree_menu" %} firstLoad();{% endunless %} $el.classList.add('is-focus');"
+                    @focusin="{% unless block.type == "tree_menu" %} firstLoad();{% endunless %} $el.classList.add('is-focus');"
+                  {% else %}
+                    x-on:mouseover="$el.classList.add('is-focus');"
+                    @focusin="$el.classList.add('is-focus');"
+                  {% endif %}
+                  @mouseleave="$el.classList.remove('is-focus');"
+                  @focusout="$el.classList.remove('is-focus'); $store.xHeaderMenu.handleFocusOut($el, $event)"
+                >
+                  {%- render 'mega-menu', block: block, desktop_motion: desktop_motion, rtl: rtl, forloop: forloop, is_highlight: is_highlight -%}
+                </li>
+              {% elsif fixed_position == false and category_block.settings.menu != blank %}
+                <li class="first-menu-item">
+                  {% render 'drawer-menu',
+                    block: category_block,
+                    menu_source: category_block.settings.menu,
+                    is_block_menu: true,
+                    desktop_menu_selection: desktop_motion,
+                    menu_title: category_block.settings.heading,
+                    trigger_icon: category_block.settings.trigger_icon,
+                    show_1st_menu_image: show_1st_menu_image,
+                    collection_metafield_1st: collection_metafield_1st,
+                    show_second_level_image: show_second_level_image,
+                    show_2nd_level_menu_image: show_2nd_level_menu_image,
+                    collection_metafield_2nd: collection_metafield,
+                    image_ratio: image_ratio,
+                    column_desktop: category_block.settings.max_columns,
+                    column_gap: category_block.settings.column_gap,
+                    class_wrapper: 'item-spacing pl-[15px] pr-[15px]'
+                  %}
+                </li>
+              {% endif %}
+            {% endif %}
+          {%- endfor -%}
+        </ul>
+      </nav>
+      <button
+        class="scroll-nav main-menu-scroll-next z-20 rounded-none disabled:opacity-40 disabled:cursor-not-allowed {{ padding_classes }}"
+        x-show="isScrollable && !isAtEnd"
+        x-cloak
+        @click="scrollRight"
+        :disabled="isAtEnd"
+        aria-label="{{ 'header.main_menu.scroll_right' | t }}"
+      >
+        {% render 'icon-all', icon: 'icon-nav-arrow' %}
+      </button>
+    </div>
+  </div>
+{% endif %}

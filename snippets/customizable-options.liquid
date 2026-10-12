@@ -1,0 +1,685 @@
+<div class="customizable-option__wrapper" id="Block-{{ block.id }}" x-data="xCustomizableOptions('{{ block_id }}')">
+  {% liquid
+    if option_name == blank
+      assign custimize_picker_name = 'properties[Custom name]'
+    else
+      assign custimize_picker_name = 'properties[' | append: option_name | append: ']'
+    endif
+  %}
+  {% case picker_type %}
+    {% when 'single_text' %}
+      {% if option_name != blank %}
+        <p
+          class="mb-2.5 p-break-words h5 md:h6"
+          aria-labelledby="{{ block_id }}"
+        >
+          {{ option_name -}}
+          {%- if required %}<span class="label-required"> *</span>{% endif %}
+        </p>
+      {% endif %}
+      <div class="flex-1 relative">
+        <label
+          class="hidden"
+          for="{{ block_id }}"
+        >
+          {{- option_name -}}
+        </label>
+        <input
+          id="{{ block_id }}"
+          type="text"
+          name="{{ custimize_picker_name }}"
+          class="customizable-option customizable-option__single-text h-[calc(var(--body-font-size)*1.6+20px)] py-2.5 md:h-[calc(var(--body-font-size)*1.6+28px)] md:py-[14px] w-full pl-5 pr-5 border focus:outline-none color-border-[rgba(var(--color-text),0.2)] input bg-transparent
+            {%- if settings.edges_type == 'rounded_corners' %} !rounded-md{% endif -%}"
+          form="{{ product_form_id }}"
+          placeholder="{{ option_name }}"
+          {% if required %}
+            required
+            x-on:input.change="validation($el)"
+          {% else %}
+            x-on:input.change="setValueBlank($el)"
+          {% endif %}
+          {% if max_text_length > 0 %}
+            maxlength="{{ max_text_length }}"
+          {% endif %}
+        >
+        {% if required %}
+          <p class="text-required flash-message error-message hidden mt-1">{{ 'products.product.customizable_option_required' | t }}</p>
+        {% endif %}
+        {% if option_text_note != blank %}
+          <p class="mt-2 p-break-words">{{ option_text_note | escape }}</p>
+        {% endif %}
+        {% unless required %}
+          <input
+            :disabled="!disableInput"
+            class="hidden"
+            name="{{ custimize_picker_name }}"
+            form="{{ product_form_id }}"
+            value="{{ 'general.custom_option.text_blank' | t }}"
+          >
+        {% endunless %}
+      </div>
+    {% when 'multi_text' %}
+      {% if option_name != blank %}
+        <p class="mb-2.5 h5 md:h6 p-break-words">
+          {{ option_name -}}
+          {%- if required %}<span class="label-required"> *</span>{% endif %}
+        </p>
+      {% endif %}
+      <div class=" customizable-option__multi-text relative">
+        <textarea
+          id="{{ block_id }}"
+          name="{{ custimize_picker_name }}"
+          class="customizable-option  customizable-option__multi-text__textarea w-full pl-5 pr-5 pt-4 pb-4 border focus:outline-none color-border-[rgba(var(--color-text),0.2)] bg-transparent{% if settings.edges_type == 'rounded_corners' %} !rounded-md{% endif %}"
+          form="{{ product_form_id }}"
+          placeholder="{{ option_name }}"
+          rows="4"
+          {% if required %}
+            required
+            x-on:input.change="validation($el)"
+          {% else %}
+            x-on:input.change="setValueBlank($el)"
+          {% endif %}
+          {% if max_text_length > 0 %}
+            maxlength="{{ max_text_length }}"
+          {% endif -%}
+        ></textarea>
+        {% if required %}
+          <p class="text-required flash-message error-message hidden mt-1">{{ 'products.product.customizable_option_required' | t }}</p>
+        {% endif %}
+      </div>
+      {% if option_text_note != blank %}
+        <p class="mt-2 p-break-words">{{ option_text_note | escape }}</p>
+      {% endif %}
+      {% unless required %}
+        <input
+            :disabled="!disableInput"
+            class="hidden"
+            name="{{ custimize_picker_name }}"
+            form="{{ product_form_id }}"
+            value="{{ 'general.custom_option.text_blank' | t }}"
+        >
+      {% endunless %}
+    {% when 'radio_button' %}
+      <fieldset x-data="{ dataChecked: ''}">
+        {% if option_name != blank %}
+          <legend class="mb-2.5 h5 md:h6 p-break-words">
+            <span>
+              {{- option_name -}}
+              {%- if required %}<span class="label-required"> *</span>{% endif %}: </span
+            ><span
+              x-text="radioChecked"
+            ></span>
+          </legend>
+        {% endif %}
+        {% liquid
+          assign option_lists = option_list | split: ';'
+        %}
+        <div class="maximize customizable-option__radio flex flex-wrap md:gap-x-8 gap-x-5 gap-y-3{% if show_content_center %} justify-center{% endif %}">
+          {% for option in option_lists %}
+            <div class="flex items-center">
+              <input
+                x-model="radioChecked"
+                class="w-4.5 h-4.5 input-radio min-w-[18px]"
+                type="radio"
+                id="{{ block_id }}-{{ forloop.index }}"
+                name="{{ block_id }}"
+                value="{{ option }}"
+                {% if required and forloop.first %}
+                  x-init="radioChecked='{{option}}'" checked
+                {% endif %}
+              >
+              <label
+                class="flex-1 cursor-pointer pl-2 rtl:pl-0 rtl:pr-2 bg-transparent p-break-words"
+                for="{{ block_id }}-{{ forloop.index }}"
+              >
+                {{ option }}
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+        <input
+          x-model="radioChecked"
+          value=""
+          class="customizable-option hidden"
+          type="text"
+          name="{{ custimize_picker_name }}"
+          form="{{ product_form_id }}"
+          aria-label="{{ option_name }}"
+          {% unless required %}
+            x-init="$watch('radioChecked',() => setValueBlank($el))"
+            :disabled="disableInput"
+          {% endunless %}
+        >
+        {% if option_select_note != blank %}
+          <p class="mt-2 p-break-words">{{ option_select_note | escape }}</p>
+        {% endif %}
+        {% unless required %}
+          <input
+            :disabled="!disableInput"
+            class="hidden"
+            name="{{ custimize_picker_name }}"
+            form="{{ product_form_id }}"
+            value="{{ 'general.custom_option.option_blank' | t }}"
+          >
+        {% endunless %}
+      </fieldset>
+    {% when 'color_picker' %}
+      {% liquid
+        if settings.edges_type == 'rounded_corners'
+          assign rounded = 'rounded-md'
+        endif
+        if swatch_style == 'round'
+          assign rounded = 'rounded-full'
+        endif
+      %}
+      <div x-data="{ color: '#000000'}">
+        {% if option_name %}
+          <p class="mb-2.5 h5 md:h6 p-break-words">
+            <span>
+              {{- option_name -}}
+              {%- if required %}<span class="label-required"> *</span>{% endif %}:
+            </span>
+            <span
+              x-text="color"
+            ></span>
+          </p>
+        {% endif %}
+        <div class="w-full{% if show_content_center %} text-center{% endif %}">
+          <div class="relative inline-block">
+            <input
+              x-model="color"
+              class="customizable-option cursor-pointer h-10 w-10 pt-0.5 pb-0.5 pl-1 pr-1 absolute left-0 rtl:right-0 rtl:left-auto top-0 opacity-0 z-10 peer"
+              type="color"
+              value="#000000"
+              name="{{ custimize_picker_name }}"
+              form="{{ product_form_id }}"
+              aria-label="{{ option_name }}"
+            >
+            <div
+              class="h-10 w-10 cursor-pointer {{ rounded }} peer-focus-visible:outline peer-focus-visible:outline-2"
+              x-bind:style="'background-color: ' + color"
+            ></div>
+          </div>
+        </div>
+      </div>
+    {% when 'date' %}
+      {% if option_name %}
+        {% if option_name != blank %}
+          <p class="mb-2.5 h5 md:h6 p-break-words">
+            {{ option_name -}}
+            {%- if required %}<span class="label-required"> *</span>{% endif %}
+          </p>
+        {% endif %}
+      {% endif %}
+      <div class="relative">
+        <input
+          type="date"
+          id="CustomizePicker__Date__{{ block_id }}"
+          class="customizable-option input-date-time appearance-none cursor-pointer pl-5 pr-5 h-[calc(var(--body-font-size)*1.6+20px)] py-2.5 md:h-[calc(var(--body-font-size)*1.6+28px)] md:py-[14px] w-full border border-solid color-border-[rgba(var(--color-text),0.2)] bg-transparent
+            {%- if settings.edges_type == 'rounded_corners' %} rounded-md{% endif -%}"
+          value=""
+          {% if min_date %}
+            min="{{ min_date }}"
+          {% endif %}
+          {% if max_date %}
+            max="{{ max_date }}"
+          {% endif %}
+          name="{{ custimize_picker_name }}"
+          form="{{ product_form_id }}"
+          {% if required %}
+            required x-on:input.change="validation($el)"
+          {% else %}
+            x-on:input.change="setValueBlank($el)"
+          {% endif %}
+          aria-label="{{ option_name }}"
+        >
+        {% if required %}
+          <span class="text-required flash-message error-message hidden mt-1">{{ 'products.product.customizable_option_required' | t }}</span>
+        {% endif %}
+      </div>
+
+
+      {% unless required %}
+        <input
+          :disabled="!disableInput"
+          class="hidden"
+          name="{{ custimize_picker_name }}"
+          form="{{ product_form_id }}"
+          value="{{ 'general.custom_option.option_blank' | t }}"
+        >
+      {% endunless %}
+    {% when 'time' %}
+      {% if option_name != blank %}
+        <p class="mb-2.5 h5 md:h6 p-break-words">
+          {{ option_name -}}
+          {%- if required %}<span class="label-required"> *</span>{% endif %}
+        </p>
+      {% endif %}
+      <div class="relative">
+        <input
+          type="time"
+          id="CustomizePicker__Time__{{ block_id }}"
+          class="customizable-option input-date-time appearance-none cursor-pointer h-[calc(var(--body-font-size)*1.6+20px)] py-2.5 md:h-[calc(var(--body-font-size)*1.6+28px)] md:py-[14px] pl-5 pr-5 w-full border border-solid color-border-[rgba(var(--color-text),0.2)] bg-transparent
+            {%- if settings.edges_type == 'rounded_corners' %} rounded-md{% endif -%}"
+          value=""
+          name="{{ custimize_picker_name }}"
+          form="{{ product_form_id }}"
+          {% if required %}
+            required
+            x-on:input.change="validation($el)"
+          {% else %}
+            x-on:input.change="setValueBlank($el)"
+          {% endif %}
+          aria-label="{{ option_name }}"
+        >
+        {% if required %}
+          <div class="text-required flash-message error-message hidden mt-1">{{ 'products.product.customizable_option_required' | t }}</div>
+        {% else %}
+          <input
+            :disabled="!disableInput"
+            class="hidden"
+            name="{{ custimize_picker_name }}"
+            form="{{ product_form_id }}"
+            value="{{ 'general.custom_option.option_blank' | t }}"
+          >
+        {% endif %}
+      </div>
+    {% when 'checkbox' %}
+      <div class="customize-checkbox maximize">
+        {% if option_name != blank %}
+          <p class="option-name h5 md:h6 mb-2.5 p-break-words">
+            {{ option_name -}}
+            {%- if required %}<span class="label-required"> *</span>{% endif %}
+          </p>
+        {% endif %}
+        {% liquid
+          assign option_lists = option_list | split: ';'
+          if minimum_select_value < 1 and required
+            assign minimum_select_value = 1
+          endif
+        %}
+        <div class="flex flex-wrap md:gap-x-8 gap-x-5 gap-y-3{% if show_content_center %} justify-center{% endif %}">
+          {% for option in option_lists %}
+            <div class="flex items-center w-fit">
+              <input
+                x-model="dataCheckbox"
+                class="input-checkbox h-[22px] w-[22px] border color-border-[rgba(var(--color-line-and-border))] checked:color-bg-[rgba(var(--color-button))] after:border-white relative cursor-pointer{% if settings.edges_type == 'rounded_corners' %} rounded{% else %} rounded-none{% endif %}"
+                type="checkbox"
+                id="{{ block_id }}-{{ forloop.index }}"
+                name="{{ block_id }}"
+                value="{{ option }}"
+              >
+              <label
+                class="flex-1 pl-2 rtl:pl-0 rtl:pr-2 cursor-pointer p-break-words"
+                for="{{ block_id }}-{{ forloop.index }}"
+              >
+                {{- option -}}
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+        <input
+          value=""
+          class="customizable-option hidden{% if minimum_select_value > 0 and required %} validate-checkbox{% endif %}"
+          type="text"
+          name="{{ custimize_picker_name }}"
+          form="{{ product_form_id }}"
+          {% if required %}
+            x-init="
+              $nextTick(() => { initDataCheckbox(); validateCheckBox($el,{{ minimum_select_value | default: 0 }},{{ maximum_select_value | default: 0 }},true) });
+              $watch('dataCheckbox', () => validateCheckBox($el,{{ minimum_select_value | default: 0 }},{{ maximum_select_value | default: 0 }}));
+            "
+          {% else %}
+            x-init="
+              $nextTick(() => { initDataCheckbox(); });
+              $watch('dataCheckbox',() => { setValueCheckBox(); })
+            "
+          {% endif %}
+          aria-label="{{ option_name }}"
+        >
+        <p class="text-required flash-message error-message hidden mt-1">{{ 'products.product.customize_option_msg_checkbox' | t: minimum_select_value: minimum_select_value }}</p>
+        {% unless required %}
+          <input
+            class="hidden"
+            form="{{ product_form_id }}"
+            value="{{ 'general.custom_option.option_blank' | t }}"
+          >
+        {% endunless %}
+      </div>
+      {% if option_select_note != blank %}
+        <p class="mt-2 p-break-words">{{ option_select_note | escape }}</p>
+      {% endif %}
+    {% when 'dropdown' %}
+      <div class="select relative outline-none maximize">
+        <select-element class="customizable-option customizable-option__dropdown dropdown-small" data-no-require="true" data-picker-type="dropdown">
+          {% liquid
+            assign option_lists = option_list | split: ';'
+          %}
+          {% if option_name != blank %}
+            <p class="mb-2.5 h5 md:h6 p-break-words">
+              <span>
+                {{- option_name -}}
+                {%- if required %}<span class="label-required"> *</span>{% endif %}: </span
+                ><span class="select-label">{% if required %}{{ option_lists.first }}{% endif %}</span>
+            </p>
+          {% endif %}
+
+          <div class="select relative">
+            <div 
+              class="select-button flex w-full items-center justify-between gap-x-2 rounded-corners"
+              role="button" tabindex="0" aria-pressed="false" aria-expanded="false" aria-describedby="CustomizableOptions"
+            >
+              <span 
+                class="select-button__label select-text color-text-[rgba(var(--color-text))]"
+                data-section-id="{{ section.id }}"
+              >
+                {% if required %}
+                  {{ option_lists.first }}
+                {% else %}
+                  {{ 'products.product.choose_here' | t }}
+                {% endif %}
+              </span>
+              <span class="select-arrow shrink-0 transition-all w-2.5 h-2.5 flex">{% render 'icon-all', icon: 'icon-caret' %}</span>
+            </div>
+            <div class="select-options-wrapper w-full scrollbar-visible scrollbar-body">
+              <ul 
+                role="listbox"
+                class="select-options"
+                aria-label="Customizable Options"
+              >
+                {% for option in option_lists %}
+                  <li
+                    class="select-option rounded-corners p-break-words"
+                    data-value="{{ option | escape }}"
+                    data-option-name="{{ option | escape }}"
+                    data-select-value="{{ option | escape }}"
+                    data-type="dropdown"
+                    role="option"
+                    tabindex="-1"
+                    aria-selected="{% if required and forloop.first %}true{% else %}false{% endif %}"
+                  >
+                    {{ option }}
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+          <label class="hidden">
+            <input
+              id="customizable-option-{{ block_id }}"
+              class="select-option-selected"
+              form="{{ product_form_id }}"
+              name="{{ custimize_picker_name }}"
+              value="{% if required %}{{ option_lists.first }}{% else %}{{ 'general.custom_option.option_blank' | t }}{% endif %}"
+              data-disclosure-input
+            >
+          </label>
+        </select-element>
+      </div>
+      {% if option_select_note != blank %}
+        <p class="mt-2 p-break-words">{{ option_select_note | escape }}</p>
+      {% endif %}
+    {% when 'color_swatches' %}
+      <fieldset
+        class="customizable-options__swatch"
+        x-data="{ dataChecked: ''}"
+      >
+        <legend class="h5 md:h6 mb-2.5 p-break-words">
+          <span>
+            {{- option_name -}}
+            {%- if required %}<span class="label-required"> *</span>{% endif %}: </span
+          ><span
+            x-text="dataChecked"
+          ></span>
+        </legend>
+        {% liquid
+          if settings.edges_type == 'rounded_corners'
+            assign rounded = 'rounded-md before:rounded-md'
+          endif
+          if swatch_style == 'round'
+            assign rounded = 'rounded-full before:rounded-full'
+          endif
+
+          assign option_lists = swatch_value | newline_to_br | strip_newlines | split: '<br />'
+        %}
+        <div class="flex flex-wrap gap-2 customize-swatch customize-color-swatches-{{ block_id }}{% if show_content_center %} justify-center{% endif %}">
+          {% for option in option_lists %}
+            {% liquid
+              assign swatch_image = false
+              assign option_key = option | split: ':' | first
+              assign option_value = option | split: ':' | last | strip
+              if option contains '.'
+                assign swatch_image = true
+              else
+                assign multi_colors = option_value | remove_first: '#' | split: '#'
+              endif
+            %}
+
+            {%- style %}
+                .customize-color-swatches-{{ block_id }} {
+                    --swatch-option-width: {% if swatch_size == 'small' %}32px{% elsif swatch_size == 'medium' %}42px{% else %}48px{% endif %};
+                    --swatch-option-height: {% if swatch_size == 'small' %}32px{% elsif swatch_size == 'medium' %}42px{% else %}48px{% endif %};
+                    {% if swatch_style == 'round' %}
+                      --swatch-option-border-radius: 9999px;
+                    {% else %}
+                      --swatch-option-border-radius:{% if settings.edges_type == 'rounded_corners' %} 6px{% else %} 0px{% endif %};
+                    {% endif %}
+                }
+              .customize-color-swatches-{{ block_id }} .swatch-option__label::before {
+                {% if swatch_style == 'round' %}
+                  --swatch-option-border-radius: 9999px;
+                {% else %}
+                  --swatch-option-border-radius:{% if settings.edges_type == 'rounded_corners' %} 6px{% else %} 0px{% endif %};
+                {% endif %}
+                }
+                .swatch-option__label[for="{{ block_id }}-{{ forloop.index }}"] {
+                {% if swatch_image %}
+                    --swatch-image-value: url({{ option_value | file_img_url: "100x100" }});
+                {% elsif multi_colors.size == 3 %}
+                  --swatch-color-value: linear-gradient(45deg, {{ '#' | append: multi_colors[0] }}, {{ '#' | append: multi_colors[0] }} 33.3%, {{ '#' | append: multi_colors[1] }} 33.3%, {{ '#' | append: multi_colors[1] }} 66.6%, {{ '#' | append: multi_colors[2] }} 66.6%, {{ '#' | append: multi_colors[2] }});
+                  {% elsif multi_colors.size == 2 %}
+                  --swatch-color-value: linear-gradient(45deg, {{ '#' | append: multi_colors[0] }}, {{ '#' | append: multi_colors[0] }} 50%, {{ '#' | append: multi_colors[1] }} 50%, {{ '#' | append: multi_colors[1] }});
+                  {% else %}
+                  --swatch-color-value: {{ option_value }};
+                {% endif %}
+                }
+                @media screen and (min-width: 768px) {
+                  .customize-color-swatches-{{ block_id }} {
+                    --swatch-option-width: {% if swatch_size == 'small' %}40px{% elsif swatch_size == 'medium' %}48px{% else %}64px{% endif %};
+                    --swatch-option-height: {% if swatch_size == 'small' %}40px{% elsif swatch_size == 'medium' %}48px{% else %}64px{% endif %};
+                  }
+                }
+            {%- endstyle %}
+            <div>
+              <input
+                class="swatch-option__value w-0 h-0 hidden"
+                x-model="dataChecked"
+                type="radio"
+                id="{{ block_id }}-{{ forloop.index }}"
+                name="{{ block_id }}"
+                value="{{ option_key }}"
+                {% if forloop.first and required %}
+                  checked x-init="dataChecked = '{{ option_key }}'"
+                {% endif %}
+              >
+              <label
+                class="swatch-option__label flex items-center w-10 h-10 cursor-pointer {{ rounded }}"
+                data-swatch-value="{{ option_key | downcase }}"
+                data-swatch-type="color"
+                for="{{ block_id }}-{{ forloop.index }}"
+                tabindex="0"
+                aria-label="{{ option_key | escape }}"
+                @keyup.enter="$el.previousElementSibling?.click()"
+              >
+              </label>
+            </div>
+          {% endfor %}
+          <input
+            x-model="dataChecked"
+            value=""
+            class="customizable-option hidden"
+            type="text"
+            name="{{ custimize_picker_name }}"
+            form="{{ product_form_id }}"
+            aria-label="{{ option_name }}"
+            {% unless required %}
+              x-init="$watch('dataChecked',() => setValueBlank($el))"
+              :disabled="disableInput"
+            {% endunless %}
+          >
+        </div>
+        {% unless required %}
+          <input
+            :disabled="!disableInput"
+            class="hidden"
+            name="{{ custimize_picker_name }}"
+            form="{{ product_form_id }}"
+            value="{{ 'general.custom_option.option_blank' | t }}"
+          >
+        {% endunless %}
+      </fieldset>
+    {% when 'text_swatches' %}
+      <fieldset x-data="{ dataChecked: ''}">
+        <legend class="h5 md:h6 mb-2.5 p-break-words">
+          {% if option_name != blank %}
+            <span>
+              {{- option_name -}}
+              {%- if required %}<span class="label-required"> *</span>{% endif %}: </span
+            ><span
+              x-text="dataChecked.split(':')[0]"
+            ></span>
+          {% endif %}
+        </legend>
+        {% liquid
+          assign option_lists = swatch_value | newline_to_br | strip_newlines | split: '<br />'
+        %}
+        <div class="flex flex-wrap gap-2{% if show_content_center %} justify-center{% endif %}">
+          {% for option in option_lists %}
+            {% liquid
+              assign swatch_name = option | split: ':' | first
+            %}
+            <input
+              x-model="dataChecked"
+              class="variant-option h-px w-px hidden "
+              type="radio"
+              data-type="buttons"
+              id="{{ block_id }}-{{ forloop.index }}"
+              name="{{ block_id }}"
+              value="{{ option }}"
+              {% if forloop.first and required %}
+                checked x-init="dataChecked = '{{ option }}'"
+              {% endif %}
+            >
+            <label
+              class="variant-option__label select-none cursor-pointer relative text-medium py-2 px-3 md:py-2.5 md:px-5 min-w-[60px] md:min-w-[82px] flex justify-center overflow-hidden break-words p-break-words {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+              for="{{ block_id }}-{{ forloop.index }}"
+              tabindex="0"
+              @keyup.enter="$el.previousElementSibling?.click()"
+            >
+              <span>{{ swatch_name }}</span>
+            </label>
+          {% endfor %}
+        </div>
+        <input
+          x-model="dataChecked"
+          value=""
+          class="customizable-option hidden"
+          type="text"
+          name="{{ custimize_picker_name }}"
+          form="{{ product_form_id }}"
+          aria-label="{{ option_name }}"
+          {% unless required %}
+            x-init="$watch('dataChecked',() => setValueBlank($el))"
+            :disabled="disableInput"
+          {% endunless %}
+        >
+        {% unless required %}
+          <input
+            :disabled="!disableInput"
+            class="hidden"
+            name="{{ custimize_picker_name }}"
+            form="{{ product_form_id }}"
+            value="{{ 'general.custom_option.option_blank' | t }}"
+          >
+        {% endunless %}
+      </fieldset>
+    {% when 'file_upload' %}
+      <div
+        class="drop-zone-wrap"
+        x-intersect.once="removeFile(null, $el);{% if required %} validation($el);{% endif %}"
+        x-init="setDragAndDrop($el)"
+      >
+        {% if option_name != blank %}
+          <p class="mb-2.5 p-break-words h5 md:h6">
+            {{ option_name -}}
+            {%- if required %}<span class="label-required"> *</span>{% endif %}
+          </p>
+        {% endif %}
+        <input
+          class="customizable-option drop-zone__input hidden customization-file"
+          value
+          id="{{ block_id }}"
+          type="file"
+          name="{{ custimize_picker_name }}"
+          form="{{ product_form_id }}"
+          {% if required %}
+            required
+            x-on:input.change="validation($el)"
+          {% else %}
+            x-on:input.change="setValueBlank($el)"
+          {% endif %}
+          aria-label="{{ option_name }}"
+        >
+        <div 
+          class="drop-zone duration-200 border border-dashed color-border-[rgba(var(--color-text),0.2)] {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}" 
+          tabindex="0"
+        >
+          <div class="cursor-pointer flex flex-col items-center pt-5 pb-5 pl-5 pr-5">
+            <span class="inline-block text-center w-9 h-7.5 opacity-50 mb-2.5 color-text-[rgba(var(--color-text))]">{% render 'icon-all', icon: 'icon-file-upload' %}</span>
+            <p class="text-center">{{ 'products.product.file_upload' | t }}</p>
+            <span class="text-x-small color-text-[rgba(var(--color-heading),0.6)]">{{ 'products.product.file_upload_info' | t }}</span>
+          </div>
+        </div>
+        <div class="drop-zone__thumb hidden gap-2 border border-dashed color-border-[rgba(var(--color-text),0.2)] pt-2.5 pl-2.5 pb-2.5 pr-2.5 {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}">
+          <div class="dd-thumbnail w-10 h-10 bg-cover flex">
+            <span class="inline-block icon-file w-10 h-10">{% render 'icon-all', icon: 'icon-file' %}</span>
+          </div>
+          <div class="dd-file-info flex justify-between gap-4 w-full">
+            <div class="info-text">
+              <p class="dd-file-info__title p-break-words"></p>
+              <p class="dd-file-info__type text-small mt-1 p-break-words"></p>
+            </div>
+            <button
+              @click="removeFile($event, $el);{% if required %} validation($el);{% endif %}"
+              @keyup.enter.prevent="removeFile($event, $el);{% if required %} validation($el);{% endif %}"
+              @keydown.enter.prevent
+              class="drop-zone__button-close flex h-fit"
+              aria-label="Delete"
+            >
+              <span class="button__close icon-close-small-desktop icon-close-small-mobile">{% render 'icon-all', icon: 'icon-close' %}</span>
+            </button>
+          </div>
+        </div>
+        <span class="mt-1 hidden flash-message error-message error-max-file">{{ 'products.product.msg_error_max_file' | t }} </span>
+        {% if required %}
+          <span class="text-required flash-message error-message hidden mt-1">{{ 'products.product.customizable_option_required' | t }}</span>
+        {% endif %}
+      </div>
+      {% if option_file_note != blank %}
+        <p class="mt-2 p-break-words">{{ option_file_note | escape }}</p>
+      {% endif %}
+      {% unless required %}
+        <input
+          :disabled="!disableInput"
+          class="hidden"
+          name="{{ custimize_picker_name }}"
+          form="{{ product_form_id }}"
+          value="{{ 'general.custom_option.option_blank' | t }}"
+        >
+      {% endunless %}
+  {% endcase %}
+</div>
+<script
+  src="{{ 'customizable-options.js' | asset_url }}"
+  defer
+></script>

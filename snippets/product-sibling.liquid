@@ -1,0 +1,246 @@
+{% liquid
+  assign link_option = block.settings.link_option
+
+  assign collection_handle_metafield = block.settings.collection_handle_metafield
+  if collection_handle_metafield == blank
+    assign collection_handle_metafield = settings.collection_handle_metafield
+  endif
+  assign collection_key = collection_handle_metafield | split: "."
+  if product.metafields[collection_key.first][collection_key.last] != blank
+    assign collection_handle = product.metafields[collection_key.first][collection_key.last].value
+  endif
+  assign collection = collections[collection_handle]
+
+  assign option_value_metafield_setting = block.settings.option_value_metafield
+  if option_value_metafield_setting == blank
+    assign option_value_metafield_setting = settings.option_value_metafield
+  endif
+
+  assign coll = product.collections | where: "id", collection.id
+  if coll == blank
+    assign collection = blank
+  endif
+  if collection != blank
+    assign option_value_metafield = option_value_metafield_setting | split: "."
+
+    if option_value_metafield.first != blank and option_value_metafield.last != blank
+      for prod in collection.products
+        
+        if prod.metafields[option_value_metafield.first][option_value_metafield.last] != blank
+          assign list_value = true
+          if product.id == prod.id
+            assign value_selected = prod.metafields[option_value_metafield.first][option_value_metafield.last].value
+          endif
+        endif
+      endfor
+    endif
+  endif
+  assign option_name = 'products.product.option_name' | t
+  if block.settings.option_name != blank
+    assign option_name = block.settings.option_name | escape
+  endif
+%}
+{% liquid
+  assign enable_sibling_swatch = false
+  if block.settings.enable_color_swatch and block.settings.variant_type == "button"
+    assign list_option_label = settings.swatch_option_name | split: ";"
+    if list_option_label contains block.settings.option_name
+      assign enable_sibling_swatch = true
+    endif
+    assign list_option_values = settings.swatch_option_values | newline_to_br | strip_newlines | split: '<br />'
+  endif
+%}
+{% style %}
+  .block-{{ block.id }} {
+    --swatch-option-width: {% if swatch_size == 'small' %}32px{% elsif swatch_size == 'medium' %}42px{% else %}48px{% endif %};
+    --swatch-option-height: {% if settings.swatch_style == 'natural' %}fit-content{% else %}{% if swatch_size == 'small' %}32px{% elsif swatch_size == 'medium' %}42px{% else %}48px{% endif %}{% endif %};
+  }
+  @media screen and (min-width: 768px) {
+    .block-{{ block.id }} {
+      --swatch-option-width: {% if swatch_size == 'small' %}40px{% elsif swatch_size == 'medium' %}48px{% else %}64px{% endif %};
+      --swatch-option-height: {% if settings.swatch_style == 'natural' %}fit-content{% else %}{% if swatch_size == 'small' %}40px{% elsif swatch_size == 'medium' %}48px{% else %}64px{% endif %}{% endif %};
+    }
+  }
+{% endstyle %}
+{% if list_value %}
+  <div class="product-info__product-sibling-wrapper block-{{ block.id }} mb-[var(--padding-bottom-product-template-block)] w-full{% if show_content_center %} text-center{% endif %}" {{ block.shopify_attributes }}>
+    {% if collection != blank %}
+      {% liquid
+        assign option_value_metafield = option_value_metafield_setting | split: "."
+      %}
+      <div class="" x-data="xProductSibling('{{ section.id }}', '{{ value_selected | escape }}', {{ is_product_page }}, '{{ link_option }}')">
+        {% if option_name != blank %}
+          <div class="mb-2 flex gap-1 items-baseline h5 md:h6 {% if show_content_center %} justify-center{% endif %}">
+            <p class="product-sibling__option-name">{{ option_name }}: {{ value_selected }}</p>
+          </div>
+          <label>
+            <input id="ProductSibling-{{ section.id }}__{{ option_name | handleize  }}" class="hidden" form="{{ product_form_id }}" name="properties[{{ option_name }}]" value="{{ value_selected }}"/>
+          </label>
+        {% endif %}
+        {% if block.settings.variant_type == 'dropdown' %}
+          <select-element
+            class="product-sibling-option__wrapper dropdown-large block w-full relative"
+            data-picker-type="{{ block.settings.variant_type }}"
+          >
+            <div
+              class="select-button cursor-pointer flex justify-center items-center w-full rounded-corners"
+              role="button" aria-expanded="false" tabindex="0" aria-pressed="false" aria-describedby="ProductSiblingSelector"
+            >
+                <span
+                  class="select-button__label flex items-start flex-auto whitespace-nowrap color-text-[rgba(var(--color-heading))"
+                  style="font-family: var(--body-font-family);"
+                >
+                  {{ value_selected }}
+                </span>
+              <span class="select-arrow transition-transform w-3 h-3">{% render 'icon-all', icon: 'icon-caret' %}</span>
+            </div>
+            <div class="select-options-wrapper w-full scrollbar-visible scrollbar-body">
+              <ul
+                class="select-options variant-option__list max-h-64"
+                role="listbox"
+                aria-label="Select options"
+              >
+                {% for prod in collection.products %}
+                  {% liquid
+                    assign value = blank
+                    if prod.metafields[option_value_metafield.first][option_value_metafield.last] != blank
+                      assign value = prod.metafields[option_value_metafield.first][option_value_metafield.last].value
+                    endif
+                  %}
+                  {% if value != blank %}
+                    <li
+                      class="select-option cursor-pointer w-full rounded-corners{% if product.id == prod.id %} selected{% endif %}"
+                      data-value="{{ value | escape }}"
+                      data-select-value="{{ value | escape }}"
+                      data-type="dropdown"
+                      data-product-url="{{ prod.url }}"
+                      role="option"
+                      @click.prevent="handleSelectOption($event)"
+                      @keydown.enter="handleSelectOption($event)"
+                      @keydown.space="handleSelectOption($event)"
+                      aria-selected="{% if product.id == prod.id %}true{% else %}false{% endif %}"
+                      tabindex="-1"
+                    >
+                      <span>{{ value | escape }}</span>
+                    </li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            </div>
+          </select-element>
+        {% else %}
+          <fieldset
+            class="product-sibling-option__wrapper"
+            data-picker-type="button"
+          >
+            <div
+              class="variant-picker__product-option flex flex-wrap gap-1.5 {% if show_content_center %} justify-center{% endif %}"
+              data-picker-type="{{ block.settings.variant_type }}"
+            >
+              {% for prod in collection.products %}
+                {% liquid
+                  assign value = blank
+                  if prod.metafields[option_value_metafield.first][option_value_metafield.last] != blank
+                    assign value = prod.metafields[option_value_metafield.first][option_value_metafield.last].value
+                  endif
+                %}
+                {% if value != blank %}
+                  {% if enable_sibling_swatch %}
+                    {% liquid
+                      assign swatch_color = value
+                      assign swatch_image = nil
+                      assign multi_colors = nil
+                      assign swatch_value_option = nil
+
+                      for value_option in list_option_values
+                        assign value_swatch = value_option | split: ":"
+                        if value_swatch[0] == value
+                          assign swatch_value_option = value_swatch[1] | strip
+                          break
+                        endif
+                      endfor
+                      if swatch_value_option
+                        if swatch_value_option contains "."
+                          assign swatch_image = swatch_value_option | strip | file_img_url: "80x80"
+                        else 
+                          assign multi_colors = swatch_value_option | remove_first: '#' | split: '#'
+                          assign swatch_color = swatch_value_option
+                        endif
+                      endif
+                      if settings.replace_color_with_variant_images
+                        if prod.featured_media.preview_image != bank
+                          assign image_url = prod.featured_media.preview_image | image_url: width: 80
+                          assign swatch_image = image_url
+                        endif
+                      endif
+                      if swatch_image
+                        assign swatch_image = 'url(' | append: swatch_image | append: ')'
+                      endif
+                    %}
+                    {% capture linear_background %}
+                      {% if multi_colors.size == 3 %}
+                        linear-gradient(45deg, {{ '#' | append: multi_colors[0] }}, {{ '#' | append: multi_colors[0] }} 33.3%, {{ '#' | append: multi_colors[1] }} 33.3%, {{ '#' | append: multi_colors[1] }} 66.6%, {{ '#' | append: multi_colors[2] }} 66.6%, {{ '#' | append: multi_colors[2] }});
+                      {% elsif multi_colors.size == 2 %}
+                        linear-gradient(45deg, {{ '#' | append: multi_colors[0] }}, {{ '#' | append: multi_colors[0] }} 50%, {{ '#' | append: multi_colors[1] }} 50%, {{ '#' | append: multi_colors[1] }});
+                      {% endif %}
+                    {% endcapture %}
+                    {% liquid
+                      unless swatch_image
+                        assign swatch_image = linear_background
+                      endunless
+                    %}
+                    <input
+                      class="swatch-option__value variant-option w-0 h-0 hidden {% if product.id == prod.id %} selected{% endif %}"
+                      id="ProductSibling-{{ section.id }}__{{ option_name | handleize }}__{{ value | handleize }}_{{ forloop.index }}"
+                      type="radio"
+                      data-value="{{ value | escape }}"
+                      data-type="buttons"
+                      role="option"
+                      aria-selected="{% if product.id == prod.id %}true{% else %}false{% endif %}"
+                    >
+                    <label
+                      class="swatch-option__label {% if settings.swatch_style == 'natural' %} swatch-option__natural{% endif %} flex items-center variant-option__label cursor-pointer
+                        {%- if product.id == prod.id %} selected{% endif -%}"
+                      for="ProductSibling-{{ section.id }}__{{ option_name | handleize }}__{{ value | handleize }}_{{ forloop.index }}"
+                      tabindex="0"
+                      data-product-url="{{ prod.url }}"
+                      style="--swatch-color-value: {{ swatch_color }}; --swatch-image-value: {{ swatch_image }};"
+                      @keyup.enter="handleFocus($event)"
+                      @click.prevent="handleFocus($event)"
+                      aria-label="{{ value | escape }}"
+                      data-swatch-type="color"
+                    >
+                    </label>
+                  {% else %}
+                    <input
+                      class="h-px w-px hidden variant-option {% if product.id == prod.id %} selected{% endif %}"
+                      id="ProductSibling-{{ section.id }}__{{ option_name | handleize }}__{{ value | handleize }}_{{ forloop.index }}"
+                      type="radio"
+                      data-value="{{ value | escape }}"
+                      data-type="buttons"
+                      role="option"
+                      aria-selected="{% if product.id == prod.id %}true{% else %}false{% endif %}"
+                    >
+                    <label
+                      class="variant-option__label select-none cursor-pointer relative text-medium py-2 px-3 md:py-2.5 md:px-5 min-w-[60px] md:min-w-[82px] flex justify-center border border-solid color-border-[rgba(var(--color-line-and-border))] overflow-hidden break-words hover:color-bg-[rgba(var(--color-secondary-background))]
+                        {%- if settings.edges_type == 'rounded_corners' %} rounded-md{% endif -%}
+                        {%- if product.id == prod.id %} color-border-[rgba(var(--color-heading),0.4)] color-text-[rgba(var(--color-heading))] {% else %} color-border-[rgba(var(--color-line-and-border))] color-text-[rgba(var(--color-text))]{% endif -%}"
+                      for="ProductSibling-{{ section.id }}__{{ option_name | handleize }}__{{ value | handleize }}_{{ forloop.index }}"
+                      tabindex="0"
+                      data-product-url="{{ prod.url }}"
+                      @keyup.enter="handleFocus($event)"
+                      @click.prevent="handleFocus($event)"
+                    >
+                      {{ value | escape }}
+                    </label>
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            </div>
+          </fieldset>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+{% endif %}
+<script src="{{ 'product-sibling.js' | asset_url }}" defer></script>

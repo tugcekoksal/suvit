@@ -1,0 +1,392 @@
+{% assign settings = block.settings %}
+
+{% liquid
+  assign mobile_image = settings.mobile_image
+  assign desktop_image = settings.desktop_image
+
+  if mobile_image == blank
+    assign mobile_image = desktop_image
+  endif
+  if desktop_image == blank
+    assign desktop_image = mobile_image
+  endif
+%}
+
+{% liquid
+  assign desktop_image_ratio = settings.image_ratio
+  assign mobile_image_ratio = settings.image_ratio
+
+  if settings.image_ratio == "auto"
+    if desktop_image != blank
+      assign desktop_image_ratio = desktop_image.aspect_ratio
+    else
+      assign desktop_image_ratio = "1/1"
+    endif
+
+    if mobile_image != blank
+      assign mobile_image_ratio = mobile_image.aspect_ratio
+    else
+      assign mobile_image_ratio = "1/1"
+    endif
+  endif
+
+%}
+
+{% style %}
+  .block-{{ block.id }} {
+    width: {{ settings.mobile_image_width }}%;
+    --block-width: {{ settings.mobile_image_width | divided_by: 100.0 }};
+    --pad-top: {{ block.settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block.settings.desktop_padding_left }}px;
+    --pad-right: {{ block.settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+  }
+
+  .block-{{ block.id }} .block-image__placeholder, .block-{{ block.id }} .block-image__img {
+    aspect-ratio: {{ mobile_image_ratio }};
+  }
+
+  @media screen and (min-width: 768px) {
+    .block-{{ block.id }} {
+      width: {{ settings.desktop_image_width }}%;
+      --block-width: {{ settings.desktop_image_width | divided_by: 100.0 }};
+    }
+
+    .block-{{ block.id }} .block-image__placeholder, .block-{{ block.id }} .block-image__img {
+      aspect-ratio: {{ desktop_image_ratio }};
+    }
+  }
+{% endstyle %}
+
+<div
+  class="block-image block-{{ block.id }} block-padding maximize-block relative rounded-corners z-10"
+  data-block-id="{{ block.id }}"
+  {{ block.shopify_attributes }}
+>
+  {%- assign _page_w = settings.page_width | default: 1400 -%}
+  {%- assign _desktop_w_pct = block.settings.desktop_image_width | times: 1.0 | divided_by: 100 -%}
+  {%- assign _section_width = section.settings.section_width | default: 'page-width' -%}
+
+  {%- comment -%}
+    full-width / full-width-padded: image spans viewport → page_width cap is wrong.
+    Use vw-based sizes and include full srcset range.
+    page-width (default): cap sizes + srcset at page_width × image_width%.
+  {%- endcomment -%}
+  {%- if _section_width == 'full-width' or _section_width == 'full-width-padded' -%}
+    {%- assign _desktop_max_px = 9999 -%}
+    {%- assign desktop_sizes = '(min-width: 768px) ' | append: block.settings.desktop_image_width | append: 'vw, ' | append: block.settings.mobile_image_width | append: 'vw' -%}
+  {%- else -%}
+    {%- assign _desktop_max_px = _page_w | times: _desktop_w_pct | round -%}
+    {%- assign desktop_sizes = '(min-width: ' | append: _page_w | append: 'px) ' | append: _desktop_max_px | append: 'px, (min-width: 768px) ' | append: block.settings.desktop_image_width | append: 'vw, ' | append: block.settings.mobile_image_width | append: 'vw' -%}
+  {%- endif -%}
+
+  {%- if block.settings.max_display_width > 0 and block.settings.max_display_width < _desktop_max_px -%}
+    {%- assign _desktop_max_px = block.settings.max_display_width -%}
+    {%- assign desktop_sizes = '(min-width: ' | append: _page_w | append: 'px) ' | append: _desktop_max_px | append: 'px, (min-width: 768px) ' | append: block.settings.desktop_image_width | append: 'vw, ' | append: block.settings.mobile_image_width | append: 'vw' -%}
+  {%- endif -%}
+
+  {%- comment -%}
+    Build srcset widths capped at _desktop_max_px × 2 (2× DPR).
+    _desktop_max_px = 9999 (full-width) → all widths included.
+  {%- endcomment -%}
+  {%- assign _srcset_cap = _desktop_max_px | times: 2 -%}
+  {%- assign _srcset_all = '200,400,600,800,1000,1200,1440,1800,2200' | split: ',' -%}
+  {%- assign _srcset_widths = '' -%}
+  {%- for _w in _srcset_all -%}
+    {%- assign _w_int = _w | plus: 0 -%}
+    {%- if _w_int <= _srcset_cap or _srcset_widths == '' -%}
+      {%- if _srcset_widths != '' -%}{%- assign _srcset_widths = _srcset_widths | append: ',' -%}{%- endif -%}
+      {%- assign _srcset_widths = _srcset_widths | append: _w -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {% if desktop_image == blank and mobile_image == blank %}
+    <div class="block-image__placeholder rounded-corners relative">
+      {% render 'placeholder-image', image_type: 'image' %}
+      <div class="block-image__overlay overlay-image absolute scheme-image-overlay transition-opacity top-0 left-0 right-0 bottom-0 opacity-{{ settings.overlay_opacity }} pointer-events-none rounded-corners"></div>
+    </div>
+  {% else %}
+    {% assign image_class = 'block-image__img w-full object-cover anm-image-hover rounded-corners block-image__img-' | append: block.id %}
+    {% style %}
+      @media (max-width: 767px) {
+        .block-image__picture__{{ block.id }} img {
+          object-position: {{ mobile_image.presentation.focal_point }} !important;
+        }
+      }
+
+      @media (min-width: 767px) {
+        .block-image__picture__{{ block.id }} img {
+          object-position: {{ desktop_image.presentation.focal_point }} !important;
+        }
+      }
+    {% endstyle %}
+    <div class="block-image__img__wrapper relative rounded-corners w-full overflow-hidden{% if block.settings.image_link != blank %} media-hyperlink{% endif %}">
+      {% if block.settings.image_link != blank %}
+        <a
+          href="{{ settings.image_link }}"
+          class="block-image__link absolute inset-0 z-10 min-w-6 min-h-6 overflow-hidden rounded-corners"
+          {% if settings.open_new_window %}target="_blank" rel="noopener noreferrer"{% endif %}
+          aria-label="{{ desktop_image.alt | escape }}"
+        >
+          <span class="sr-only">{{ desktop_image.alt }}</span>
+        </a>
+      {% endif %}
+      <picture class="block-image__picture block-image__picture__{{ block.id }} w-full h-full overflow-hidden rounded-corners">
+        <source
+          media="(max-width: 767px)"
+          srcset="
+            {{ mobile_image | image_url: width: '400x' }} 400w,
+            {{ mobile_image | image_url: width: '600x' }} 600w,
+            {{ mobile_image | image_url: width: '800x' }} 800w
+          "
+          width="{{ mobile_image.width }}"
+          height="{{ mobile_image.height }}"
+        >
+        {{- desktop_image | image_url: width: desktop_image.width | image_tag:
+          loading: 'lazy',
+          widths: _srcset_widths,
+          is: 'lazy-image', class: image_class,
+          sizes: desktop_sizes
+        -}}
+      </picture>
+      <div class="block-image__overlay overlay-image absolute scheme-image-overlay transition-opacity top-0 left-0 right-0 bottom-0 opacity-{{ settings.overlay_opacity }} pointer-events-none rounded-corners"></div>
+    </div>
+  {% endif %}
+</div>
+
+{% schema %}
+{
+  "name": "Image",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "desktop_image",
+      "label": "Desktop image"
+    },
+    {
+      "type": "image_picker",
+      "id": "mobile_image",
+      "label": "Mobile image"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "options": [
+        {
+          "value": "auto",
+          "label": "t:global.ratio.natural"
+        },
+        {
+          "value": "1/1",
+          "label": "t:global.ratio.square"
+        },
+        {
+          "value": "4/3",
+          "label": "t:global.ratio.landscape"
+        },
+        {
+          "value": "16/9",
+          "label": "t:global.ratio.wide"
+        },
+        {
+          "value": "2/3",
+          "label": "t:global.ratio.portrait"
+        },
+        {
+          "value": "3/4",
+          "label": "t:global.ratio.standard"
+        }
+      ],
+      "default": "1/1",
+      "label": "Image ratio"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "%",
+      "label": "t:global.overlay.overlay_opacity",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Size"
+    },
+    {
+      "type": "range",
+      "id": "max_display_width",
+      "min": 0,
+      "max": 800,
+      "step": 50,
+      "unit": "px",
+      "label": "Max display width (px)",
+      "info": "Set when image is used as a small thumbnail (e.g. inside a group). 0 = auto.",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "desktop_image_width",
+      "min": 5,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Desktop width",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "mobile_image_width",
+      "min": 5,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Mobile width",
+      "default": 100
+    },
+    {
+      "type": "header",
+      "content": "Link"
+    },
+    {
+      "type": "url",
+      "id": "image_link",
+      "label": "Link"
+    },
+    {
+      "type": "checkbox",
+      "id": "open_new_window",
+      "default": false,
+      "label": "t:global.text.open_link_new_tab"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "select",
+      "id": "spacing_choose_device",
+      "label": "Choose device",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "Desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "Mobile"
+        }
+      ],
+      "default": "desktop",
+      "info": "Desktop and Mobile settings are configured separately."
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Image",
+      "category": "Media"
+    }
+  ]
+}
+{% endschema %}

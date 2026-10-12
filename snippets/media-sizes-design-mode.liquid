@@ -1,0 +1,61 @@
+{%- liquid
+  assign result = sizes
+
+  if request.design_mode
+    assign mobile_pixel_ratio = 2
+
+    assign result = result | replace: '\n', ' ' | replace: '  ', ' ' | replace: ' ,', ',' | replace: ', ', ',' | replace: '\r', '' | strip
+
+    if result == blank
+      assign result = '100vw'
+    endif
+
+    assign sizes_parts = result | split: ','
+    assign last_raw = sizes_parts | last | strip
+    assign new_last = ''
+
+    if last_raw contains 'calc('
+      assign calc_content = last_raw | replace: 'calc(', '' | replace: ')', '' | strip
+      assign new_last = 'calc((' | append: calc_content | append: ') * ' | append: mobile_pixel_ratio | append: ')'
+
+    else
+      assign supported_units = 'vw,px,em,rem,vh'
+      assign supported_units_array = supported_units | split: ','
+      assign numeric_value = 0
+      assign unit_value = ''
+
+      for unit in supported_units_array
+        if last_raw contains unit
+          assign unit_value = unit
+          assign numeric_value = last_raw | replace_first: unit | strip | plus: 0
+          break
+        endif
+      endfor
+
+      if numeric_value > 0
+        assign new_last = numeric_value | times: mobile_pixel_ratio | append: unit_value
+      else
+        assign new_last = last_raw
+      endif
+    endif
+
+    assign parts_count = sizes_parts.size | minus: 1
+    assign base_parts = sizes_parts | slice: 0, parts_count
+    assign base_joined = base_parts | join: ',' | strip
+
+    if result contains '(min-width: 768px)'
+      assign new_sizes = base_joined | append: ', ' | append: new_last
+    else
+      assign tablet_part = '(min-width: 768px) ' | append: last_raw
+      assign new_sizes = tablet_part | append: ', ' | append: new_last
+      
+      if base_joined != blank
+        assign new_sizes = base_joined | append: ', ' | append: new_sizes
+      endif
+    endif
+
+    assign result = new_sizes | strip
+  endif
+
+  echo result | strip
+%}

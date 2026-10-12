@@ -1,0 +1,515 @@
+{% liquid 
+  for block in section.blocks
+    if block.type == 'buttons'
+      assign block_buttons = block
+    endif
+  endfor
+  
+  assign image_class = 'rounded-corners w-full object-cover anm-image-hover'
+  if settings.pc_media_ratio != 'auto'
+    assign image_class = image_class | append: ' absolute insert-0 h-full'
+  endif
+
+  if settings.edges_type == 'rounded_corners'
+    assign rounded_corner = true
+  endif
+
+  assign swatch_natural = false
+  if settings.swatch_style == 'natural'
+    assign swatch_natural = true
+  endif
+%}
+{%- style -%}
+  .product-comparison-table--{{ section.id }} {
+    {% if product_list != blank %}
+      --product-comparison-item-in-table: {{ product_list.count }};
+      {% if product_list.count > 1 %}
+        --product-comparison-grid-item-width: 2/3;
+      {% else %}
+        --product-comparison-grid-item-width: 1;
+      {% endif %}
+    {% else %}
+      --product-comparison-item-in-table: 5;
+      --product-comparison-grid-item-width: 2/3;
+    {% endif %}
+  }
+  @media (min-width: 768px) {
+    .product-comparison-table--{{ section.id }} {
+      {% if product_list != blank %}
+        --product-comparison-item-in-table: {{ product_list.count }};
+        {% if product_list.count > 1 %}
+          --product-comparison-grid-item-width: 1/2;
+        {% else %}
+          --product-comparison-grid-item-width: 1;
+        {% endif %}
+      {% else %}
+        --product-comparison-item-in-table: 5;
+        --product-comparison-grid-item-width: 1/2;
+      {% endif %}
+    }
+  }
+  @media (min-width: 1024px) {
+    .product-comparison-table--{{ section.id }} {
+      {% if product_list != blank %}
+        --product-comparison-item-in-table: {{ product_list.count | plus: 1 }};
+        {% if product_list.count > 4 %}
+          --product-comparison-grid-item-width: 1/6;
+        {% else %}
+          --product-comparison-grid-item-width: 1/{{ product_list.count | plus: 1 }};
+        {% endif %}
+      {% else %}
+        --product-comparison-item-in-table: 6;
+        --product-comparison-grid-item-width: 1/6;
+      {% endif %}
+      
+    }
+  }
+{%- endstyle -%}
+
+
+{%- capture skeleton_heading -%}
+  <div class="animate-Xpulse block w-full product-comparison__skeleton-heading">
+    <div class="w-full{% if settings.pc_media_ratio != 'auto' %} relative h-0 pb-[{{ settings.pc_media_ratio }}%]{% endif %}">
+      <div class="bg-skeleton w-full {{ image_class }}"></div>
+    </div>
+    <div class="mt-2.5 md:mt-4 relative">
+      <p class="h6 opacity-0">__</p>
+      <div class="bg-skeleton w-full h-full absolute inset-0"></div>
+    </div>
+    <div class="mt-2.5 relative">
+      <p class="h5 opacity-0">__</p>
+      <div class="bg-skeleton w-full h-full absolute inset-0"></div>
+    </div>
+  </div>
+{%- endcapture -%}
+
+{%- capture skeleton_block -%}
+  <div class="block product-comparison__skeleton-block relative lg:w-full lg:h-full">
+    <p class="opacity-0 lg:hidden">__</p>
+    <div class="bg-skeleton w-full h-full absolute inset-0"></div>
+  </div>
+{%- endcapture -%}
+
+<div>
+  {% if section.settings.subheading != blank or section.settings.heading != blank or section.settings.text != blank %}
+    <div class="heading-content-spacing">
+      <div class="text-{{ section.settings.heading_alignment }}">
+        {% if section.settings.subheading != blank %}
+          <p class="pb-1.5 md:pb-2 product-comparison__subheading p-break-words anm-fade-element" data-fade-on-intersect>{{ section.settings.subheading | escape }}</p>
+        {% endif %}
+        {% if section.settings.heading != blank %}
+          <{{ section.settings.heading_tag }} class="heading-{{ section.settings.heading_size }} h2 block pointer-events-auto pb-1 product-comparison__heading p-break-words anm-fade-element" data-fade-on-intersect>
+            {% render 'text-highlight',
+              id: section.id,
+              text: section.settings.heading,
+              highlight_effect: section.settings.highlight_effect,
+              text_transform: section.settings.text_transform
+            %}
+          </{{ section.settings.heading_tag }}>
+        {% endif %}
+      </div>
+      {% if section.settings.text != blank %}
+        <div class="rte product-comparison__text p-break-words anm-fade-element margin-y-0" data-fade-on-intersect>
+          {% render 'text-highlight',
+            id: section.id,
+            text: section.settings.text,
+            highlight_effect: section.settings.highlight_effect,
+            text_transform: section.settings.text_transform
+          %}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+    
+  {% unless product_list == blank %}
+    <div class="relative px-1">
+      <div 
+        x-data='xSection("{{ section.id }}", $el)'
+        x-intersect.once='firstLoadData()'
+        class="product-comparison__table-container overflow-x-auto pb-1 scrollbar-horizontal"
+      >
+        <table class="mx-auto product-comparison-table--{{ section.id }} product-comparison-table table-fixed">
+          <thead>
+            <tr class="flex">
+              <th 
+                class="product-comparison-grid-title color-bg-[rgba(var(--color-text),0.06)] pt-4 p-break-words product-comparison-grid-item border
+                  {%- if rounded_corner %} rounded-t-[var(--rounded-corners)]
+                    {%- if section.blocks.size == 0 %} rounded-b-[var(--rounded-corners)]{% endif -%}
+                  {%- endif -%}
+                "
+              >
+              </th>
+              {% for product in product_list %}
+                <th 
+                  class="product-comparison-grid-item pt-4 border-t border-b relative
+                    {%- if rounded_corner %} rounded-t-[var(--rounded-corners)]{% endif -%}
+                    {%- if forloop.first %} border-l border-r lg:border-r lg:border-l-0 rtl:lg:border-l rtl:lg:border-r-0{% else %} border-r rtl:border-l rtl:border-r-0{% endif -%}
+                  "
+                >
+                  <div class="product-comparison-table-header" x-show="!loading" x-cloak>
+                    <div class="w-full{% if settings.pc_media_ratio != 'auto' %} relative h-0 pb-[{{ settings.pc_media_ratio }}%]{% endif %}">
+                      <a href="{{ product.url | within: collection | split: '?' | first }}" class="media-hyperlink block" aria-label="{{ product.title | escape }}" target="_blank">
+                        {% if product.featured_media.preview_image != blank %}
+                          {%- capture sizes -%}
+                            (min-width: 1024px) calc(100vw / 6), (min-width: 768px) calc(100vw / 3), calc(100vw * 2 / 5)
+                          {%- endcapture -%}
+                            {% render 'image', img_class: image_class, img: product.featured_media.preview_image, alt: product.featured_media.preview_image.alt, aspect_ratio: settings.pc_media_ratio, img_width: 500, sizes: sizes, loading: 'eager' %}
+                          
+                        {% else %}
+                          <div class="{{ image_class }}">
+                            {% liquid
+                              assign index = 1
+                              assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+                              assign placeholder_product_name = 'product_' | append: index
+                            %}
+                            {% render 'placeholder-image', image_type: placeholder_product_name %}
+                          </div>
+                        {% endif %}
+                      </a>
+                    </div>
+                    <a href="{{ product.url | within: collection | split: '?' | first }}" aria-label="{{ product.title | escape }}" target="_blank" class="title-link">
+                      <p class="h6 pt-2.5 md:pt-4 p-break-words">{{ product.title }}</p>
+                    </a>
+                    <div class="pt-2.5">
+                      {%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+                      {%- assign login_hide_price = login_hide_price | strip -%}
+                      {% if login_hide_price == 'true' %}
+                        {% render 'guest-price-message' %}
+                      {% else %}
+                        {% render 'price', product: product, use_variant: false, price_class: 'h5', show_b2b_price_label: true %}
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div x-show="loading" class="w-full">
+                    {{ skeleton_heading }}
+                  </div>
+                </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% comment %} block {% endcomment %}
+            {% for block in section.blocks %}
+              {% if block.type != 'buttons' %}
+                <tr class="flex">
+                  <td class="product-comparison-grid-title color-bg-[rgba(var(--color-text),0.06)] p-break-words product-comparison-grid-item border-t-0 border-l border-r border-b{% if block_buttons == blank and forloop.last and rounded_corner %} rounded-b-[var(--rounded-corners)]{% endif %}">{{ block.settings.title | escape }}</td>
+                  {% for product in product_list %}
+                    <th 
+                      class="product-comparison-grid-item border-b
+                        {%- if block_buttons == blank and forloop.last and rounded_corner %} rounded-b-[var(--rounded-corners)]{% endif -%}
+                        {%- if forloop.first %} border-l border-r lg:border-r lg:border-l-0 rtl:lg:border-l rtl:lg:border-r-0{% else %} border-r rtl:border-l rtl:border-r-0{% endif -%}
+                      "
+                    >
+                      <p class="flex lg:hidden mb-1.5 h7 p-break-words">{{ block.settings.title | escape }}</p>
+                      <div class="overflow-hidden" x-show="!loading" x-cloak>
+                        {% case block.type %}
+                          {% when 'rating' %}
+                            <div class="product-comparison-rating">
+                              {% render 'review-product', product: product %}
+                            </div>
+                          {% when 'sku' %}
+                            <div class="product-comparison-sku">
+                              {% if product.selected_or_first_available_variant.sku != blank %}
+                                <p class="p-break-words">{{ product.selected_or_first_available_variant.sku }}</p>
+                              {% else %}
+                                <p>{{ section.settings.text_empty_field }}</p>
+                              {% endif %}
+                            </div>
+                          {% when 'description' %}
+                            <div class="product-comparison-description">
+                              {% if product.description != blank %}
+                                <p class="rte p-break-words">{{ product.description }}</p>
+                              {% else %}
+                                <p>{{ section.settings.text_empty_field }}</p>
+                              {% endif %}
+                            </div>
+                          {% when 'vendor' %}
+                            <div class="product-comparison-vendor">
+                              {% if product.vendor != blank %}
+                                <p class="product-comparison-vendor-name p-break-words">{{ product.vendor }}</p>
+                              {% else %}
+                                <p>{{ section.settings.text_empty_field }}</p>
+                              {% endif %}
+                            </div>
+                          {% when 'variant_option' %}
+                            {% assign title = block.settings.title %}
+                            <div class="product-comparison-option">
+                              {% if product.options_by_name[block.settings.title] != blank and product.options_by_name[block.settings.title].values.size > 1 %}
+                                {% assign product_option = product.options_by_name[block.settings.title] %}
+                                {% if block.settings.enable_color_swatches %}
+                                  <div class="product-comparison-option-{{ option |  replace: ' ', '_' }}">
+                                    <div class="flex flex-wrap gap-1.5 w-full h-full">
+                                      {% for option_value in product_option.values %}
+                                        {% liquid
+                                          assign option_id = section.id | append: '-' | append: option_value.id
+                                        %}
+                                        <label
+                                          class="option__label inline-block w-fit color-border-[rgba(var(--color-text),0.06)] text-small relative md:list-layout:text-small py-2 px-3 border border-solid overflow-hidden break-words {% if rounded_corner %} rounded{% endif %}"
+                                          for="{{ option_id }}"
+                                          data-swatch-type="text"
+                                        >
+                                          {{ option_value | escape }}
+                                        </label>
+                                      {% endfor %}
+                                    </div>
+                                  </div>
+                                {% else %}
+                                  <div class="product-comparison-option-swatches-{{ option |  replace: ' ', '_' }}">
+                                    <div class="flex flex-wrap gap-1.5 w-full h-full">
+                                      {% for option_value in product_option.values %}
+                                        {% liquid
+                                          assign option_id = section.id | append: '-' | append: option_value.id
+                                        %}
+                                        {% if option_value.swatch %}
+                                          {% liquid
+                                            assign use_option_swatch = true
+                                            if settings.replace_color_with_variant_images
+                                              assign variant_of_option_value = option_value.variant
+                                              assign swatch_option_style = 'image'
+                                              if variant_of_option_value.featured_media.preview_image != blank
+                                                assign image_url = variant_of_option_value.featured_media.preview_image | image_url: width: 40
+                                                assign use_option_swatch = false
+                                              elsif product.featured_media.preview_image != blank
+                                                assign image_url = product.featured_media.preview_image | image_url: width: 40
+                                                assign use_option_swatch = false
+                                              endif
+                                              if image_url != blank
+                                                assign swatch_value = 'url(' | append: image_url | append: ')'
+                                              endif
+                                            endif
+                                            if use_option_swatch
+                                              assign swatch_value = option_value.name | downcase
+                                              assign swatch_option_style = 'color'
+                                              if option_value.swatch.image != blank
+                                                assign swatch_option_style = 'image'
+                                                assign image_url = option_value.swatch.image | image_url: width: 40
+                                                assign swatch_value = 'url(' | append: image_url | append: ')'
+                                              elsif option_value.swatch.color
+                                                assign swatch_value = 'rgba(' | append: option_value.swatch.color.rgba | append: ')'
+                                              endif
+                                            endif
+                                            if swatch_option_style == "image"
+                                              assign ratio_image = 1 | divided_by: image_url.aspect_ratio
+                                            else 
+                                              assign ratio_image = 1
+                                            endif
+                                          %}
+                                          {% style %}
+                                            {% if swatch_value %}
+                                              .swatch-option__label[for="{{ option_id }}"]::before {
+                                              {% if swatch_option_style == "color" %}
+                                                --swatch-color-value: {{ swatch_value }}
+                                              {% elsif swatch_option_style == "image" %}
+                                                --swatch-image-value: {{ swatch_value }};
+                                              {% endif %} }
+                                            {% endif %}
+                                          {% endstyle %}
+
+                                          <label
+                                            class="swatch-option__label flex items-center color-border-[rgba(var(--color-text),0.06)] variant-option__label {% unless swatch_natural %} !h-9 !w-9{% endunless %}"
+                                            data-swatch-value="{{ option_value | downcase }}"
+                                            data-swatch-type="color"
+                                            style="{% if swatch_natural %}--swatch-option-ratio-image: {{ ratio_image }}; --swatch-option-height: calc(var(--swatch-option-ratio-image) * var(--swatch-option-width));{% endif %}"
+                                            for="{{ option_id }}"
+                                          >
+                                          </label>
+                                        {% else %}
+                                          <label
+                                            class="swatch-option__label inline-block w-fit color-border-[rgba(var(--color-text),0.06)] text-small relative md:list-layout:text-small py-2 px-3 border border-solid overflow-hidden break-words {% if rounded_corner %} rounded{% endif %}"
+                                            for="{{ option_id }}"
+                                            data-swatch-type="text"
+                                          >
+                                            {{ option_value | escape }}
+                                          </label>
+                                        {% endif %}
+                                      {% endfor %}
+                                    </div>
+                                  </div>
+                                {% endif %}
+                              {% else %}
+                                <p>{{ section.settings.text_empty_field }}</p>
+                              {% endif %}
+                            </div>
+                          {% when 'product_metafield' %}
+                            <div class="product-comparison-metafield">
+                              {% liquid
+                                assign metafield_key = block.settings.metafield_key | split: '.'
+                                assign metafield = product.metafields[metafield_key.first][metafield_key.last]
+                              %}
+                              {%- if metafield.value != blank -%}
+                                {%- if metafield.type contains "list." -%}
+                                  <div class="gap-y-1 grid">
+                                    {%- for item in metafield.value -%}
+                                      {%- assign metafield_type = metafield.type | replace: "list.", "" -%}
+                                      <div>{%- render 'metafield', metafield: metafield, metafield_type: metafield_type, metafield_value: item -%}</div>
+                                    {% endfor %}
+                                  </div>
+                                {%- else -%}
+                                  {%- render 'metafield', metafield: metafield, metafield_type: metafield.type, metafield_value: metafield.value -%}
+                                {%- endif -%}
+                              {% else %}
+                                <p>{{ section.settings.text_empty_field }}</p>
+                              {% endif %}
+                            </div>
+                        {% endcase %}
+                      </div>
+                      <div x-show="loading" class="w-full h-full">
+                        {{ skeleton_block }}
+                      </div>
+                    </th>
+                  {% endfor %}
+                </tr>
+              {% endif %}
+            {% endfor %}
+  
+            {% comment %} button {% endcomment %}
+            {% if block_buttons != blank %}
+              {% assign button_label = 'product_comparison.view_details' | t %}
+              <tr class="flex" >
+                <td class="product-comparison-grid-title color-bg-[rgba(var(--color-text),0.06)] p-break-words product-comparison-grid-item product-comparison-grid-item border-t-0 border-l border-r border-b{% if rounded_corner %} rounded-b-[var(--rounded-corners)]{% endif %}"></td>
+                {% for product in product_list %}
+                  <th 
+                    class="product-comparison-grid-item border-b
+                      {%- if rounded_corner %} rounded-b-[var(--rounded-corners)]{% endif -%}
+                      {%- if forloop.first %} border-l border-r lg:border-r lg:border-l-0 rtl:lg:border-l rtl:lg:border-r-0{% else %} border-r rtl:border-l rtl:border-r-0{% endif -%}
+                    "
+                  >
+                    {% liquid
+                      assign class_button = ' whitespace-nowrap'
+                      if block_buttons.settings.button_style != 'text-link'
+                        assign class_button = class_button | append: ' w-full pl-5 pr-5 pt-3 pb-3'
+                      endif
+                      assign button_link = product.url | within: collection | split: '?' | first
+                    %}
+                    {% render 'button',
+                      button_style: block_buttons.settings.button_style,
+                      button_label: button_label,
+                      button_link: button_link,
+                      isAlwaysActive: true,
+                      open_new_window_button: true,
+                      class: class_button
+                    %}
+                  </th>
+                {% endfor %}
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="relative px-1">
+      <div 
+        x-data='xSection("{{ section.id }}", $el)'
+        x-intersect.once='firstLoadData()'
+        class="product-comparison__table-container overflow-x-auto pb-1 scrollbar-horizontal"
+      >
+        <table class="mx-auto product-comparison-table--{{ section.id }} product-comparison-table table-fixed">
+          <thead>
+            <tr class="flex">
+              <th 
+                class="product-comparison-grid-title color-bg-[rgba(var(--color-text),0.06)] pt-4 p-break-words product-comparison-grid-item border
+                  {%- if rounded_corner %} rounded-t-[var(--rounded-corners)]
+                    {%- if section.blocks.size == 0 %} rounded-b-[var(--rounded-corners)]{% endif -%}
+                  {%- endif -%}
+                "
+              >
+              </th>
+              {% for i in (1..5) %}
+                <th 
+                  class="product-comparison-grid-item pt-4 border-t border-b relative
+                    {%- if rounded_corner %} rounded-t-[var(--rounded-corners)]{% endif -%}
+                    {%- if forloop.first %} border-l border-r lg:border-r lg:border-l-0 rtl:lg:border-l rtl:lg:border-r-0{% else %} border-r rtl:border-l rtl:border-r-0{% endif -%}
+                  "
+                >
+                  <div class="product-comparison-table-header" x-show="!loading" x-cloak>
+                    <div class="w-full{% if settings.pc_media_ratio != 'auto' %} relative h-0 pb-[{{ settings.pc_media_ratio }}%]{% endif %}">
+                      <div class="{{ image_class }}">
+                        {% liquid
+                          assign index = 1
+                          assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+                          assign placeholder_product_name = 'product_' | append: index
+                        %}
+                        {% render 'placeholder-image', image_type: placeholder_product_name %}
+                      </div>
+                    </div>
+                    <p class="h6 pt-2.5 md:pt-4 p-break-words">{{ 'products.product.title' | t }}</p>
+                    <div class="pt-2.5">
+                      <span
+                        class="iw-price h5"
+                        data-iw-product-id="{{ product_id }}"
+                        data-iw-variant-id="{{ variant_id }}"
+                      >
+                        {% if settings.currency_code_enable %}{{ 0.00 | money_with_currency }}{% else %}{{ 0.00 | money }}{% endif %}
+                      </span>
+                    </div>
+                  </div>
+                  <div x-show="loading" class="w-full">
+                    {{ skeleton_heading }}
+                  </div>
+                </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% comment %} block {% endcomment %}
+            {% for block in section.blocks %}
+              {% if block.type != 'buttons' %}
+                <tr class="flex">
+                  <td class="product-comparison-grid-title color-bg-[rgba(var(--color-text),0.06)] p-break-words product-comparison-grid-item border-t-0 border-l border-r border-b{% if block_buttons == blank and forloop.last and rounded_corner %} rounded-b-[var(--rounded-corners)]{% endif %}">{{ block.settings.title | escape }}</td>
+                  {% for i in (1..5) %}
+                    <th 
+                      class="product-comparison-grid-item border-b
+                        {%- if block_buttons == blank and forloop.last and rounded_corner %} rounded-b-[var(--rounded-corners)]{% endif -%}
+                        {%- if forloop.first %} border-l border-r lg:border-r lg:border-l-0 rtl:lg:border-l rtl:lg:border-r-0{% else %} border-r rtl:border-l rtl:border-r-0{% endif -%}
+                      "
+                    >
+                      <p class="flex lg:hidden mb-1.5 h7 p-break-words">{{ block.settings.title | escape }}</p>
+                      <div class="overflow-hidden" x-show="!loading" x-cloak>
+                        <p>{{ section.settings.text_empty_field }}</p>
+                      </div>
+                      <div x-show="loading" class="w-full h-full">
+                        {{ skeleton_block }}
+                      </div>
+                    </th>
+                  {% endfor %}
+                </tr>
+              {% endif %}
+            {% endfor %}
+  
+            {% comment %} button {% endcomment %}
+            {% if block_buttons != blank %}
+              {% assign button_label = 'product_comparison.view_details' | t %}
+              <tr class="flex" >
+                <td class="product-comparison-grid-title color-bg-[rgba(var(--color-text),0.06)] p-break-words product-comparison-grid-item product-comparison-grid-item border-t-0 border-l border-r border-b{% if rounded_corner %} rounded-b-[var(--rounded-corners)]{% endif %}"></td>
+                {% for i in (1..5) %}
+                  <th 
+                    class="product-comparison-grid-item border-b
+                      {%- if rounded_corner %} rounded-b-[var(--rounded-corners)]{% endif -%}
+                      {%- if forloop.first %} border-l border-r lg:border-r lg:border-l-0 rtl:lg:border-l rtl:lg:border-r-0{% else %} border-r rtl:border-l rtl:border-r-0{% endif -%}
+                    "
+                  >
+                    {% liquid
+                      assign class_button = ' whitespace-nowrap'
+                      if block_buttons.settings.button_style != 'text-link'
+                        assign class_button = class_button | append: ' w-full pl-5 pr-5 pt-3 pb-3'
+                      endif
+                    %}
+                    {% render 'button',
+                      button_style: block_buttons.settings.button_style,
+                      button_label: button_label,
+                      button_link: "",
+                      isAlwaysActive: false,
+                      open_new_window_button: true,
+                      class: class_button
+                    %}
+                  </th>
+                {% endfor %}
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endunless %}
+</div>

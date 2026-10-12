@@ -1,0 +1,32 @@
+{% liquid
+  assign image_ratio = 'auto'
+  case settings.cart_media_ratio
+    when 'square'
+      assign image_ratio = '1/1'
+    when 'landscape'
+      assign image_ratio = '4/3'
+    when 'portrait'
+      assign image_ratio = '2/3'
+    when 'wide'
+      assign image_ratio = '16/9'
+    when '3/4'
+      assign image_ratio = '3/4'
+  endcase
+%}
+
+<div class="cart-upsell__product-recommendations product-recommendations cart-drawer-upsell__product-recommendations hidden">
+  {% if recommendations.performed and recommendations.products_count > 0 %}
+    {% for recommendation in recommendations.products %}
+      <div class="cart-drawer-upsell__item cart-upsell__item slide-item upsell-item__recommendation color-bg-[rgba(var(--product-card-bg))] lg:bg-transparent pl-2 pr-2 lg:pl-0 lg:pr-0  pt-2 pb-2 md:pt-3 md:pb-3 lg:border-b border-solid color-border-[rgba(var(--color-line-and-border))]
+        {%- if settings.edges_type == 'rounded_corners' %} rounded-[10px] lg:rounded-none{% endif -%}"
+        data-product-id="{{ recommendation.id }}"
+        view-event-payload='{{ recommendation | standard_event_data: "view", context: "recommendation" | escape }}'
+        x-intersect.once="window.MaximizeStorefrontEvents?.dispatchProductView($el)"
+      >
+        {% render 'product-card-drawer-upsell', product: recommendation, image_ratio: image_ratio %}
+        {% assign overlay_id = 'CartUpSellItem_Loading_' | append: recommendation.id %}
+        {% render 'cart-overlay-loading', id: overlay_id %}
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>

@@ -1,0 +1,60 @@
+{% doc %}
+  @prompt
+    spacing
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-spacing-block-{{ ai_gen_id }} {
+    display: block;
+    width: 100%;
+  }
+
+  .ai-spacing-block__inner-{{ ai_gen_id }} {
+    height: {{ block.settings.desktop_spacing }}px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-spacing-block__inner-{{ ai_gen_id }} {
+      height: {{ block.settings.mobile_spacing }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-spacing-block-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-spacing-block__inner-{{ ai_gen_id }}"></div>
+</div>
+
+{% schema %}
+{
+  "name": "Spacing",
+  "settings": [
+    {
+      "type": "range",
+      "id": "desktop_spacing",
+      "label": "Desktop spacing",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "mobile_spacing",
+      "label": "Mobile spacing",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "px",
+      "default": 30
+    }
+  ],
+  "presets": [
+    {
+      "name": "Spacing"
+    }
+  ],
+  "tag": null
+}
+{% endschema %}

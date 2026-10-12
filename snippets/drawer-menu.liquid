@@ -1,0 +1,389 @@
+{% liquid
+  assign menu_font_weight = settings.menu_font.weight | plus: 0
+  assign font_weight_class = ' font-weight-menu'
+  if menu_font_weight < 600 
+    assign font_weight_class = ' !font-semibold'
+  endif
+
+  assign rtl = false
+  if settings.lang_direction contains request.locale.iso_code
+    assign rtl = true
+  endif
+
+  assign button_style = 'secondary'
+  assign show_icon = false
+
+  if is_block_menu
+    if trigger_icon != "none"
+      if trigger_icon == "custom" and block.settings.custom_icon_image != blank
+        assign show_icon = true
+      elsif trigger_icon != "custom" 
+        assign show_icon = true
+      endif
+    endif
+  else
+    assign show_icon = true
+    assign button_style = section.settings.drawer_menu_style
+  endif
+%}
+
+{% if is_block_menu %}
+  {% style %}
+    .maximize-theme:not(.dark) .block-{{ block.id }} .button-category {
+      {% if block.settings.color_background.alpha != 0.0 %}
+        --color-secondary-button: {{ block.settings.color_background.red }} {{ block.settings.color_background.green }} {{ block.settings.color_background.blue }} / {{ block.settings.color_background.alpha }};
+      {% endif %}
+      {% if block.settings.color_text.alpha != 0.0 %}
+        --color-secondary-button-text: {{ block.settings.color_text.red }} {{ block.settings.color_text.green }} {{ block.settings.color_text.blue }} / {{ block.settings.color_text.alpha }};
+        --color-secondary-button-text-no-alpha: {{ block.settings.color_text.red }} {{ block.settings.color_text.green }} {{ block.settings.color_text.blue }};
+      {% endif %}
+    }
+    .dark .block-{{ block.id }} .button-category {
+      {% if block.settings.color_background_dark.alpha != 0.0 %}
+        --color-secondary-button: {{ block.settings.color_background_dark.red }} {{ block.settings.color_background_dark.green }} {{ block.settings.color_background_dark.blue }} / {{ block.settings.color_background_dark.alpha }};
+      {% endif %}
+      {% if block.settings.color_text_dark.alpha != 0.0 %}
+        --color-secondary-button-text: {{ block.settings.color_text_dark.red }} {{ block.settings.color_text_dark.green }} {{ block.settings.color_text_dark.blue }};
+        --color-secondary-button-text-no-alpha: {{ block.settings.color_text_dark.red }} {{ block.settings.color_text_dark.green }} {{ block.settings.color_text_dark.blue }} / {{ block.settings.color_text_dark.alpha }};
+      {% endif %}
+    }
+  {% endstyle %}
+{% endif %}
+
+{% if menu_source != blank or is_block_menu == true %}
+  <div
+    class="drawer-menu drawer-menu__desktop hidden lg:block !bg-transparent !bg-none
+      {%- if class_wrapper != blank %} {{ class_wrapper -}}{% endif -%}
+      {%- if menu_title == blank %} menu-not-title{% endif -%}
+      {%- if is_block_menu %} block-{{ block.id }} {% else %} color-{{ section.settings.color_scheme_light }} dark-color-{{ section.settings.color_scheme_dark }}{% endif -%}"
+    @click.outside="$store.xDrawerMenu.handleCloseMenu()"
+    @keyup.escape="$store.xDrawerMenu.handleCloseMenu();"
+    @click.stop
+    {% unless is_block_menu %}
+      id="DrawerMenu"
+    {% endunless %}
+  >
+    <custom-button>
+      <button
+        class="button-category button-{{ button_style }} cursor-pointer flex gap-1.5 items-center whitespace-nowrap{% if menu_title != blank %} py-2 px-4{% else %} p-3{% endif %}"
+        role="button"
+        aria-label="{{ 'header.drawer-menu.button-category' | t }}"
+        {% if menu_source == blank %}
+          disabled
+        {% else %}
+          @click="$store.xDrawerMenu.handleMenuToggle('{{ section.id }}')"
+          @mouseenter="$store.xHeaderMenu.updateHeaderBottom()"
+        {% endif %}
+      >
+        {% if show_icon %}
+          <span class="header-category-icon cursor-pointer flex items-center w-6.5 h-6.5">
+            <span
+              class="w-full h-full p-[3px] table {% if rtl %} -scale-x-100{% endif %}"
+              x-show="!($store.xDrawerMenu.menuOpen == '{{ section.id }}')"
+            >
+              {% if is_block_menu %}
+                {% if trigger_icon != "custom" %}
+                  {% render 'icon-all', icon: trigger_icon %}
+                {% else %}
+                  <img
+                    src="{{ block.settings.custom_icon_image | image_url: width: 30 }}"
+                    alt="{{ block.settings.custom_icon_image.alt | default: block.settings.label | escape }}"
+                    loading="lazy"
+                    width="{{ block.settings.custom_icon_image.width }}"
+                    height="{{ block.settings.custom_icon_image.height }}"
+                    style="object-position: {{ block.settings.custom_icon_image.presentation.focal_point }}"
+                    class="object-cover w-full h-full {% if settings.edges_type == 'rounded_corners' %} rounded-sm{% endif %}"
+                  >
+                {% endif %}
+              {% else %}
+                {% render 'icon-all', icon: 'icon-hamburger' %}
+              {% endif %}
+            </span>
+            <span x-show="$store.xDrawerMenu.menuOpen == '{{ section.id }}'" class="w-full h-full p-[5px]" x-cloak>{% render 'icon-all', icon: 'icon-close' %}</span>
+          </span>
+        {% endif %}
+        
+        {% if menu_title != blank %}
+          <span class="font-semibold{% unless is_block_menu %} truncate max-w-[12ch]{% endunless %}">{{ menu_title }}</span>
+        {% endif %}
+      </button>
+    </custom-button>
+
+    {% if menu_source != blank %}
+      <div id="Section-{{ section.id }}" class="drawer-menu-wrapper {{ section.id }}">
+        <div 
+          class="toggle-drawer-menu left-0 header-h-screen top-[var(--header-bottom-position)] fixed z-50 bg-gradient color-bg-[rgba(var(--color-background))] origin-left align-start will-change-none transform-gpu duration-header-menu ease-in-out is-focus:color-text-[rgba(var(--color-text))] w-1/4 max-w-[380px]"
+          x-bind:class="$store.xDrawerMenu.menuOpen == '{{ section.id }}' ? 'translate-0 toggle-menu is-open' : '-translate-x-full rtl:translate-x-full'"
+          {% if desktop_menu_selection == 'hover' %}
+            x-on:mouseleave="$store.xHeaderMenu.hideMenu('drawer-menu__desktop .toggle-drawer-menu')"
+          {% endif %}
+          x-cloak
+          x-bind:inert="!($store.xDrawerMenu.menuOpen == '{{ section.id }}')"
+        >
+          <ul class="h-full overflow-y-auto scrollbar-body scrollbar-visible" x-data="xFirstLoadItem">
+            {%- for link in menu_source.links -%}
+              {%- liquid
+                assign has_child_link = false
+                assign image_count = false
+                assign max_grid_col = column_desktop
+                if link.links != blank
+                  assign has_child_link = true
+                endif
+                assign mega_nav = false
+                assign link_title = link.title | strip
+                
+                unless is_block_menu
+                  for block in section.blocks
+                    assign mega_name_titles = block.settings.heading | strip
+                    if mega_name_titles == link_title
+                      assign mega_nav = block
+                      break
+                    endif
+                  endfor
+                endunless
+
+                if mega_nav
+                  assign columns_desktop = 2
+                  assign image_count = 0
+                  if mega_nav.settings.image_1 != blank or mega_nav.settings.mobile_image_1 != blank
+                    assign image_count = image_count | plus: 1
+                  endif
+                  if mega_nav.settings.image_2 != blank or mega_nav.settings.mobile_image_2 != blank
+                    assign image_count = image_count | plus: 1
+                  endif
+
+                  assign promotion_wrapper_class = ''
+                  if image_count > 0 and mega_nav.settings.position_promotion != 'bottom'
+                    if mega_nav.settings.layout_promotion == "vertical"
+                      assign columns_desktop = columns_desktop | plus: 1
+                    else 
+                      assign columns_desktop = columns_desktop | plus: image_count
+                    endif
+                    assign promotion_wrapper_class = ' w-1/2'
+                    assign max_grid_col = 2
+                  endif
+                  if mega_nav.settings.position_promotion == 'bottom'
+                    if mega_nav.settings.layout_promotion == "vertical"
+                      assign columns_desktop = 1.5
+                    else 
+                      assign columns_desktop = 1 | plus: image_count
+                    endif
+                    assign promotion_wrapper_class = ' w-full'
+                  endif
+                  if show_second_level_image == 'next' and show_2nd_level_menu_image != 'none'
+                    assign max_grid_col = max_grid_col | divided_by: 2
+                  endif
+                endif
+              -%}
+
+              <li
+                class="drawer-menu-lv1 block menu-item border-b"
+                  x-data="animationHover"
+                {% if desktop_menu_selection == 'hover' %}
+                  @mouseenter="$store.xHeaderMenu.selectItem($el, 'drawer', true); firstLoad(); handleEnter($event)"
+                  @mouseleave="handleLeave($event)"
+                  @focusin="$store.xHeaderMenu.selectItem($el, 'drawer', true); firstLoad();"
+                {% else %}
+                  @mouseenter="firstLoad(); handleEnter($event)"
+                  @mouseleave="handleLeave($event)"
+                {% endif %}
+              >
+                <div 
+                  class="sub-menu px-6 pt-3 pb-3 overflow-hidden relative btn-wrapper flex gap-2.5 items-center"
+                  {% if desktop_menu_selection == 'click' %}
+                    @click="$store.xHeaderMenu.selectItem($el.closest('li'), 'drawer', true, $event); firstLoad();"
+                  {% endif %}
+                  {% if has_child_link %}
+                    x-init="$store.xHeaderMenu.isTouch && ($store.xHeaderMenu.touchItem($el, 'drawer', true), handleTouch($el))"
+                  {% endif %}
+                >
+                  <div
+                    class="hover-rect"
+                    :style="!isHovered ? { transform: directionTranslate } : { transform: 'translateY(0)' }"
+                  ></div>
+                  <span class="empty:hidden">
+                    {%- render 'menu-item-image', 
+                      link: link, 
+                      auto_fill_menu_image_with: show_1st_menu_image, 
+                      collection_metafield: collection_metafield_1st, 
+                      image_ratio: 0, 
+                      custom_class: 'rounded-corners-md !w-[46px] h-[46px]', 
+                      is_link: true, 
+                      minimal_image: true 
+                    -%}
+                  </span>
+                  <span class="flex-1">
+                    <a
+                      href="{{ link.url }}"
+                      class="link relative x-break-words pb-1.5 pt-1.5 w-full {% if link.current or link.child_active %}active{% endif %} {% if has_child_link %} flex items-center gap-4 pe-5{% else %} inline-block{% endif %}"
+                    >
+                      <span>{{ link.title | escape }}</span>
+                      {%- if has_child_link -%}
+                        <span class="icon-child z-10 w-2.5 h-4 rounded-full block absolute align-end -rotate-90 rtl:rotate-90">
+                          {%- render 'icon-all', icon: 'icon-caret' -%}
+                        </span>
+                      {%- endif -%}
+                    </a>
+                  </span>
+                </div>
+
+                {%- if has_child_link -%}
+                  <div
+                    class="drawer-menu__sub-panel absolute w-full top-0 start-full pt-5 pb-5 px-1 origin-left shadow-showdownInset transition-all duration-header-menu delay-header-menu ease-in-out drawer-mega-menu mega-menu_list toggle-menu toggle-menu-sub bg-gradient color-bg-[rgba(var(--color-background))] header-h-screen child{%- if settings.edges_type == 'rounded_corners' %}{%- if rtl %} rounded-l-[10px]{% else %} rounded-r-[10px]{% endif -%}{% endif -%}"
+                  >
+                    <template x-if="isLoaded">
+                      <div class="h-full w-full overflow-y-auto scrollbar-body scrollbar-visible pl-7.5 pr-7.5 {% if mega_nav %}flex flex-col {% if mega_nav.settings.position_promotion != "bottom" %}has-promotion{% endif %}{% endif %}">
+                        <div class="title flex justify-between mb-7.5">
+                          <p class="h5">{{ link.title }}</p>
+                          {% unless mega_nav.settings.view_all_link == blank %}
+                            <a
+                              href="{{ mega_nav.settings.view_all_link }}"
+                              {% if mega_nav.settings.open_link_in_new_window %}
+                                target="_blank"
+                              {% endif %}
+                              class="drawer-view-all-link"
+                            >
+                              {% assign view_all_button_label_varr = mega_nav.settings.view_all_title | default: 'View more' %}
+                              {%- render 'button-view-all', view_all_button_label: view_all_button_label_varr, button_style: 'direction_link', button_link: mega_nav.settings.view_all_link -%}
+                            </a>
+                          {% endunless %}
+                        </div>
+                        <div class="flex gap-{{ section.id }} {% if mega_nav.settings.position_promotion == 'left' %}flex-row-reverse{%  elsif mega_nav.settings.position_promotion == "bottom" %}flex-col{% endif %}">
+                          {% liquid
+                            assign grid_col = max_grid_col
+                            if link.links.size < max_grid_col
+                              assign grid_col = link.links.size
+                            endif
+                            if grid_col < 2 and is_block_menu == false
+                              assign grid_col = 2
+                            endif
+                          %}
+                          <ul class="grid w-full h-fit gap-{{ section.id }} grid-cols-{{ grid_col }}" {% if is_block_menu %} style="gap: {{ column_gap }}px"{% endif %}>
+                            {% for childlink in link.links %}
+                              {%- liquid
+                                assign has_grandchild_link = false
+                                if childlink.links != blank
+                                  assign has_grandchild_link = true
+                                endif
+                              -%}
+                              <li class="mega-menu__item flex w-full h-full gap-2.5 {% if show_second_level_image == 'above' %}flex-col{% endif %}" style="--menu-delay-animation: {{ forloop.index | times: 100 }}ms">
+                                {% capture image_item %}
+                                  {% render 'menu-item-image', 
+                                    link: childlink, 
+                                    auto_fill_menu_image_with: show_2nd_level_menu_image, 
+                                    collection_metafield: collection_metafield_2nd, 
+                                    image_ratio: image_ratio, 
+                                    custom_class: 'media-hyperlink rounded-corners', 
+                                    is_link: true 
+                                  %}
+                                {% endcapture %}
+                                {% assign image_item = image_item | strip %}
+                                {% unless image_item contains 'Liquid syntax error' %}
+                                  {% if image_item != blank and show_second_level_image != "none" %}
+                                    <div class="w-full empty:hidden">{{ image_item }}</div>
+                                  {% endif %}
+                                {% endunless %}
+                                <div class="w-full h-full">
+                                  <p class="drawer-menu-item-lv-2 h6">
+                                    <a
+                                      href="{{ childlink.url }}"
+                                      class="drawer-menu-item link-animation relative hover:color-text-[rgba(var(--color-highlight))] p-break-words flex items-center {{ font_weight_class }} {% if childlink.current or childlink.child_active %}active{% endif %}"
+                                    >
+                                      {{ childlink.title }}
+                                    </a>
+                                  </p>
+                                  {% if has_grandchild_link %}
+                                    <ul class="mt-2.5 last-level-menu font-normal">
+                                      {% assign time_wait = forloop.index | times: 100 %}
+                                      {% for grandchildlink in childlink.links %}
+                                        <li class="drawer-menu-item mt-1.5 mega-menu__item hover:color-text-[rgba(var(--color-highlight))]" style="--menu-delay-animation: {{ forloop.index | times: 50 | plus: time_wait }}ms">
+                                          <a class="link-animation relative link p-break-words font-normal {% if grandchildlink.current or request.path == grandchildlink %} active{% endif %}" href="{{ grandchildlink.url }}">{{ grandchildlink.title }}</a>
+                                        </li>
+                                      {% endfor %}
+                                    </ul>
+                                  {% endif %}
+                                </div>
+                              </li>
+                            {% endfor %}
+                          </ul>
+
+                          {% if image_count > 0 %}
+                            <div class="flex shrink-0 gap-{{ section.id }} {{ promotion_wrapper_class }} {% if mega_nav.settings.layout_promotion == "vertical"%}flex-col{% else %}md:flex-col lg:flex-row{% endif %}">
+                              {% if mega_nav.settings.image_1 != blank or mega_nav.settings.mobile_image_1 != blank %}
+                                <div class="mega-menu-promotion promotion-1 w-full h-fit">
+                                  {% render 'menu-promotion-block',
+                                    blockID: mega_nav.id,
+                                    desktop_image: mega_nav.settings.image_1,
+                                    mobile_image: mega_nav.settings.mobile_image_1,
+                                    columns_desktop: columns_desktop,
+                                    image_link: mega_nav.settings.image_link_1,
+                                    heading: mega_nav.settings.heading_1,
+                                    content: mega_nav.settings.text_1,
+                                    block: mega_nav,
+                                    image_overlay_opacity: mega_nav.settings.overlay_opacity_1,
+                                    text_alignment: mega_nav.settings.text_alignment_1,
+                                    title_size: mega_nav.settings.text_size_1,
+                                    text_size: mega_nav.settings.text_size_1,
+                                    color_scheme_light: mega_nav.settings.color_scheme_light_1,
+                                    color_scheme_dark: mega_nav.settings.color_scheme_dark_1,
+                                    enable_text_overlay: mega_nav.settings.text_overlay_1,
+                                    mobile_image_height: mega_nav.settings.mobile_image_height,
+                                    desktop_image_height: mega_nav.settings.image_height,
+                                    index: 1,
+                                    button_label: mega_nav.settings.button_label_1,
+                                    button_style: mega_nav.settings.button_style_1,
+                                    button_link: mega_nav.settings.button_link_1,
+                                    open_new_window: mega_nav.settings.open_new_window_button_1
+                                  %}
+                                </div>
+                              {% endif %}
+                              {% if mega_nav.settings.image_2 != blank or mega_nav.settings.mobile_image_2 != blank %}
+                                <div class="mega-menu-promotion promotion-2 w-full h-fit">
+                                  {% render 'menu-promotion-block',
+                                    blockID: mega_nav.id,
+                                    desktop_image: mega_nav.settings.image_2,
+                                    mobile_image: mega_nav.settings.mobile_image_2,
+                                    columns_desktop: columns_desktop,
+                                    image_link: mega_nav.settings.image_link_2,
+                                    heading: mega_nav.settings.heading_2,
+                                    content: mega_nav.settings.text_2,
+                                    block: mega_nav,
+                                    image_overlay_opacity: mega_nav.settings.overlay_opacity_2,
+                                    text_alignment: mega_nav.settings.text_alignment_2,
+                                    title_size: mega_nav.settings.text_size_2,
+                                    text_size: mega_nav.settings.text_size_2,
+                                    color_scheme_light: mega_nav.settings.color_scheme_light_2,
+                                    color_scheme_dark: mega_nav.settings.color_scheme_dark_2,
+                                    enable_text_overlay: mega_nav.settings.text_overlay_2,
+                                    mobile_image_height: mega_nav.settings.mobile_image_height,
+                                    desktop_image_height: mega_nav.settings.image_height,
+                                    index: 2,
+                                    button_label: mega_nav.settings.button_label_2,
+                                    button_style: mega_nav.settings.button_style_2,
+                                    button_link: mega_nav.settings.button_link_2,
+                                    open_new_window: mega_nav.settings.open_new_window_button_2
+                                  %}
+                                </div>
+                              {% endif %}
+                            </div>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                {%- endif -%}
+              </li>
+            {%- endfor -%}
+          </ul>
+        </div>
+
+        <div 
+          class="fixed top-[var(--header-bottom-position)] duration-header-menu transition-opacity left-0 header-h-screen w-full drawer__overlay z-30 hidden lg:block" 
+          x-bind:class="$store.xDrawerMenu.menuOpen === '{{ section.id }}' ? '' : 'opacity-0 invisible'"
+          x-cloak
+          @click="$store.xDrawerMenu.menuOpen === '{{ section.id }}' && $store.xMaximizeDrawer.handleClose(); $store.xDrawerMenu.handleCloseMenu(); $store.xHeaderMenu.hideMenu('drawer-menu__desktop');"
+        ></div>
+      </div>
+    {% endif %}
+  </div>
+{% endif %}

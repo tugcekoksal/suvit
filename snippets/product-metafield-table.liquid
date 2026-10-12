@@ -1,0 +1,48 @@
+{% assign result = right_label_of_row %}
+{% assign segments = result | split: '[[' %}
+
+{% for m in segments offset: 1 %}
+  {% assign token = m | split: ']]' | first %}
+  {% assign ns = token | split: '.' | first %}
+  {% assign key = token | split: '.' | last %}
+  {% assign placeholder = '[[' | append: token | append: ']]' %}
+
+  {% assign val = blank %}
+  {% if current_variant != blank %}
+    {% assign val = current_variant.metafields[ns][key] %}
+  {% endif %}
+  {% if val == blank %}
+    {% assign val = product.metafields[ns][key] %}
+  {% endif %}
+
+  {% assign display_val = text_empty | default: '' %}
+  {% if val != blank %}
+    {% if val.type == 'multi_line_text_field' %}
+      {% assign display_val = val.value | newline_to_br %}
+    {% elsif val.list? %}
+      {% capture display_val %}
+        {% if is_bullet_list == true or is_bullet_list == 'true' %}
+          <ul class="single-line-text-fields list-outside list-disc">
+            {% for line in val.value %}
+              {% if line != blank %}
+                <li>{% render 'metafield', metafield: val, metafield_type: val.type, metafield_value: line %}</li>
+              {% endif %}
+            {% endfor %}
+          </ul>
+        {% else %}
+          {% for line in val.value %}
+            {{ line }}{% unless forloop.last %}, {% endunless %}
+          {% endfor %}
+        {% endif %}
+      {% endcapture %}
+    {% else %}
+      {% capture display_val %}
+        {% render 'metafield', metafield: val, metafield_type: val.type, metafield_value: val.value %}
+      {% endcapture %}
+    {% endif %}
+  {% endif %}
+
+  {% assign result = result | replace: placeholder, display_val %}
+{% endfor %}
+
+{{ result }}

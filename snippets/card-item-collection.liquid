@@ -1,0 +1,198 @@
+{% doc %}
+Documentation: Collection Card
+Renders a collection card component with flexibility for appearance and layout.
+
+@param card_image {String} Captured HTML of the collection image.
+@param children {String} Captured HTML of child blocks (title, item count, etc.).
+@param block {Block} Current block object.
+{% enddoc %}
+
+{% assign collection = block.settings.collection %}
+{% assign desktop_layout = block.settings.desktop_layout %}
+{% assign mobile_layout = block.settings.mobile_layout %}
+{% assign desktop_pos = block.settings.desktop_overlay_position %}
+{% assign mobile_pos = block.settings.mobile_overlay_position %}
+{% assign desktop_align = block.settings.desktop_content_alignment %}
+{% assign mobile_align = block.settings.mobile_content_alignment %}
+{% assign desktop_content_position = block.settings.desktop_content_position %}
+{% assign mobile_content_position = block.settings.mobile_content_position %}
+{% assign gap = block.settings.gap | default: 0 %}
+{% assign desktop_image_side = block.settings.desktop_image_side %}
+{% assign mobile_image_side = block.settings.mobile_image_side %}
+{% liquid
+  assign is_desktop_overlay = false
+  if desktop_layout == 'overlay'
+    assign is_desktop_overlay = true
+  endif
+
+  assign is_mobile_overlay = false
+  if mobile_layout == 'overlay'
+    assign is_mobile_overlay = true
+  endif
+
+  assign mobile_flex_dir = 'mobile-image-top'
+  if mobile_content_position == 'image_below'
+    assign mobile_flex_dir = 'mobile-image-bottom'
+  elsif mobile_content_position == 'side_by_side'
+    if mobile_image_side == 'left'
+      assign mobile_flex_dir = 'mobile-image-left'
+    else
+      assign mobile_flex_dir = 'mobile-image-right'
+    endif
+  endif
+
+  assign desktop_flex_dir = 'desktop-image-top'
+  if desktop_content_position == 'image_below'
+    assign desktop_flex_dir = 'desktop-image-bottom'
+  elsif desktop_content_position == 'side_by_side'
+    if desktop_image_side == 'left'
+      assign desktop_flex_dir = 'desktop-image-left'
+    else
+      assign desktop_flex_dir = 'desktop-image-right'
+    endif  
+  endif
+
+  assign desktop_text_align = 'left'
+  assign mobile_text_align = 'left'
+  assign desktop_text_align_rtl = 'right'
+  assign mobile_text_align_rtl = 'right'
+  assign mobile_align_rtl = 'end'
+  assign desktop_align_rtl = 'end'
+  if desktop_align == 'center'
+    assign desktop_text_align = 'center'
+    assign desktop_text_align_rtl = 'center'
+    assign desktop_align_rtl = 'center'
+  elsif desktop_align == 'end'
+    assign desktop_text_align = 'right'
+    assign desktop_text_align_rtl = 'left'
+    assign desktop_align_rtl = 'start'
+  endif
+  if mobile_align == 'center'
+    assign mobile_text_align = 'center'
+    assign mobile_text_align_rtl = 'center'
+    assign mobile_align_rtl = 'center'
+  elsif mobile_align == 'end'
+    assign mobile_text_align = 'right'
+    assign mobile_text_align_rtl = 'left'
+    assign mobile_align_rtl = 'start'
+  endif
+%}
+
+{% style %}
+  @media (max-width: 767px) {
+    .collection-card.collection-card-{{ block.id }} { 
+      gap: calc({{ gap }}px * var(--mobile-padding-ratio));
+    }
+    .collection-card.collection-card-{{ block.id }} .card-collection__content {
+      align-items: {{ mobile_align }};
+      {% if is_mobile_overlay %}
+        gap: calc({{ gap }}px * var(--mobile-padding-ratio));
+      {% endif %}
+    }
+    .collection-card.collection-card-{{ block.id }} .card-collection__content .block-collection-title {
+      text-align: {{ mobile_align }};
+    }
+    [dir="rtl"] .collection-card.collection-card-{{ block.id }} .card-collection__content {
+      align-items: {{ mobile_align_rtl }};
+    }
+    [dir="rtl"] .collection-card.collection-card-{{ block.id }} .card-collection__content .block-collection-title {
+      text-align: {{ mobile_align_rtl }};
+    }
+    .is-overlay-mobile { 
+      position: absolute;
+      left: var(--mobile-padding-image-left);
+    }
+    .pos-mobile-top { top: var(--mobile-padding-image-top); transform: none; }
+    .pos-mobile-center { 
+      top: calc((100% - var(--mobile-padding-image-top) - var(--mobile-padding-image-bottom)) / 2
+        + var(--mobile-padding-image-top)
+      );
+      transform: translateY(-50%);
+    }
+    .pos-mobile-bottom { bottom: var(--mobile-padding-image-bottom); top: auto; transform: none; }
+    {% if is_mobile_overlay == false %} 
+      .collection-card.collection-card-{{ block.id }} { 
+        display: flex;
+      }
+      .collection-card.collection-card-{{ block.id }} .card-collection__image,
+      .collection-card.collection-card-{{ block.id }} .card-collection__content {
+        gap: calc({{ gap }}px * var(--mobile-padding-ratio));
+        justify-content: center;
+      }
+    {% endif %}
+    {% if is_mobile_overlay == false and mobile_content_position == 'side_by_side' %} 
+      .collection-card.collection-card-{{ block.id }} .card-collection__image,
+      .collection-card.collection-card-{{ block.id }} .card-collection__content {
+        flex: 1;
+      }
+    {% endif %}
+  }
+
+  @media (min-width: 768px) {
+    .collection-card.collection-card-{{ block.id }} { 
+      gap: {{ gap }}px;
+    }
+    .collection-card.collection-card-{{ block.id }} .card-collection__content {
+      align-items: {{ desktop_align }};
+      {% if is_desktop_overlay %}
+        gap: {{ gap }}px;
+      {% endif %}
+    }
+    .collection-card.collection-card-{{ block.id }} .card-collection__content .block-collection-title {
+      text-align: {{ desktop_align }};
+    }
+    [dir="rtl"] .collection-card.collection-card-{{ block.id }} .card-collection__content {
+      align-items: {{ desktop_align_rtl }};
+    }
+    [dir="rtl"] .collection-card.collection-card-{{ block.id }} .card-collection__content .block-collection-title {
+      text-align: {{ desktop_align_rtl }};
+    }
+    .is-overlay-desktop { 
+      position: absolute; 
+      left: var(--desktop-padding-image-left);
+    }
+    .pos-desktop-top { top: var(--desktop-padding-image-top); transform: none; }
+    .pos-desktop-center {
+      top: calc((100% - var(--desktop-padding-image-top) - var(--desktop-padding-image-bottom)) / 2
+        + var(--desktop-padding-image-top)
+      );
+      transform: translateY(-50%);
+    }
+    .pos-desktop-bottom { bottom: var(--desktop-padding-image-bottom); top: auto; transform: none; }
+    {% if is_desktop_overlay == false %} 
+      .collection-card.collection-card-{{ block.id }} { 
+        display: flex;
+      }
+      .collection-card.collection-card-{{ block.id }} .card-collection__image,
+      .collection-card.collection-card-{{ block.id }} .card-collection__content {
+        gap: {{ gap }}px;
+        justify-content: center;
+      }
+    {% endif %}
+    {% if is_desktop_overlay == false and desktop_content_position == 'side_by_side' %} 
+      .collection-card.collection-card-{{ block.id }} .card-collection__image,
+      .collection-card.collection-card-{{ block.id }} .card-collection__content {
+        flex: 1;
+      }
+    {% endif %}
+  }
+{% endstyle %}
+
+<div class="collection-card collection-card-{{ block.id }} group card relative block items-center overflow-hidden
+  {%- if is_desktop_overlay %} h-fit collection-card__overlay{% else %} h-full{%- endif %} rounded-corners
+  {% if collection.url != blank %} media-hyperlink{% endif %} flex {{ mobile_flex_dir }} {{ desktop_flex_dir }}
+">
+  {% if card_image != blank %}
+    <div class="card-collection__image w-full relative overflow-hidden z-0 before:h-0 before:block rounded-corners">
+      {{ card_image }}
+    </div>
+  {% endif %}
+  {% if children != blank %}
+    <div class="flex flex-col card-collection__content w-full relative content--{{ block.id }} z-10 left-0 right-0 
+      {%- if is_mobile_overlay == true %} is-overlay-mobile pos-mobile-{{ mobile_pos }} {% endif -%}
+      {%- if is_desktop_overlay == true %} is-overlay-desktop pos-desktop-{{ desktop_pos }} {% endif -%}
+      text-{{ mobile_text_align }} rtl:text-{{ mobile_text_align_rtl }} md:text-{{ desktop_text_align }} md:rtl:text-{{ desktop_text_align_rtl }}">
+      {{ children }}
+    </div>
+  {% endif %}
+</div>

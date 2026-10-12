@@ -1,0 +1,629 @@
+<style>
+  /* Comparison buttons hidden by default; shown only when this section exists on the page */
+  html:not([data-comparison]) .product-card__widget-compare { display: none !important; }
+</style>
+<script>
+  /* Runs inline (not deferred) — sets attribute before Alpine initializes so CSS
+     controls visibility without x-show per product card. */
+  document.documentElement.setAttribute('data-comparison', '');
+</script>
+<script src="{{ 'product-comparison.js' | asset_url }}" defer></script>
+{% liquid
+  assign image_class = 'rounded-corners w-full object-cover'
+  if settings.pc_media_ratio != 'auto'
+    assign image_class = image_class | append: ' absolute insert-0 h-full'
+  endif
+
+  assign list_variant_options = ''
+  assign list_product_metafields = ''
+  for block in section.blocks
+    if block.type == 'variant_option'
+      if list_variant_options != ''
+        assign list_variant_options = list_variant_options | append: '|||' | append: block.settings.title
+      else
+        assign list_variant_options = block.settings.title
+      endif
+    elsif block.type == 'product_metafield'
+      if list_product_metafields != ''
+        assign list_product_metafields = list_product_metafields | append: '|||' | append: block.settings.metafield_key
+      else
+        assign list_product_metafields = block.settings.metafield_key
+      endif
+    endif
+  endfor
+
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  else
+    assign is_rtl = false
+  endif
+%}
+{{ "product-comparison-overlay.css" | asset_url | stylesheet_tag }}
+{% if template.name == 'collection' or template.name == 'search' or template.name == 'product' %}
+  <div
+    id="productComparisonOverlay"
+    x-init="
+      $store.xProductComparison.setData('{{ list_variant_options }}', '{{ list_product_metafields }}');
+      if (Shopify.designMode) {
+        $store.xProductComparison.maximumProductCompare = parseInt($el.dataset.maximumProductCompare);
+        $store.xProductComparison.updateLimitMessage();
+      }
+    "
+    x-cloak
+    class="color-{{ section.settings.color_scheme_light.id }} dark-color-{{ section.settings.color_scheme_dark.id }}"
+    data-maximum-product-compare="{{ section.settings.maximum_product_compare }}"
+  >
+    {% assign terms = search.terms | split: ' OR ' %}
+    {% if terms.size > 0 and search.results.size > 0 %}
+      <div class="product-comparison__drawer-content hidden">
+        <div class="w-full h-full flex flex-col">
+          <div class="flex flex-col gap-y-1 flex-auto overflow-y-auto max-h-[70vh] md:max-h-none scrollbar-visible scrollbar-body px-4 md:pl-7.5 md:pr-7.5 pb-1 pt-0.5">
+            {%- for term in terms -%}
+              {%- assign id = term | split: 'id:' | last | times: 1 -%}
+              {% for product in search.results %}
+                {% if product.id == id %}
+                  {% assign image_product = product.featured_media.preview_image %}
+                  {%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+                  {%- assign login_hide_price = login_hide_price | strip -%}
+                  <div
+                    class="product-comparison-overlay__item p-2 md:p-3 rounded-corners flex flex-row w-full h-fit gap-x-3 md:gap-x-4 border"
+                    data-product-id="{{ product.id }}"
+                  >
+                    <div class="flex flex-1 flex-row gap-x-2.5">
+                      <div class="flex-grow-0 flex-shrink-0 w-[60px] md:w-[70px]">
+                        <div class="w-full{% if settings.pc_media_ratio != 'auto' %} relative h-0 pb-[{{ settings.pc_media_ratio }}%]{% endif %}">
+                          {% if image_product %}
+                            {% render 'image', img_class: image_class, img: image_product, aspect_ratio: settings.pc_media_ratio, alt: image_product.alt, img_width: 200, loading: 'eager' %}
+                          {% else %}
+                          <div class="{{ image_class }}">
+                            {% liquid
+                              assign index = 1
+                              assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+                              assign placeholder_product_name = 'product_' | append: index
+                            %}
+                            {% render 'placeholder-image', image_type: placeholder_product_name %}
+                          </div>
+                          {% endif %}
+                        </div>
+                      </div>
+                      <div class="flex-auto flex flex-col gap-0.5">
+                        <a
+                          href="{{ product.url }}"
+                          class="product-comparison__drawer__product-title h6 md:h7 title-link p-break-words"
+                          aria-label="{{ product.title | escape }}"
+                        >{{ product.title }}</a>
+                        {% if login_hide_price == 'true' %}
+                          {%- render 'guest-price-message', disabled_border: true, direction_label: 'col' -%}
+                        {% else %}
+                          {% render 'price',
+                            product: product,
+                            use_variant: false,
+                            price_wrapper: ' h5 md:h6',
+                            unit_price_class: 'text-xx-small',
+                            show_b2b_price_label: true
+                          %}
+                        {% endif %}
+                      </div>
+                    </div>
+                    <button
+                      class="flex h-fit"
+                      @click.prevent="$store.xProductComparison.removeProductFromCompare('{{ product.id }}', '{{ product.handle }}')"
+                    >
+                      <span class="button__close icon-close-small-desktop icon-close-small-mobile">{% render 'icon-all', icon: 'icon-close' %}</span>
+                    </button>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            {% endfor %}
+          </div>
+          <div class="px-4 md:pl-7.5 md:pr-7.5 pt-4 shadow-medium">
+            <div class="relative product-compare-overlay__button-compare">
+              <span
+                :class="$store.xProductComparison.listComparisonProducts.length > $store.xProductComparison.maximumProductCompare ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'"
+              >
+                <div 
+                  x-init="
+                    $el.querySelector('.button-text').innerHTML = $el.querySelector('.button-text').innerHTML.replace('current_count_product', $store.xProductComparison?.listComparisonProducts.length);
+                    $watch('$store.xProductComparison?.listComparisonProducts.length', (value, oldValue) => {
+                      $el.querySelector('.button-text').innerHTML = $el.querySelector('.button-text').innerHTML.replace(oldValue.toString(), value.toString())
+                    });
+                  "
+                >
+                  {%  assign button_label = 'product_comparison.button_drawer' | t | append: ' (current_count_product)' %}
+                  {% capture additional_attributes %}
+                    @click.prevent="
+                      if ($store.xProductComparison.listComparisonProducts.length <= $store.xProductComparison.maximumProductCompare) {
+                        $store.xProductComparison.showPopup();
+                        $store.xProductComparison.hideDrawer()
+                      }
+                    "
+                    href="#"
+                  {% endcapture %}
+                  {% render 'button',
+                    button_style: 'primary',
+                    button_label: button_label,
+                    isAlwaysActive: true,
+                    class: 'pl-5 pr-5 pt-3 pb-3 whitespace-nowrap w-full !cursor-inherit'
+                    additional_attributes: additional_attributes
+                  %}
+                </div>
+              </span>
+              <custom-tooltip data-tooltip-align="end" x-show="$store.xProductComparison.listComparisonProducts.length > $store.xProductComparison.maximumProductCompare">
+                <div class="tooltip-popup-wrapper state-error absolute invisible z-10 pointer-events-none flex my-0.5 left-0 right-0" data-tooltip-position="top">
+                  <div class="tooltip-arrow-up triangle-tooltip relative z-10 w-fit self-end hidden">
+                    <div class="triangle-up border-transparent mx-1"></div>
+                    <div class="triangle-up border-b-white mx-1 absolute top-0 left-0 -z-10"></div>
+                  </div>
+                  <div x-show="$store.xProductComparison.listComparisonProducts.length > $store.xProductComparison.maximumProductCompare">
+                    <div class="rounded-[var(--border-radius-flash-message)] bg-white w-fit h-fit">
+                      <div
+                        x-init="$el.innerHTML = $el.innerHTML.replace('count_product', $store.xProductComparison?.maximumProductCompare)"
+                        class="flash-message error-message max-w-full w-fit text-center"
+                      >
+                        <span class="text-x-small">{{ 'product_comparison.tooltip_limit_products_drawer' | t }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="tooltip-arrow-down triangle-tooltip relative z-10 w-fit self-end">
+                    <div class="triangle-down border-transparent mx-1"></div>
+                    <div class="triangle-down border-t-white mx-1 absolute top-0 left-0 -z-10"></div>
+                  </div>
+                </div>
+              </custom-tooltip>
+            </div>
+            <a href="#" @click.prevent="$store.xProductComparison.clearAll()" class="text-link block mx-auto cursor-pointer mt-2.5 product-compare-overlay__clear-all">{{ 'product_comparison.clear_all' | t }}</a>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+    <template x-teleport="body">
+      <div class="product-comparison-overlay__wrapper">
+        <div
+          id="ProductComparisonWidgetButton"
+          class="product-comparison-overlay__widget-button p-2.5 md:p-3 rounded-corners-md cursor-pointer bg-gradient-no-alpha shadow-small"
+          @click.prevent="$store.xProductComparison && $store.xProductComparison.listComparisonProducts.length > 0 && $store.xProductComparison.showDrawer()"
+          x-show="$store.xProductComparison && $store.xProductComparison.listComparisonProducts.length != 0"
+          @keyup.enter="$store.xProductComparison && $store.xProductComparison.listComparisonProducts.length > 0 && $store.xProductComparison.showDrawer()"
+          tabindex="0"
+        >
+          <button
+            class="w-4 h-4 md:w-6 md:h-6 relative widget__icon-comparison block"
+            x-show="!$store.xProductComparison.loadingOpenDrawer"
+            tabindex="-1"
+          >
+            {% render 'icon-all', icon: 'icon-product-comparison' %}
+            <span
+              class="-top-4 -right-3 md:-top-4.5 md:-right-3.5 button-primary w-4.5 h-4.5 md:w-6 md:h-6 rounded-full flex items-center justify-center text-x-small leading-[normal]"
+              x-text="$store.xProductComparison.listComparisonProducts.length"
+              style="position: absolute;"
+            ></span>
+          </button>
+          <button
+            class="w-4 h-4 md:w-6 md:h-6 relative widget__icon-comparison block animate-spin"
+            x-cloak
+            x-show="$store.xProductComparison.loadingOpenDrawer"
+            tabindex="-1"
+          >
+            {% render 'icon-all', icon: 'icon-loading' %}
+          </button>
+        </div>
+        {% assign content_tooltip = 'products.product.compare' | t %}
+        {% render 'custom-tooltip',
+          content: content_tooltip,
+          position: 'left',
+          align: 'center',
+          list_align: 'center',
+          custom_class: '',
+          arrow_class: 'mx-auto',
+          list_position: 'bottom',
+          layout_class: 'left-[calc(50%+var(--left-tooltip,0px))] -translate-x-1/2 w-max max-w-[200px]',
+          clamp_boundary: '',
+          enable_mobile: false
+        %}
+      </div>
+    </template>
+  
+    <template x-teleport="body">
+      <div
+        id="ProductComparisonPopup"
+        data-section-id="{{ section.id }}"
+        class="product-comparison__drawer-wrapper fixed top-0 w-fit h-full z-[70]"
+        @click.away="$store.xProductComparison.hideDrawer()"
+        x-show="$store.xProductComparison.isShowPopup"
+        @keyup.escape="$store.xProductComparison.closePopup()"
+        x-intersect.full="$store.xFocusElement.trapFocus('ProductComparisonPopup', 'CloseProductComparePopup')"
+        x-cloak
+      >
+        <div class="absolute top-0 right-0 left-0 bottom-0 duration-300 z-20 w-fit h-full">
+          <div
+            class="relative h-full max-h-full w-screen rounded-none bg-white color-{{ section.settings.color_scheme_light }} dark-color-{{ section.settings.color_scheme_dark }}"
+            role="dialog"
+            aria-modal="true"
+            tabindex="-1"
+            x-show="$store.xProductComparison.isShowPopup"
+            {% if request.design_mode %}
+              x-intersect.once="$store.xProductComparison.handleDataPopUp()"
+            {% endif %}
+            x-transition:enter="transition-all ease-in-out duration-500"
+            x-transition:enter-start="opacity-0 transform translate-y-1/3"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+            x-transition:leave="transition-all ease-in-out duration-500"
+            x-transition:leave-end="opacity-0 transform translate-y-1/3"
+          >
+            <div class="w-full h-full pb-4 md:pb-7.5 flex flex-col">
+              <button
+                id="CloseProductComparePopup"
+                @click="$store.xProductComparison.closePopup()"
+                @keyup.enter="$store.xProductComparison.closePopup()"
+                @keydown.enter.prevent
+                class="modal__button-close"
+              >
+                <span class="button__close icon-close-large-desktop icon-close-large-mobile">{%- render 'icon-all', icon: 'icon-close' -%}</span>
+              </button>
+              <div class="h-full overflow-y-auto scrollbar-visible scrollbar-body pb-2">
+                <div class="page-width">
+                  {% render 'product-comparison-container',
+                    section: section
+                  %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+    <template x-teleport="body">
+      <div
+        id="ProductComparisonDrawer"
+        class="pop-up-link__container drawer__wrapper color-{{ section.settings.color_scheme_light.id }} dark-color-{{ section.settings.color_scheme_dark.id }} !bg-transparent"
+        x-show="$store.xProductComparison && $store.xProductComparison.isShowDrawer"
+        x-cloak
+      >
+        <div
+          id="ProductComparisonDrawer__Overlay"
+          class="drawer__overlay"
+          @click.prevent="$store.xProductComparison.hideDrawer()"
+        ></div>
+        <div
+          x-show="$store.xProductComparison && $store.xProductComparison.isShowDrawer"
+          class="product-omparison__drawer__container drawer__container transform"
+          x-cloak
+          x-transition:enter-start="opacity-0 translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+          x-transition:enter-end="opacity-100 translate-y-0 md:translate-x-0"
+          x-transition:leave-end="opacity-0 translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+          x-intersect.full="$store.xFocusElement.trapFocus('ProductComparisonDrawer', 'CloseProductCompareDrawer')"
+          {% if request.design_mode %}
+            x-intersect.once="$store.xProductComparison.reopenDrawer()"
+          {% endif %}
+          @keyup.escape="$store.xProductComparison.hideDrawer(); $store.xFocusElement.removeTrapFocus()"
+        >
+          <div class="modal-title-container px-4 md:px-7.5">
+            <div class="modal-title-wrapper">
+              <div class="grow flex items-center">
+                <p class="flex-auto h5">
+                  <span>{{ 'product_comparison.heading_drawer' | t }}</span>
+                  <span> (</span>
+                  <span x-text="$store.xProductComparison.listComparisonProducts.length"></span>
+                  <span>/</span>
+                  <span x-text="$store.xProductComparison.maximumProductCompare"></span>
+                  <span>)</span>
+                </p>
+              </div>
+              <button
+                id="CloseProductCompareDrawer"
+                @click="$store.xProductComparison.hideDrawer(); $store.xFocusElement.removeTrapFocus()"
+                @keyup.enter="$store.xProductComparison.hideDrawer(); $store.xFocusElement.removeTrapFocus()"
+                @keydown.enter.prevent
+                class="modal-title__button-close"
+                aria-label="{{ 'accessibility.close' | t }}"
+              >
+                <span class="button__close icon-close-large-desktop icon-close-large-mobile">{%- render 'icon-all', icon: 'icon-close' -%}</span>
+              </button>
+            </div>
+          </div>
+          
+          <div id="ProductComparisonDrawer__Main" class="w-full grow overflow-hidden">
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+{% endif %}
+{% schema %}
+{
+  "name": "t:comparison_overlay.name",
+  "class": "maximize-section section-product-comparison-overlay",
+  "tag": "section",
+  "enabled_on": {
+    "groups": ["aside"]
+  },
+  "limit": 1,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "t:comparison_overlay.settings.paragraph"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "t:global.text.subheading",
+      "default": "Subheading"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:global.text.heading",
+      "default": "Product comparison"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "t:global.text.heading_size",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:global.size.small"
+        },
+        {
+          "value": "medium",
+          "label": "t:global.size.medium"
+        },
+        {
+          "value": "large",
+          "label": "t:global.size.large"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "default": "h2",
+      "label": "t:global.text.heading_tag",
+      "options": [
+        {
+          "value": "h1",
+          "label": "H1"
+        },
+        {
+          "value": "h2",
+          "label": "H2"
+        },
+        {
+          "value": "h3",
+          "label": "H3"
+        },
+        {
+          "value": "h4",
+          "label": "H4"
+        },
+        {
+          "value": "h5",
+          "label": "H5"
+        },
+        {
+          "value": "h6",
+          "label": "H6"
+        },
+        {
+          "value": "p",
+          "label": "p"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "heading_alignment",
+      "default": "left",
+      "label": "t:global.alignment.heading",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:global.position.left"
+        },
+        {
+          "value": "center",
+          "label": "t:global.position.center"
+        },
+        {
+          "value": "right",
+          "label": "t:global.position.right"
+        }
+      ]
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "t:global.text.text",
+      "default": "<p>Describe you product comparison grid</p>"
+    },
+    {
+      "type": "header",
+      "content": "t:comparison_overlay.settings.grid.header"
+    },
+    {
+        "type": "range",
+        "id": "maximum_product_compare",
+        "min": 2,
+        "max": 10,
+        "step": 1,
+        "label": "t:settings.products.settings.comparison.maximum_products",
+        "default": 5
+      },
+    {
+      "type": "text",
+      "id": "text_empty_field",
+      "label": "t:comparison_overlay.settings.grid.text_empty_field",
+      "default": "-"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.colors"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "rating",
+      "name": "t:comparison_overlay.blocks.rating.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:global.text.title",
+          "default": "Rating"
+        }
+      ]
+    },
+    {
+      "type": "sku",
+      "name": "t:comparison_overlay.blocks.sku.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:global.text.title",
+          "default": "SKU"
+        }
+      ]
+    },
+    {
+      "type": "description",
+      "name": "t:comparison_overlay.blocks.description.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:global.text.title",
+          "default": "Description"
+        }
+      ]
+    },
+    {
+      "type": "vendor",
+      "name": "t:main_product.blocks.vendor.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:global.text.title",
+          "default": "Vendor"
+        },
+        {
+          "type": "checkbox",
+          "id": "link_vendor_to_associated",
+          "default": true,
+          "label": "t:main_product.blocks.vendor.settings.link_vendor",
+          "info": "t:comparison_overlay.blocks.vendor.settings.link_vendor_to_associated_info"
+        },
+        {
+          "type": "checkbox",
+          "id": "open_new_window",
+          "default": false,
+          "label": "t:global.text.open_link_new_tab"
+        }
+      ]
+    },
+    {
+      "type": "variant_option",
+      "name": "t:comparison_overlay.blocks.variant_option.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:global.text.title",
+          "default": "Variant name",
+          "info": "t:comparison_overlay.blocks.variant_option.settings.title_info"
+        },
+        {
+          "type": "checkbox",
+          "id": "enable_color_swatches",
+          "default": false,
+          "label": "t:main_product.blocks.variant_picker.settings.enable_color_swatches"
+        }
+      ]
+    },
+    {
+      "type": "product_metafield",
+      "name": "t:comparison_overlay.blocks.product_metafield.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:global.text.title",
+          "default": "Customizable title"
+        },
+        {
+          "type": "text",
+          "id": "metafield_key",
+          "label": "t:comparison_overlay.blocks.product_metafield.metafield_key",
+          "info": "t:comparison_overlay.blocks.product_metafield.metafield_key_info"
+        }
+      ]
+    },
+    {
+      "type": "buttons",
+      "name": "t:settings.typography.settings.buttons",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "select",
+          "id": "button_style",
+          "options": [
+            {
+              "value": "primary",
+              "label": "t:global.button.style.primary"
+            },
+            {
+              "value": "secondary",
+              "label": "t:global.button.style.secondary"
+            },
+            {
+              "value": "text-link",
+              "label": "t:global.button.style.text_link"
+            },
+            {
+              "value": "direction_link",
+              "label": "t:global.button.style.direction_link"
+            }
+          ],
+          "label": "t:global.button.style.label",
+          "default": "primary"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:comparison_overlay.name",
+      "category": "t:global.category.products",
+      "blocks": [
+        {
+          "type": "description"
+        },
+        {
+          "type": "vendor"
+        },
+        {
+          "type": "buttons"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

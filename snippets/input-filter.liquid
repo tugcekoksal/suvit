@@ -1,0 +1,314 @@
+{% comment %}
+  Accepts:
+  - filter: {Object} The current filter object (e.g., tag, type, etc.)
+  - filter_type: {String} Type of filter layout ('above', 'drawer', etc.)
+  - index: {Number} The current index in the loop
+  - filter_above: {Boolean} Displays the filter in an above-layout style
+  - expand_filter: {Boolean} Whether the filter should be expanded by default
+
+  Usage:
+  {% render 'input-filter',
+    filter: filter,
+    filter_type: 'above',
+    index: forloop.index,
+    filter_above: true,
+    expand_filter: false
+  %}
+{% endcomment %}
+
+{% liquid
+  assign total_active_values = total_active_values | plus: filter.active_values.size
+  assign has_visual_display = false
+  if filter.presentation == 'swatch' or filter.presentation == 'image'
+    assign has_visual_display = true
+  endif
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  else
+    assign is_rtl = false
+  endif
+%}
+{% case filter.type %}
+  {% when 'boolean', 'list' %}
+    {% if filter.param_name == 'filter.v.availability' %}
+      {% for value in filter.values %}
+        {% if value.value == '1' %}
+          <div class="toggle-instock-filter my-4 js-filter{% if filter_type == 'above' %} md:my-0{% endif %}{% if forloop.first %} md:mt-0.5{% endif %}">
+            <label class="flex h5 md:h6 items-center cursor-pointer gap-1.5 {% if value.count == 0 and value.active == false %} cursor-not-allowed{% endif %}">
+              <input
+                type="checkbox"
+                class="sr-only peer"
+                name="{{ value.param_name }}"
+                id="Filter-{{ filter_type }}-{{ filter.label | escape }}-{{ forloop.index }}"
+                value="{{ value.value }}"
+                {% if value.active %}
+                  checked
+                {% endif %}
+                {% if value.count == 0 and value.active == false %}
+                  disabled
+                {% endif %}
+                @change="onSubmit()"
+                @keydown.enter.prevent="$el.click()"
+              >
+              <span class="toggle-instock-filter__toggle peer-checked:color-bg-[rgba(var(--color-button))] peer-checked:before:color-bg-[rgba(var(--color-button-text))] peer-focus-visible:outline peer-focus-visible:outline-1 peer-checked:before:translate-x-4.5 peer-disabled:cursor-not-allowed"></span>
+              {{ value.label }}
+            </label>
+          </div>
+          {% break %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+    {% if filter.param_name != 'filter.v.availability' %}
+      <collapsible-tab
+        data-expanded="false"
+        data-collapsible-tab-container
+        class="js-filter relative border color-border-[rgba(var(--color-text),0.12)]
+          {%- if filter_type != 'above' %} px-3.5 py-3.5 md:px-4 md:py-4 rounded-corners mb-2 md:mb-1.5{% else %}{% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}{% endif -%}"
+        data-index="{{ filter_type }}-{{ index }}"
+        {% if filter_type == 'above' %}
+          x-intersect.once="setPositionOptionFilter($el)"
+        {% endif %}
+        data-param-name="{{ filter.param_name }}"
+        data-open-by-default="{{ expand_filter }}"
+      >
+        <button
+          onclick="event.preventDefault();"
+          data-collapsible-tab-header
+          class="facets__summary h5 md:h6 w-full relative cursor-pointer flex gap-2.5 items-center justify-between
+            {%- if filter_type == 'above' %} md:py-3 md:px-3.5{% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}{% else %} before:absolute before:-top-2.5 before:-right-2.5 before:-left-2.5 before:-bottom-2.5{% endif -%}"
+        >
+          <span class="p-break-words text-left rtl:text-right {% if filter_type == 'above' %}{% if is_rtl %} md:ml-4{% else %} md:mr-4{% endif %}{% endif %}">
+            {{- filter.label | escape -}}
+            <span class="{% if filter.active_values.size == 0 %} hidden{% endif %}"> ({{ filter.active_values.size }})</span></span
+          >
+          <span
+            class="h-2.5 w-2.5 shrink-0 inline-block duration-300{% if expand_filter %} rotate-180 {% else %} rotate-0{% endif %}"
+            data-collapsible-tab-caret
+          >
+            {%- render 'icon-all', icon: 'icon-caret' -%}
+          </span>
+        </button>
+        <div
+          {% if filter_type != 'above' %}
+            class="origin-top overflow-hidden transition-[height] duration-300 ease-out {% unless expand_filter %} h-0{% endunless %}"
+          {% else %}
+            class="popup-above origin-top max-h-[calc(75vh-var(--height-header))] scrollbar-body scrollbar border border-solid color-border-[rgba(var(--color-text),0.2)] md:absolute md:top-[calc(100%+10px)] md:p-4 md:z-20 md:color-bg-[rgba(var(--color-background),1)] overflow-y-auto md:w-max max-w-xs shadow-medium {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %} transition-all duration-200 ease-in-out {% unless expand_filter %} is-hidden{% endunless %}"
+          {% endif %}
+          data-collapsible-tab-content
+        >
+          <div class="flex justify-between py-4 {% if filter_type == 'above' %} md:pt-1 md:pb-2 border-b{% endif %}">
+            <div>
+              <span class="facets__selected text-x-small color-text-[rgba(var(--color-text),0.6)]">{{ 'products.facets.filters_selected' | t: count: filter.active_values.size }}</span>
+              {% if filter.operator == 'AND' %}
+                <p class="pt-1">{{ 'products.facets.match_all' | t }}</p>
+              {% endif %}
+            </div>
+            <button
+              @click.prevent="removeFilter(`{{ filter.url_to_remove }}`)"
+              class="facet-reset text-x-small opacity-60 cursor-pointer{% if is_rtl %} mr-5{% else %} ml-5{% endif %}"
+            >
+              <span class="text-link">
+                {{ 'products.facets.reset' | t }}
+              </span>
+            </button>
+          </div>
+          {%- liquid
+            assign sorted_values = filter.values
+            if filter.operator == 'AND'
+              assign active_filter_values = filter.values | where: 'active', true
+              assign inactive_filter_values = filter.values | where: 'active', false
+              assign sorted_values = active_filter_values | concat: inactive_filter_values
+            endif
+          -%}
+          <div class="relative{% if filter_type == 'above' %}{% if is_rtl %} pl-2{% else %} pr-2{% endif %} pt-3 scrollbar-body scrollbar overflow-y-auto{% endif %}">
+            {% if has_visual_display %}
+              <ul
+                role="list"
+                class="{% if settings.filter_display_text != true and settings.visual_value_style == 'compact' %} flex flex-wrap gap-x-2.5{% else %} grid {% unless settings.filter_display_text %} grid-cols-2 {% endunless %} gap-x-5{% endif %}"
+              >
+                {%- for value in sorted_values -%}
+                  <li class="list-none maximize mb-3">
+                    {% render 'visual-display', filter_value: value, presentation: filter.presentation, filter_type: filter_type, param: filter.param_name, index: forloop.index %}
+                  </li>
+                {%- endfor -%}
+              </ul>
+            {% else %}
+              <ul role="list">
+                {%- for value in sorted_values -%}
+                  <li class="list-none mb-2 maximize">
+                    <label
+                      for="Filter-{{ filter_type }}-{{ filter.label | escape }}-{{ forloop.index }}"
+                      class="flex items-center cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        id="Filter-{{ filter_type }}-{{ filter.label | escape }}-{{ forloop.index }}"
+                        class="input-filter-checkbox input-checkbox{% if is_rtl %} ml-2{% else %} mr-2{% endif %} shrink-0 h-5 w-5 min-w-[16px] peer border checked:color-bg-[rgba(var(--color-button))] relative cursor-pointer disabled:cursor-auto{% if filter.operator == 'AND' %} filter-and{% endif %}{% if settings.edges_type == 'rounded_corners' %} rounded{% else %} rounded-none{% endif %}"
+                        name="{{ value.param_name }}"
+                        value="{{ value.value }}"
+                        {% if value.active %}
+                          checked
+                        {% endif %}
+                        {% if value.count == 0 and value.active == false %}
+                          disabled
+                        {% endif %}
+                        @change="onSubmit()"
+                        @keydown.enter.prevent="$el.click()"
+                      >
+                      <span class="p-break-words peer-checked:color-text-[rgba(var(--color-button))]">{{ value.label | escape }} ({{ value.count }})</span>
+                    </label>
+                  </li>
+                {%- endfor -%}
+              </ul>
+            {% endif %}
+          </div>
+        </div>
+      </collapsible-tab>
+    {% endif %}
+  {% when 'price_range' %}
+    <collapsible-tab
+      data-expanded="false"
+      data-collapsible-tab-container
+      class="js-filter relative{% if filter_type != 'above' %} px-3.5 py-3.5 md:px-4 md:py-4 border color-border-[rgba(var(--color-text),0.2)] mb-2 md:mb-1.5 {% endif %}{% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+      data-index="{{ filter_type }}-{{ index }}"
+      {% if filter_type == 'above' %}
+        x-intersect.once="setPositionOptionFilter($el)"
+      {% endif %}
+      data-param-name="{{ filter.param_name }}"
+      data-open-by-default="{{ expand_filter }}"
+    >
+      <button
+        onclick="event.preventDefault();"
+        data-collapsible-tab-header
+        class="facets__summary h5 md:h6 w-full relative cursor-pointer flex items-center justify-between {% if filter_type == 'above' %} md:border color-border-[rgba(var(--color-text),0.12)] md:py-3 md:px-3.5{% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}{% else %} before:absolute before:-top-2.5 before:-right-2.5 before:-left-2.5 before:-bottom-2.5{% endif %}"
+      >
+        <span class="whitespace-nowrap {% if filter_type == 'above' %}{% if is_rtl %} md:ml-4{% else %} md:mr-4{% endif %}{% endif %}">{{ filter.label | escape }}</span>
+        <span
+          class="h-2.5 w-2.5 shrink-0 inline-block duration-300{% if expand_filter %} rotate-180 {% else %} rotate-0{% endif %}"
+          data-collapsible-tab-caret
+        >
+          {%- render 'icon-all', icon: 'icon-caret' -%}
+        </span>
+      </button>
+      <div
+        {% if filter_type != 'above' %}
+          class="origin-top overflow-hidden transition-[height] duration-300 ease-out {% unless expand_filter %} h-0{% endunless %}"
+        {% else %}
+          class="popup-above origin-top border border-solid color-border-[rgba(var(--color-text),0.2)] md:absolute md:top-[calc(100%+10px)] md:p-4 md:z-20 md:color-bg-[rgba(var(--color-background),1)] md:w-max min-w-[266px] shadow-medium  {% if settings.edges_type == "rounded_corners" %} rounded-md{% endif %}{% unless expand_filter %} is-hidden{% endunless %}"
+        {% endif %}
+        data-collapsible-tab-content
+      >
+        <div class="{% if filter_type == 'above' %}pt-1 pb-2 mb-6 border-b mx-1 {% else %}pt-4 pb-4 {% endif %}justify-end flex">
+          <button
+            @click.prevent="removeFilter(`{{ filter.url_to_remove }}`)"
+            class="facet-reset text-x-small cursor-pointer{% if is_rtl %} mr-5{% else %} ml-5{% endif %} opacity-60"
+          >
+            <span class="text-link">
+              {{ 'products.facets.reset' | t }}
+            </span>
+          </button>
+        </div>
+        <div class="flex md:mb-4 items-center justify-between">
+          <div
+            class="w-full range-price-filter px-1"
+          >
+            <div
+              class="w-full color-text-[rgba(var(--color-text),0.7)]"
+              x-data="xRangePrice"
+              x-intersect.once="initRange()"
+            >
+              <div class="slider h-1.5 relative color-bg-[rgba(var(--color-heading),0.12)] {% if settings.edges_type == 'rounded_corners' %} rounded-[100px]{% endif %}">
+                <div
+                  style="{% if is_rtl %}left: var(--right_range); right: var(--left_range);{% else %}left: var(--left_range); right: var(--right_range);{% endif %}"
+                  class="progress h-full absolute color-bg-[rgba(var(--color-button))] left-0 right-0"
+                ></div>
+              </div>
+              <div class="range-input relative">
+                <input
+                  @change="onSubmit()"
+                  @keydown.enter.prevent="$el.click()"
+                  class="absolute -translate-x-1 rtl:translate-x-1 range-min w-full bg-none h-1.5 py-3 -top-[15px] pointer-events-none appearance-none{% if filter.operator == 'AND' %} filter-and{% endif %}"
+                  name="{{ filter.min_value.param_name }}"
+                  {%- if filter.min_value.value -%}
+                    value="{{ filter.min_value.value | divided_by: 100.0 }}"
+                  {%- else -%}
+                    value="0"
+                  {%- endif -%}
+                  type="range"
+                  placeholder="0"
+                  min="0"
+                  max="{{ filter.range_max | divided_by: 100.0 }}"
+                  step="0.01"
+                  form="ranger-price"
+                  id="Filter-{{ filter_type }}-{{ filter.label | escape }}-{{ forloop.index }}-range-min"
+                >
+                <label for="Filter-{{ filter_type }}-{{ filter.label | escape }}-{{ forloop.index }}-range-min" class="hidden">Range min</label>
+                <input
+                  @change="onSubmit()"
+                  @keydown.enter.prevent="$el.click()"
+                  class="absolute translate-x-1 rtl:-translate-x-1 range-max w-full bg-none h-1.5 py-3 -top-[15px] pointer-events-none appearance-none{% if filter.operator == 'AND' %} filter-and{% endif %}"
+                  type="range"
+                  min="1"
+                  step="0.01"
+                  {%- if filter.max_value.value -%}
+                    value="{{ filter.max_value.value | divided_by: 100.0 }}"
+                  {%- else -%}
+                    value="{{ filter.range_max | divided_by: 100.0 }}"
+                  {%- endif -%}
+                  placeholder="{{ filter.range_max | divided_by: 100.0 }}"
+                  max="{{ filter.range_max | divided_by: 100.0 }}"
+                  form="ranger-price"
+                  id="Filter-{{ filter_type }}-{{ filter.label | escape }}-{{ forloop.index }}-range-max"
+                >
+                <label for="Filter-{{ filter_type }}-{{ filter.label | escape }}-{{ forloop.index }}-range-max" class="hidden">Range max</label>
+              </div>
+              <div class="w-full flex justify-between mt-3 items-center gap-3 flex-wrap">
+                <div class="flex items-center gap-1.5 py-2 px-3 border color-border-[rgba(var(--color-text),0.2)] w-full flex-1 {% if settings.edges_type == 'rounded_corners' %} rounded{% endif %}">
+                  <span>{{ cart.currency.symbol }}</span>
+                  <label for="Filter-{{ filter_type }}-{{ filter.label | escape }}-{{ forloop.index }}-input-min" class="hidden" aria-hidden="true">Input price min</label>
+                  <input
+                    @blur="handlePriceInput($event)"
+                    @change.debounce="onSubmit()"
+                    @keydown.enter="$event.preventDefault(); handlePriceInput($event); onSubmit()"
+                    class="price-input bg-transparent w-full focus:outline-none {% if filter.operator == 'AND' %} filter-and{% endif %}"
+                    name="{{ filter.min_value.param_name }}"
+                    x-ref="filter_price_gte"
+                    {%- if filter.min_value.value -%}
+                      value="{{ filter.min_value.value | divided_by: 100.0 }}"
+                    {% endif %}
+                    type="number"
+                    placeholder="0"
+                    min="0"
+                    max="{{ filter.range_max | divided_by: 100.0 }}"
+                    id="Filter-{{ filter_type }}-{{ filter.label | escape }}-{{ forloop.index }}-input-min"
+                  >
+                </div>
+                <span>-</span>
+                <div class="flex items-center gap-1.5 py-2 px-3 border color-border-[rgba(var(--color-text),0.2)] w-full flex-1 {% if settings.edges_type == 'rounded_corners' %} rounded{% endif %}">
+                  <span>{{ cart.currency.symbol }}</span>
+                  <label for="Filter-{{ filter_type }}-{{ filter.label | escape }}-{{ forloop.index }}-input-max" class="hidden">Input price max</label>
+                  <input
+                    @blur="handlePriceInput($event)"
+                    @change.debounce="onSubmit()"
+                    @keydown.enter="$event.preventDefault(); handlePriceInput($event); onSubmit()"
+                    class="price-input bg-transparent w-full focus:outline-none {% if filter.operator == 'AND' %} filter-and{% endif %}"
+                    name="{{ filter.max_value.param_name }}"
+                    x-ref="filter_price_lte"
+                    type="number"
+                    min="0"
+                    {%- if filter.max_value.value -%}
+                      value="{{ filter.max_value.value | divided_by: 100.0 }}"
+                    {%- endif -%}
+                    placeholder="{{ filter.range_max | divided_by: 100.0 }}"
+                    max="{{ filter.range_max | divided_by: 100.0 }}"
+                    id="Filter-{{ filter_type }}-{{ filter.label | escape }}-{{ forloop.index }}-input-max"
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <script src="{{ 'price-range.js' | asset_url }}" defer></script>
+      </div>
+    </collapsible-tab>
+{% endcase %}

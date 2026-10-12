@@ -1,0 +1,316 @@
+{% assign block_settings = block.settings %}
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block_settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block_settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block_settings.desktop_padding_left }}px;
+    --pad-right: {{ block_settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block_settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block_settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block_settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block_settings.mobile_padding_right }}px;
+  }
+
+  .block-{{ block.id  }} .block-confirm-button__action {
+    gap: calc({{ block_settings.gap }}px * var(--mobile-padding-ratio));
+  }
+  @media (min-width: 768px) {
+    .block-{{ block.id  }} .block-confirm-button__action {
+      gap: {{ block_settings.gap }}px;
+    }
+  }
+{% endstyle %}
+{% liquid
+  assign accept_button_label = 'accessibility.yes' | t
+  assign cancel_button_label = 'accessibility.no' | t
+  if block_settings.accept_button_label != blank
+    assign accept_button_label = block_settings.accept_button_label
+  endif  
+  if block_settings.cancel_button_label != blank
+    assign cancel_button_label = block_settings.cancel_button_label
+  endif  
+%}
+
+<div
+  class="block-confirm-button block-{{ block.id }} maximize-block rounded-corners relative"
+  data-block-id="{{ block.id }}"
+  {{ block.shopify_attributes }}
+>
+  <div
+    class="block-confirm-button__content confirm-button-{{ block.id }} relative w-full h-full rounded-corners block-padding"
+  >
+    <div class="block-confirm-button__action flex flex-{{block_settings.button_direction}} flex-wrap w-full">
+      <div class="grow">
+        <custom-button>
+          <button
+            type="button"
+            class="confirm-button__accept button button-{{block_settings.accept_button_style | default: 'primary'}} relative h-fit rounded-corners-md py-3 px-6 w-full button-{{ block_settings.button_size }}"
+            id="ConfirmAgeVerification-{{ section.id }}"
+            data-age-verification-confirm
+            aria-label="{{ accept_button_label }}"
+          >
+            <span class="btn__text">{{ accept_button_label  }}</span>
+          </button>
+        </custom-button>
+      </div>
+      <div class="grow">
+        <custom-button>
+          <button
+            type="button"
+            class="confirm-button__cancel button button-{{block_settings.cancel_button_style | default: 'primary'}} relative h-fit rounded-corners-md py-3 px-6 w-full button-{{ block_settings.button_size }}"
+            id="CancelAgeVerification-{{ section.id }}"
+            data-age-verification-cancel
+            aria-label="{{ cancel_button_label }}"
+          >
+            <span class="btn__text">{{ cancel_button_label }}</span>
+          </button>
+        </custom-button>
+      </div>
+    </div>
+    {% if block_settings.cancel_message != blank %} 
+      <div
+          class="block-confirm-button__message color-bg-[rgba(var(--error-message-color),0.1)] color-text-[rgba(var(--error-message-color))] mt-1.5 px-2 py-1 rounded-[var(--border-radius-flash-message)] max-w-full hidden w-0 min-w-full"
+          style="display: none;"
+          data-age-verification-cancel-message
+          role="alert"
+        >
+          <p class="p-break-words">
+            {{ block_settings.cancel_message }}
+          </p>
+        </div>
+      {% endif %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:confirmation_button.name",
+  "tag": null,
+  "settings": [
+    {
+      "type": "select",
+      "id": "button_direction",
+      "label": "t:confirmation_button.settings.button_direction",
+      "options": [
+        {
+          "value": "col",
+          "label": "t:global.direction.vertical"
+        },
+        {
+          "value": "row",
+          "label": "t:global.direction.horizontal"
+        }
+      ],
+      "default": "row"
+    },
+    {
+      "type": "select",
+      "id": "button_size",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:global.size.small"
+        },
+        {
+          "value": "medium",
+          "label": "t:global.size.medium"
+        },
+        {
+          "value": "large",
+          "label": "t:global.size.large"
+        }
+      ],
+      "label": "t:global.button.button_size",
+      "default": "medium"
+    },
+    {
+      "type": "header",
+      "content": "t:confirmation_button.settings.accept_button"
+    },
+    {
+      "type": "text",
+      "id": "accept_button_label",
+      "label": "t:global.button.button_label",
+      "default": "Yes"
+    },
+    {
+      "type": "select",
+      "id": "accept_button_style",
+      "options": [
+        {
+          "value": "primary",
+          "label": "t:global.button.style.primary"
+        },
+        {
+          "value": "secondary",
+          "label": "t:global.button.style.secondary"
+        }
+      ],
+      "label": "t:global.button.style.label",
+      "default": "primary"
+    },
+    {
+      "type": "header",
+      "content": "Cancel button"
+    },
+    {
+      "type": "text",
+      "id": "cancel_button_label",
+      "label": "t:global.button.button_label",
+      "default": "No"
+    },
+    {
+      "type": "select",
+      "id": "cancel_button_style",
+      "options": [
+        {
+          "value": "primary",
+          "label": "t:global.button.style.primary"
+        },
+        {
+          "value": "secondary",
+          "label": "t:global.button.style.secondary"
+        }
+      ],
+      "label": "t:global.button.style.label",
+      "default": "secondary"
+    },
+    {
+      "type": "text",
+      "id": "cancel_message",
+      "label": "Cancel message",
+      "info": "Shown when customer clicks the cancel button.",
+      "default": "Sorry, you must be at least 18 to purchase from our store."
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "select",
+      "id": "device_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.spacing"
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:quick_order_list.settings.gap",
+      "default": 6
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:confirmation_button.name",
+      "category": "t:global.category.content"
+    }
+  ]
+}
+{% endschema %}

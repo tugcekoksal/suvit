@@ -1,0 +1,70 @@
+{% doc %}
+  Renders the clickable Volume pricing rows for a variant: one row per price tier, each
+  setting the quantity selector to that tier when clicked.
+
+  Leads with the BASE tier — the quantity rule's minimum at the variant's own price. Shopify
+  omits it from `quantity_price_breaks` (that list only holds the discounted steps), so the
+  table used to start at the second price point and the minimum was never shown.
+
+  @param variant {Variant} - The variant whose quantity_price_breaks to list. Required.
+  @param section_id {String} - Section id, used to scope the quantity-change event. Required.
+  @param show_background {Boolean} - Row background follows the container's background setting.
+
+  @example
+  {%- render 'volume-pricing-table', variant: current_variant, section_id: section.id, show_background: block.settings.show_background -%}
+{% enddoc %}
+
+{%- liquid
+  assign base_qty = variant.quantity_rule.min | default: 1
+  assign first_break_qty = variant.quantity_price_breaks.first.minimum_quantity
+  assign show_base_tier = false
+  if first_break_qty > base_qty
+    assign show_base_tier = true
+  endif
+
+  capture row_class
+    echo 'volume-pricing__line flex justify-between px-3 py-2 text-medium rounded-corners-md cursor-pointer last:mb-3 hover:color-bg-[rgba(var(--color-text),0.12)]'
+    if show_background
+      echo ' color-bg-[rgba(var(--color-background))]'
+    else
+      echo ' color-bg-[rgba(var(--color-text),0.06)]'
+    endif
+  endcapture
+-%}
+
+{%- if show_base_tier -%}
+  {%- assign base_price = variant.price | money -%}
+  <div
+    class="{{ row_class }}"
+    @click="document.dispatchEvent(new CustomEvent(`QUANTITY_EVENT.volumnPricingChange-{{ section_id }}`,{detail:{quantity: {{ base_qty }}}}))"
+    @keyup.enter="document.dispatchEvent(new CustomEvent(`QUANTITY_EVENT.volumnPricingChange-{{ section_id }}`,{detail:{quantity: {{ base_qty }}}}))"
+    @keyup.space="document.dispatchEvent(new CustomEvent(`QUANTITY_EVENT.volumnPricingChange-{{ section_id }}`,{detail:{quantity: {{ base_qty }}}}))"
+    role="button"
+    tabindex="0"
+  >
+    <span class="volume-pricing__qty">
+      {{- base_qty -}}+
+    </span>
+    <span class="volume-pricing__price font-semibold">
+      {{- base_price -}}/ea
+    </span>
+  </div>
+{%- endif -%}
+{%- for price_break in variant.quantity_price_breaks -%}
+  {%- assign price_break_price = price_break.price | money -%}
+  <div
+    class="{{ row_class }}"
+    @click="document.dispatchEvent(new CustomEvent(`QUANTITY_EVENT.volumnPricingChange-{{ section_id }}`,{detail:{quantity: {{ price_break.minimum_quantity }}}}))"
+    @keyup.enter="document.dispatchEvent(new CustomEvent(`QUANTITY_EVENT.volumnPricingChange-{{ section_id }}`,{detail:{quantity: {{ price_break.minimum_quantity }}}}))"
+    @keyup.space="document.dispatchEvent(new CustomEvent(`QUANTITY_EVENT.volumnPricingChange-{{ section_id }}`,{detail:{quantity: {{ price_break.minimum_quantity }}}}))"
+    role="button"
+    tabindex="0"
+  >
+    <span class="volume-pricing__qty">
+      {{- price_break.minimum_quantity -}}+
+    </span>
+    <span class="volume-pricing__price font-semibold">
+      {{- price_break_price -}}/ea
+    </span>
+  </div>
+{%- endfor -%}

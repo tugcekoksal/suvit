@@ -1,0 +1,45 @@
+{% for option_value in product_option.values %}
+  {% liquid
+    assign is_available_option = option_value.available
+    assign is_selected_option = false
+    if product_option.selected_value == option_value
+      assign is_selected_option = true
+    endif
+
+    assign product_option_position = product_option.position
+  %}
+
+  {% capture select_value_text %}
+    {% if is_available_option %}
+      {{ option_value | escape }}
+    {% else %}
+      {% if option_value.variant.available == nil %}
+        {{ 'products.product.value_unavailable' | t: value: option_value  }}
+      {% else %}
+        {{ 'products.product.value_sold_out' | t: value: option_value }}
+      {% endif %}
+    {% endif %}
+  {% endcapture %}
+  {% assign select_value_text = select_value_text | strip %}
+  <li
+    class="select-option variant-option cursor-pointer font-normal font-base-body w-full flex flex-nowrap overflow-x-hidden rounded-corners
+      {%- if is_selected_option %} selected{% endif -%}
+      {%- unless is_available_option %} disabled{% endunless -%}"
+    style="overflow-wrap: break-word;"
+    data-option-name="{{ product_option.name }}"
+    data-option-position="{{ product_option_position }}"
+    data-value="{{ option_value | escape }}"
+    data-option-value-id="{{ option_value.id }}"
+    data-product-url="{{ option_value.product_url }}"
+    data-select-value="{{ select_value_text }}"
+    aria-selected="{{ is_selected_option }}"
+    data-type="dropdown"
+    role="option"
+    @click.prevent="selectOptionSticky($event)"
+    @keydown.enter="selectOptionSticky($event)"
+    @keydown.space="selectOptionSticky($event)"
+    tabindex="-1"
+  >
+    {{ select_value_text }}
+  </li>
+{% endfor %}

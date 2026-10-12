@@ -1,0 +1,257 @@
+{% liquid
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  else
+    assign is_rtl = false
+  endif
+%}
+{% style %}
+  .section--{{ section.id }} {
+    padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+    padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+  }
+  @media (min-width: 768px) {
+    .section--{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+{% endstyle %}
+<div class="section--{{ section.id }} customer account">
+  <div class="page-width mx-auto">
+    <div class="flex items-center justify-between md:border-b md:pb-2.5">
+      <h1 class="h2 anm-fade-element" data-fade-on-intersect>{{ 'customer.account.title' | t }}</h1>
+      <a
+        class="relative h-fit inline-block cursor-pointer"
+        tabindex="0"
+        href="{{ routes.account_logout_url }}"
+      >
+        <span class="text-link">{{ 'customer.log_out' | t }}</span>
+      </a>
+    </div>
+    <div class="flex flex-col md:flex-row">
+      <div class="w-full md:w-3/4">
+        <p
+          class="pt-5 h5 md:pt-7.5 pb-2.5 md:pb-5 border-b md:border-none anm-fade-element"
+          data-fade-on-intersect
+        >
+          {{ 'customer.orders.title' | t }}
+        </p>
+        {% paginate customer.orders by 20 %}
+          {%- if customer.orders.size > 0 -%}
+            <table
+              role="table"
+              class="block order-history w-full"
+            >
+              <thead
+                class="hidden md:block py-2.5 border-y w-full color-text-[rgba(var(--color-heading))] anm-fade-element"
+                data-fade-on-intersect
+                role="rowgroup"
+              >
+                <tr
+                  class="flex justify-between w-full md:px-2.5 md:gap-7.5"
+                  role="row"
+                >
+                  <th
+                    id="ColumnOrder"
+                    class="w-1/5 h6 md:px-0 md:py-0 md:flex-1{% if is_rtl %} text-right{% else %} text-left{% endif %} p-break-words"
+                    scope="col"
+                    role="columnheader"
+                  >
+                    {{ 'customer.orders.order_number' | t }}
+                  </th>
+                  <th
+                    id="ColumnDate"
+                    class="w-1/5 h6 md:px-0 md:py-0  md:flex-1{% if is_rtl %} text-right{% else %} text-left{% endif %} p-break-words"
+                    scope="col"
+                    role="columnheader"
+                  >
+                    {{ 'customer.orders.date' | t }}
+                  </th>
+                  <th
+                    id="ColumnPayment"
+                    class="w-1/5 h6 md:px-0 md:py-0 md:flex-1{% if is_rtl %} text-right{% else %} text-left{% endif %} p-break-words"
+                    scope="col"
+                    role="columnheader"
+                  >
+                    {{ 'customer.orders.payment_status' | t }}
+                  </th>
+                  <th
+                    id="ColumnFulfillment"
+                    class="w-1/5 h6 md:px-0 md:py-0 md:flex-1{% if is_rtl %} text-right{% else %} text-left{% endif %} p-break-words"
+                    scope="col"
+                    role="columnheader"
+                  >
+                    {{ 'customer.orders.fulfillment_status' | t }}
+                  </th>
+                  <th
+                    id="ColumnTotal"
+                    class="w-1/5 h6 md:px-0 md:py-0 md:flex-1{% if is_rtl %} text-right{% else %} text-left{% endif %} p-break-words"
+                    scope="col"
+                    role="columnheader"
+                  >
+                    {{ 'customer.orders.total' | t }}
+                  </th>
+                  {%- unless settings.hide_cart -%}
+                    {% if settings.enable_reorder %}
+                      <th
+                        class="py-0 button px-5 opacity-0 h-0"
+                        scope="col"
+                        role="columnheader"
+                      >
+                        {{ 'customer.orders.reorder' | t }}
+                      </th>
+                    {% endif %}
+
+                  {%- endunless -%}
+                </tr>
+              </thead>
+              <tbody
+                class="block w-full"
+                role="rowgroup"
+              >
+                {%- for order in customer.orders -%}
+                  <tr
+                    class="block md:flex md:gap-7.5 w-full border-b py-4 md:py-0 anm-fade-element md:px-2.5 md:pt-3.5 md:pb-3.5"
+                    data-fade-on-intersect
+                    role="row"
+                  >
+                    <td
+                      id="RowOrder"
+                      class="w-full p-break-words {% if is_rtl %} rtl:before:text-right{% endif %} md:w-1/5 md:px-0 md:py-0 md:flex-1 md:text-left flex items-center pb-2 before:content-[attr(data-label)] before:h5 md:before:content-none before:float-left before:w-1/3 before:text-left before:pr-2.5"
+                      role="cell"
+                      headers="ColumnOrder"
+                      data-label="{{ 'customer.orders.order_number' | t }}"
+                    >
+                      <a
+                        class="hidden md:inline-block text-center"
+                        href="{{ order.customer_url }}"
+                        aria-label="{{ 'customer.orders.order_number_link' | t: number: order.name }}"
+                      >
+                        <span class="text-link">{{ order.name }}</span>
+                      </a>
+                      <span class="md:hidden">{{ order.name }}</span>
+                    </td>
+                    <td
+                      class="w-full p-break-words {% if is_rtl %} rtl:before:text-right{% endif %} md:w-1/5 md:px-0 md:py-0 md:flex-1 md:mb-0 md:text-left flex items-center pb-2 before:content-[attr(data-label)] before:h5 md:before:content-none before:float-left before:w-1/3 before:text-left before:pr-2.5"
+                      headers="RowOrder ColumnDate"
+                      role="cell"
+                      data-label="{{ 'customer.orders.date' | t }}"
+                    >
+                      {{ order.created_at | time_tag: format: 'date' }}
+                    </td>
+                    <td
+                      class="w-full p-break-words {% if is_rtl %} rtl:before:text-right{% endif %} md:w-1/5 md:px-0 md:py-0 md:flex-1 md:mb-0 md:text-left flex items-center pb-2 before:content-[attr(data-label)] before:h5 md:before:content-none before:float-left before:w-1/3 before:text-left before:pr-2.5"
+                      headers="RowOrder ColumnPayment"
+                      role="cell"
+                      data-label="{{ 'customer.orders.payment_status' | t }}"
+                    >
+                      {{ order.financial_status_label }}
+                    </td>
+                    <td
+                      class="w-full p-break-words {% if is_rtl %} rtl:before:text-right{% endif %} md:w-1/5 md:px-0 md:py-0 md:flex-1 md:mb-0 md:text-left flex items-center pb-2 before:content-[attr(data-label)] before:h5 md:before:content-none before:float-left before:w-1/3 before:text-left before:pr-2.5"
+                      headers="RowOrder ColumnFulfillment"
+                      role="cell"
+                      data-label="{{ 'customer.orders.fulfillment_status' | t }}"
+                    >
+                      {{ order.fulfillment_status_label }}
+                    </td>
+                    <td
+                      class="w-full p-break-words {% if is_rtl %} rtl:before:text-right{% endif %} md:w-1/5 md:px-0 md:py-0 md:flex-1 md:mb-0 md:text-left flex items-center pb-2 before:content-[attr(data-label)] before:h5 md:before:content-none before:float-left before:w-1/3 before:text-left before:pr-2.5"
+                      headers="RowOrder ColumnTotal"
+                      role="cell"
+                      data-label="{{ 'customer.orders.total' | t }}"
+                    >
+                      {{ order.total_price | money_with_currency }}
+                    </td>
+                    {{ order.image }}
+                    {%- unless settings.hide_cart -%}
+                      {% if settings.enable_reorder %}
+                        <td
+                          class="hidden md:flex items-center md:justify-end"
+                          data-label="Action"
+                        >
+                          <div class="hidden md:block">{%- render 're-order', itemOrder: order -%}</div>
+                        </td>
+                      {% endif %}
+                    {%- endunless -%}
+                    <td
+                      class="flex md:hidden items-center md:justify-end"
+                      data-label="Action"
+                    >
+                      <a
+                        class="button button-secondary md:hidden w-max py-2 px-5{% if settings.edges_type == 'rounded_corners' %} rounded-md {% else %} rounded-none{% endif %}"
+                        href="{{ order.customer_url }}"
+                        aria-label="{{ 'customer.orders.order_number_link' | t: number: order.name }}"
+                      >
+                        {{ 'customer.orders.view_order' | t}}
+                      </a>
+                    </td>
+                  </tr>
+                {%- endfor -%}
+              </tbody>
+            </table>
+          {%- else -%}
+            <p class="mt-4 md:mt-0">{{ 'customer.orders.none' | t }}</p>
+          {%- endif -%}
+          {%- if paginate.pages > 1 -%}
+            <div class="flex justify-center mt-4 md:mt-5">
+              {% comment %} {% render 'pagination', paginate: paginate, paginate_type: section.settings.paginate_type %} {% endcomment %}
+              {% render 'pagination', paginate: paginate, paginate_type: "underline" %}
+            </div>
+          {%- endif -%}
+        {% endpaginate %}
+      </div>
+
+      <div class="w-full flex-1 {% if is_rtl %} md:pr-10{% else %} md:pl-10{% endif %}">
+        <div
+          class="anm-fade-element"
+          data-fade-on-intersect
+        >
+          <p class="h5 mt-7.5 mb-2.5">{{ 'customer.account.details' | t }}</p>
+          <div>{{ customer.default_address | format_address }}</div>
+          <a
+            class="relative block mt-7 w-fit"
+            href="{{ routes.account_addresses_url }}"
+          >
+            <span class="text-link">{{ 'customer.account.view_addresses' | t }} ({{ customer.addresses_count }})</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{%- unless settings.hide_cart -%}
+  {%- render 're-order-popup' -%}
+{%- endunless -%}
+{% schema %}
+{
+  "name": "t:main_account.name",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.top_padding",
+      "default": 52
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.bottom_padding",
+      "default": 52
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,48 @@
+{% comment %}
+  Renders a single product-card grid item for the collection grid.
+
+  Accepts:
+  - product: {Object} Product Liquid object
+  - variant: {Object} Force this variant to be displayed on the card (optional)
+  - card_counter: {Number} Running count of grid cards rendered so far, used to keep DOM ids unique when a product renders more than one card
+  - section: {Object} Section Liquid object
+  - paginate: {Object} Paginate Liquid object
+  - collection: {Object} Collection Liquid object
+{% endcomment %}
+{% liquid
+  assign index_param_variable = section.index | append: card_counter | plus: 0
+  assign block_id_variable = paginate.current_page | append: card_counter | plus: 0
+  assign columns_desktop_variable = section.settings.products_per_row_on_desktop | plus: 1
+  assign columns_mobile_variable = section.settings.products_per_row_on_mobile | plus: 0
+  assign disable_badges = false
+  if section.settings.show_label_badges == false
+    assign disable_badges = true
+  endif
+%}
+<div class="grid-item">
+  {%
+    render 'product-card',
+    index_param: index_param_variable,
+    index: card_counter,
+    product: product,
+    variant: variant,
+    media_aspect_ratio: section.settings.image_ratio,
+    show_vendor: section.settings.show_vendor,
+    show_rating: section.settings.show_rating,
+    show_shipping_information: section.settings.show_shipping_information,
+    show_inventory_status: section.settings.show_inventory_status,
+    show_sale_label: section.settings.show_sale_labels,
+    show_highlight_attributes: section.settings.show_highlight_attributes,
+    show_estimated_delivery: section.settings.show_estimated_delivery,
+    section_id: section.id,
+    block_id: block_id_variable,
+    collection: collection,
+    columns_desktop: columns_desktop_variable,
+    column_mobile: columns_mobile_variable,
+    show_quickview: section.settings.show_quickview,
+    collection_page: true,
+    show_description: section.settings.show_description,
+    show_price_range: true,
+    disable_badges: disable_badges
+  %}
+</div>

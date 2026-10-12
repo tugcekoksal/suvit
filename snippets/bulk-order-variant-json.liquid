@@ -1,0 +1,158 @@
+{%- doc -%}
+  Renders comma-joined JSON objects (one per variant of `product`) for the Bulk order
+  feature. Shared by the predictive-search results section and the restore-on-reload
+  section so price/inventory/preorder logic never drifts between the two call sites.
+
+  @param {product} product - product whose variants should be serialized
+{%- enddoc -%}
+{%- liquid
+  assign is_apply_preorder = false
+  if settings.applied_products_preorder == blank and settings.applied_collections_preorder == blank
+    assign is_apply_preorder = true
+  else
+    assign list_product = ''
+    for prod in settings.applied_products_preorder
+      assign list_product = list_product | append: ';' | append: prod.id
+    endfor
+    for collec in settings.applied_collections_preorder
+      for prod in collec.products
+        assign list_product = list_product | append: ';' | append: prod.id
+      endfor
+    endfor
+    if list_product contains product.id
+      assign is_apply_preorder = true
+    endif
+  endif
+-%}
+{% liquid
+  assign is_rtl = false
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  endif
+%}
+{%- capture price_hidden -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+{%- assign price_hidden = price_hidden | strip -%}
+{%- liquid
+  assign low_stock_threshold = settings.low_stock_threshold | plus: 0
+  assign low_stock_message = settings.low_stock_message
+  assign in_stock_message = settings.in_stock_message
+  if customer != blank and customer.b2b?
+    assign low_stock_threshold = settings.b2b_low_stock_threshold | plus: 0
+    assign low_stock_message = settings.b2b_low_stock_message
+    assign in_stock_message = settings.b2b_in_stock_message
+  endif
+-%}
+{%- for v in product.variants -%}
+  {%- liquid
+    assign is_show_preorder = false
+    if is_apply_preorder
+      if settings.preorder_show == 'yes'
+        if v.inventory_management == null
+          assign is_show_preorder = true
+        elsif v.inventory_quantity > 0
+          assign is_show_preorder = true
+        elsif v.inventory_policy == 'continue' and v.inventory_management != null
+          assign is_show_preorder = true
+        endif
+      elsif settings.preorder_show == 'on_back_ordered'
+        if v.inventory_policy == 'continue' and v.inventory_quantity < 1 and v.inventory_management != null
+          assign is_show_preorder = true
+        endif
+      endif
+    endif
+
+    assign inventory_status = ''
+    assign inventory_text = ''
+
+    if is_show_preorder
+      assign inventory_status = 'pre-order'
+      assign inventory_text = settings.pre_order_status_label
+      if inventory_text == blank
+        assign inventory_text = 'products.product.inventory_status.in_stock' | t
+      endif
+    elsif v.inventory_management != 'shopify'
+      assign inventory_status = 'in-stock'
+      assign inventory_text = 'products.product.inventory_status.in_stock' | t
+    elsif v.inventory_quantity > 0
+      if v.inventory_quantity <= low_stock_threshold
+        assign inventory_status = 'low-stock'
+        assign inventory_text = low_stock_message
+        if inventory_text != blank
+          assign inventory_text = inventory_text | replace: '{qty}', v.inventory_quantity
+        else
+          assign inventory_text = 'products.product.inventory_status.low_stock' | t
+        endif
+      else
+        assign inventory_status = 'in-stock'
+        assign inventory_text = in_stock_message
+        if inventory_text != blank
+          assign inventory_text = inventory_text | replace: '{qty}', v.inventory_quantity
+        else
+          assign inventory_text = 'products.product.inventory_status.in_stock' | t
+        endif
+      endif
+    elsif v.inventory_policy == 'continue'
+      assign inventory_status = 'out-of-stock-continue-selling'
+      assign inventory_text = settings.out_of_stock_continue_selling_label
+      if inventory_text == blank
+        assign inventory_text = 'products.product.inventory_status.out_of_stock_continue_selling' | t
+      endif
+    else
+      assign inventory_status = 'out-of-stock'
+      assign inventory_text = 'products.product.inventory_status.out_of_stock' | t
+    endif
+  -%}
+  {%- liquid
+    if v.unit_price_measurement
+      if settings.currency_code_enable
+        assign v_unit_price_str = v.unit_price | money_with_currency
+      else
+        assign v_unit_price_str = v.unit_price | money
+      endif
+      assign v_unit_price_str = v_unit_price_str | unit_price_with_measurement: v.unit_price_measurement
+    else
+      assign v_unit_price_str = ''
+    endif
+  -%}
+  {%- comment -%}
+    Volume pricing only. Bulk order states the quantity rule in the open under each quantity box
+    (`ruleSummary()`), so repeating it inside the tooltip said the same thing twice — and it means a
+    variant with a rule but no price breaks gets no info icon at all, which is right: there would be
+    nothing in the popup the row does not already show.
+  {%- endcomment -%}
+  {%- capture v_tooltip_html -%}{%- render 'quantity-rule-tooltip', variant: v, product: product, login_hide_price: price_hidden, disabled_rule_note: true, rtl: is_rtl -%}{%- endcapture -%}
+  {%- assign v_tooltip_html = v_tooltip_html | strip -%}
+  {%- comment -%}
+    Ceiling = the quantity rule's max and nothing else. Folding inventory in here made every
+    stock-tracked variant look like it carried a "Max: <stock>" rule in `ruleSummary()` and
+    snapped a typed quantity back to the stock level; stock is reported by the inventory cell
+    (`inventoryStatus` / `inventoryText`) and enforced by Shopify at add-to-cart.
+  {%- endcomment -%}
+  {
+    "variantId": "{{ v.id }}",
+    "productId": {{ product.id }},
+    "hasMultipleVariants": {% if product.variants.size > 1 %}true{% else %}false{% endif %},
+    "handle": {{ product.handle | json }},
+    "url": {{ product.url | json }},
+    "productTitle": {{ product.title | json }},
+    "variantTitle": {% if v.title != 'Default Title' %}{{ v.title | json }}{% else %}""{% endif %},
+    "sku": {{ v.sku | default: '' | json }},
+    "image": {{ v.featured_image.src | default: product.featured_media.preview_image.src | default: '' | json }},
+    "productImage": {{ product.featured_media.preview_image.src | default: '' | json }},
+    "price": {{ v.price }},
+    "compareAtPrice": {{ v.compare_at_price | default: 0 }},
+    "quantityMin": {{ v.quantity_rule.min | default: 1 }},
+    "available": {{ v.available }},
+    "unitPrice": {{ v_unit_price_str | json }},
+    "priceHidden": {{ price_hidden }},
+    "isPreorder": {{ is_show_preorder }},
+    "inventoryStatus": {{ inventory_status | json }},
+    "inventoryText": {{ inventory_text | json }},
+    "min": {{ v.quantity_rule.min | default: 1 }},
+    "max": {{ v.quantity_rule.max | default: 'null' }},
+    "increment": {{ v.quantity_rule.increment | default: 1 }},
+    "priceBreaks": [{%- for pb in v.quantity_price_breaks -%}{ "minimumQuantity": {{ pb.minimum_quantity }}, "price": {{ pb.price }} }{%- unless forloop.last -%},{%- endunless -%}{%- endfor -%}],
+    "tooltipHtml": {{ v_tooltip_html | json }},
+    "isSingleVariant": {% if product.variants.size == 1 %}true{% else %}false{% endif %}
+  }{%- unless forloop.last -%},{%- endunless -%}
+{%- endfor -%}

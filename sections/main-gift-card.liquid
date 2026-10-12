@@ -1,0 +1,36 @@
+<div class="gift-card-image w-full h-fulln max-w-[500px] mx-auto">
+  {% if section.settings.image == blank %}
+    <img
+      src="{{ 'gift-card/card.svg' | shopify_asset_url }}"
+      alt=""
+      class="ml-auto mr-auto"
+      height="{{ 500 | divided_by: 1.5 }}"
+      width="500"
+      loading="lazy"
+    >
+  {% else %}
+    {%- capture sizes -%}
+      (min-width: 768px) 700px, 500px
+    {%- endcapture -%}
+    {% render "image"
+      img: section.settings.image,
+      img_class: "mx-auto rounded-corners",
+      alt: section.settings.image.alt,
+      eager_loading: true,
+      img_width: 768,
+      sizes: sizes
+    %}
+  {% endif %}
+</div>
+{% schema %}
+{
+  "name": "t:main_gift_card.name",
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:global.image.image"
+    }
+  ]
+}
+{% endschema %}

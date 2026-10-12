@@ -1,0 +1,282 @@
+{% style %}
+  .section--{{ section.id }} {
+    padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+    padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+  }
+  @media (min-width: 768px) {
+    .section--{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+{% endstyle %}
+<div
+  class="section--{{ section.id }} px-4"
+  x-data="{ currentTab: 'login' }"
+  x-init="
+    () => {
+      if (window.location.href.includes('#recover')) {
+        currentTab = 'recover';
+      }
+    }
+  "
+>
+  <div
+    id="recover"
+    x-show="currentTab == 'recover'"
+    x-cloak
+    x-data="{ email: '', error: validateEmail('') }"
+  >
+    <h1
+      class="h2 text-center mb-1.5 outline-none anm-fade-element" data-fade-on-intersect
+      tabindex="-1"
+    >
+      {{ 'customer.recover_password.title' | t }}
+    </h1>
+    <div>
+      <p class="text-center mb-5 md:mb-7.5 anm-fade-element" data-fade-on-intersect>
+        {{ 'customer.recover_password.subtext' | t }}
+      </p>
+      {%- form 'recover_customer_password', class: 'mx-auto max-w-[600px]' -%}
+        <div 
+          id="RecoverEmail-{{ section.id }}__validation"
+          class="flash-message error-message mb-1"
+          x-show="error.isError === true && error.isInvalid === true"
+          x-cloak
+        >
+          <p>{{ 'products.product.recipient.message_email_invalid' | t }}</p>
+        </div>
+        {% assign recover_success = form.posted_successfully? %}
+        <div class="text-field__wrapper{% if form.errors %} color-outline-[rgba(var(--error-message-color))]{% endif %}">
+          <input
+            type="email"
+            id="RecoverEmail"
+            class="text-field__input"
+            value=""
+            name="email"
+            autocorrect="off"
+            autocapitalize="off"
+            autocomplete="email"
+            aria-required="true"
+            required="required"
+            x-model="email"
+            @input.debounce.500ms="error = validateEmail(email)"
+            {% if form.errors %}
+              aria-invalid="true"
+              aria-describedby="RecoverEmail-email-error"
+              autofocus
+            {% endif %}
+            placeholder="{{ 'customer.login_page.email' | t }}"
+          >
+          <label
+            for="RecoverEmail"
+            class="text-field__label"
+          >
+            {{ 'customer.login_page.email' | t }}
+          </label>
+        </div>
+        {%- if form.errors -%}
+          <small
+            id="RecoverEmail-email-error"
+            class="block w-full max-w-[600px] mr-auto ml-auto text-normal"
+          >
+            <span class="mr-1 rtl:ml-1 rtl:mr-0">{% render 'icon-all', icon: 'icon-error', enable_customer_page: true %}</span>
+            {{ form.errors.messages.form }}
+          </small>
+        {%- endif -%}
+        <div class="flex justify-center">
+          <custom-button>
+            <button class="button button-primary w-full block mr-auto ml-auto mt-5 md:mt-[30px] max-w-[600px] pt-2.5 pb-2.5 md:pt-3 md:pb-3 leading-normal mb-2.5" :disabled="error.isError === true">
+              {% assign button_label = 'customer.login_page.submit' | t %}
+              {% render 'button-label', button_label: button_label, show_button_style: 'primary' %}
+            </button>
+          </custom-button>
+        </div>
+        <div class="w-full max-w-[600px] mr-auto ml-auto text-center">
+          <a
+            class="not-icon inline-block"
+            href="#login"
+            @click.prevent="currentTab = 'login'"
+            data-no-instant
+          >
+            <span class="text-link">{{ 'customer.login_page.cancel' | t }}</span>
+          </a>
+        </div>
+      {%- endform -%}
+    </div>
+  </div>
+  <div
+    id="login"
+    x-show="currentTab == 'login'"
+    x-cloak
+    x-data="{ email: '', error: validateEmail('') }"
+  >
+    <h1
+      class="h2 text-center mb-5 md:mb-[30px] anm-fade-element" data-fade-on-intersect
+      tabindex="-1"
+    >
+      {{ 'customer.login_page.title' | t }}
+    </h1>
+    <div>
+      {%- if recover_success == true -%}
+        <div class="flex items-center text-center max-w-[600px] px-2.5 md:px-4 text-x-small py-2.5 mb-5 ml-auto mr-auto message-success focus:shadown-none focus-visible:outline-none focus:outline-none focus-visible:shadow-none">
+          <p
+            class="outline-none z-10 anm-fade-element" data-fade-on-intersect
+            tabindex="-1"
+            autofocus
+          >
+            {{ 'customer.recover_password.success' | t }}
+          </p>
+        </div>
+      {%- endif -%}
+      {%- form 'customer_login', class: 'mx-auto max-w-[600px]' -%}
+        {%- if form.errors -%}
+          <div class="flash-message error-message w-full mb-4 flex flex-wrap items-center pt-3.5 pb-3.5 focus:shadown-none focus-visible:outline-none focus:outline-none focus-visible:shadow-none">
+            {% render 'icon-all', icon: 'icon-error', enable_customer_page: true %}
+            <h2
+              class="text-large outline-none z-10 ml-2"
+              tabindex="-1"
+              autofocus
+            >
+              {{ 'templates.contact.form.error_heading' | t }}
+            </h2>
+            <ul class="w-full pl-12">
+              <li class="list-disc">
+                {{ 'templates.contact.form.error_login' | t }}
+              </li>
+            </ul>
+          </div>
+        {%- endif -%}
+        <div 
+          id="LoginEmail-{{ section.id }}__validation"
+          class="flash-message error-message mb-1"
+          x-show="error.isError === true && error.isInvalid === true"
+          x-cloak
+        >
+          <p>{{ 'products.product.recipient.message_email_invalid' | t }}</p>
+        </div>
+        <div class="text-field__wrapper mb-2.5{% if form.errors contains 'form' %} color-outline-[rgba(var(--error-message-color))]{% endif %}">
+          <input
+            id="CustomerEmail"
+            class="text-field__input"
+            type="email"
+            name="customer[email]"
+            autocomplete="email"
+            autocorrect="off"
+            autocapitalize="off"
+            aria-required="true"
+            required="required"
+            x-model="email"
+            @input.debounce.500ms="error = validateEmail(email)"
+            {% if form.errors contains 'form' %}
+              aria-invalid="true"
+            {% endif %}
+            placeholder="{{ 'customer.login_page.email' | t }}"
+          >
+          <label
+            for="CustomerEmail"
+            class="text-field__label"
+          >
+            {{ 'customer.login_page.email' | t }}
+          </label>
+        </div>
+        {%- if form.password_needed -%}
+          <div class="text-field__wrapper mb-2.5{% if form.errors contains 'form' %} color-outline-[rgba(var(--error-message-color))]{% endif %}">
+            <input
+              id="CustomerPassword"
+              class="text-field__input"
+              type="password"
+              value=""
+              name="customer[password]"
+              autocomplete="off"
+              aria-required="true"
+              required="required"
+              {% if form.errors contains 'form' %}
+                aria-invalid="true"
+              {% endif %}
+              placeholder="{{ 'customer.login_page.password' | t }}"
+            >
+            <label
+              for="CustomerPassword"
+              class="text-field__label"
+            >
+              {{ 'customer.login_page.password' | t }}
+            </label>
+          </div>
+          <div class="flex w-full rtl:text-right">
+            <a
+              class="relative text-small inline-block"
+              href="#recover"
+              @click.prevent="currentTab = 'recover'"
+              data-no-instant
+            >
+              <span class="text-link">{{ 'customer.login_page.forgot_password' | t }}</span>
+            </a>
+          </div>
+        {%- endif -%}
+        <div class="w-full flex justify-center">
+          <custom-button>
+            <button class="button button-primary w-full block py-2.5 md:py-3 leading-normal mt-5 md:mt-[30px] mb-2.5 rounded-corners-md" :disabled="error.isError === true">
+              {% assign button_label = 'customer.login_page.sign_in' | t %}
+              {% render 'button-label', button_label: button_label, show_button_style: 'primary' %}
+            </button>
+          </custom-button>
+        </div>
+        <div class="block w-full mb-2.5 text-center">
+          <a
+            class="inline-block"
+            href="{{ routes.account_register_url }}"
+            data-no-instant
+          >
+            <span class="text-link">{{ 'customer.login_page.create_account' | t }}</span>
+          </a>
+        </div>
+      {%- endform -%}
+    </div>
+    {%- if shop.checkout.guest_login -%}
+      <div>
+        <hr>
+        <h2 class="text-center anm-fade-element" data-fade-on-intersect>{{ 'customer.login_page.guest_title' | t }}</h2>
+        {%- form 'guest_login' -%}
+          <custom-button>
+            <button class="button button-primary w-full !block mr-auto ml-auto max-w-[600px] pt-2.5 pb-2.5 md:pt-3 md:pb-3 mt-6 md:mt-9 mb-5 leading-normal rounded-corners-md">
+              {% assign button_label = 'customer.login_page.guest_continue' | t %}
+              {% render 'button-label', button_label: button_label, show_button_style: 'primary' %}
+            </button>
+          </custom-button>
+        {%- endform -%}
+      </div>
+    {%- endif -%}
+  </div>
+</div>
+{% schema %}
+{
+  "name": "t:main_login.name",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.top_padding",
+      "default": 52
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.bottom_padding",
+      "default": 52
+    }
+  ]
+}
+{% endschema %}

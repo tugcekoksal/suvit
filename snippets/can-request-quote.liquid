@@ -1,0 +1,29 @@
+{% doc %}
+  Resolves whether the Request-for-quote entry points may render for the current customer.
+  Returns the string 'true' or 'false' — capture it and compare, the same way callers use
+  `can-view-price` / `can-hide-price`:
+
+    {%- capture can_request_quote -%}{%- render 'can-request-quote' -%}{%- endcapture -%}
+    {%- assign can_request_quote = can_request_quote | strip -%}
+    {%- if can_request_quote == 'true' -%}...{%- endif -%}
+
+  Two gates, both required:
+  - the merchant turned `Request for quote` on in Theme settings > B2B features;
+  - the visitor is a B2B customer.
+
+  `customer.b2b?` is the only membership test here on purpose. The tag fallback in
+  `can-view-price` exists so a merchant can grant *price visibility* to non-B2B customers, but a
+  quote request submits a real B2B enquiry — a tag alone should not open it. Collection order
+  view is the one place the spec wants quote requests for customers who are NOT yet approved
+  (`customer.b2b?` is false for them); that surface needs its own gate and must not reuse this
+  snippet.
+
+  Takes no parameters — the answer is customer-wide, not per-product.
+{% enddoc %}
+{%- liquid
+  assign can_request_quote = false
+  if settings.request_for_quote and customer != blank and customer.b2b?
+    assign can_request_quote = true
+  endif
+-%}
+{{- can_request_quote -}}

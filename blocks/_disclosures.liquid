@@ -1,0 +1,282 @@
+{% assign block_settings = block.settings %}
+{%- assign disclosures = closest.product.metafields.shopify.disclosure.value -%}
+{% if disclosures != blank %}
+  {% style %}
+    .block-{{ block.id }} {
+      --pad-top: {{ block_settings.desktop_padding_top }}px;
+      --pad-bottom: {{ block_settings.desktop_padding_bottom }}px;
+      --pad-left: {{ block_settings.desktop_padding_left }}px;
+      --pad-right: {{ block_settings.desktop_padding_right }}px;
+      --pad-top-m: {{ block_settings.mobile_padding_top }}px;
+      --pad-bottom-m: {{ block_settings.mobile_padding_bottom }}px;
+      --pad-left-m: {{ block_settings.mobile_padding_left }}px;
+      --pad-right-m: {{ block_settings.mobile_padding_right }}px;
+    }
+
+    .disclosure-container__wrapper__{{ block.id }} {
+      padding: {{ block_settings.inner_padding_vertical_mobile }}px {{ block_settings.inner_padding_horizontal_mobile }}px;
+    }
+
+    @media screen and (min-width: 768px) {
+      .disclosure-container__wrapper__{{ block.id }} {
+        padding: {{ block_settings.inner_padding_vertical_desktop }}px {{ block_settings.inner_padding_horizontal_desktop }}px;
+      }
+    }
+  {% endstyle %}
+  <div
+    class="block-disclosure block-padding block-{{ block.id }} maximize-block w-full h-full z-10{% if settings.edges_type == 'rounded_corners' %} rounded-corners{% endif %} color-{{ block_settings.color_scheme_light }} dark-color-{{ block_settings.color_scheme_dark }}"
+    {{ block.shopify_attributes }}
+  >
+    <div class="disclosure-container__wrapper__{{ block.id }}{% if settings.edges_type == 'rounded_corners' %} rounded-corners{% endif %}{%- if block_settings.show_border %} border border-solid color-border-[rgba(var(--color-text),0.12)]{% endif %}" >
+      {% render 'disclosures', block: block, product: closest.product  %}
+    </div>
+  </div>
+{% endif %}
+{% schema %}
+{
+  "name": "t:main_product.blocks.disclosures.name",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "t:main_product.blocks.disclosures.paragraph_1"
+    },
+    {
+      "type": "header",
+      "content": "t:product_labels_badges.blocks.sale_label.settings.display.header"
+    },
+    {
+      "type": "select",
+      "id": "display_style",
+      "label": "t:main_product.blocks.disclosures.settings.display_style.name",
+      "options": [
+        {
+          "value": "tab",
+          "label": "t:main_product.blocks.disclosures.settings.display_style.option_1"
+        },
+        {
+          "value": "drawer",
+          "label": "t:main_product.blocks.disclosures.settings.display_style.option_2"
+        }
+      ],
+      "default": "tab"
+    },
+    {
+      "type": "checkbox",
+      "id": "open_by_default",
+      "default": false,
+      "label": "t:main_product.blocks.description.open_by_default",
+      "visible_if": "{{ block.settings.display_style == 'tab' }}"
+    },
+    {
+      "type": "header",
+      "content": "Inner Spacing"
+    },
+    {
+      "type": "select",
+      "id": "device_inner_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_vertical_desktop",
+      "label": "Inner vertical",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 8,
+      "visible_if": "{{ block.settings.device_inner_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_horizontal_desktop",
+      "label": "Inner horizontal",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 8,
+      "visible_if": "{{ block.settings.device_inner_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_vertical_mobile",
+      "label": "Inner vertical",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 8,
+      "visible_if": "{{ block.settings.device_inner_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "inner_padding_horizontal_mobile",
+      "label": "Inner horizontal",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 8,
+      "visible_if": "{{ block.settings.device_inner_padding == 'mobile' }}"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "select",
+      "id": "device_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "header",
+      "content": "Style"
+    },
+    {
+      "type": "checkbox",
+      "id": "use_secondary_background",
+      "label": "t:main_product.blocks.collapsible_tab.settings.use_secondary_background",
+      "default": true,
+      "visible_if": "{{ block.settings.display_style == 'tab' }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_border",
+      "label": "t:product_details.blocks.rich_text.show_border",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:main_product.blocks.disclosures.name",
+      "category": "t:global.product.product"
+    }
+  ]
+}
+{% endschema %}

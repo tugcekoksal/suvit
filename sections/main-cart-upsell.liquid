@@ -1,0 +1,293 @@
+{%- liquid
+  assign show_quick_view = false
+  if section.settings.show_quick_view
+    assign show_quick_view = true
+  endif
+  assign show_vendor = section.settings.show_vendor
+  assign show_rating = section.settings.show_product_rating
+  assign number_of_columns_on_tablet = 2 
+-%}
+
+{% liquid
+  assign first_cart_item = cart.items | first
+  assign product_id = first_cart_item.product.id
+%}
+
+<div
+  id="MainCartUpsell"
+>
+  {%- if cart != empty -%}
+    {% style %}
+      .section--{{ section.id }} {
+        padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+        padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+      }
+      @media (min-width: 768px) {
+        .section--{{ section.id }} {
+          padding-top: {{ section.settings.padding_top }}px;
+          padding-bottom: {{ section.settings.padding_bottom }}px;
+        }
+      }
+    {% endstyle %}
+    <div
+      class="section--{{ section.id }} {% if template == 'cart' %} border-t{% endif %}"
+      x-init="$store.xProductRecommendations.updateCartUpsellWhenCartChanged('{{ section.id }}')"
+    >
+      {%- if settings.cart_upsell_section_label != blank -%}
+        <div class="main-cart-upsell__heading heading-content-spacing page-width mx-auto hidden">
+          <{{ section.settings.heading_tag }}
+            class="text-center h2 anm-fade-element"
+            data-fade-on-intersect
+          >
+            {{ settings.cart_upsell_section_label }}
+          </{{ section.settings.heading_tag }}>
+        </div>
+      {%- endif -%}
+      <div
+        class="page-width"
+      >
+        <div
+          id="MainCartUpsell-{{ section.id }}"
+          class="swiffy-slider slider-item-show{{ number_of_columns_on_tablet }} lg:slider-item-show{{ section.settings.number_of_columns_on_desktop }} slider-item-snapstart slider-nav-animation slider-nav-animation-fadein enable-effect-hover"
+          x-intersect.once.enter="$store.xProductRecommendations.load($el, '{{ section.id }}', '{{ product_id }}', 10, 'related')"
+          data-max-items="{{ settings.cart_upsell_number_of_product_shown }}"
+          data-swiffy-config="
+            {
+              'effect': 'slide',
+              'mediaQuery': 'min',
+              'isLoop': false,
+              'breakPoints': {
+                '0': {
+                  'slidesPerView': {{ number_of_columns_on_tablet }}
+                },
+                '1024': {
+                  'slidesPerView': {{ section.settings.number_of_columns_on_desktop }}
+                }
+              }
+            }"
+        >
+          {% render 'slider-navigation-button' %}
+          <div
+            id="MainCartUpsell"
+            class="main-cart-upsell__container slider-container anm-reveal-container pt-0.5 hidden"
+            x-intersect.once="document.dispatchEvent(new CustomEvent('maximize:animation:reveal'));"
+            style="--swiffy-slider-item-gap: 16px"
+          >
+            {%- liquid
+              assign product_count = 0
+              assign product_ids = cart.items | map: 'product_id' | uniq | join: ', ' | append: ','
+              assign max_items = settings.cart_upsell_number_of_product_shown
+              assign disable_badges = false
+              if section.settings.show_label_badges == false
+                assign disable_badges = true
+              endif
+
+              for item in cart.items
+                if item.product.metafields.cart.upsell.value.count > 0
+                  for prod in item.product.metafields.cart.upsell.value
+                    if prod.available
+                      assign product_id = prod.id | append: ','
+                      unless product_ids contains product_id
+                        assign product_ids = product_ids | append: product_id
+                        assign product_count = product_count | plus: 1
+                        echo '<div class="main-cart-upsell__item cart-upsell__item upsell-item__metafields product-card slide-item">'
+                        render 'product-card', product: prod, show_vendor: show_vendor, show_rating: show_rating, show_quickview: show_quick_view, secion_id: section.id, columns_desktop: section.settings.number_of_columns_on_desktop, column_mobile: 2, index: forloop.index, disable_badges: disable_badges, show_b2b_price_label: section.settings.show_b2b_price_label, view_context: "recommendation"
+                        echo '</div>'
+                      endunless
+                    endif
+                    if product_count >= max_items
+                      break
+                    endif
+                  endfor
+                endif
+              endfor
+              if product_count < max_items
+                for prod in settings.cart_upsell_product_list
+                  if prod.available
+                    assign product_id = prod.id | append: ','
+                    unless product_ids contains product_id
+                      assign product_ids = product_ids | append: product_id
+                      assign product_count = product_count | plus: 1
+                      echo '<div class="main-cart-upsell__item cart-upsell__item upsell-item__product-list product-card slide-item">'
+                      render 'product-card', product: prod, show_vendor: show_vendor, show_rating: show_rating, show_quickview: show_quick_view, secion_id: section.id, columns_desktop: section.settings.number_of_columns_on_desktop, column_mobile: 2, index: forloop.index, disable_badges: disable_badges, show_b2b_price_label: section.settings.show_b2b_price_label, view_context: "recommendation"
+                      echo '</div>'
+                    endunless
+                  endif
+                  if product_count >= max_items
+                    break
+                  endif
+                endfor
+              endif
+            -%}
+            {% if product_count < max_items %}
+              <div
+                class="product-recommendations anm-reveal-container cart-upsell__product-recommendations hidden"
+              >
+                {% if recommendations.performed and recommendations.products_count > 0 %}
+                  {% for recommendation in recommendations.products %}
+                    {% assign product_id = recommendation.id | append: ',' %}
+                    {% unless product_ids contains product_id %}
+                      <div
+                        class="main-cart-upsell__item cart-upsell__item upsell-item__recommendation product-card slide-item"
+                        x-intersect.once="document.dispatchEvent(new CustomEvent('maximize:animation:reveal'));"
+                      >
+                        {% render 'product-card', 
+                          product: recommendation, 
+                          show_vendor: show_vendor, 
+                          show_rating: show_rating, 
+                          show_quickview: show_quick_view, 
+                          section_id: section.id, 
+                          columns_desktop: section.settings.number_of_columns_on_desktop, 
+                          column_mobile: 1, 
+                          index: forloop.index,
+                          disable_badges: disable_badges,
+                          show_b2b_price_label: section.settings.show_b2b_price_label,
+                          view_context: "recommendation"
+                        %}
+                      </div>
+                      {% liquid
+                        assign product_ids = product_ids | append: product_id
+                        assign product_count = product_count | plus: 1
+                      %}
+                    {% endunless %}
+                    {% liquid
+                      if product_count >= max_items
+                        break
+                      endif
+                    %}
+                  {% endfor %}
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
+          {% assign class_progress_bar = '' %}
+          {% if product_count <= number_of_columns_on_tablet %}
+            {% assign class_progress_bar = '!hidden' %}
+          {% endif %}
+          {% render 'progress-bar',
+            show_on_tablet: true,
+            show_on_desktop: false,
+            show_on_mobile: true,
+            container_class: class_progress_bar
+          %}
+        </div>
+      </div>
+    </div>
+  {%- endif -%}
+</div>
+<script
+    src="{{ 'product-recommendations.js' | asset_url }}"
+    defer
+></script>
+{% schema %}
+{
+  "name": "t:main_cart_upsell.name",
+  "class": "maximize-section main-cart-upsell",
+  "settings": [
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "default": "h2",
+      "label": "t:global.text.heading_tag",
+      "options": [
+        {
+          "value": "h1",
+          "label": "H1"
+        },
+        {
+          "value": "h2",
+          "label": "H2"
+        },
+        {
+          "value": "h3",
+          "label": "H3"
+        },
+        {
+          "value": "h4",
+          "label": "H4"
+        },
+        {
+          "value": "h5",
+          "label": "H5"
+        },
+        {
+          "value": "h6",
+          "label": "H6"
+        },
+        {
+          "value": "p",
+          "label": "p"
+        }
+      ]
+    },
+    {
+      "type": "range",
+      "id": "number_of_columns_on_desktop",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "default": 4,
+      "label": "t:global.section.number_of_columns_on_desktop"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.product_cards"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_vendor",
+      "default": true,
+      "label": "t:global.product.show_vendor"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_product_rating",
+      "default": false,
+      "info": "t:global.product.show_product_rating_info",
+      "label": "t:global.product.show_product_rating"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_quick_view",
+      "default": true,
+      "label": "t:global.product.show_quick_view_button"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_label_badges",
+      "label": "t:product_comparison_grid.settings.grid.show_label",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_b2b_price_label",
+      "default": true,
+      "label": "t:settings.products.settings.login_to_view_price.show_b2b_price_label"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.top_padding",
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.bottom_padding",
+      "default": 28
+    }
+  ]
+}
+{% endschema %}

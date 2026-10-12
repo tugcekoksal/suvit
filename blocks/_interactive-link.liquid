@@ -1,0 +1,353 @@
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block.settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block.settings.desktop_padding_left }}px;
+    --pad-right: {{ block.settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+  }
+{% endstyle %}
+{% if block.settings.link_text != blank %}
+  {% capture content_for_blocks %} 
+    {% content_for 'blocks' %}
+  {% endcapture %}
+  <div 
+    class="block-interactive block-{{ block.id }} block-padding maximize-block w-full anm-fade-element"
+    data-fade-on-intersect
+    data-block-id="{{ block.id }}" 
+    {% if block.settings.behavior == 'drawer' %}
+      x-data="xProductDrawer"
+    {% else %}
+      x-data="{ isOpenPopup: false }" 
+    {% endif %}
+    {{ block.shopify_attributes }}
+  >
+    {% liquid
+      assign show_button_style = block.settings.link_style
+      if block.settings.link_style == 'link'
+        assign show_button_style = 'text-link'
+      endif
+    %}
+    <custom-button>
+      <a
+        id="PopupLink__OpenButton"
+        class="button button-{{ block.settings.link_style }} relative cursor-pointer
+          {%- if block.settings.link_style != 'link' %} inline-flex items-center{% else %} button-no-padding anm-button-{{ settings.button_link_hover_animation -}}{% endif -%}
+          {%- if block.settings.link_style == 'direction_link' %} direction_link button-no-padding anm-button-arrow_push{% endif -%}
+          {%- if block.blocks.size == 0 %} pointer-events-none{% endif -%}"
+        role="button"
+        tabindex="0"
+        {% if block.blocks.size > 0 %}
+          {% if block.settings.behavior == 'drawer' %}
+            @click.prevent="openDrawer('#BlockInteractive__{{ block.id }}')"
+            @keyup.enter="openDrawer('#BlockInteractive__{{ block.id }}')"
+          {% else %}
+            @click="isOpenPopup = true; $store.xMaximizePopup.handleOpen();"
+            @keyup.enter="$el.click()"
+          {% endif %}
+        {% endif %}
+      >
+        {% render 'button-label', button_label: block.settings.link_text, show_button_style: show_button_style %}
+      </a>
+    </custom-button>
+    <template x-teleport="body">
+      {% if block.settings.behavior == 'drawer' %}
+        <div
+          id="BlockInteractive__{{ block.id }}"
+          class="block-interactive__drawer drawer__wrapper"
+          x-show="isShowDrawer"
+          tabindex="0"
+          x-cloak
+          style="background: transparent;"
+        >
+          <div
+            id="PopupLink__Overlay__{{ block.id }}"
+            class="drawer__overlay"
+            x-show="isShowDrawer"
+            @click.prevent="closeDrawer(true)"
+          ></div>
+          <div
+            x-show="isShowDrawer"
+            class="block-interactive__container drawer__container outline-none"
+            tabindex="0"
+            x-cloak
+            x-transition:enter-start="opacity-0 transform translate-y-full md:translate-y-0 rtl:md:-translate-x-1/3 ltr:md:translate-x-1/3"
+            x-transition:enter-end="opacity-100 transform translate-y-0 md:translate-x-0"
+            x-transition:leave-end="opacity-0 transform translate-y-full md:translate-y-0 rtl:md:-translate-x-1/3 ltr:md:translate-x-1/3"
+            x-intersect.full="$store.xFocusElement.trapFocus('BlockInteractive__{{ block.id }}', 'block-interactive-close-{{ block.id }}')"
+            @keyup.escape="closeDrawer(false)"
+          >
+            <div class="modal-title-container modal-title-padding-x pb-1 md:pb-2 flex justify-end">
+              <button
+                id="block-interactive-close-{{ block.id }}"
+                @click="closeDrawer(false)"
+                @keyup.enter.prevent="isOpenPopup = false; $store.xMaximizeDrawer.handleClose(); $store.xFocusElement.removeTrapFocus();"
+                @keydown.enter.prevent
+                class="modal-title__button-close block-interactive__btn-close"
+              >
+                <span class="button__close icon-close-large-desktop icon-close-large-mobile">{%- render 'icon-all', icon: 'icon-close' -%}</span>
+              </button>
+            </div>
+            <div class="block-interactive__content drawer__content scrollbar-body scrollbar-visible">
+              {{ content_for_blocks }}
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div
+          id="BlockInteractive__{{ block.id }}"
+          class="block-interactive__popup popup-container"
+          x-show="isOpenPopup"
+          tabindex="0"
+          x-cloak
+        >
+          <div
+            @click.away="isOpenPopup = false; $store.xMaximizePopup.handleClose();"
+            class="popup-content{% unless settings.show_popup_overlay %} shadow-large{% endunless %} px-0 block-interactive__content transform-gpu md:max-h-[calc(100vh-16px)] m-auto rounded-[var(--border-radius-popup)] pb-4 md:pb-7.5 will-change-transform"
+            tabindex="0"
+            x-transition:enter-start="opacity-0 translate-y-1/3"
+            x-transition:enter-end="opacity-100 translate-y-0"
+            x-transition:leave-end="opacity-0 translate-y-1/3"
+            x-intersect.full="$store.xFocusElement.trapFocus('BlockInteractive__{{ block.id }}', 'block-interactive-close-{{ block.id }}')"
+            x-show="isOpenPopup"
+            @keyup.escape="$store.xMaximizePopup.handleClose(); isOpenPopup = false;"
+          >
+            <button
+              id="block-interactive-close-{{ block.id }}"
+              @click="$store.xMaximizePopup.handleClose(); isOpenPopup = false;"
+              class="modal__button-close mb-2 md:mb-4"
+            >
+              <span class="button__close icon-close-large-desktop icon-close-large-mobile">{%- render 'icon-all', icon: 'icon-close' -%}</span>
+            </button>
+            <div class="w-full popup-detail scrollbar-body scrollbar-visible px-4 md:px-7.5 mr-0 max-h-[calc(75vh-96px)] md:max-h-[85vh] 2xl:max-h-[77vh]">
+              {{ content_for_blocks }}
+            </div>
+            <div
+              class="element-end-modal h-0 w-0 absolute pointer-events-none"
+              tabindex="0"
+              @focus="document.getElementById('block-interactive-close-{{ block.id }}')?.focus()">
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </template>
+  </div>
+{% endif %}
+{% schema  %}
+{
+  "name": "t:main_product.blocks.custom_html_block.name",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:global.text.link"
+    },
+    {
+      "type": "text",
+      "id": "link_text",
+      "default": "Learn more",
+      "label": "t:global.text.text"
+    },
+    {
+      "type": "select",
+      "id": "link_style",
+      "label": "t:main_product.blocks.popup_link.settings.link_style",
+      "options": [
+        {
+          "value": "primary",
+          "label": "t:global.button.style.primary"
+        },
+        {
+          "value": "secondary",
+          "label": "t:global.button.style.secondary"
+        },
+        {
+          "value": "link",
+          "label": "t:global.button.style.text_link"
+        },
+        {
+          "value": "direction_link",
+          "label": "t:global.button.style.direction_link"
+        }
+      ],
+      "default": "link"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.style"
+    },
+    {
+      "type": "select",
+      "id": "behavior",
+      "label": "t:global.blocks.behavior",
+      "options": [
+        {
+          "value": "popup",
+          "label": "t:popup.name"
+        },
+        {
+          "value": "drawer",
+          "label": "t:main_product_grid.settings.filtering_sorting.filter_type.option_1"
+        }
+      ],
+      "default": "popup"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "select",
+      "id": "device_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "image"
+    },
+    {
+      "type": "video"
+    },
+    {
+      "type": "button"
+    },
+    {
+      "type": "heading"
+    },
+    {
+      "type": "icon"
+    },
+    {
+      "type": "text"
+    },
+    {
+      "type": "subheading"
+    },
+    {
+      "type": "page"
+    },
+    {
+      "type": "countdown-timer"
+    },
+    {
+      "type": "counter"
+    },
+    {
+      "type": "_items-list"
+    },
+    {
+      "type": "payment-methods"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:global.blocks.interactive_link",
+      "category": "t:global.blocks.links"
+    }
+  ]
+}
+{% endschema %}

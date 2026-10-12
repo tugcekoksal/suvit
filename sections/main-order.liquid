@@ -1,0 +1,396 @@
+{% liquid 
+if settings.lang_direction contains request.locale.iso_code
+  assign is_rtl = true
+else
+  assign is_rtl = false
+endif
+%}
+{% style %}
+  .section--{{ section.id }} {
+    padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+    padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+  }
+  @media (min-width: 768px) {
+    .section--{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+{% endstyle %}
+<div class="section--{{ section.id }} customer order">
+  <div class="page-width">
+    <div class="flex justify-between items-center md:border-b pb-2.5">
+      <h1 class="h2 anm-fade-element" data-fade-on-intersect>{{ 'customer.account.title' | t }}</h1>
+      <a class="inline-block" href="{{ routes.account_url }}"><span class="text-link">{{ 'customer.account.return' | t }}</span></a>
+    </div>
+    <div class="flex flex-col md:flex-row">
+      <div class="w-full md:w-3/4">
+        <div class="flex justify-between gap-2.5 anm-fade-element" data-fade-on-intersect>
+          <div class="mb-4 md:mb-5">
+            <p class="mt-5 h5 md:mt-7.5 mb-1.5 anm-fade-element" data-fade-on-intersect>{{ 'customer.order.title' | t: name: order.name }}</p>
+            {%- assign order_date = order.created_at | time_tag: format: "date_at_time" -%}
+            <p class="anm-fade-element" data-fade-on-intersect>{{ 'customer.order.date_html' | t: date: order_date }}</p>
+            {%- if order.cancelled -%}
+              {%- assign cancelled_at = order.cancelled_at | time_tag: format: "date_at_time" -%}
+              <p class="anm-fade-element" data-fade-on-intersect>{{ 'customer.order.cancelled_html' | t: date: cancelled_at }}</p>
+              <p class="anm-fade-element" data-fade-on-intersect>{{ 'customer.order.cancelled_reason' | t: reason: order.cancel_reason_label }}</p>
+            {%- endif -%}
+            {% if settings.estimate_show_in_cart == 'show_cart' %}
+              {% liquid
+                assign name_edt = settings.name_edt
+                if settings.name_edt == blank
+                  assign name_edt = 'general.estimate_delivery' | t
+                endif
+              %}
+              {% for attr in order.attributes %}
+                {% if attr.first == name_edt %}
+                  <div class="main-order__edt">{{ attr.last | strip_html | replace: "&lt;", "<" | replace: "&gt;", ">" }}</div>
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+          </div>
+          {% if settings.enable_reorder and settings.hide_cart == false %}
+            <div class="main-order__re-order mt-5 md:mt-7.5 mb-1.5 llex items-center" data-label="Action">
+              {%- render 're-order', itemOrder: order -%}
+            </div>
+          {% endif %}
+        </div>
+        <table class="order-details block order-history w-full border-t md:border-none anm-fade-element" data-fade-on-intersect role="table">
+          <thead class="hidden md:block px-2.5 py-2.5 border-y w-full color-text-[rgba(var(--color-heading))]" role="rowgroup">
+            <tr class="flex justify-between w-full md:gap-7.5 anm-fade-element" data-fade-on-intersect role="row">
+              <th class="w-4/12 h6 px-0 py-0 {% if is_rtl %} text-right {% else %} text-left {% endif %}" id="ColumnProduct" scope="col" role="columnheader">{{ 'customer.order.product' | t }}</th>
+              <th class="w-2/12 h6 px-0 py-0 {% if is_rtl %} text-left {% else %} text-right {% endif %}" id="ColumnSku" scope="col" role="columnheader">{{ 'customer.order.sku' | t }}</th>
+              <th class="w-2/12 h6 px-0 py-0 {% if is_rtl %} text-left {% else %} text-right {% endif %}" id="ColumnPrice" scope="col" role="columnheader">{{ 'customer.order.price' | t }}</th>
+              <th class="w-2/12 h6 px-0 py-0 {% if is_rtl %} text-left {% else %} text-right {% endif %}" id="ColumnQuantity" scope="col" role="columnheader">{{ 'customer.order.quantity' | t }}</th>
+              <th class="w-2/12 h6 px-0 py-0 {% if is_rtl %} text-left {% else %} text-right {% endif %}" id="ColumnTotal" scope="col" role="columnheader">{{ 'customer.order.total' | t }}</th>
+            </tr>
+          </thead>
+          <tbody class="block w-full" role="rowgroup">
+            {%- for line_item in order.line_items -%}
+              <tr class="block md:flex w-full border-b mt-2.5 md:mt-0 md:gap-7.5 px-[5px] md:px-2.5 anm-fade-element" data-fade-on-intersect role="row">
+                <td
+                  id="Row{{ line_item.key }}"
+                  class="w-full md:w-4/12 mb-1.5 md:my-3.5 md:px-0 md:py-0{% if is_rtl %} md:ml-3 before:text-right before:pl-2.5{% else %} md:mr-3 before:text-left before:pr-2.5{% endif %} flex items-center before:content-[attr(data-label)] md:before:content-none before:float-left before:w-full before:max-w-[33%] before:h5"
+                  headers="ColumnProduct"
+                  role="rowheader"
+                  scope="row"
+                  data-label="{{ 'customer.order.product' | t }}"
+                >
+                  <div>
+                    {%- if line_item.url != blank -%}
+                      <a class="lg:hover:color-text-[rgba(var(--color-button-link))]" href="{{ line_item.url }}">{{ line_item.title }}</a>
+                    {%- else -%}
+                      <p>{{ line_item.title }}</p>
+                    {%- endif -%}
+                    {%- assign property_size = line_item.properties | size -%}
+                    {%- unless line_item.selling_plan_allocation == null and property_size == 0 -%}
+                      <div class="properties mt-2.5">
+                        {%- unless line_item.product.has_only_default_variant -%}
+                          <span class="block">
+                            {{ line_item.variant.title }}
+                          </span>
+                        {%- endunless -%}
+                        {%- unless line_item.selling_plan_allocation == null -%}
+                          <span class="block">
+                            {{ line_item.selling_plan_allocation.selling_plan.name }}
+                          </span>
+                        {%- endunless -%}
+                        {%- if property_size != 0 -%}
+                          {%- for property in line_item.properties -%}
+                            {% assign property_first_char = property.first | slice: 0 %}
+                            {%- if property.last != blank and property_first_char != '_' -%}
+                              <span class="block">
+                                {{ property.first }}:&nbsp;
+                                {%- if property.last contains '/uploads/' -%}
+                                  <a href="{{ property.last }}" class="text-link inline-text-link">{{ 'products.product.file' | t }}</a>
+                                {%- else -%}
+                                  {{ property.last }}
+                                {%- endif -%}
+                              </span>
+                            {%- endif -%}
+                          {%- endfor -%}
+                        {%- endif -%}
+                      </div>
+                    {%- endunless -%}
+                    {%- if line_item.line_level_discount_allocations != blank -%}
+                      <ul role="list" aria-label="{{ 'customer.order.discount' | t }}">
+                        {%- for discount_allocation in line_item.line_level_discount_allocations -%}
+                          <li class="flex relative mt-2">
+                            <span class="w-4 absolute top-1/2 -translate-y-1/2{% if is_rtl %} right-0{% else %} left-0{% endif %}">{% render 'icon-all', icon: 'icon-discount' %}</span>
+                            <span class="{% if is_rtl %} pr-5{% else %} pl-5{% endif %} text-normal">{{- discount_allocation.discount_application.title }} (-{% if settings.currency_code_enable %}{{ discount_allocation.amount | money_with_currency }}{% else %}{{ discount_allocation.amount | money }}{% endif %})</span>
+                          </li>
+                        {%- endfor -%}
+                      </ul>
+                    {%- endif -%}
+                    {%- if line_item.fulfillment -%}
+                      <div class="mt-2.5 md:mt-3 flex flex-col border pt-2.5 pr-2.5 pb-2.5 pl-2.5">
+                        {%- assign created_at = line_item.fulfillment.created_at | time_tag: format: 'date' -%}
+                        <span>{{ 'customer.order.fulfilled_at_html' | t: date: created_at }}</span>
+                          {%- if line_item.fulfillment.tracking_url -%}
+                            <a class="mt-2 underline underline-offset-2 lg:hover:color-text-[rgba(var(--color-button-link))]" href="{{ line_item.fulfillment.tracking_url }}">
+                              {{ 'customer.order.track_shipment' | t }}
+                            </a>
+                          {%- endif -%}
+                          <span class="mt-2">
+                            {{ line_item.fulfillment.tracking_company }}
+                            {%- if line_item.fulfillment.tracking_number -%} #{{ line_item.fulfillment.tracking_number }} {%- endif -%}
+                          </span>
+                      </div>
+                    {%- endif -%}
+                  </div>
+                </td>
+                <td
+                  class="w-full md:w-2/12 mb-1.5 md:my-3.5 md:px-0 md:py-0 flex items-center justify-start md:justify-end before:content-[attr(data-label)] md:before:content-none before:float-left before:w-full before:max-w-[33%]  before:h5 {% if is_rtl %} before:text-right before:pl-2.5 md:text-left{% else %} before:text-left before:pr-2.5 md:text-right{% endif %}"
+                  headers="Row{{ line_item.key }} ColumnSku"
+                  role="cell"
+                  data-label="{{ 'customer.order.sku' | t }}"
+                >
+                  {{ line_item.sku }}
+                </td>
+                <td
+                  class="w-full{% if is_rtl %} md:pr-3.5 before:text-right before:pl-2.5 md:text-left{% else %} md:pl-3.5 before:text-left before:pr-2.5 md:text-right{% endif %} md:w-2/12 mb-1.5 md:my-3.5 md:px-0 md:py-0 flex items-center justify-start md:justify-end before:content-[attr(data-label)] md:before:content-none before:float-left before:w-full before:max-w-[33%]  before:h5"
+                  headers="Row{{ line_item.key }} ColumnPrice"
+                  role="cell"
+                  data-label="{{ 'customer.order.price' | t }}"
+                >
+                  {%- if line_item.original_price != line_item.final_price or line_item.unit_price_measurement -%}
+                    <dl>
+                      {%- if line_item.original_price != line_item.final_price -%}
+                        <dd>
+                          <s>
+                            {% if settings.currency_code_enable %}
+                              {{ line_item.original_price | money_with_currency }}
+                            {% else %}
+                              {{ line_item.original_price | money }}
+                            {% endif %}
+                          </s>
+                        </dd>
+                        <dd class="mt-2">
+                          <span>
+                            {% if settings.currency_code_enable %}
+                              {{ line_item.final_price | money_with_currency }}
+                            {% else %}
+                              {{ line_item.final_price | money }}
+                            {% endif %}
+                          </span>
+                        </dd>
+                      {%- else -%}
+                        <dd>
+                          {% if settings.currency_code_enable %}
+                            {{ line_item.original_price | money_with_currency }}
+                          {% else %}
+                            {{ line_item.original_price | money }}
+                          {% endif %}
+                        </dd>
+                      {%- endif -%}
+                      {%- if line_item.unit_price_measurement -%}
+                        <dd>
+                          <span data-unit-price>
+                            {% liquid 
+                              if settings.currency_code_enable
+                                assign unit_price = line_item.unit_price | money_with_currency
+                              else 
+                                assign unit_price = line_item.unit_price | money
+                              endif
+                            %}
+                            {{ unit_price | unit_price_with_measurement: line_item.unit_price_measurement }}
+                          </span>
+                        </dd>
+                      {%- endif -%}
+                    </dl>
+                  {%- else -%}
+                    <span>
+                      {% if settings.currency_code_enable %}
+                        {{ line_item.final_price | money_with_currency }}
+                      {% else %}
+                        {{ line_item.final_price | money }}
+                      {% endif %}
+                    </span>
+                  {%- endif -%}
+                </td>
+                <td
+                  class="w-full{% if is_rtl %} md:pr-3.5 before:text-right before:pl-2.5 text-left{% else %} md:pl-3.5 before:text-left before:pr-2.5 text-right{% endif %} md:w-2/12 mb-1.5 md:my-3.5 md:px-0 md:py-0 flex items-center justify-start md:justify-end before:content-[attr(data-label)] md:before:content-none before:float-left before:w-full before:max-w-[33%]  before:h5"
+                  headers="Row{{ line_item.key }} ColumnQuantity"
+                  role="cell"
+                  data-label="{{ 'customer.order.quantity' | t }}"
+                >
+                  {{ line_item.quantity }}
+                </td>
+                <td
+                  class="w-full md:w-2/12 mb-2.5 md:my-3.5 md:px-0 md:py-0 flex items-center justify-start md:justify-end before:content-[attr(data-label)] md:before:content-none before:float-left before:w-full before:max-w-[33%] before:h5{% if is_rtl %} before:text-right before:pl-2.5 text-left{% else %} before:text-left before:pr-2.5 text-right{% endif %}"
+                  headers="Row{{ line_item.key }} ColumnTotal"
+                  role="cell"
+                  data-label="{{ 'customer.order.total' | t }}"
+                >
+                  {%- if line_item.original_line_price != line_item.final_line_price -%}
+                    <dl>
+                      <dd>
+                        <s>
+                          {% if settings.currency_code_enable %}
+                            {{ line_item.original_line_price | money_with_currency }}
+                          {% else %}
+                            {{ line_item.original_line_price | money }}
+                          {% endif %}
+                        </s>
+                      </dd>
+                      <dd class="mt-2">
+                        <span>
+                          {% if settings.currency_code_enable %}
+                            {{ line_item.final_line_price | money_with_currency }}
+                          {% else %}
+                            {{ line_item.final_line_price | money }}
+                          {% endif %}
+                        </span>
+                      </dd>
+                    </dl>
+                  {%- else -%}
+                    <span>
+                      {% if settings.currency_code_enable %}
+                        {{ line_item.original_line_price | money_with_currency }}
+                      {% else %}
+                        {{ line_item.original_line_price | money }}
+                      {% endif %}
+                    </span>
+                  {%- endif -%}
+                </td>
+              </tr>
+            {%- endfor -%}
+          </tbody>
+          <tfoot class="block" role="rowgroup">
+            <tr class="flex justify-between mt-4 anm-fade-element" data-fade-on-intersect role="row">
+              <td class="{% if is_rtl %} md:pr-2.5{% else %} md:pl-2.5{% endif %}" id="RowSubtotal" role="rowheader" scope="row" colspan="4">
+                {{ 'customer.order.subtotal' | t }}
+              </td>
+              <td class="{% if is_rtl %} md:pl-2.5{% else %} md:pr-2.5{% endif %}" headers="RowSubtotal" role="cell" data-label="{{ 'customer.order.subtotal' | t }}">
+                {% if settings.currency_code_enable %}
+                  {{ order.line_items_subtotal_price | money_with_currency }}
+                {% else %}
+                  {{ order.line_items_subtotal_price | money }}
+                {% endif %}
+              </td>
+            </tr>
+            {%- if order.cart_level_discount_applications != blank -%}
+              <tr class="flex justify-between mt-2.5 anm-fade-element" data-fade-on-intersect role="row">
+                {%- for discount_application in order.cart_level_discount_applications -%}
+                  <td class="{% if is_rtl %} md:pr-2.5{% else %} md:pl-2.5{% endif %}" id="RowDiscount" role="rowheader" scope="row" colspan="4">
+                    {{ 'customer.order.discount' | t }}
+                    <span class="cart-discount">
+                      {{- discount_application.title -}}
+                    </span>
+                  </td>
+                  <td class="{% if is_rtl %} md:pl-2.5{% else %} md:pr-2.5{% endif %}" headers="RowDiscount" role="cell" data-label="{{ 'customer.order.discount' | t }}">
+                    <div>
+                      <span>
+                        {% if settings.currency_code_enable %}
+                          -{{ discount_application.total_allocated_amount | money_with_currency }}
+                        {% else %}
+                          -{{ discount_application.total_allocated_amount | money }}
+                        {% endif %}
+                      </span>
+                    </div>
+                  </td>
+                {%- endfor -%}
+              </tr>
+            {%- endif -%}
+            {%- for shipping_method in order.shipping_methods -%}
+              <tr class="flex justify-between mt-2.5 anm-fade-element" data-fade-on-intersect role="row">
+                <td class="{% if is_rtl %} md:pr-2.5{% else %} md:pl-2.5{% endif %}" id="RowShipping" role="rowheader" scope="row" colspan="4">{{ 'customer.order.shipping' | t }} ({{ shipping_method.title }})</td>
+                <td class="{% if is_rtl %} md:pl-2.5{% else %} md:pr-2.5{% endif %}" headers="RowShipping" role="cell" data-label="{{ 'customer.order.shipping' | t }} ({{ shipping_method.title }})">
+                  {% if settings.currency_code_enable %}
+                    {{ shipping_method.price | money_with_currency }}
+                  {% else %}
+                    {{ shipping_method.price | money }}
+                  {% endif %}
+                </td>
+              </tr>
+            {%- endfor -%}
+            {%- for tax_line in order.tax_lines -%}
+              <tr class="flex justify-between mt-2.5 anm-fade-element" data-fade-on-intersect role="row">
+                <td class="{% if is_rtl %} md:pr-2.5{% else %} md:pl-2.5{% endif %}" id="RowTax" role="rowheader" scope="row" colspan="4">{{ 'customer.order.tax' | t }} ({{ tax_line.title }} {{ tax_line.rate | times: 100 }}%)</td>
+                <td class="{% if is_rtl %} md:pl-2.5{% else %} md:pr-2.5{% endif %}" headers="RowTax" role="cell" data-label="{{ 'customer.order.tax' | t }} ({{ tax_line.title }} {{ tax_line.rate | times: 100 }}%)">
+                  {% if settings.currency_code_enable %}
+                    {{ tax_line.price | money_with_currency }}
+                  {% else %}
+                    {{ tax_line.price | money }}
+                  {% endif %}
+                </td>
+              </tr>
+            {%- endfor -%}
+            {%- if order.total_duties -%}
+              <tr class="flex justify-between mt-3 anm-fade-element" data-fade-on-intersect role="row">
+                <td class="{% if is_rtl %} md:pr-2.5{% else %} md:pl-2.5{% endif %}" id="RowDuties" role="rowheader" scope="row" colspan="4">{{ 'customer.order.total_duties' | t }}</td>
+                <td class="{% if is_rtl %} md:pl-2.5{% else %} md:pr-2.5{% endif %}" headers="RowDuties" role="cell" data-label="{{ 'customer.order.total_duties' | t }}">
+                  {% if settings.currency_code_enable %}
+                    {{ order.total_duties | money_with_currency }}
+                  {% else %}
+                    {{ order.total_duties | money }}
+                  {% endif %}
+                </td>
+              </tr>
+            {%- endif -%}
+            <tr class="flex justify-between text-large mt-2.5 color-text-[rgba(var(--color-heading))] anm-fade-element" data-fade-on-intersect role="row">
+              <td class="h3 md:h4 {% if is_rtl %} md:pr-2.5{% else %} md:pl-2.5{% endif %}" id="RowTotal" role="rowheader" scope="row" colspan="3">{{ 'customer.order.total' | t }}</td>
+              <td class="h2 md:h3 {% if is_rtl %} md:pl-2.5{% else %} md:pr-2.5{% endif %}" headers="RowTotal" role="cell" colspan="2" data-label="{{ 'customer.order.total' | t }}">{{ order.total_price | money_with_currency }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="md:w-1/4{% if is_rtl %} md:pr-10{% else %} md:pl-10{% endif %}">
+        <div class="anm-fade-element" data-fade-on-intersect>
+          <h2 class="h5 mt-7.5 mb-2.5 md:mt-7.5">{{ 'customer.order.billing_address' | t }}</h2>
+          <div class="leading-loose">
+            <div class="flex">
+              <p class="">{{ 'customer.order.payment_status' | t }}:</p>
+              <p class="block pl-1">{{ order.financial_status_label }}</p>
+            </div>
+            {{ order.billing_address | format_address }}
+          </div>
+        </div>
+        <div class="anm-fade-element" data-fade-on-intersect>
+          <h2 class="h5 mt-5 md:mt-7.5 mb-2.5">{{ 'customer.order.shipping_address' | t }}</h2>
+          <div class="leading-loose">
+            <div class="flex">
+              <p class="">{{ 'customer.order.fulfillment_status' | t }}:</p>
+              <p class="block pl-1">{{ order.fulfillment_status_label }}</p>
+            </div>
+            {{ order.shipping_address | format_address }}
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{%- unless settings.hide_cart -%}
+  {%- render 're-order-popup' -%}
+{%- endunless -%}
+{% schema %}
+{
+  "name": "t:main_order.name",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.top_padding",
+      "default": 52
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.bottom_padding",
+      "default": 52
+    }
+  ]
+}
+{% endschema %}

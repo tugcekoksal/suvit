@@ -1,0 +1,193 @@
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block.settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block.settings.desktop_padding_left }}px;
+    --pad-right: {{ block.settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+  }
+{% endstyle %}
+
+{% liquid
+  assign product = closest.product
+  assign current_variant = product.selected_or_first_available_variant
+  if current_variant.inventory_quantity <= 0
+    assign label_quantity = ''
+  else
+    assign label_quantity = current_variant.inventory_quantity
+  endif
+  
+  assign sale_amount = current_variant.compare_at_price | minus: current_variant.price
+  if sale_amount <= 0
+    assign sale_amount = -1
+  endif
+
+  assign label_position = 'content_inline'
+  assign show_content_center = false
+%}
+
+{% capture data_for_label %}
+  {%
+    render "data-for-label",
+    product: product,
+    current_variant: current_variant,
+    target: current_variant,
+    sale_amount: sale_amount,
+    label_quantity: label_quantity,
+    container: "product-info",
+    make_content_center: show_content_center,
+    is_show_preorder: false,
+    label_position: label_position
+  %}
+{% endcapture %}
+
+<div 
+  class="block-label-and-badge block-{{ block.id }} block-padding maximize-block product-info__label-wrapper" 
+  data-block-id="{{ block.id }}" 
+  {{ block.shopify_attributes }}
+>
+  <div class="w-full" id="x-badges-{{ block.id }}">
+    <div
+      class="x-badges-container overflow-hidden text-sm x-badges-product-detail empty:h-0 empty:min-h-0 empty:mb-0 min-h-[45px] flex items-center flex-wrap gap-x-1 gap-y-2 md:gap-y-3"
+      x-init='
+        () => {
+          if ($store.xLabelsAndBadges) {
+            const container = document.querySelector("#x-badges-{{ block.id }}");
+            $store.xLabelsAndBadges.load($el, (el) => {
+              el.removeAttribute("x-init");
+              container.innerHTML = el.outerHTML;
+            }, container)
+          }
+        }
+      '
+      x-labels-data="{{ data_for_label | escape }}"
+    ></div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:main_product.blocks.labels_and_badges.name",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "select",
+      "id": "device_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:main_product.blocks.labels_and_badges.name",
+      "category": "t:global.product.product"
+    }
+  ]
+}
+{% endschema %}

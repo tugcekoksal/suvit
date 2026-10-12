@@ -1,0 +1,303 @@
+{%- liquid
+  assign gift_card_recipient_active = false
+  if block.settings.show_gift_card_recipient and product.gift_card?
+    assign gift_card_recipient_active = true
+  endif
+-%}
+
+{%- liquid
+  assign default_preorder_text = 'products.product.pre_order' | t
+  assign preorder_button_label = block.settings.preorder_button_label | default: default_preorder_text
+
+  if is_show_preorder
+    assign default_button_label = preorder_button_label
+  else
+    if product.selected_or_first_available_variant != nil
+      if variant.available == false
+        assign default_button_label = 'products.product.sold_out' | t
+      else
+        if settings.pc_atc_button_label != blank
+          assign default_button_label = settings.pc_atc_button_label
+        else  
+          assign default_button_label = 'products.product.add_to_cart' | t
+        endif  
+      endif
+    else
+      assign default_button_label = 'products.product.unavailable' | t
+    endif
+  endif
+
+  assign atc_button_label = 'products.product.add_to_cart' | t
+  if settings.pc_atc_button_label != blank
+    assign atc_button_label = settings.pc_atc_button_label
+  endif
+-%}
+{%- liquid
+  assign init_is_continue_selling = false
+  unless is_show_preorder
+    if variant.inventory_management == 'shopify' and variant.inventory_policy == 'continue' and variant.inventory_quantity <= 0
+      assign init_is_continue_selling = true
+    endif
+  endunless
+-%}
+{%- if product != blank -%}
+  <div
+    class="product-info__form-wrapper w-full"
+    id="ProductForm-{{ section.id }}-{{ block.id }}"
+    x-data="xProductForm('{{ product_form_id }}', '{{ variant.id }}', {{ variant.available | default: false }}, '{{ default_button_label }}', '{{ atc_button_label }}', '{{ section.id }}', false, '{{ settings.preorder_show }}', '{{ preorder_button_label }}', {{ is_apply_preorder }}, {{ is_show_preorder }}, {{ init_is_continue_selling }})"
+    x-init="handleInitProductForm()"
+  >
+    <div class="product-info__form-container">
+      <div
+        class="pb-2 hidden"
+        @click.away="errorMessage=false"
+      >
+        <div x-ref="error_message" class="flash-message error-message"></div>
+      </div>
+      {%- if customer != blank and customer.b2b? -%}
+        <div
+          class="quantity-rule-error flash-message error-message mb-2"
+          x-ref="quantity_error"
+          x-show="quantityErrorMessage"
+          x-text="quantityErrorMessage"
+          x-cloak
+          role="alert"
+        ></div>
+      {%- endif -%}
+      {%- form 'product', product, id: product_form_id, class: 'product-info__form', novalidate: 'novalidate', data-type: 'add-to-cart-form', x-ref: 'product_form' -%}
+        {%- if gift_card_recipient_active and settings.hide_cart == false and login_hide_price != "true" -%}
+          {%- render 'gift-card-recipient', product: product, form: form, section: section, product_form_id: product_form_id, show_content_center: show_content_center -%}
+        {%- endif -%}
+        <input
+          class="product-form__variant-id w-full px-4 py-3 hidden "
+          name="id"
+          type="hidden"
+          form="{{ product_form_id }}"
+          :value="variantId"
+          :disabled="!isOptionAvailable"
+        >
+        {% comment %} quantity rule (B2B only) {% endcomment %}
+        {%- if customer != blank and customer.b2b? -%}
+          {%- render 'quantity-rule-note', variant: variant, class: 'mb-1 md:mb-2.5 mt-1 md:mt-2.5' -%}
+        {%- endif -%}
+        {% comment %} end quantity rule {% endcomment %}
+        <div class="w-full flex flex-row flex-wrap gap-1.5">
+          {% if show_quantity_selector and settings.hide_cart == false and login_hide_price != "true" %}
+            {% render 'product-quantity',
+              section: section,
+              current_variant: variant,
+              product: product,
+              product_form_id: product_form_id,
+              block_buy_buttons: true,
+              block_id: block.id,
+              last_block_has_qty_box: last_block_has_qty_box
+            %}
+          {% endif %}
+          {%- unless settings.hide_cart or login_hide_price == 'true' -%}
+            <div class="grow">
+              <custom-button>
+                <button
+                  class="product-form__btn-add-to-cart button button-secondary button-large w-full relative h-full rounded-corners-md"
+                  type="submit"
+                  name="add"
+                  aria-haspopup="dialog"
+                  aria-labelledby="{{ product_form_id }}-submit title-{{ section.id }}-{{ product.id }}"
+                  aria-live="polite"
+                  data-sold-out-message="true"
+                  :class="{'opacity-60': !isAvailableButton, 'pointer-events-none': !visible, 'is-loading': isLoading}"
+                  :disabled="!isAvailableButton"
+                  :aria-disabled="!isAvailableButton || isLoading"
+                  :tabindex="isAvailableButton && isOptionExist ? '0' : '-1'"
+                  @click.prevent="handleAddToCart($event, true, '{{ variant.id }}')"
+                >
+                  <span
+                    id="AddToCartText-{{ product_form_id }}"
+                    class="btn__text"
+                    :class="{'invisible': isLoading}"
+                  >
+                    {% if is_show_preorder %}
+                      {{ preorder_button_label }}
+                    {% else %}
+                      {% if variant %}
+                        {% if variant.available %}
+                          {{ default_button_label }}
+                        {% else %}
+                          {{ 'products.product.sold_out' | t }}
+                        {% endif %}
+                      {% else %}
+                        {{ 'products.product.unavailable' | t }}
+                      {% endif %}
+                    {% endif %}
+                  </span>
+                  <span class="inline-block w-5 h-5 animate-spin absolute left-[calc(50%-10px)] top-[calc(50%-10px)]" x-show="isLoading" x-cloak>
+                    {% render 'icon-all', icon: 'icon-loading' %}
+                  </span>
+                  <span 
+                    class="w-5 h-5 absolute left-[calc(50%-10px)] top-[calc(50%-10px)] hidden" 
+                    x-cloak 
+                    data-check-icon
+                    x-show='!isLoading'
+                  >
+                    {% render 'icon-all', icon: 'icon-check-success' %}
+                  </span>
+                </button>
+              </custom-button>
+            </div>
+          {%- endunless -%}
+          {% if block.settings.show_add_to_compare_button %}
+            {% style %}
+              .buy-buttons__compare-button__icon {
+                width: calc(var(--button-font-size) * var(--line-height-button));
+                height: calc(var(--button-font-size) * var(--line-height-button));
+              }
+            {% endstyle %}
+            <template x-if="$store.xProductComparison && $store.xProductComparison.hasSection">
+              <div class="relative buy-buttons__compare-button hidden min-w-[42px] {% if login_hide_price == "true" %} w-full{% else %} {%- if block.settings.compare_button_label == blank %} aspect-1/1{% endif -%}{% endif %}
+                {%- if block.settings.compare_button_label != blank %} md:aspect-auto{% endif -%}"
+              >
+                <custom-button>
+                  <button
+                    class="w-full h-full button button-large flex flex-row gap-1.5 button-secondary items-center justify-center flex-nowrap px-3 md:px-4 rounded-corners-md
+                      {%- if block.settings.compare_button_label != blank %} lg:aspect-auto{% endif -%}"
+                    :class="{'cursor-not-allowed disable-button-compare pointer-events-none': ($store.xProductComparison.listComparisonProducts.length >= $store.xProductComparison.maximumProductCompare && !$store.xProductComparison.isClickAddToCompare) || $store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}')}"
+                    aria-label="{{ 'products.product.compare' | t }}"
+                    @click.prevent="$store.xProductComparison.addProductToCompare('{{ product.id }}', '{{ product.handle }}')"
+                  >
+                    <div class="buy-buttons__compare-button__icon relative shrink-0">
+                      <div 
+                        class="absolute w-full h-full"
+                        :class="$store.xProductComparison.listComparisonProducts && $store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}') ? 'hidden' : 'block'"
+                      >
+                        {% render 'icon-all', icon: 'icon-product-comparison' %}
+                      </div>
+                      <div
+                        x-cloak
+                        class="absolute w-full h-full"
+                        :class="$store.xProductComparison.listComparisonProducts && $store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}') ? 'block' : 'hidden'"
+                      >
+                        {% render 'icon-all', icon: 'icon-check-compare' %}
+                      </div>
+                    </div>
+    
+                    {% if block.settings.compare_button_label != blank %}
+                      <div {% if show_quantity_selector %} class="hidden lg:block"{% endif %}>
+                        {{ block.settings.compare_button_label }}
+                      </div>
+                    {% endif %}
+                  </button>
+                </custom-button>
+
+                <custom-tooltip data-tooltip-align="end" data-enable-mobile="true" x-show="($store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}') || $store.xProductComparison.listComparisonProducts.length >= $store.xProductComparison.maximumProductCompare)">
+                  <div class="tooltip-popup-wrapper absolute invisible z-10 pointer-events-none flex my-0.5 right-0 rtl:left-0 rtl:right-auto{% if settings.hide_cart %} sm:right-auto sm:left-0 rtl:sm:right-0 rtl:sm:left-auto{% endif %}" data-tooltip-position="top" :class="{'state-success': $store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}'), 'state-error': $store.xProductComparison.listComparisonProducts.length >= $store.xProductComparison.maximumProductCompare && !$store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}')}">
+                    <div class="tooltip-arrow-up triangle-tooltip relative z-10 w-fit self-end hidden">
+                      <div class="triangle-up border-transparent mx-1"></div>
+                      <div class="triangle-up border-b-white mx-1 absolute top-0 left-0 -z-10"></div>
+                    </div>
+                    <div x-show="$store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}')">
+                      <div class="w-[100px] md:w-[130px] rounded-[var(--border-radius-flash-message)] bg-white">
+                        <div class="flash-message success-message w-full text-center relative">
+                          <span class="text-x-small">{{ 'product_comparison.tooltip_added_to_compare' | t }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div x-show="$store.xProductComparison.listComparisonProducts.length >= $store.xProductComparison.maximumProductCompare && !$store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}')">
+                      <div class="w-[100px] md:w-[130px] rounded-[var(--border-radius-flash-message)] bg-white">
+                        <div
+                          x-init="$el.innerHTML = $el.innerHTML.replace('count_product', $store.xProductComparison.maximumProductCompare)"
+                          class="flash-message error-message w-full text-center"
+                        >
+                          <span class="product_comparison-limit text-x-small">{{ 'product_comparison.tooltip_limit_products' | t }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tooltip-arrow-down triangle-tooltip relative z-10 w-fit self-end">
+                      <div class="triangle-down border-transparent mx-1"></div>
+                      <div class="triangle-down border-t-white mx-1 absolute top-0 left-0 -z-10"></div>
+                    </div>
+                  </div>
+                </custom-tooltip>
+              </div>
+            </template>
+          {% endif %}
+        </div>
+        {% if block.settings.show_dynamic_checkout and settings.hide_cart == false and login_hide_price != 'true' %}
+          <div class="mt-2.5 w-full relative">
+            <custom-button data-check-dom-change="true">
+              <div 
+                class="product-form__dynamic-checkout w-full button-large"
+                x-cloak
+                x-init="$el.classList.toggle('hidden', !(isAvailableButton && isOptionExist) || (isShowPreorder && !({{ block.settings.preorder_show_dynamic_button }})))"
+                :class="!(isAvailableButton && isOptionExist) || (isShowPreorder && !{{ block.settings.preorder_show_dynamic_button }}) ? 'hidden' : ''"
+              >
+                {{ form | payment_button }}
+              </div>
+            </custom-button>
+            {% if has_customize_picker_required %}
+              <div
+                x-data="xCustomizableOptions"
+                x-cloak
+                x-intersect.once="validateErrorBtn($el)"
+                @click="validateError($el)"
+                class="payment-button--clone cursor-pointer absolute z-20 top-0 left-0 right-0 bottom-0"
+              >
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+      {%- endform -%}
+    </div>
+
+    {%- if block.settings.pickup_availability and settings.hide_cart == false and login_hide_price != 'true' -%}
+      {% style %}
+        .maximize-theme:not(.dark) .buy-buttons__preorder__message__{{ section.id }}__{{ block.id }} {
+        {% if block.settings.background_color_light.alpha != 0.0 and block.settings.show_background %}
+          background: rgba({{ block.settings.background_color_light.red }} {{ block.settings.background_color_light.green }} {{ block.settings.background_color_light.blue }} / {{ block.settings.background_color_light.alpha }});
+          padding: 10px 14px;
+        {% endif %}
+        {% if block.settings.message_color_light.alpha != 0.0 %}
+          color: rgba({{ block.settings.message_color_light.red }} {{ block.settings.message_color_light.green }} {{ block.settings.message_color_light.blue }} / {{ block.settings.message_color_light.alpha }});
+        {% endif %}
+        }
+
+        .maximize-theme.dark .buy-buttons__preorder__message__{{ section.id }}__{{ block.id }} {
+        {% if block.settings.background_color_dark.alpha != 0.0 and block.settings.show_background %}
+          background: rgba({{ block.settings.background_color_dark.red }} {{ block.settings.background_color_dark.green }} {{ block.settings.background_color_dark.blue }} / {{ block.settings.background_color_dark.alpha }});
+          padding: 10px 14px;
+        {% endif %}
+        {% if block.settings.message_color_dark.alpha != 0.0 %}
+          color: rgba({{ block.settings.message_color_dark.red }} {{ block.settings.message_color_dark.green }} {{ block.settings.message_color_dark.blue }} / {{ block.settings.message_color_dark.alpha }});
+        {% endif %}
+        }
+      {% endstyle %}
+      {% if block.settings.preorder_message != blank and is_show_preorder %}
+        <div class="buy-buttons__preorder__message buy-buttons__preorder__message__{{ section.id }}__{{ block.id }} mt-2 rte {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+             x-init="$el.classList.toggle('hidden', !isShowPreorder)"
+             :class="isOptionExist && isShowPreorder ? '' : 'hidden'">
+          {{ block.settings.preorder_message }}
+        </div>
+      {% endif %}
+
+      <div 
+        id="PickupAvailability__{{ section.id }}"
+        class="pick-up-{{ section.id }} {% if show_content_center %} text-center{% endif %}"
+        data-hide-when-preorder="{{ block.settings.pickup_hide_when_pre_order }}"
+        x-intersect.once.margin.200px="updatePickUpAvailability(true);"
+      >
+      </div>
+    {%- endif -%}
+    <script type="application/json" data-type="init-current-variant">{{ variant | json }}</script>
+  </div>
+{%- else -%}
+  {%- unless settings.hide_cart or login_hide_price == 'true' -%}
+    <div class="product-form__placeholder-wrapper">
+      <custom-button>
+        <button
+          class="product-form__placeholder__btn-add-to-cart button button-primary w-full relative {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+          disabled
+        >
+          {{ 'products.product.add_to_cart' | t }}
+        </button>
+      </custom-button>
+    </div>
+  {%- endunless -%}
+{%- endif -%}

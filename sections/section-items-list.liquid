@@ -1,0 +1,560 @@
+{% style %}
+  .section-{{ section.id }} {
+    padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+    padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+  }
+  .section-{{ section.id }} .section-grid__wrapper {
+    gap: calc({{ section.settings.spacing }}px * var(--mobile-padding-ratio));
+  }
+
+  @media screen and (max-width: 767px) {
+    {% if section.settings.mobile_direction == 'horizontal' %}
+      .section-grid__layout.section-{{ section.id }} {
+        display: grid;
+      }
+    {% endif %}
+  }
+
+  @media screen and (min-width: 768px) {
+    .section-{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+    .section-{{ section.id }} .section-grid__wrapper {
+      gap: {{ section.settings.spacing }}px;
+    }
+    {% if section.settings.desktop_direction == 'horizontal' %}
+      .section-grid__layout.section-{{ section.id }} {
+        display: grid;
+      }
+    {% endif %}
+  }
+{% endstyle %}
+
+{% render 'section-divider' %}
+
+<div class="section-grid__layout relative section-{{ section.id }} {{ section.settings.section_width }} rounded-corners-container color-{{ section.settings.color_scheme_light }} dark-color-{{ section.settings.color_scheme_dark }}">
+  <div 
+    class="section-grid__wrapper relative flex
+      {%- if section.settings.mobile_direction == 'horizontal' %} flex-row{% else %} flex-col{% endif -%}
+      {%- if section.settings.desktop_direction == 'horizontal' %} md:flex-row{% else %} md:flex-col{% endif -%}"
+  >
+    {% if section.settings.desktop_background_image != blank or section.settings.mobile_background_image != blank %}
+      {% liquid 
+        assign class_img = 'overflow-hidden top-0 left-0 w-full h-full opacity-' | append: section.settings.overlay_opacity
+
+        assign mobile_cover_image = section.settings.mobile_background_image
+        assign desktop_image = section.settings.desktop_background_image
+        if desktop_image == blank
+          assign desktop_image = mobile_cover_image
+        endif
+        assign desktop_sizes = '(min-width: 768px) 100vw, 100vw'
+      %}
+      <picture class="inset-0 absolute">
+        <source
+          media="(max-width: 767px)"
+          srcset="
+            {{ mobile_cover_image | image_url: width: '400x' }} 400w,
+            {{ mobile_cover_image | image_url: width: '600x' }} 600w,
+            {{ mobile_cover_image | image_url: width: '800x' }} 800w
+          "
+          width="{{ mobile_cover_image.width }}"
+          height="{{ mobile_cover_image.height }}"
+        >
+        {{- desktop_image | image_url: width: desktop_image.width | image_tag: loading: 'lazy', widths: '720,900,1080,1200,1400,1600,1800,2000,2200', is: 'lazy-image', class: class_img, sizes: desktop_sizes -}}
+      </picture>
+    {% endif %}
+    {% content_for 'block', id: 'header-static', type: '_group' %}
+    {% content_for 'block', id: 'items-list-static', type: '_items-list' %}
+    {% content_for 'blocks' %}
+  </div>
+</div>
+{% schema  %}
+{
+  "name": "t:item_list.name",
+  "class": "maximize-section section__items-list",
+  "tag": "section",
+  "disabled_on": {
+    "groups": ["header", "aside"]
+  },
+  "blocks": [
+    {
+      "type": "image"
+    },
+    {
+      "type": "video"
+    },
+    {
+      "type": "_items-list"
+    }
+  ],
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "t:item_list.paragraph"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "select",
+      "label": "t:global.section.section_width.label",
+      "id": "section_width",
+      "options": [
+        {
+          "label": "t:global.section.section_width.option_1",
+          "value": "page-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_2",
+          "value": "full-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_3",
+          "value": "full-width-padded"
+        }
+      ],
+      "default": "page-width"
+    },
+    {
+      "type": "select",
+      "id": "desktop_direction",
+      "label": "t:item_list.section_layout.desktop_direction",
+      "options": [
+        {
+          "value": "vertical",
+          "label": "t:global.direction.vertical"
+        },
+        {
+          "value": "horizontal",
+          "label": "t:global.direction.horizontal"
+        }
+      ],
+      "default": "horizontal"
+    },
+    {
+      "type": "select",
+      "id": "mobile_direction",
+      "label": "t:item_list.section_layout.mobile_direction",
+      "options": [
+        {
+          "value": "vertical",
+          "label": "t:global.direction.vertical"
+        },
+        {
+          "value": "horizontal",
+          "label": "t:global.direction.horizontal"
+        }
+      ],
+      "default": "vertical"
+    },
+    {
+      "type": "header",
+      "content": "t:item_list.appearance"
+    },
+    {
+      "type": "select",
+      "label": "t:item_list.background_media",
+      "id": "background_media",
+      "options": [
+        {
+          "label": "None",
+          "value": "none"
+        },
+        {
+          "label": "Image",
+          "value": "image"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "image_picker",
+      "id": "desktop_background_image",
+      "label": "t:item_list.desktop_image",
+      "visible_if": "{{ section.settings.background_media == 'image' }}"
+    },
+    {
+      "type": "image_picker",
+      "id": "mobile_background_image",
+      "label": "t:item_list.mobile_image",
+      "visible_if": "{{ section.settings.background_media == 'image' }}"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "%",
+      "label": "t:global.overlay.overlay_opacity",
+      "default": 20,
+      "visible_if": "{{ section.settings.background_media != 'none' }}"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.section.top_padding",
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.section.bottom_padding",
+      "default": 28
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.spacing"
+    },
+    {
+      "type": "range",
+      "id": "spacing",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:main_product.blocks.space.settings.gap",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.style"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_section_divider",
+      "label": "t:global.section.show_section_divider",
+      "default": false
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Stats counter",
+      "category": "t:global.category.brand_trust",
+      "settings": {
+        "desktop_direction": "vertical",
+        "padding_top": 32,
+        "padding_bottom": 32
+      },
+      "blocks": {
+        "header-static": {
+          "type": "_group",
+          "name": "Header",
+          "static": true,
+          "settings": {
+            "desktop_direction": "col",
+            "mobile_direction": "col",
+            "desktop_horizontal_alignment": "center",
+            "mobile_horizontal_alignment": "center",
+            "width": "custom",
+            "desktop_group_width": 100,
+            "mobile_group_width": 100,
+            "desktop_padding_bottom": 26,
+            "mobile_padding_bottom": 16,
+            "show_border": false
+          },
+          "blocks": {
+            "subheading": {
+              "type": "subheading",
+              "name": "Subheading",
+              "settings": {
+                "subheading": "At a glance",
+                "subheading_size": "small",
+                "desktop_padding_bottom": 2,
+                "mobile_padding_bottom": 2
+              }
+            },
+            "heading": {
+              "type": "heading",
+              "name": "Heading",
+              "settings": {
+                "heading_tag": "h2",
+                "heading": "Our achievements"
+              }
+            }
+          },
+          "block_order": ["subheading", "heading"]
+        },
+        "items-list-static": {
+          "type": "_items-list",
+          "name": "Stat list",
+          "static": true,
+          "settings": {
+            "gap": 8,
+            "column_layout_mobile": "1"
+          },
+          "blocks": {
+            "group-1": {
+              "type": "_group",
+              "name": "Stat",
+              "settings": {
+                "desktop_direction": "col",
+                "mobile_direction": "col",
+                "desktop_horizontal_alignment": "center",
+                "mobile_horizontal_alignment": "center",
+                "width": "custom",
+                "desktop_group_width": 100,
+                "mobile_group_width": 100,
+                "spacing_choose_device": "mobile",
+                "desktop_padding_top": 24,
+                "desktop_padding_bottom": 24,
+                "desktop_padding_left": 24,
+                "desktop_padding_right": 24,
+                "mobile_padding_top": 12,
+                "mobile_padding_bottom": 12,
+                "mobile_padding_left": 12,
+                "mobile_padding_right": 12,
+                "show_border": true,
+                "color_scheme_light": "scheme-4",
+                "color_scheme_dark": "scheme-3"
+              },
+              "blocks": {
+                "counter": {
+                  "type": "counter",
+                  "name": "Counter",
+                  "settings": {
+                    "counter": "10+",
+                    "duration": 1.5,
+                    "font_size": "custom",
+                    "desktop_font_size": 80,
+                    "mobile_font_size": 52,
+                    "line_height": 100,
+                    "desktop_padding_bottom": 4,
+                    "mobile_padding_bottom": 2
+                  }
+                },
+                "heading": {
+                  "type": "heading",
+                  "name": "Heading",
+                  "settings": {
+                    "heading_size": "medium",
+                    "heading": "Experience",
+                    "desktop_padding_bottom": 4,
+                    "mobile_padding_bottom": 2
+                  }
+                },
+                "text": {
+                  "type": "text",
+                  "name": "Text",
+                  "settings": {
+                    "text_size": "large",
+                    "text": "<p>Trusted worldwide</p>"
+                  }
+                }
+              },
+              "block_order": ["counter", "heading", "text"]
+            },
+            "group-2": {
+              "type": "_group",
+              "name": "Stat",
+              "settings": {
+                "desktop_direction": "col",
+                "mobile_direction": "col",
+                "desktop_horizontal_alignment": "center",
+                "mobile_horizontal_alignment": "center",
+                "width": "custom",
+                "desktop_group_width": 100,
+                "mobile_group_width": 100,
+                "spacing_choose_device": "mobile",
+                "desktop_padding_top": 24,
+                "desktop_padding_bottom": 24,
+                "desktop_padding_left": 24,
+                "desktop_padding_right": 24,
+                "mobile_padding_top": 12,
+                "mobile_padding_bottom": 12,
+                "mobile_padding_left": 12,
+                "mobile_padding_right": 12,
+                "show_border": true,
+                "color_scheme_light": "scheme-4",
+                "color_scheme_dark": "scheme-3"
+              },
+              "blocks": {
+                "counter": {
+                  "type": "counter",
+                  "name": "Counter",
+                  "settings": {
+                    "counter": "10+",
+                    "duration": 1.5,
+                    "font_size": "custom",
+                    "desktop_font_size": 80,
+                    "mobile_font_size": 52,
+                    "line_height": 100,
+                    "desktop_padding_bottom": 4,
+                    "mobile_padding_bottom": 2
+                  }
+                },
+                "heading": {
+                  "type": "heading",
+                  "name": "Heading",
+                  "settings": {
+                    "heading_size": "medium",
+                    "heading": "Experience",
+                    "desktop_padding_bottom": 4,
+                    "mobile_padding_bottom": 2
+                  }
+                },
+                "text": {
+                  "type": "text",
+                  "name": "Text",
+                  "settings": {
+                    "text_size": "large",
+                    "text": "<p>Trusted worldwide</p>"
+                  }
+                }
+              },
+              "block_order": ["counter", "heading", "text"]
+            },
+            "group-3": {
+              "type": "_group",
+              "name": "Stat",
+              "settings": {
+                "desktop_direction": "col",
+                "mobile_direction": "col",
+                "desktop_horizontal_alignment": "center",
+                "mobile_horizontal_alignment": "center",
+                "width": "custom",
+                "desktop_group_width": 100,
+                "mobile_group_width": 100,
+                "spacing_choose_device": "mobile",
+                "desktop_padding_top": 24,
+                "desktop_padding_bottom": 24,
+                "desktop_padding_left": 24,
+                "desktop_padding_right": 24,
+                "mobile_padding_top": 12,
+                "mobile_padding_bottom": 12,
+                "mobile_padding_left": 12,
+                "mobile_padding_right": 12,
+                "show_border": true,
+                "color_scheme_light": "scheme-4",
+                "color_scheme_dark": "scheme-3"
+              },
+              "blocks": {
+                "counter": {
+                  "type": "counter",
+                  "name": "Counter",
+                  "settings": {
+                    "counter": "10+",
+                    "duration": 1.5,
+                    "font_size": "custom",
+                    "desktop_font_size": 80,
+                    "mobile_font_size": 52,
+                    "line_height": 100,
+                    "desktop_padding_bottom": 4,
+                    "mobile_padding_bottom": 2
+                  }
+                },
+                "heading": {
+                  "type": "heading",
+                  "name": "Heading",
+                  "settings": {
+                    "heading_size": "medium",
+                    "heading": "Experience",
+                    "desktop_padding_bottom": 4,
+                    "mobile_padding_bottom": 2
+                  }
+                },
+                "text": {
+                  "type": "text",
+                  "name": "Text",
+                  "settings": {
+                    "text_size": "large",
+                    "text": "<p>Trusted worldwide</p>"
+                  }
+                }
+              },
+              "block_order": ["counter", "heading", "text"]
+            },
+            "group-4": {
+              "type": "_group",
+              "name": "Stat",
+              "settings": {
+                "desktop_direction": "col",
+                "mobile_direction": "col",
+                "desktop_horizontal_alignment": "center",
+                "mobile_horizontal_alignment": "center",
+                "width": "custom",
+                "desktop_group_width": 100,
+                "mobile_group_width": 100,
+                "spacing_choose_device": "mobile",
+                "desktop_padding_top": 24,
+                "desktop_padding_bottom": 24,
+                "desktop_padding_left": 24,
+                "desktop_padding_right": 24,
+                "mobile_padding_top": 12,
+                "mobile_padding_bottom": 12,
+                "mobile_padding_left": 12,
+                "mobile_padding_right": 12,
+                "show_border": true,
+                "color_scheme_light": "scheme-4",
+                "color_scheme_dark": "scheme-3"
+              },
+              "blocks": {
+                "counter": {
+                  "type": "counter",
+                  "name": "Counter",
+                  "settings": {
+                    "counter": "10+",
+                    "duration": 1.5,
+                    "font_size": "custom",
+                    "desktop_font_size": 80,
+                    "mobile_font_size": 52,
+                    "line_height": 100,
+                    "desktop_padding_bottom": 4,
+                    "mobile_padding_bottom": 2
+                  }
+                },
+                "heading": {
+                  "type": "heading",
+                  "name": "Heading",
+                  "settings": {
+                    "heading_size": "medium",
+                    "heading": "Experience",
+                    "desktop_padding_bottom": 4,
+                    "mobile_padding_bottom": 2
+                  }
+                },
+                "text": {
+                  "type": "text",
+                  "name": "Text",
+                  "settings": {
+                    "text_size": "large",
+                    "text": "<p>Trusted worldwide</p>"
+                  }
+                }
+              },
+              "block_order": ["counter", "heading", "text"]
+            },
+          },
+          "block_order": ["group-1", "group-2", "group-3", "group-4"]
+        }
+      }
+    }
+  ]
+}
+{% endschema %}

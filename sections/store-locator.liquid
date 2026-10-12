@@ -1,0 +1,571 @@
+{%- liquid
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  else
+    assign is_rtl = false
+  endif
+-%}
+{% style %}
+  @media screen and (max-width: 1023px) {
+    .store-locator-popup__content {
+      max-height: calc(100% - 16px);
+    }
+  }
+  @media screen and (min-width: 1024px) {
+    .x-header-store-selector-desktop:empty {
+      display: flex;
+      gap: 4px;
+      font-style: var(--menu-font-style);
+      font-weight: var(--menu-font-weight);
+      letter-spacing: var(--menu-letter-spacing);
+      font-size: var(--body-font-size);
+      align-items: center;
+    }
+    .x-header-store-selector-desktop:empty::before {
+      flex-shrink: 0;
+      display: block;
+      content: "";
+      width: 24px;
+      height: 24px;
+      background: rgba(var(--color-text));
+      -webkit-mask: url("data:image/svg+xml,%3Csvg width='100%25' height='100%25' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M22 9.99072C22 16.9906 12.5 22.9907 12.5 22.9907C12.5 22.9907 3 16.9906 3 9.99072C3 7.60377 4.0009 5.31459 5.78248 3.62676C7.56408 1.93894 9.98045 0.990723 12.5 0.990723C15.0195 0.990723 17.4359 1.93894 19.2175 3.62676C20.9991 5.31459 22 7.60377 22 9.99072Z' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M12.9319 12.7764C14.6013 12.7764 15.9546 11.5451 15.9546 10.0264C15.9546 8.50759 14.6013 7.27637 12.9319 7.27637C11.2625 7.27637 9.90918 8.50759 9.90918 10.0264C9.90918 11.5451 11.2625 12.7764 12.9319 12.7764Z' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 24px no-repeat;
+      mask: url("data:image/svg+xml,%3Csvg width='100%25' height='100%25' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M22 9.99072C22 16.9906 12.5 22.9907 12.5 22.9907C12.5 22.9907 3 16.9906 3 9.99072C3 7.60377 4.0009 5.31459 5.78248 3.62676C7.56408 1.93894 9.98045 0.990723 12.5 0.990723C15.0195 0.990723 17.4359 1.93894 19.2175 3.62676C20.9991 5.31459 22 7.60377 22 9.99072Z' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M12.9319 12.7764C14.6013 12.7764 15.9546 11.5451 15.9546 10.0264C15.9546 8.50759 14.6013 7.27637 12.9319 7.27637C11.2625 7.27637 9.90918 8.50759 9.90918 10.0264C9.90918 11.5451 11.2625 12.7764 12.9319 12.7764Z' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 24px no-repeat;
+    }
+    .x-header-store-selector-desktop:empty::after {
+      content: var(--x-store-selector-content);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding-right: 18px;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 9 7' xmlns='http://www.w3.org/2000/svg' fill='none'%3E%3Cpath d='M0.75 1.625L4.5 5.375L8.25 1.625' stroke='currentColor' stroke-width='0.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right center;
+      background-size: 9px 7px;
+    }
+    [dir="rtl"] .x-header-store-selector-desktop:empty::after {
+      padding-right: 0;
+      padding-left: 18px;
+      background-position: left center;
+    }
+  }
+{% endstyle %}
+<div
+  x-cloak
+  x-data="xStoreLocator('{{ section.id }}', '{{ section.blocks[0].id }}', {{ section.settings.auto_select_first_store }} )"
+  x-show="show"
+  class="store-locator-popup__container popup-container fixed z-50 top-0 left-0 right-0 bottom-0 flex pointer-events-none"
+>
+  <div
+    id="Popup__Overlay__Store__Locator"
+    class="popup__overlay pointer-events-auto"
+    x-cloak
+  ></div>
+  <!-- Popup Container -->
+  <div
+    id="StoreLocatorPopup__Container"
+    role="dialog"
+    aria-modal="true"
+    x-show="show"
+    class="popup-content{% unless settings.show_popup_overlay %} shadow-large{% endunless %} store-locator-popup__content transform-gpu flex flex-col pointer-events-auto w-full mx-auto md:overflow-y-auto scrollbar-body scrollbar-visible min-h-[250px] md:max-h-[90vh] lg:max-w-4xl xl:max-w-[1170px] relative pb-7.5 lg:ml-auto lg:mr-auto color-{{ section.settings.color_scheme_light }} dark-color-{{ section.settings.color_scheme_dark }}"
+    x-intersect.full="$store.xFocusElement.trapFocus('StoreLocatorPopup__Container', 'LocationSelectorClose')"
+    @keyup.escape="$store.xFocusElement.removeTrapFocus(); closeStoreLocatorPopup();"
+    x-transition:enter-start="!opacity-0 translate-y-1/3"
+    x-transition:enter-end="opacity-100 translate-y-0"
+    x-transition:leave-start="opacity-100 translate-y-0"
+    x-transition:leave-end="!opacity-0 translate-y-1/3"
+    @click.away="closeStoreLocatorPopup()"
+  >
+    <div class="modal-title-container">
+      <div class="modal-title-wrapper">
+        <div class="grow flex items-center">
+          <p class="h3 w-full">{{ 'store_selector.choose_your_location' | t }}</p>
+        </div>
+
+        <button
+          id="LocationSelectorClose"
+          class="modal-title__button-close"
+          @click.prevent="closeStoreLocatorPopup()"
+          aria-label="{{ 'accessibility.close' | t }}"
+        >
+          <span class="button__close icon-close-large-desktop icon-close-large-mobile">{% render 'icon-all', icon: 'icon-close' %}</span>
+        </button>
+      </div>
+    </div>
+    <div class="overflow-y-scroll scrollbar-body store-locator__wrapper scrollbar-always-visible overscroll-none scrollbar-visible pr-[9px] -mr-3 md:mr-0 md:pr-0 ltr">
+      <div class="flex flex-col-reverse gap-3 md:gap-7.5 h-full scrollbar-body scrollbar-visible overflow-y-auto{% if is_rtl %} rtl{% endif %}{% if section.settings.content_position == "left" %} md:flex-row rtl:md:flex-row-reverse{% else %} md:flex-row-reverse rtl:md:flex-row{% endif %}">
+        <div id="StoreLocatorPopup__Content" class="x-container-store-locator md:max-h-[650px] w-full h-full md:col-span-2 flex flex-col gap-[15px]">
+          <div class="relative h-full overflow-hidden flex flex-col">
+            <div class="store-locator__content w-full scrollbar-body scrollbar-visible scrollbar-always-visible md:max-h-[calc(90vh-280px)] overflow-y-auto md:overflow-y-scroll overscroll-none md:pr-3 ltr">
+              <div class="w-full pb-0.5 md:pb-1">
+                <ul class="w-full h-full gap-1.5 flex flex-col md:grow{% if is_rtl %} rtl{% endif %}">
+                  {% for block in section.blocks %}
+                    <li
+                      class="x-block-items-{{ block.type }}-{{ forloop.index }} store-locator__content__item py-4 cursor-pointer md:py-6.5 rounded-corners border"
+                      :class="(active == '{{ block.id }}' || {{ section.blocks.size }} === 1) && 'color-bg-[rgba(var(--color-heading),0.06)] color-border-[rgba(var(--color-heading),0.06)]'"
+                      tabindex="0"
+                      @click="toggleActive('{{ block.id }}')"
+                      @keydown.enter="toggleActive('{{ block.id }}')"
+                      {{ block.shopify_attributes }}
+                    >
+                      <div
+                        class="group relative flex items-center duration-200 p-break-words maximize mx-4 md:mx-5"
+                      >
+                        {% liquid
+                          assign location_name = 'store_selector.location_name' | t
+                          if block.settings.title != blank
+                            assign location_name = block.settings.title
+                          endif
+                        %}
+                        <div
+                          id="store-selector-input-item-{{ block.id }}"
+                          class="input-item flex items-center will-change-unset"
+                        >
+                          <div class="flex flex-row gap-2.5 items-center">
+                            <span
+                              class="checkbox checkbox-custom inline-block relative border color-border-[rgba(var(--color-heading),0.2)] {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %} min-w-[20px] w-5 h-5 color-text-[rgba(var(--colors-button))]"
+                              :class="currentSelected == '{{ block.id }}' ? 'checked' : ''"
+                              @click="toggleSelected($el, '{{ block.id }}')"
+                              @keydown.enter.stop="toggleSelected($el, '{{ block.id }}')"
+                              tabindex="0"
+                              id="Checkbox__{{ section.id }}-{{ block.id }}"
+                              @click.stop
+                              data-store-name="{{ location_name | replace: "&", "&amp;" | replace: '"', "&quot;" | replace: "'", "&#39;" | replace: "\", "&#92;" }}"
+                            ></span>
+                            <p class="h6 pe-6">
+                              {{ location_name | escape }}
+                            </p>
+                          </div>
+                        </div>
+    
+                        {% if section.blocks.size > 1 %}
+                          <span
+                            class="w-3 will-change-unset duration-200 inline-block absolute group-hover:color-text-[rgba(var(--color-heading))]{% if settings.lang_direction contains request.locale.iso_code %} left-0{% else %} right-0{% endif %}"
+                            :class="active == '{{ block.id }}' ? ' color-text-[rgba(var(--color-heading))] rotate-180' : 'rotate-0 color-text-[rgba(var(--color-heading),0.6)]'"
+                          >
+                            {% render 'icon-all', icon: 'icon-caret' %}
+                          </span>
+                        {% endif %}
+                      </div>
+                      <div
+                        {% if section.blocks.size > 1 %}
+                          x-show="active == '{{ block.id }}'"
+                          :class="(active != '{{ block.id }}' && !isItemPartiallyVisible($el)) ? 'transition-disabled' : ''"
+                          class="px-4 md:px-5 overflow-hidden"
+                          x-cloak
+                          x-collapse.duration.300ms
+                        {% else %}
+                          class="px-4 md:px-5"
+                        {% endif %}
+                      >
+                        <div class="border-t mt-2.5">
+                          <div class="pt-3 md:pt-4">
+                            {% if block.settings.image != blank %}
+                              {% assign default_image_alt = 'accessibility.default_alt' | t %}
+                              <div class="relative pb-[{{ block.settings.image_ratio }}%] mb-3 overflow-hidden rounded-corners">
+                                <div class="absolute top-0 left-0 w-full h-full">
+                                  <img
+                                    class="block max-w-full image-hover absolute top-0 left-0 h-full w-full object-cover"
+                                    srcset="
+                                      {{ block.settings.image | image_url: width: 375 }} 375w,
+                                      {{ block.settings.image | image_url: width: 450 }} 450w,
+                                      {{ block.settings.image | image_url: width: 750 }} 750w,
+                                      {{ block.settings.image | image_url: width: 900 }} 900w,
+                                      {{ block.settings.image | image_url: width: 1100 }} 1100w,
+                                      {{ block.settings.image | image_url: width: 1500 }} 1500w,
+                                      {{ block.settings.image | image_url: width: 1780 }} 1780w,
+                                      {{ block.settings.image | image_url: width: 2000 }} 2000w,
+                                      {{ block.settings.image | image_url: width: 3000 }} 3000w,
+                                      {{ block.settings.image | image_url: width: 3840 }} 3840w
+                                    "
+                                    sizes="(min-width: 1000px) 400px, 100vw"
+                                    src="{{ block.settings.image | image_url: width: 3840 }}"
+                                    loading="lazy"
+                                    alt="{{ block.settings.image.alt | default: default_image_alt |escape }}"
+                                    width="{{ block.settings.image.width }}"
+                                    height="{{ block.settings.image.width | divided_by: block.settings.image.aspect_ratio }}"
+                                    style="object-position: {{ block.settings.image.presentation.focal_point }};"
+                                  >
+                                </div>
+                              </div>
+                            {% endif %}
+                            <div class="mb-3">
+                              {% if block.settings.pickup_fee != empty %}
+                                <p class="pickup-fee-msg mb-1.5 {% if is_rtl %} mr-0.5{% else %} ml-0.5{% endif %}">
+                                  <span class="inline-block w-2.5 h-2.5 color-bg-[rgba(var(--color-in-stock))] rounded-full relative after:animate-ping after:bg-inherit after:absolute after:w-full after:h-full after:rounded-full after:top-0 after:left-0"></span>
+                                  <span class="color-text-[rgba(var(--color-in-stock))] {% if is_rtl %} mr-1.5{% else %} ml-1.5{% endif %}">{{ block.settings.pickup_fee }}</span>
+                                </p>
+                              {% endif %}
+                              {% if block.settings.ready_time != blank %}
+                                <p class="ready-time-msg mb-1.5">{{ block.settings.ready_time }}</p>
+                              {% endif %}
+                            </div>
+                            {% if block.settings.location_address != blank %}
+                              <p class="location-address-msg mb-0.5">{{ block.settings.location_address }}</p>
+                            {% endif %}
+                            {% if block.settings.text != blank %}
+                              <div class="rte block h-full min-h-[0.5rem]">
+                                {{ block.settings.text }}
+                              </div>
+                            {% endif %}
+                            {% if block.settings.button_label != blank and block.settings.location_address != blank %}
+                              {% assign button_link = 'https://www.google.com/maps/place/' | append: block.settings.location_address %}
+                              <div class="leading-[0] mt-5">
+                                {% render 'button', button_style: block.settings.button_style, button_label: block.settings.button_label, button_link: button_link, open_new_window_button: true, class: 'whitespace-nowrap button-small' %}
+                              </div>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+
+            <!-- Save Button -->
+            <custom-button>
+              <button
+                @click="setSelectedStore();"
+                class="hidden md:block button button-primary w-full font-semibold mt-4 grow shrink-0"
+                :class="currentSelected ? 'pointer-event-auto opacity-100 cursor-pointer': 'pointer-event-none cursor-not-allowed opacity-70'"
+              >
+                {% if section.settings.pickup_button_label != blank %}
+                  {{ section.settings.pickup_button_label }}
+                {% else %}
+                  {{ 'store_selector.set_as_my_store' | t }}
+                {% endif %}
+              </button>
+            </custom-button>
+          </div>
+        </div>
+
+        {% comment %} Popup media {% endcomment %}
+        <div class="popup-store-locator__media w-full min-h-[250px] md:max-h-[650px] transition-all relative overflow-hidden rounded-corners" :class="active === null ? 'hidden md:block' : ''">
+          {%- capture sizes -%}
+            (min-width: {{ settings.page_width }}px) {% if section.settings.full_width %} calc(100vw - 480px) {% else -%}calc({{ settings.page_width }}px - 480px){%- endif -%}
+            , (min-width: 768px) calc(100vw), 100vw
+          {%- endcapture -%}
+          {% if section.blocks.size > 1 %}
+            <div  class="w-full h-[250px] md:h-full"
+                x-show="active == null" x-cloak
+              >
+               <div class="flex items-center justify-center w-full h-full bg-placeholder-image">
+                  {% render 'placeholder-image', image_type: 'icon-location-map', class: 'w-20 h-20 md:h-auto md:w-auto' %}
+                </div>
+            </div>
+          {% endif %}
+          {% for block in section.blocks %}
+            <div
+              class="w-full h-[250px] md:h-full{% if block.settings.location_address == blank and block.settings.image != blank %} h-0 rounded-corners overflow-hidden relative pb-[{{ block.settings.image_ratio }}%]{% endif %}"
+              {% if section.blocks.size > 1 %}
+                x-show="active == '{{ block.id }}'" x-cloak
+              {% endif %}
+            >
+              {% if block.settings.location_address != blank %}
+                <div
+                  x-data="xMap('{{ block.settings.location_address }}')"
+                  class="md:h-full h-[250px]"
+                  x-intersect.once.margin.250px="load()"
+                >
+                  <iframe
+                    src=""
+                    class="w-full h-full hidden"
+                    title="{{ 'sections.map.title' | t }}"
+                  ></iframe>
+                  <div x-ref="iframe_placeholder" class="w-full h-full relative">
+                    <div class="flex items-center justify-center w-full h-full bg-placeholder-image opacity-50">
+                      {% render 'placeholder-image', image_type: 'icon-location-map', class: 'w-20 h-20 md:h-auto md:w-auto' %}
+                    </div>
+                    <span class="inline-block w-12 h-12 animate-spin absolute left-[calc(50%-24px)] top-[calc(50%-24px)]">
+                      {% render 'icon-all', icon: 'icon-loading' %}
+                    </span>
+                  </div>
+                </div>
+              {% elsif block.settings.image != blank %}
+                {% assign default_image_alt = 'accessibility.default_alt' | t %}
+                <img
+                  srcset="
+                    {{ block.settings.image | image_url: width: 375 }} 375w,
+                    {{ block.settings.image | image_url: width: 450 }} 450w,
+                    {{ block.settings.image| image_url: width: 900 }} 900w,
+                    {{ block.settings.image| image_url: width: 1100 }} 1100w,
+                    {{ block.settings.image | image_url: width: 1500 }} 1500w,
+                    {{ block.settings.image | image_url: width: 2000 }} 2000w,
+                    {{ block.settings.image | image_url: width: 3000 }} 3000w,
+                    {{ block.settings.image | image_url: width: 3840 }} 3840w
+                  "
+                  src="{{ block.settings.image | image_url: width: 3000 }}"
+                  sizes="{{ sizes }}"
+                  alt="{{ block.settings.image.alt | default: default_image_alt | escape }}"
+                  height="{{ block.settings.image.height }}"
+                  width="{{ block.settings.image.width }}"
+                  loading="lazy"
+                  class="h-full absolute w-full object-cover z-0 inset-0"
+                >
+              {% else %}
+                <div class="flex items-center justify-center w-full h-full bg-placeholder-image">
+                  {% render 'placeholder-image', image_type: 'icon-location-map', class: 'w-20 h-20 md:h-auto md:w-auto' %}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <button
+      @click="setSelectedStore();"
+      class="md:hidden button button-primary w-full font-semibold mt-2.5 shrink-0"
+      :class="currentSelected ? 'pointer-event-auto opacity-100 cursor-pointer': 'pointer-event-none cursor-not-allowed opacity-70'"
+    >
+      {% if section.settings.pickup_button_label != blank %}
+        {{ section.settings.pickup_button_label }}
+      {% else %}
+        {{ 'store_selector.set_as_my_store' | t }}
+      {% endif %}
+    </button>
+    <div
+      class="element-end-modal h-0 w-0 absolute pointer-events-none"
+      tabindex="0"
+      @focus="document.getElementById('LocationSelectorClose')?.focus()">
+    </div>
+  </div>
+</div>
+
+<div
+  class="hidden"
+  id="HeaderDesktopLocator" 
+  x-init="$store.xHelper.setPosition('#x-header-container .x-header-store-selector-desktop', '#HeaderDesktopLocator')"
+>
+  <div>
+    <div
+      class="cursor-pointer"
+      @click.prevent="$store.xStoreMap?.dispatchEventOpenPopup()"
+      @keydown.enter="$store.xStoreMap?.dispatchEventOpenPopup()"
+      tabindex="0"
+      aria-label="{{ 'store_selector.default_label' | t }}"
+      role="button"
+    >
+      <div class="relative flex flex-row items-center gap-1">
+        <span class="icon w-6 h-6 block shrink-0">
+          {% render 'icon-all', icon: 'icon-location' %}
+        </span>
+        <span
+          x-show="$store.xStoreMap?.currentStoreSelected !== ''"
+          x-text="$store.xStoreMap?.getStoreText()"
+          class="line-clamp-2"
+        ></span>
+        {% if section.blocks.size > 1 %}
+          <span x-show="$store.xStoreMap?.currentStoreSelected !== ''" class="w-2.5 h-2.5 {% if is_rtl %} mr-1{% else %} ml-1{% endif %} shrink-0">{% render 'icon-all', icon: 'icon-caret' %}</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+<div
+  class="hidden"
+  id="HeaderMobileLocator" 
+  x-init="$store.xHelper.setPosition('.x-header-store-selector-mobile', '#HeaderMobileLocator')"
+>
+  <div
+    class="cursor-pointer pt-2 pb-2"
+    @click.prevent="$store.xStoreMap?.dispatchEventOpenPopup()"
+    @keydown.enter="$store.xStoreMap?.dispatchEventOpenPopup()"
+    tabindex="0"
+    aria-label="{{ 'store_selector.default_label' | t }}"
+    role="button"
+  >
+    <div class="relative flex flex-row items-center gap-1">
+      <span class="icon w-4 h-4 block">
+        {% render 'icon-all', icon: 'icon-location' %}
+      </span>
+      <span
+        x-show="$store.xStoreMap?.currentStoreSelected === ''"
+        id="StoreSelectorName__mobile-{{ section.id }}"
+      >
+        {{ 'store_selector.default_label' | t }}
+      </span>
+      <span
+        x-show="$store.xStoreMap?.currentStoreSelected !== ''"
+        x-text="$store.xStoreMap?.getStoreText()"
+        class="line-clamp-2"
+      ></span>
+    </div>
+  </div>
+</div>
+
+<script src="{{ 'store-locator.js' | asset_url }}" defer></script>
+<script src="{{ 'map.js' | asset_url }}" defer></script>
+{% schema %}
+{
+  "name": "t:store_locator.name",
+  "tag": "section",
+  "limit": 1,
+  "enabled_on": {
+    "groups": ["aside"]
+  },
+  "class": "maximize-section section-store-locator",
+  "settings": [
+    {
+      "id": "content_position",
+      "type": "select",
+      "label": "t:global.position.content_position",
+      "default": "left",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:global.position.left"
+        },
+        {
+          "value": "right",
+          "label": "t:global.position.right"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "pickup_button_label",
+      "label": "t:store_locator.settings.pickup_button_label",
+      "default": "Select store"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.colors"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    },
+    {
+      "type": "checkbox",
+      "id": "auto_select_first_store",
+      "default": false,
+      "label": "t:store_locator.settings.auto_select_first_store"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "store_location",
+      "name": "t:store_locator.blocks.store_location.name",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "t:store_locator.blocks.store_location.settings.image"
+        },
+        {
+          "type": "select",
+          "id": "image_ratio",
+          "options": [
+            {
+              "value": "100",
+              "label": "t:global.ratio.square"
+            },
+            {
+              "value": "66",
+              "label": "t:store_locator.blocks.store_location.settings.image_ratio_rectangle_option"
+            },
+            {
+              "value": "75",
+              "label": "t:global.ratio.landscape"
+            }
+          ],
+          "default": "100",
+          "label": "t:global.ratio.image_ratio",
+          "info": "t:store_locator.blocks.store_location.settings.image_ratio_info"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "default": "Store branch",
+          "label": "t:store_locator.blocks.store_location.settings.location_name",
+          "info": "t:store_locator.blocks.store_location.settings.location_name_info"
+        },
+        {
+          "type": "text",
+          "id": "location_address",
+          "default": "75 9th Ave, New York, NY 10011-7006",
+          "label": "t:store_locator.blocks.store_location.settings.location_address",
+          "info": "t:store_locator.blocks.store_location.settings.location_address_info"
+        },
+        {
+          "type": "text",
+          "id": "pickup_fee",
+          "default": "Free",
+          "label": "t:store_locator.blocks.store_location.settings.pickup_fee"
+        },
+        {
+          "type": "text",
+          "id": "ready_time",
+          "default": "Usually ready for pickup in 24 hours",
+          "label": "t:store_locator.blocks.store_location.settings.ready_time"
+        },
+        {
+          "type": "richtext",
+          "id": "text",
+          "default": "<p>(+84) 123 456 789<br/><br/>Store hours<br/>Mon - Fri, 8:30am - 10:30pm,<br/>Saturday, 8:30am - 10:30pm,<br/>Sunday, 8:30am - 10:30pm</p>",
+          "label": "t:store_locator.blocks.store_location.settings.location_details"
+        },
+        {
+          "type": "header",
+          "content": "t:global.header.button"
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "default": "Get directions",
+          "label": "t:store_locator.blocks.store_location.settings.button.navigation_button_label",
+          "info": "t:store_locator.blocks.store_location.settings.button.navigation_button_label_info"
+        },
+        {
+          "type": "select",
+          "id": "button_style",
+          "label": "t:global.button.style.label",
+          "options": [
+            {
+              "value": "primary",
+              "label": "t:global.button.style.primary"
+            },
+            {
+              "value": "secondary",
+              "label": "t:global.button.style.secondary"
+            },
+            {
+              "value": "text-link",
+              "label": "t:global.button.style.text_link"
+            },
+            {
+              "value": "direction_link",
+              "label": "t:global.button.style.direction_link"
+            }
+          ],
+          "default": "primary"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:store_locator.name",
+      "category": "t:global.category.content",
+      "blocks": [
+        {
+          "type": "store_location"
+        },
+        {
+          "type": "store_location"
+        },
+        {
+          "type": "store_location"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

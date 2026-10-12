@@ -1,0 +1,26 @@
+{%- liquid
+  assign pickup_locs = ''
+  assign pickup_avail = ''
+  for store in product.selected_or_first_available_variant.store_availabilities
+    assign pickup_locs = pickup_locs | append: store.location.name | append: '|||'
+    if store.pick_up_enabled
+      assign avail_val = store.available | json
+      assign pickup_avail = pickup_avail | append: store.location.name | append: '::' | append: avail_val | append: '|||'
+    endif
+  endfor
+-%}
+<div
+  class="pickup-message__wrapper -mt-1.5 mb-3"
+  style="display:none"
+  data-pickup-locs="{{ pickup_locs | escape }}"
+  data-pickup-avail="{{ pickup_avail | escape }}"
+>
+  <div class="pickup-msg-avail text-available text-x-small border border-dashed p-1 flex flex-row rtl:flex-row-reverse items-center gap-[3px]{% if settings.edges_type == 'rounded_corners' %} rounded{% endif %}" style="display:none">
+    <span class="flex min-w-[16px] h-4 w-4 relative">{% render 'icon-all', icon: 'icon-location' %}</span>
+    <span>{{ 'store_selector.available' | t }} <span class="pickup-store-name"></span></span>
+  </div>
+  <div class="pickup-msg-unavail text-unavailable text-x-small border border-dashed p-1 flex flex-row rtl:flex-row-reverse items-center gap-[3px]{% if settings.edges_type == 'rounded_corners' %} rounded{% endif %}" style="display:none">
+    <span class="flex min-w-[16px] h-4 w-4 relative">{% render 'icon-all', icon: 'icon-location' %}</span>
+    <span>{{ 'store_selector.out_of_stock' | t }} <span class="pickup-store-name"></span></span>
+  </div>
+</div>

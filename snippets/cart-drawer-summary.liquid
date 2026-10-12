@@ -1,0 +1,151 @@
+<div class="cart-drawer__summary__wrapper scrollbar-body md:overflow-auto scrollbar-visible color-bg-[rgba(var(--color-heading),0.06)] relative border-t border-solid color-border-[rgba(var(--color-line-and-border))] md:min-h-[182px] max-h-[360px] shrink-0 grow-0 md:rounded-b-[var(--border-radius-drawer)] {% if is_rounded_conners %} rounded-t-[10px] {% endif %}">
+  <div class="cart-drawer__summary__container cart-drawer__padding-x pt-5 pb-7.5 relative">
+    {% liquid
+      assign money_cart_total_price = cart.total_price | money_with_currency
+    %}
+    <div class="cart-drawer__total flex flex-row h4">
+      <p class="flex-auto">{{ 'sections.cart.total' | t }}</p>
+      <p>{{ money_cart_total_price }}</p>
+    </div>
+
+    {%- if settings.cart_enable_savings_amount and cart.cart_level_discount_applications.size > 0 -%}
+      {% liquid
+        assign money_cart_total_discount_price = cart.total_discount | money | strip_html
+        if settings.currency_code_enable
+          assign money_cart_total_discount_price = cart.total_discount | money_with_currency | strip_html
+        endif
+      %}
+
+      {% liquid
+        assign money_cart_subtotal_price = cart.items_subtotal_price | money_with_currency
+      %}
+      <div
+        class="cart-drawer__saving__wrapper flex flex-row text-x-small"
+        role="status"
+      >
+        <div class="flex-auto">{{ 'sections.cart.total_savings' | t: total_discount: money_cart_total_discount_price }}</div>
+        {% comment %} <div class="line-through">{{ money_cart_subtotal_price }}</div> {% endcomment %}
+      </div>
+    {%- endif -%}
+
+    <div class="cart-drawer__calculate-shipping text-xx-small">
+      {% render 'auto-calculate-shipping', is_cart_page: false %}
+    </div>
+
+    {%- if settings.cart_enable_terms_and_conditions -%}
+      <cart-term
+        id="CartDrawer__Term"
+        class="cart-drawer__term relative clear-both w-full flex flex-col gap-2 pt-3"
+      >
+        <div class="cart-drawer-term__content flex items-center">
+          <input
+            id="CartDrawer__Agree"
+            class="input-checkbox h-5 w-5 min-w-[20px] cursor-pointer border color-border-[rgba(var(--color-text),0.12)] checked:color-bg-[rgba(var(--color-button))] relative mr-2 rtl:mr-0 rtl:ml-2{% if settings.edges_type == 'rounded_corners' %} rounded{% else %} rounded-none{% endif %}"
+            type="checkbox"
+          >
+          <label
+            for="CartDrawer__Agree"
+            class="cursor-pointer"
+          >
+            {% if settings.cart_terms_and_conditions_page != blank %}
+              {{ 'sections.cart.cart_enable_terms_and_conditions_html' | t: url: settings.cart_terms_and_conditions_page.url }}
+            {% else %}
+              {{ 'sections.cart.cart_enable_terms_and_conditions' | t }}
+            {% endif %}
+          </label>
+        </div>
+        <div
+          class="cart-term__error clear-both color-text-[rgba(var(--error-message-color))] text-small hidden"
+        >
+          {{ 'general.cart.terms_confirm' | t }}
+        </div>
+      </cart-term>
+    {%- else -%}
+      <label>
+        <input
+          id="CartDrawer__Term"
+          class="hidden"
+          type="checkbox"
+          checked="isChecked"
+        >
+      </label>
+    {%- endif -%}
+
+    {%- capture drawer_can_request_quote -%}{%- render 'can-request-quote' -%}{%- endcapture -%}
+    {%- assign drawer_can_request_quote = drawer_can_request_quote | strip -%}
+    <div class="cart-drawer__actions pt-4 flex flex-col gap-1">
+      <div class="flex flex-row gap-1">
+        {% if settings.enable_view_cart_button %}
+          <custom-button>
+            <a
+              class="cart-drawer__view-cart h7 button button-secondary w-1/2 {% if is_rounded_conners %} rounded-md{% endif %}"
+              type="button"
+              href="{{ routes.cart_url }}"
+            >
+              {{ 'sections.cart.view_cart' | t }}
+            </a>
+          </custom-button>
+        {% endif %}
+        <custom-button class="w-fit">
+          <button
+            class="cart-drawer__checkout button button-primary {% if settings.enable_view_cart_button %}w-1/2{% else %}w-full{% endif %} {% if is_rounded_conners %} rounded-md{% endif %}"
+            id="checkout"
+            name="checkout"
+            type="submit"
+            form="CartDrawerForm"
+            @click="window.xCartHelper.goToCheckout($event)"
+            aria-label="{{ 'sections.cart.checkout' | t }}"
+          >
+            {% assign button_label = 'sections.cart.checkout' | t %}
+            {% render 'button-label', button_label: button_label, show_button_style: 'primary' %}
+          </button>
+        </custom-button>
+      </div>
+      {%- if drawer_can_request_quote == 'true' -%}
+        <custom-button>
+          <button
+            type="button"
+            class="cart-drawer__request-quote button button-secondary w-full {% if is_rounded_conners %} rounded-md{% endif %}"
+            data-quote-request-open
+            data-quote-source="cart-drawer"
+          >
+            {{ 'quote_request.button_label' | t }}
+          </button>
+        </custom-button>
+      {%- endif -%}
+    </div>
+
+    {%- if settings.cart_show_payment_methods -%}
+      <div class="flex flex-col gap-2 pt-2.5 md:pt-4">
+        {% if settings.cart_custom_payment != blank %}
+          {% assign enabled_payment_types = settings.cart_custom_payment | remove: ' ' | split: ',' %}
+          <ul
+            class="flex justify-center gap-1 md:gap-1.5 flex-wrap"
+            role="list"
+            aria-labelledby="payment-methods-title"
+          >
+            {%- for type in enabled_payment_types -%}
+              <li class="">
+                {{ type | payment_type_svg_tag }}
+              </li>
+            {%- endfor -%}
+          </ul>
+        {% else %}
+          {% if shop.enabled_payment_types.size > 0 %}
+            <ul
+              class="flex justify-center gap-1 md:gap-1.5 flex-wrap"
+              role="list"
+              aria-labelledby="payment-methods-title"
+            >
+              {%- for type in shop.enabled_payment_types -%}
+                <li class="">
+                  {{ type | payment_type_svg_tag }}
+                </li>
+              {%- endfor -%}
+            </ul>
+          {% endif %}
+        {% endif %}
+      </div>
+    {%- endif -%}
+  </div>
+</div>

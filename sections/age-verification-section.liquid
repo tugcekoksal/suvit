@@ -1,0 +1,501 @@
+{% if section.blocks.size > 0 %}
+  {% style %}
+    .section-{{ section.id }} {
+      --pad-top: {{ section.settings.desktop_padding_top }}px;
+      --pad-bottom: {{ section.settings.desktop_padding_bottom }}px;
+      --pad-left: {{ section.settings.desktop_padding_left }}px;
+      --pad-right: {{ section.settings.desktop_padding_right }}px;
+      --pad-top-m: {{ section.settings.mobile_padding_top }}px;
+      --pad-bottom-m: {{ section.settings.mobile_padding_bottom }}px;
+      --pad-left-m: {{ section.settings.mobile_padding_left }}px;
+      --pad-right-m: {{ section.settings.mobile_padding_right }}px;
+    }
+
+    .section-{{ section.id  }} .age-verification__blocks {
+      gap: calc({{ section.settings.gap }}px * var(--mobile-padding-ratio));
+    }
+    @media (min-width: 768px) {
+      .section-{{ section.id  }} .age-verification__blocks {
+         gap: {{ section.settings.gap }}px;
+      }
+    }
+  {% endstyle %}
+
+  {%- liquid
+    case section.settings.desktop_position
+      when 'top-left'
+        assign desktop_align = 'md:items-start md:justify-start md:mt-8 md:ml-8 rtl:md:justify-end'
+      when 'top-center'
+        assign desktop_align = 'md:items-start md:justify-center md:mt-8'
+      when 'top-right'
+        assign desktop_align = 'md:items-start md:justify-end md:mt-8 md:mr-8 rtl:md:justify-start'
+      when 'middle-left'
+        assign desktop_align = 'md:items-center md:justify-start md:ml-8 rtl:md:justify-end'
+      when 'middle-center'
+        assign desktop_align = 'md:items-center md:justify-center'
+      when 'middle-right'
+        assign desktop_align = 'md:items-center md:justify-end md:mr-8 rtl:md:justify-start'
+      when 'bottom-left'
+        assign desktop_align = 'md:items-end md:justify-start md:mb-8 md:ml-8 rtl:md:justify-end'
+      when 'bottom-center'
+        assign desktop_align = 'md:items-end md:justify-center md:mb-8'
+      when 'bottom-right'
+        assign desktop_align = 'md:items-end md:justify-end md:mb-8 md:mr-8 rtl:md:justify-start'
+      else
+        assign desktop_align = 'md:items-center md:justify-center'
+    endcase
+
+    case section.settings.mobile_position
+      when 'mobile-top'
+        assign mobile_align = 'items-start justify-center mt-4'
+      when 'mobile-bottom'
+        assign mobile_align = 'items-end justify-center mb-4'
+      else
+        assign mobile_align = 'items-center justify-center'
+    endcase
+  -%}
+
+  <age-verification
+    class="popup-position block"
+    data-section-id="{{ section.id }}"
+    data-delay-days="{{ section.settings.storage_expiration | default: 30 }}"
+  >
+    <div
+      id="x-age-popup"
+      data-age-verification-popup
+      class="age-verification__wrapper fixed inset-0 z-[60] flex pointer-events-none {{ mobile_align }} {{ desktop_align }}"
+      style="display: none;"
+    >
+      <div
+        id="AgeVerification__Overlay"
+        data-age-verification-overlay
+        class="age-verification__overlay drawer__overlay pointer-events-auto cursor-auto hidden"
+        style="display: none;"
+      ></div>
+
+      <div
+        id="AgeVerification-{{ section.id }}"
+        data-age-verification-content
+        role="dialog"
+        aria-modal="true"
+        tabindex="-1"
+        class="age-verification__content section-{{ section.id }} {%- if settings.edges_type == 'rounded_corners' %}rounded-[20px] {% endif -%} popup-shadow relative pointer-events-auto overflow-hidden w-max md:min-w-[320px] md:max-w-[520px] max-w-[320px] min-w-[220px] block-padding color-{{ section.settings.color_scheme_light }} dark-color-{{ section.settings.color_scheme_dark }} md:text-{{ section.settings.desktop_alignment }} text-{{ section.settings.mobile_alignment }}"
+      >
+        {%- if section.settings.background_media == 'image' -%}
+          <div class="block-group__bg absolute inset-0 overflow-hidden rounded-corners">
+            {%- if section.settings.background_image_desktop != blank or section.settings.background_image_mobile != blank -%}
+              {%- liquid
+                if section.index == 1 and section.location == 'template'
+                  assign bg_loading = 'eager'
+                else
+                  assign bg_loading = 'lazy'
+                endif
+                assign bg_sizes = '(min-width: 768px) 50vw, 100vw'
+              -%}
+
+              {%- render 'image-new',
+                image: section.settings.background_image_desktop,
+                image_mobile: section.settings.background_image_mobile,
+                image_class: 'w-full h-full object-cover image-hover anm-image-hover',
+                image_mobile_class: 'w-full h-full object-cover',
+                loading: bg_loading,
+                sizes: bg_sizes
+              -%}
+            {%- else -%}
+              <div class="absolute w-full h-full overflow-hidden flex justify-center items-center rounded-corners scale-150">
+                {%- render 'placeholder-image', image_type: 'image' -%}
+              </div>
+            {%- endif -%}
+
+            <div class="absolute inset-0 scheme-image-overlay opacity-{{ section.settings.overlay_opacity }}"></div>
+          </div>
+        {%- endif -%}
+
+        <div class="age-verification__blocks flex flex-col gap-[{{ section.settings.gap }}px]">
+          {% content_for 'blocks' %}
+        </div>
+      </div>
+    </div>
+  </age-verification>
+
+  <script src="{{ 'age-verification.js' | asset_url }}" defer></script>
+{% endif %}
+{% schema %}
+{
+  "name": "t:age-verification-section.name",
+  "tag": "section",
+  "class": "maximize-section section-age-verification",
+  "enabled_on": {
+    "groups": ["aside"]
+  },
+  "limit": 1,
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:age-verification-section.settings.display_rules"
+    },
+    {
+      "type": "range",
+      "id": "storage_expiration",
+      "label": "t:age-verification-section.settings.storage_expiration",
+      "default": 30,
+      "min": 1,
+      "max": 90,
+      "step": 1,
+      "unit": "day"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.desktop_layout"
+    },
+    {
+      "type": "select",
+      "id": "desktop_position",
+      "label": "t:global.position.desktop_position",
+      "options": [
+        {
+          "value": "top-left",
+          "label": "t:global.position.top_left"
+        },
+        {
+          "value": "top-center",
+          "label": "t:global.position.top_center"
+        },
+        {
+          "value": "top-right",
+          "label": "t:global.position.top_right"
+        },
+        {
+          "value": "middle-left",
+          "label": "t:global.position.middle_left"
+        },
+        {
+          "value": "middle-center",
+          "label": "t:global.position.middle_center"
+        },
+        {
+          "value": "middle-right",
+          "label": "t:global.position.middle_right"
+        },
+        {
+          "value": "bottom-left",
+          "label": "t:global.position.bottom_left"
+        },
+        {
+          "value": "bottom-center",
+          "label": "t:global.position.bottom_center"
+        },
+        {
+          "value": "bottom-right",
+          "label": "t:global.position.bottom_right"
+        }
+      ],
+      "default": "middle-center"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.mobile_layout"
+    },
+    {
+      "type": "select",
+      "id": "mobile_position",
+      "label": "t:global.position.mobile_position",
+      "options": [
+        {
+          "value": "mobile-top",
+          "label": "t:global.position.top"
+        },
+        {
+          "value": "mobile-center",
+          "label": "t:global.position.center"
+        },
+        {
+          "value": "mobile-bottom",
+          "label": "t:global.position.bottom"
+        }
+      ],
+      "default": "mobile-center"
+    },
+    {
+      "type": "header",
+      "content": "t:global.alignment.alignment"
+    },
+    {
+      "type": "select",
+      "id": "desktop_alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:global.position.left"
+        },
+        {
+          "value": "center",
+          "label": "t:global.position.center"
+        },
+        {
+          "value": "right",
+          "label": "t:global.position.right"
+        }
+      ],
+      "default": "center",
+      "label": "t:global.section.desktop"
+    },
+    {
+      "type": "select",
+      "id": "mobile_alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:global.position.left"
+        },
+        {
+          "value": "center",
+          "label": "t:global.position.center"
+        },
+        {
+          "value": "right",
+          "label": "t:global.position.right"
+        }
+      ],
+      "default": "center",
+      "label": "t:global.section.mobile"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.appearance"
+    },
+    {
+      "type": "select",
+      "id": "background_media",
+      "label": "t:global.media.background_media",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:global.options.none"
+        },
+        {
+          "value": "image",
+          "label": "t:global.image.image"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "image_picker",
+      "id": "background_image_desktop",
+      "label": "t:global.image.desktop_image",
+      "visible_if": "{{ section.settings.background_media == 'image' }}"
+    },
+    {
+      "type": "image_picker",
+      "id": "background_image_mobile",
+      "label": "t:global.image.mobile_image",
+      "visible_if": "{{ section.settings.background_media == 'image' }}"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "%",
+      "label": "t:global.overlay.overlay_opacity",
+      "default": 20,
+      "visible_if": "{{ section.settings.background_media == 'image' }}"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "select",
+      "id": "device_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 32,
+      "visible_if": "{{ section.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 32,
+      "visible_if": "{{ section.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 32,
+      "visible_if": "{{ section.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 32,
+      "visible_if": "{{ section.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 16,
+      "visible_if": "{{ section.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 16,
+      "visible_if": "{{ section.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 16,
+      "visible_if": "{{ section.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 16,
+      "visible_if": "{{ section.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.spacing"
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:quick_order_list.settings.gap",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.style"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "subheading"
+    },
+    {
+      "type": "heading"
+    },
+    {
+      "type": "text"
+    },
+    {
+      "type": "_confirm-button"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:age-verification-section.name",
+      "category": "t:global.category.content",
+      "blocks": {
+        "heading": {
+          "type": "heading",
+          "name": "Heading",
+          "settings": {
+            "heading": "Age verification",
+            "heading_size": "custom",
+            "heading_tag": "h3",  
+            "desktop_font_size": 24,
+            "mobile_font_size": 18
+          }
+        },
+        "text": {
+          "type": "text",
+          "name": "Text",
+          "settings": {
+            "text": "<p>Are you 18 years old or older?</p>",
+            "text_size": "small",
+            "desktop_padding_top": 2,
+            "desktop_padding_bottom": 26,
+            "mobile_padding_top": 2,
+            "mobile_padding_bottom": 16
+          }
+        },
+        "confirm_button": {
+          "type": "_confirm-button",
+          "name": "t:confirmation_button.name"
+        }
+      },
+      "block_order": [
+        "heading",
+        "text",
+        "confirm_button"
+      ]
+    }
+  ]
+}
+{% endschema %}

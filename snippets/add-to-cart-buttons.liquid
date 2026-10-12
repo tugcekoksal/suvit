@@ -1,0 +1,259 @@
+{%- liquid
+  assign preorder_button_label = 'products.product.pre_order' | t
+  if settings.label_preorder_button_card != blank
+    assign preorder_button_label = settings.label_preorder_button_card
+  endif
+  if product.selected_or_first_available_variant != nil
+   if is_show_preorder
+      assign default_button_label = preorder_button_label
+    else
+      if variant.available == false
+        assign default_button_label = 'products.product.sold_out' | t
+      else
+        if settings.pc_atc_button_label != blank
+          assign default_button_label = settings.pc_atc_button_label
+        else  
+          assign default_button_label = 'products.product.add_to_cart' | t
+        endif  
+      endif
+    endif
+  else
+    assign default_button_label = 'products.product.unavailable' | t
+  endif
+
+  assign is_quantity_enabled = true 
+  if product.selected_or_first_available_variant != nil and variant.available
+    assign is_quantity_enabled = true
+  else
+    assign is_quantity_enabled = false
+  endif
+
+  assign message_preorder = 'general.preorder.message_preorder' | t
+  if settings.message_preorder_cart != blank
+    assign message_preorder = settings.message_preorder_cart
+  endif
+
+  assign choose_option_label = 'products.product.choose_option' | t 
+  if settings.pc_choose_option_label != blank
+    assign choose_option_label = settings.pc_choose_option_label
+  endif
+
+  assign atc_button_label = 'products.product.add_to_cart' | t
+  if settings.pc_atc_button_label != blank
+    assign atc_button_label = settings.pc_atc_button_label
+  endif
+-%}
+{%- if product != blank -%}
+  {%- if login_hide_price == 'true' -%}
+    {%- render 'guest-price-message' -%}
+  {%- else -%}
+    <div
+      class="product-card__form-wrapper grow relative {% if mobile_show_atc %} block {% else %} hidden {% endif %}{% if desktop_show_atc %} md:block {% else %} md:hidden {% endif %} {{ custom_class }}"
+      id="ProductForm-{{ section.id }}-{{ block.id }}"
+      x-data="xProductForm('{{ product_form_id }}', '{{ variant.id }}', {{ variant.available | default: false }}, '{{ default_button_label }}', '{{ atc_button_label }}', '{{ section.id }}', '{{ product_card_id }}', '{{ settings.preorder_show }}', '{{ preorder_button_label }}', {{ is_apply_preorder }}, {{ is_show_preorder }})"
+      x-init="handleInitProductForm()"
+      x-intersect.once.margin.200px="handleInitProductForm()"
+    >
+      <div
+        class="hidden absolute bottom-full mb-2 left-0 w-full z-10"
+        @click.away="errorMessage=false"
+      >
+        <div
+          x-ref="error_message"
+          class="flash-message error-message"
+          data-auto-hide-message="true"
+        ></div>
+      </div>
+      {%- if customer != blank and customer.b2b? -%}
+        <div
+          class="quantity-rule-error flash-message error-message absolute bottom-full mb-2 md:mb-3 left-0 w-full z-50"
+          x-ref="quantity_error"
+          x-show="quantityErrorMessage"
+          x-text="quantityErrorMessage"
+          x-cloak
+          role="alert"
+        ></div>
+      {%- endif -%}
+      <div class="product-info__form-container">
+        {%- unless settings.hide_cart -%}
+          {%- form 'product', product, id: product_form_id, class: 'product-info__form', novalidate: 'novalidate', data-type: 'add-to-cart-form', x-ref: 'product_form' -%}
+            <input
+              class="product-form__variant-id hidden"
+              name="id"
+              type="hidden"
+              form="{{ product_form_id }}"
+              :value="variantId"
+              :disabled="!isOptionAvailable"
+            >
+
+            <div class="product-card__properties-group hidden">
+              {%- capture estimate_shipping_message -%}
+              {%- render 'estimate-shipping-message', product: product, variant: current_variant -%}
+            {%- endcapture -%}
+              {%- assign message_update = estimate_shipping_message | strip -%}
+              {% if message_update != blank and settings.estimate_show_in_cart == 'show_item' %}
+                {% liquid
+                  assign name_edt = settings.name_edt
+                  if settings.name_edt == blank
+                    assign name_edt = 'general.estimate_delivery' | t
+                  endif
+                %}
+                <input
+                  type="hidden"
+                  name="properties[{{ name_edt }}]"
+                  value="{{ message_update }}"
+                  class="product-card__form__estimate-delivery hidden"
+                >
+              {% endif %}
+
+              <input
+                type="hidden"
+                class="product-card__form__preorder hidden"
+                name="properties[{{ 'general.preorder.name' | t }}]"
+                value="{{ message_preorder }}"
+                {% unless is_show_preorder %}
+                  disabled
+                {% endunless %}
+              >
+            </div>
+            <div class="w-full flex flex-row flex-wrap gap-1 rtl:flex-row-reverse">
+              {% if mobile_show_quantity or desktop_show_quantity %}
+                {% if settings.hide_cart == false %}
+                  <div class="grow {% if mobile_show_quantity %} block {% else %} hidden{% endif %}{% if desktop_show_quantity %} md:block {% else %} md:hidden {% endif %}">
+                    {% render 'product-quantity-atc',
+                      section: section,
+                      current_variant: variant,
+                      product: product,
+                      product_form_id: product_form_id,
+                      block_choose_option: true,
+                      index_param: index_param,
+                      card_id: product_card_id,
+                      is_enabled: is_quantity_enabled,
+                      login_hide_price: login_hide_price,
+                      rtl: rtl
+                    %}
+                  </div>
+                {% endif %}
+              {% endif %}
+              {% liquid
+                assign pc_show_choose_option_btn = false
+                assign pc_show_atc_btn = false
+
+                if product.available
+                  case settings.pc_choose_option_display
+                    when 'always'
+                      if product.has_only_default_variant == false
+                        assign pc_show_choose_option_btn = true
+                      else
+                        assign pc_show_atc_btn = true
+                      endif
+                    when 'multi_variant_only'
+                      if product.variants_count > 1
+                        assign pc_show_choose_option_btn = true
+                      else
+                        assign pc_show_atc_btn = true
+                      endif
+                    when 'replace_with_atc'
+                      if product.variants_count > 250
+                        assign pc_show_choose_option_btn = true
+                      else
+                        assign pc_show_atc_btn = true
+                      endif
+                  endcase
+                else
+                  assign pc_show_atc_btn = true
+                endif
+              %}
+              <div class="grow-[2]">
+                {% if pc_show_choose_option_btn %}
+                  <custom-button>
+                    <button
+                      type="button"
+                      class="product-form__btn-choose-option button button-{{settings.pc_button_style | default: 'primary'}} relative h-fit rounded-corners-md py-3 px-6 w-full min-h-[44px]"
+                      @click.prevent="$store.xProductCard.loadChooseOptions('{{ product.url | within: collection | split: '?' | first }}', $el, '{{ section_id }}-{{ product.id }}-{{ block_id }}', {{ index_param | default: 1 }}, {{ true }}); showOptions=true; activeElement=$el;"
+                      aria-label="{{ choose_option_label }}"
+                    >
+                      <span class="btn__text">{{ choose_option_label }}</span>
+                    </button>
+                  </custom-button>
+                {% elsif pc_show_atc_btn %}
+                  <custom-button>
+                    <button
+                      class="product-form__btn-add-to-cart button button-{{settings.pc_button_style | default: 'primary'}} relative h-fit rounded-corners-md py-3 px-6 w-full min-h-[44px]"
+                      type="submit"
+                      name="add"
+                      aria-haspopup="dialog"
+                      aria-labelledby="{{ product_form_id }}-submit title-{{ section.id }}-{{ product.id }}"
+                      aria-live="polite"
+                      data-sold-out-message="true"
+                      :class="{'opacity-60': !isAvailableButton, 'pointer-events-none': !visible, 'is-loading': isLoading}"
+                      :disabled="!isAvailableButton"
+                      :aria-disabled="!isAvailableButton || isLoading"
+                      :tabindex="isAvailableButton && isOptionExist ? '0' : '-1'"
+                      @click.prevent="handleAddToCart($event, true, '{{ variant.id }}')"
+                    >
+                      <span
+                        id="AddToCartText-{{ product_form_id }}"
+                        class="btn__text"
+                        :class="{'invisible': isLoading}"
+                      >
+                        {% if is_show_preorder %}
+                          {{ preorder_button_label }}
+                        {% else %}
+                          {% if variant %}
+                            {% if variant.available %}
+                              {{ default_button_label }}
+                            {% else %}
+                              {{ 'products.product.sold_out' | t }}
+                            {% endif %}
+                          {% else %}
+                            {{ 'products.product.unavailable' | t }}
+                          {% endif %}
+                        {% endif %}
+                      </span>
+                      <span
+                        class="inline-block w-5 h-5 animate-spin absolute left-[calc(50%-10px)] top-[calc(50%-10px)]"
+                        x-show="isLoading"
+                        x-cloak
+                      >
+                        {% render 'icon-all', icon: 'icon-loading' %}
+                      </span>
+
+                      <span
+                        class="w-5 h-5 absolute left-[calc(50%-10px)] top-[calc(50%-10px)] hidden"
+                        x-cloak
+                        data-check-icon
+                        x-show="!isLoading"
+                      >
+                        {% render 'icon-all', icon: 'icon-check-success' %}
+                      </span>
+                    </button>
+                  </custom-button>
+                {% endif %}
+              </div>
+            </div>
+          {%- endform -%}
+        {%- endunless -%}
+      </div>
+      <script
+        type="application/json"
+        data-type="init-current-variant"
+      >
+        {{ variant | json }}
+      </script>
+    </div>
+  {%- endif -%}
+{%- else -%}
+  {%- unless settings.hide_cart -%}
+    <div class="product-form__placeholder-wrapper">
+      <custom-button>
+        <button
+          class="product-form__placeholder__btn-add-to-cart button button-primary w-full relative {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+          disabled
+        >
+          {{ 'products.product.add_to_cart' | t }}
+        </button>
+      </custom-button>
+    </div>
+  {%- endunless -%}
+{%- endif -%}

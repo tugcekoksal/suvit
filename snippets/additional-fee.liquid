@@ -1,0 +1,300 @@
+{% liquid
+  assign additional_fee_product = block.settings.fee_charging_product
+  assign additional_fee_title = additional_fee_product.title | escape
+  if block.settings.alternative_product_title != blank
+    assign additional_fee_title = block.settings.alternative_product_title | escape
+  endif
+  
+  assign applied_collection_ids = block.settings.applied_collections | map: 'id' | join: ', '
+  assign is_show_block = false
+  if applied_collection_ids != blank
+    for collection in product.collections
+      assign id = collection.id
+      if applied_collection_ids contains id
+        assign is_show_block = true
+        break
+      endif
+    endfor
+  endif
+
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  else
+    assign is_rtl = false
+  endif
+%}
+
+{% if additional_fee_product != blank and additional_fee_product.id != product.id and is_show_block %}
+  <div {{ block.shopify_attributes }}
+    x-data="xAdditionalFee('{{ block.id }}', '{{ additional_fee_product.url }}', {{ additional_fee_product.options.size }})"
+    class="additional-fee"
+
+  >
+    {% comment %} Card {% endcomment %}
+    <div
+      class="flex gap-3 mb-[var(--padding-bottom-product-template-block)] outline outline-1 color-outline-[rgba(var(--color-text),0.2)] p-4 rounded-corners custom-icon-image_rounded-corners cursor-pointer additional-fee__card"
+      :class="isChecked && 'checked color-bg-[rgba(var(--color-text),0.06)]'"
+      @click.prevent="clickItem()"
+      @keyup.enter="clickItem()"
+      data-has-only-default-variant="{{ additional_fee_product.has_only_default_variant }}"
+    >
+      <input
+        type="checkbox"
+        class="additional-fee__checkbox input-checkbox w-5 h-5 md:w-5.5 md:h-5.5 min-w-[20px] md:min-w-[22px] pointer-events-none"
+        @keyup.space="clickItem()"
+        @keydown.space.prevent
+      >
+      <p class="hidden id-selected--{{ block.id }} additional-fee-selected"></p>
+      <div>
+        <span class="additional-fee__title p-break-words h6 md:h7">{{ additional_fee_title }}</span>
+        {% if block.settings.show_price %}
+          <div class="additional-fee__price">
+            {% liquid
+              assign item_final_price = additional_fee_product.selected_or_first_available_variant.price
+              assign item_original_price = additional_fee_product.selected_or_first_available_variant.compare_at_price
+
+              assign money_item_final_price = item_final_price | money
+              assign money_item_original_price = item_original_price | money
+
+              if settings.currency_code_enable
+                assign money_item_final_price = item_final_price | money_with_currency
+                assign money_item_original_price = item_original_price | money_with_currency
+              endif
+            %}
+            <div class="cart-item__additional-fee__price__wrapper items-center flex flex-row gap-1.5 gap-y-0.5 flex-wrap h5 md:h6">
+              <span
+                class="cart-item__additional-fee__final-price {% if item_original_price > item_final_price %}color-text-[rgba(var(--color-sale-price))]{% else %}color-text-[rgba(var(--color-price))]{% endif %}"
+              >
+                {{ money_item_final_price }}
+              </span>
+              {% if item_original_price > item_final_price %}
+                <span
+                  class="cart-item__additional-fee__original-price text-[80%] cap mr-1 rtl:ml-1 rtl:mr-0 inline-block color-text-[rgba(var(--color-price))] line-through"
+                >
+                  {{- money_item_original_price -}}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    <script type="application/json" id="AdditionalFee__CurrentVariant__{{ block.id }}">{{ additional_fee_product.selected_or_first_available_variant | json }}</script>
+
+    {% comment %} Popup variants {% endcomment %}
+    {% unless additional_fee_product.has_only_default_variant %}
+      <template x-teleport="body">
+        <div
+          id="AdditionalFeeDrawer__{{ block.id }}"
+          class="additional-fee-{{ block.id }}"
+          x-show="showDrawer"
+        >
+          <div
+            id="AdditionalFeeDrawer__Wrapper__{{ block.id }}"
+            class="drawer__wrapper additional-fee-drawer__wrapper"
+            x-show="showDrawer"
+            x-cloak
+          >
+            <div
+              id="AdditionalFeeDrawer__Overlay__{{ block.id }}"
+              class="drawer__overlay additional-fee-drawer__overlay"
+              @click.prevent="showDrawer = false; $store.xMaximizeDrawer.handleClose();"
+            ></div>
+        
+            <div
+              class="additional-fee-drawer__container drawer__container transform md:!w-[487px] flex flex-col md:overflow-y-visible outline-none"
+              id="AdditionalFeeDrawer__Container__{{ block.id }}"
+              x-cloak
+              x-show="showDrawer"
+              x-transition:enter-start="opacity-0 translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+              x-transition:enter-end="opacity-100 translate-y-0 md:translate-x-0"
+              x-transition:leave-end="opacity-0 translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+              x-intersect.full="$store.xFocusElement.trapFocus('AdditionalFeeDrawer__Wrapper__{{ block.id }}', 'CloseAdditionalFee__{{ block.id }}')"
+              @keydown.escape="showDrawer = false; $store.xMaximizeDrawer.handleClose();"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Additional fee"
+            >
+              <button
+                id="CloseAdditionalFee__{{ block.id }}"
+                class="modal__button-close"
+                @click.prevent="showDrawer = false; $store.xMaximizeDrawer.handleClose();"
+                @keyup.enter="showDrawer = false; $store.xMaximizeDrawer.handleClose();"
+                @keydown.enter.prevent
+                aria-label="{{ 'accessibility.close' | t }}"
+              >
+                <span class="button__close icon-close-large-desktop icon-close-large-mobile">{% render 'icon-all', icon: 'icon-close' %}</span>
+              </button>
+              
+              <div class="additional-fee__drawer__body flex flex-col justify-between h-full min-h-[50vh] gap-6.5 md:gap-8">
+                <div class="flex flex-col gap-2.5 md:gap-3.5 overflow-y-auto scrollbar-body scrollbar-visible grow px-4 md:px-7.5">
+                  {% for option in additional_fee_product.options_with_values %}
+                    {% liquid
+                      assign option_index = forloop.index
+                      assign option_style = 'option_style_' | append: option_index
+                      assign option_note = 'option_note_' | append: option_index
+                    %}
+                    <div>
+                      <span class="h6">{{ option.name | escape }}</span>
+                      <div class="pt-3 md:pt-4 gap-2 additional-fee__option-values flex flex-col">
+                        {% if block.settings[option_style] == 'radio' %}
+                          {% for value in option.values %}
+                            <div 
+                              class="flex items-center additional-fee__option-value w-fit"
+                              @click="clickRadioOption()"
+                              @keyup.enter="clickRadioOption()"
+                              tabindex="0"
+                            >
+                              <input 
+                                type="radio"
+                                tabindex="-1"
+                                id="additional-fee__option__{{ block.id }}__{{ option_index }}__{{ forloop.index }}"
+                                name="additional-fee__option__{{ block.id }}__{{ option_index }}"
+                                class="additional-fee__option-radio-button input-radio peer w-5 h-5 min-w-[20px] md:w-5.5 md:h-5.5 md:min-w-[22px]"
+                                data-option-value-id="{{ value.id }}"
+                                :class="showErrorMessage && 'checked:!cursor-not-allowed'"
+                                value="{{ value.name }}"
+                              >
+                              <label 
+                                class="additional-fee__option-label cursor-pointer pl-2 rtl:pl-0 rtl:pr-2"
+                                :class="showErrorMessage && 'peer-checked:cursor-not-allowed'"
+                                for="additional-fee__option__{{ block.id }}__{{ option_index }}__{{ forloop.index }}"
+                              >{{ value.name | escape }}</label>
+                            </div>
+                          {% endfor %}
+                        {% else %}
+                          <select-element
+                            class="variant-option__wrapper w-full relative dropdown-large"
+                            data-option-name="{{ option.name | escape }}"
+                            data-option-id="{{ option.id }}"
+                            data-option-position="{{ option.position }}"
+                            data-picker-type="dropdown"
+                          >
+                            <div class="relative">
+                              <div
+                                class="select-button cursor-pointer flex gap-2 justify-center items-center w-full rounded-corners custom-icon-image_rounded-corners"
+                                role="button" tabindex="0" aria-pressed="false" aria-expanded="false" aria-describedby="AdditionalFee"
+                              >
+                                <span
+                                  class="select-button__label text-medium flex items-start flex-auto whitespace-nowrap overflow-hidden text-ellipsis"
+                                  style="font-family: var(--body-font-family);"
+                                >
+                                  {{ 'products.product.additional_fee_dropdown' | t }}
+                                </span>
+                                <span class="select-arrow transition-transform w-3 h-3 shrink-0 grow-0">{% render 'icon-all', icon: 'icon-caret' %}</span>
+                              </div>
+                              <div class="select-options-wrapper w-full max-h-64 scrollbar-visible scrollbar-body outline-0 border border-solid" data-adjust-position="false">
+                                <ul
+                                  class="select-options variant-option__list"
+                                  role="listbox"
+                                  aria-label="Select options {{ option.name }}"
+                                >
+                                  <li
+                                    class="select-option cursor-pointer w-full rounded-corners"
+                                    data-select-value="{{ 'products.product.additional_fee_dropdown' | t }}"
+                                    data-type="dropdown"
+                                    role="option"
+                                    aria-selected="false"
+                                    @click="chooseOptionDropdown()"
+                                    @keydown.enter="chooseOptionDropdown()"
+                                    @keydown.space="chooseOptionDropdown()"
+                                    tabindex="-1"
+                                  >
+                                    {{ 'products.product.additional_fee_dropdown' | t }}
+                                  </li>
+                                  {% for value in option.values %}
+                                    <li
+                                      class="select-option cursor-pointer w-full rounded-corners{% unless option.available %} disabled{% endunless %}"
+                                      :class="showErrorMessage && 'cursor-not-allowed-selected'"
+                                      data-value="{{ value | escape }}"
+                                      data-select-value="{{ value.name | escape }}"
+                                      data-type="dropdown"
+                                      data-option-value-id="{{ value.id }}"
+                                      role="option"
+                                      aria-selected="false"
+                                      @click="chooseOptionDropdown()"
+                                      @keydown.enter="chooseOptionDropdown()"
+                                      @keydown.space="chooseOptionDropdown()"
+                                      tabindex="-1"
+                                    >
+                                      {{ value.name | escape }}
+                                    </li>
+                                  {% endfor %}
+                                </ul>
+                              </div>
+                              <label class="hidden">
+                                <input
+                                  name="additional-fee__option__{{ block.id }}__{{ option_index }}"
+                                  class="select-option-selected"
+                                  value=""
+                                >
+                              </label>
+                            </div>
+                          </select-element>
+                        {% endif %}
+                      </div>
+                      {% if block.settings[option_note] != blank %}
+                        <div class="additional-fee__option-note text-small rte{% if block.settings[option_style] == 'radio' %} pt-3 md:pt-4{% else %} pt-2{% endif %}">
+                          {{ block.settings[option_note] }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                  <div x-show="showErrorMessage" class="additional-fee__error-message mb-4 md:mb-5 flash-message error-message">{{ 'products.product.additional_fee_err_message' | t }}</div>
+                </div>
+                <div class="flex gap-4 px-4 md:px-7.5">
+                  <div class="flex flex-1 items-center justify-center">
+                    {% assign clear_button_label = 'general.global.clear' | t %}
+                    <div 
+                      class="w-fit h-fit"
+                      @click="clearVariant()"
+                    >
+                      {% render 'button',
+                        button_style: 'text-link',
+                        button_label: clear_button_label,
+                        isAlwaysActive: true,
+                        inheritFunction: true,
+                        class: 'pt-0 pb-0 pt-0 pb-0 p-break-words w-fit'
+                      %}
+                    </div>
+                  </div>
+                  <div class="flex flex-1 items-center justify-center">
+                    <div
+                      :class="disabledButton ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'"
+                      class="{% if block.settings.button_style != 'text-link' %}w-full {% else %}w-fit {% endif %} h-fit flex"
+                      @click="!disabledButton && chooseVariant()"
+                      x-bind:inert="disabledButton"
+                    >
+                      {% liquid
+                        assign button_class= 'p-break-words !cursor-inherit'
+                        if block.settings.button_style != 'text-link'
+                          assign button_class = button_class | append: ' w-full pl-[34px] pr-[34px] pt-4 pb-4'
+                        else 
+                          assign button_class = button_class | append: ' w-fit pt-0 pb-0'
+                        endif
+                      %}
+                      {% render 'button',
+                        button_style: block.settings.button_style,
+                        button_label: block.settings.button_label,
+                        isAlwaysActive: true,
+                        inheritFunction: true,
+                        class: button_class
+                      %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="element-end-modal h-0 w-0 absolute pointer-events-none"
+                tabindex="0"
+                @focus="document.getElementById('CloseAdditionalFee__{{ block.id }}')?.focus()">
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    {% endunless %}
+  </div>
+{% endif %}
+<script src="{{ 'additional-fee.js' | asset_url }}" defer></script>

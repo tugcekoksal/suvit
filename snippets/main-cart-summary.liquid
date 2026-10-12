@@ -1,0 +1,260 @@
+{% liquid
+  assign main_cart_form_id = 'main-cart'
+%}
+
+<div
+  id="MainCart__Summary"
+  class="main-cart__summary-wrapper w-full h-fit bg-secondary p-4 md:p-[30px] {% if is_rounded_conner %} rounded-[var(--rounded-corners)]{% endif %}"
+>
+  {%- form 'cart', cart, id: main_cart_form_id, class: 'main-cart__form' %}
+    {% render 'main-cart-custom-accordion', is_rounded_conner: is_rounded_conner %}
+
+    {% if cart.items_subtotal_price > cart.total_price %}
+      <div class="main-cart__subtotal flex flex-row pt-3 pb-3 text-medium border-b border-solid color-text-[rgba(var(--color-heading),0.8)] font-base-heading">
+        {% liquid
+          assign money_cart_subtotal_price = cart.items_subtotal_price | money
+          if settings.currency_code_enable
+            assign money_cart_subtotal_price = cart.items_subtotal_price | money_with_currency
+          endif
+        %}
+        <div class="flex-auto">{{ 'sections.cart.subtotal' | t }}</div>
+        <div class="main-cart__subtotal-price h5 md:h6">
+          <span class="color-text-[rgba(var(--color-heading),0.8)]">{{ money_cart_subtotal_price }}</span>
+        </div>
+      </div>
+
+      {% if cart.cart_level_discount_applications.size > 0 %}
+        {% liquid
+          assign total_discount = 0
+          for cart_item_discount in cart.cart_level_discount_applications
+            assign total_discount = total_discount | plus: cart_item_discount.total_allocated_amount
+          endfor
+          assign total_discount_price = total_discount | money
+          if settings.currency_code_enable
+            assign total_discount_price = total_discount | money_with_currency
+          endif
+
+          assign discount_codes = cart.cart_level_discount_applications | where: 'type', 'discount_code' | map: 'title'
+            for item in cart.items
+              for allocation in item.line_level_discount_allocations
+                if allocation.discount_application.type == 'discount_code'
+                  assign discount_codes = item.line_level_discount_allocations | slice: forloop.index0 | map: 'discount_application' | map: 'title' | concat: discount_codes
+                endif
+              endfor
+            endfor
+          assign discount_codes = discount_codes | uniq
+        %}
+        <div class="main-cart__list-discounts cart__list-discounts md:pb-3 pb-2.5 pt-3 {% unless discount_codes.size > 0 %} border-b border-solid{% endunless %}">
+          <div
+            class="w-full"
+          >
+            <div class="flex relative flex-row gap-2.5 items-center w-full text-medium color-text-[rgba(var(--color-heading),0.8)] font-base-heading">
+              <div class="flex-auto font-normal p-break-words">{{ 'sections.cart.discount' | t }}</div>
+              <div class="h5 md:h6"><span class="color-text-[rgba(var(--color-price))]">{{ total_discount_price }}</span></div>
+            </div>
+
+            <div
+              class="flex flex-col pt-1.5 pb-1.5 text-x-small"
+              role="list"
+              aria-label="{{ 'customer.order.discount' | t }}"
+            >
+              {%- for discount in cart.cart_level_discount_applications -%}
+                {% liquid
+                  assign amount_discount_price = discount.total_allocated_amount | money
+                  if settings.currency_code_enable
+                    assign amount_discount_price = discount.total_allocated_amount | money_with_currency
+                  endif
+                %}
+                <div class="main-cart___discount flex flex-row gap-1 w-full items-center" role="listitem">
+                  <div class="flex-auto flex flex-row gap-1.5 items-center">
+                    <div class="shrink-0 w-[14px]">
+                      {%- render 'icon-all', icon: 'icon-discount' -%}
+                    </div>
+                    <div
+                      class="discount-title" data-fade-on-intersect
+                      data-discount-title="{{ discount.title | escape }}"
+                    >{{ discount.title }}</div>
+                  </div>
+                  <div class="discount-value whitespace-nowrap">-{{ amount_discount_price }}</div>
+                </div>
+              {%- endfor -%}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    {% endif %}
+    {% if discount_codes.size > 0 %}
+      <coupon-code data-section-id="{{ section.id }}">
+        <ul class="cart-discount__codes flex md:gap-x-1 gap-y-1 gap-x-[7px] flex-wrap">
+          {% for discount_code in discount_codes %}
+            <li
+              class="cart-discount__code-item w-fit color-bg-[rgba(var(--color-sale-price),0.06)] py-[5px] px-2.5 flex gap-2{% if is_rounded_conner %} rounded-md{% endif %}"
+              data-discount-code="{{ discount_code }}"
+            >
+              {% assign discount_code_safe = discount_code | escape | replace: "&lt;", "<" | replace: "&gt;", ">" | replace: "&amp;", "&" %}
+              {% assign discount_code_truncated = discount_code_safe | truncate: 23 , '...' %}
+              <p class="cart-discount__code-title" data-discount-title="{{ discount_code | escape }}">
+                {{ discount_code_truncated }}
+              </p>
+              <button 
+                type="button"
+                data-action="remove" 
+                data-remove-code="{{ discount_code | escape }}"
+                class="inline-flex items-center justify-center py-[5px] px-2.5 -mx-2.5 -my-[5px] relative cursor-pointer color-text-[rgba(var(--color-text))] transition-opacity duration-200 min-w-7 min-h-7 shrink-0"
+                aria-label="Remove discount {{ discount_code | escape }}"
+              >
+                <span class="discount-icon-remove w-2.5 h-2.5 md:w-3 md:h-3">
+                  {% render 'icon-all', icon: 'icon-close' %}
+                </span>
+                <span class="discount-spinner animate-spin w-4 h-4 md:w-5 md:h-5 absolute inset-0 m-auto invisible">
+                  {% render 'icon-all', icon: 'icon-loading' %}
+                </span>
+              </button>
+            </li>
+          {% endfor %}
+        </ul>
+        <p class="discount-message-failure flash-message color-text-[rgba(var(--error-message-color))] px-0 w-full hidden">{{ 'general.cart.removeDiscountFailure' | t | escape }}</p>
+      </coupon-code> 
+    {% endif %}
+
+    <div class="main-cart__total pt-3">
+      <div class="flex flex-row w-full h4">
+        {% liquid
+          assign money_cart_total_price = cart.total_price | money
+          if settings.currency_code_enable
+            assign money_cart_total_price = cart.total_price | money_with_currency
+          endif
+        %}
+
+        <div class="flex-auto anm-fade-element" data-fade-on-intersect>{{ 'sections.cart.total' | t }}</div>
+        <div class="main-cart__total-price anm-fade-element" data-fade-on-intersect>{{ money_cart_total_price }}</div>
+      </div>
+
+      {% if settings.cart_enable_savings_amount and cart.cart_level_discount_applications.size > 0 %}
+        {% liquid
+          assign total_discount_price = cart.total_discount | money | strip_html
+          if settings.currency_code_enable
+            assign total_discount_price = cart.total_discount | money_with_currency | strip_html
+          endif
+        %}
+
+        <div class="main-cart__saving flex flex-row text-small anm-fade-element" data-fade-on-intersect>
+          <div class="flex-auto">{{ 'sections.cart.total_savings' | t: total_discount: total_discount_price }}</div>
+          {% comment %} <div class="main-cart__subtotal-saving-price line-through">{{ money_cart_subtotal_price }}</div> {% endcomment %}
+        </div>
+      {% endif %}
+    </div>
+    <div class="main-cart__calculate-shipping text-small">
+      {% render 'auto-calculate-shipping', is_cart_page: true %}
+    </div>
+
+    {%- if settings.cart_enable_terms_and_conditions -%}
+      <div
+        x-data="xCartTerm"
+        id="MainCart__Term"
+        class="flex flex-col mt-2 maximize text-small"
+      >
+        <div class="cart-term__content flex items-center">
+          <input
+            id="MainCart__Agree"
+            class="input-checkbox mr-2 rtl:mr-0 rtl:ml-2 h-5 w-5 min-w-[20px] border border-solid color-border-[rgba(var(--color-text),0.12)] checked:color-bg-[rgba(var(--color-button))] relative cursor-pointer{% if is_rounded_conner %} rounded{% else %} rounded-none{% endif %}"
+            type="checkbox"
+            x-bind:checked="isChecked"
+            @change="handleChangeCartTerm($event)"
+          >
+          <label
+            for="MainCart__Agree"
+            class="cursor-pointer"
+          >
+            {% if settings.cart_terms_and_conditions_page != blank %}
+              {{ 'sections.cart.cart_enable_terms_and_conditions_html' | t: url: settings.cart_terms_and_conditions_page.url }}
+            {% else %}
+              {{ 'sections.cart.cart_enable_terms_and_conditions' | t }}
+            {% endif %}
+          </label>
+        </div>
+        <p
+          class="cart-term__error color-text-[rgba(var(--error-message-color))] mt-1 text-normal"
+          x-show="!isChecked"
+          x-cloak
+        >
+          {{ 'general.cart.terms_confirm' | t }}
+        </p>
+      </div>
+    {%- else -%}
+      <label>
+        <input
+          id="MainCart__Agree"
+          class="hidden"
+          type="checkbox"
+          checked="isChecked"
+        >
+      </label>
+
+    {%- endif -%}
+
+    {% if section.settings.show_checkout_button %}
+      <div class="main-cart__actions flex flex-col gap-1 pt-4">
+        <custom-button>
+          <button
+            id="MainCart__Checkout"
+            class="main-cart__checkout-button button button-primary w-full {% if is_rounded_conner %} rounded-md{% endif %}"
+            type="submit"
+            name="checkout"
+            form="{{ main_cart_form_id }}"
+            @click="$store.xCartHelper.goToCheckout($event)"
+            {% if cart == empty %}
+              disabled
+            {% endif %}
+          >
+            {{ 'sections.cart.checkout' | t }}
+          </button>
+        </custom-button>
+        {%- capture main_cart_can_request_quote -%}{%- render 'can-request-quote' -%}{%- endcapture -%}
+        {%- assign main_cart_can_request_quote = main_cart_can_request_quote | strip -%}
+        {%- if main_cart_can_request_quote == 'true' -%}
+          <custom-button>
+            <button
+              type="button"
+              class="main-cart__request-quote button button-secondary w-full {% if is_rounded_conner %} rounded-md{% endif %}"
+              data-quote-request-open
+              data-quote-source="cart"
+            >
+              {{ 'quote_request.button_label' | t }}
+            </button>
+          </custom-button>
+        {%- endif -%}
+        {%- if additional_checkout_buttons -%}
+          <div class="main-cart__dynamic-checkout-buttons flex flex-col">
+            {{ content_for_additional_checkout_buttons }}
+          </div>
+        {%- endif -%}
+      </div>
+      {% if settings.cart_show_payment_methods %}
+        {% if settings.cart_custom_payment != blank or shop.enabled_payment_types.size > 0 %}
+          <div class="main-cart__payment-methods-wrapper flex flex-col gap-2.5 anm-fade-element pt-2.5 md:pt-4" data-fade-on-intersect>
+            <ul
+                class="payment-methods__list flex flex-wrap gap-1 md:gap-1.5 justify-center"
+                role="list"
+                aria-labelledby="payment-methods-title"
+            >
+              {% if settings.cart_custom_payment != blank %}
+                {% assign enabled_payment_types = settings.cart_custom_payment | remove: ' ' | split: ',' %}
+                {%- for type in enabled_payment_types -%}
+                  <li>
+                    {{ type | payment_type_svg_tag }}
+                  </li>
+                {%- endfor -%}
+              {% else %}
+                {%- for type in shop.enabled_payment_types -%}
+                  <li>{{ type | payment_type_svg_tag: class: 'payment-icon' }}</li>
+                {%- endfor -%}
+              {% endif %}
+            </ul>
+          </div>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+    <div id="cart-errors"></div>
+  {% endform %}
+</div>

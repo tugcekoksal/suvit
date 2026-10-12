@@ -1,0 +1,30 @@
+{% doc %}
+  Renders a tooltip popup.
+
+  @param {string} tooltip_class - Additional CSS classes applied to the outer tooltip wrapper.
+  @param {string} content_class - CSS classes applied to the tooltip content container.
+  @param {string} content - HTML or text content displayed inside the tooltip.
+  @param {string} tooltip_position - Position of the tooltip (e.g. "top", "bottom", "left", "right"). Used for positioning logic via data attribute.
+  @param {string} [bg_tooltip_color] - Custom background color for the tooltip content and triangle.
+
+  @example
+  {% render 'tooltip',
+    tooltip_class: '',
+    content_class: '',
+    content: 'Tooltip content',
+    tooltip_position: 'top'
+  %}
+{% enddoc %}
+
+<div
+  class="tooltip-popup-wrapper absolute invisible -z-10 pointer-events-none flex w-fit drop-shadow-small !bg-transparent color-{{ settings.color_schemes_light }} dark-color-{{ settings.color_schemes_dark }} {{ tooltip_class }}"
+  data-tooltip-position="{{ tooltip_position }}"
+>
+  <div class="color-bg-[rgba(var(--color-background))] overflow-hidden rounded-corners rounded-corners-sm">
+    <div class="tooltip-content py-1.5 px-2 p-break-words {{ content_class }} {% if bg_tooltip_color %} color-bg-[{{ bg_tooltip_color }}]{% endif %}">{{ content }}</div>
+  </div>
+  <div class="triangle-tooltip relative z-10 mx-auto w-fit bg-transparent">
+    <div class="triangle-down{% if bg_tooltip_color %} color-border-t-[{{ bg_tooltip_color }}]{% else %} border-transparent{% endif %}"></div>
+    <div class="triangle-down color-border-t-[rgba(var(--color-background))] absolute top-0 left-0 -z-10"></div>
+  </div>
+</div>

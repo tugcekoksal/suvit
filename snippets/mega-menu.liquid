@@ -1,0 +1,1394 @@
+{% liquid
+  assign menu_font_weight = settings.menu_font.weight | plus: 0
+  assign font_weight_class = ' font-weight-menu'
+  if menu_font_weight < 600
+    assign font_weight_class = ' !font-semibold'
+  endif
+%}
+{% unless block.type == 'button' or block.type == 'withdrawal_request' %}
+  <div class="relative">
+    {% case block.type %}
+      {% when 'tree_menu' %}
+        {% liquid
+          if block.settings.menu.links != blank
+            assign show_menu_content = true
+          endif
+          assign is_active = false
+          for link_child in block.settings.menu.links
+            if link_child.current or link_child.child_active
+              assign is_active = true
+            endif
+          endfor
+        %}
+      {%- when 'column_menu' -%}
+        {% liquid
+          assign links = block.settings.menu.links
+          assign position_promotion = block.settings.position_promotion
+
+          assign image_count = 0
+          if block.settings.image_1 != blank or block.settings.mobile_image_1 != blank
+            assign image_count = image_count | plus: 1
+          endif
+          if block.settings.image_2 != blank or block.settings.mobile_image_2 != blank
+            assign image_count = image_count | plus: 1
+          endif
+
+          assign grid_col = 5
+          assign col_minus = 0
+          assign promotion_wrapper_width = 'full'
+          assign columns_desktop = 4
+          if image_count > 0
+            if position_promotion != 'bottom'
+              if block.settings.layout_promotion == 'vertical'
+                assign col_minus = col_minus | plus: 1
+                assign promotion_wrapper_width = 25
+              else
+                assign col_minus = col_minus | plus: image_count
+                assign promotion_wrapper_width = 25 | times: image_count
+              endif
+              assign columns_desktop = columns_desktop | plus: 1
+            else
+              assign columns_desktop = image_count
+            endif
+          endif
+          assign grid_col = grid_col | minus: col_minus
+          assign show_menu_content = false
+          if block.settings.menu.links != blank or image_count > 0
+            assign show_menu_content = true
+          endif
+          assign is_active = false
+          for link_child in block.settings.menu.links
+            if link_child.current or link_child.child_active
+              assign is_active = true
+            endif
+          endfor
+        %}
+      {%- when 'product_menu' -%}
+        {% liquid
+          assign is_active = false
+          for link_child in block.settings.menu.links
+            if link_child.current or link_child.child_active
+              assign is_active = true
+            endif
+          endfor
+
+          assign show_menu_content = false
+          if block.settings.menu.links != blank
+            assign show_menu_content = true
+          endif
+        %}
+      {%- when 'banner_menu' -%}
+        {%- liquid
+          assign columns_desktop = 0
+          if block.settings.image_5 != blank
+            assign columns_desktop = columns_desktop | plus: 1
+          endif
+          if block.settings.image_4 != blank
+            assign columns_desktop = columns_desktop | plus: 1
+          endif
+          if block.settings.image_3 != blank
+            assign columns_desktop = columns_desktop | plus: 1
+          endif
+          if block.settings.image_2 != blank
+            assign columns_desktop = columns_desktop | plus: 1
+          endif
+          if block.settings.image_1 != blank
+            assign columns_desktop = columns_desktop | plus: 1
+          endif
+
+          assign show_menu_content = false
+          if columns_desktop > 0
+            assign show_menu_content = true
+          endif
+        -%}
+      {%- when 'blog_menu' -%}
+        {%- liquid
+          assign blog = false
+          if block.settings.blog and block.settings.blog.articles_count > 0
+            assign blog = block.settings.blog
+          endif
+
+          assign show_menu_content = false
+          if blog
+            assign show_menu_content = true
+          endif
+        -%}
+        {{ "featured-blog.css" | asset_url | stylesheet_tag }}
+      {%- when 'contact_menu' -%}
+        <script
+          src="{{ 'map.js' | asset_url }}"
+          defer
+        ></script>
+        {%- liquid
+          assign form_index = 1
+          assign info_index = 2
+          assign link = false
+          if block.settings.menu_item_link != blank
+            assign link = block.settings.menu_item_link
+          endif
+          if block.settings.show_contact_information
+            assign class_information = 'w-1/3'
+            assign class_map = 'w-1/3'
+            assign class_form = 'w-1/3'
+          else
+            assign class_map = 'w-1/2'
+            assign class_form = 'w-1/2'
+          endif
+          if block.settings.sort_order == 'options__2'
+            assign class_information = class_information | append: ' order-2'
+            assign class_map = class_map | append: ' order-3'
+            assign class_form = class_form | append: ' order-1'
+          endif
+          if block.settings.sort_order == 'options__3'
+            assign class_information = class_information | append: ' order-2'
+            assign class_map = class_map | append: ' order-1'
+            assign class_form = class_form | append: ' order-3'
+            assign form_index = 2
+            assign info_index = 1
+          endif
+          if block.settings.sort_order == 'options__4'
+            assign class_information = class_information | append: ' order-1'
+            assign class_map = class_map | append: ' order-3'
+            assign class_form = class_form | append: ' order-2'
+            assign form_index = 2
+            assign info_index = 1
+          endif
+
+          assign show_menu_content = true
+        -%}
+      {%- when 'tabbed_menu' -%}
+        {% liquid
+          assign show_1st_menu_image = block.settings.show_1st_menu_image
+          assign show_second_level_image = block.settings.show_second_level_collection_image
+          assign show_2nd_level_menu_image = block.settings.show_2nd_level_menu_image
+          assign collection_metafield = block.settings.collection_image_metafield
+          assign image_ratio = block.settings.image_ratio
+          assign block_menu = block.settings.menu
+          if block_menu.links != blank or image_count > 0
+            assign show_menu_content = true
+          endif
+
+          assign image_count = 0
+          if block.settings.image_1 != blank or block.settings.mobile_image_1 != blank
+            assign image_count = image_count | plus: 1
+          endif
+          if block.settings.image_2 != blank or block.settings.mobile_image_2 != blank
+            assign image_count = image_count | plus: 1
+          endif
+          assign is_active = false
+          for link_child in block.settings.menu.links
+            if link_child.current or link_child.child_active
+              assign is_active = true
+            endif
+          endfor
+        %}
+    {% endcase %}
+
+    <a
+      {% if block.settings.menu_item_link %}
+        href="{{ block.settings.menu_item_link }}"
+      {% else %}
+        role="link"
+      {% endif %}
+      aria-label="{{ block.settings.heading | escape }}"
+      class="link whitespace-nowrap is-focus:color-text-[rgba(var(--color-highlight))] item-spacing pl-[15px] pr-[15px] cursor-pointer x-break-words{% if show_menu_content %} menu-parent-link flex items-center{% else %} inline-block{% endif %} relative{% if is_active or request.path == block.settings.menu_item_link %} active{% endif %}"
+      {% if show_menu_content %}
+        x-init="$store.xHeaderMenu.isTouch && $store.xHeaderMenu.touchItem($el, 'menu')"
+      {% endif %}
+      {% if desktop_motion == 'click' and show_menu_content %}
+        @click="
+          () => {
+            {% unless block.type == "tree_menu" %} firstLoad(); {% endunless %}
+            $store.xHeaderMenu.selectItem($el.closest('li'), 'menu', false, $event);
+          }
+        "
+      {% endif %}
+      {% if block.settings.open_new_window %}
+        target="_blank"
+      {% endif %}
+    >
+      {% if is_highlight %}
+        {% render 'highlight-menu-item', highlight_effect: section.settings.highlight_effect, menu_title: block.settings.heading, section_id: section.id %}
+      {% else %}
+        <span>{{ block.settings.heading | escape }}</span>
+      {% endif %}
+      {% if show_menu_content %}
+        <span
+          class="icon-caret inline-block w-5 h-5 ps-2"
+          tabindex="0"
+          @keyup.enter="{% unless block.type == "tree_menu" %} firstLoad(); {% endunless %} $store.xHeaderMenu.handleKeyupElement($el.closest('li'));"
+        >
+          {%- render 'icon-all', icon: 'icon-caret' -%}
+        </span>
+      {% endif %}
+    </a>
+
+    {%- if block.settings.label != blank -%}
+      {%- style -%}
+        .color-label-{{ block.id }} {
+          background: {{ block.settings.label_color }};
+          color: {{ block.settings.label_text_color_light }}
+        }
+        .color-label-{{ block.id }}:before{
+          border-top-color: {{ block.settings.label_color }};
+        }
+        .dark .color-label-{{ block.id }} {
+          background: {{ block.settings.label_color_dark }};
+          color: {{ block.settings.label_text_color_dark }}
+        }
+        .dark .color-label-{{ block.id }}:before {
+          border-top-color: {{ block.settings.label_color_dark }};
+        }
+        .icon-label-{{ block.id }} {
+          width: calc(var(--h7-font-size) * var(--line-height-heading));
+          min-width: calc(var(--h7-font-size) * var(--line-height-heading));
+          height: calc(var(--h7-font-size) * var(--line-height-heading));
+        }
+      {%- endstyle -%}
+      <div class="color-label-{{ block.id }} gap-1 header-label__wrapper h7 z-10 max-w-full flex items-center absolute right-0 bottom-[100%] rounded-corners rounded-corners-sm shadow-showdownInset px-1.5 py-0.5 before:absolute before:w-0 before:h-0 before:border-b-8 before:border-b-transparent before:border-r-transparent before:border-r-8 before:border-t-8 before:-bottom-3 before:left-2">
+        {% unless block.settings.icon == 'none' or block.settings.custom_icon_image == blank and block.settings.icon == 'another' and block.settings.another_icon == blank %}
+          <span class="relative icon-label-{{ block.id }} shrink-0">
+            {% if block.settings.custom_icon_image != blank %}
+              <img
+                src="{{ block.settings.custom_icon_image | image_url: width: 30 }}"
+                alt="{{ block.settings.custom_icon_image.alt | default: block.settings.label | escape }}"
+                loading="lazy"
+                width="{{ block.settings.custom_icon_image.width }}"
+                height="{{ block.settings.custom_icon_image.height }}"
+                style="object-position: {{ block.settings.custom_icon_image.presentation.focal_point }}"
+                class="object-cover absolute top-0 left-0 w-full h-full {% if settings.edges_type == 'rounded_corners' %} rounded-sm{% endif %}"
+              >
+            {% else %}
+              {% if block.settings.icon == 'another' %}
+                {% render 'icon-another', icon: block.settings.another_icon %}
+              {% else %}
+                {% render 'icon-labels-bags', icon: block.settings.icon %}
+              {% endif %}
+            {% endif %}
+          </span>
+        {%- endunless -%}
+        <span class="x-break-words">{{ block.settings.label }}</span>
+      </div>
+    {%- endif -%}
+  </div>
+{% endunless %}
+
+{% case block.type %}
+  {% when 'tree_menu' %}
+    {% assign link = block.settings.menu %}
+    {% render 'tree-menu', link: link, is_link: show_menu_content, desktop_motion: desktop_motion %}
+  {% when 'column_menu' %}
+    {% if show_menu_content %}
+      <div
+        class="mega-menu__panel column-mega-menu mega-menu-wrapper mega-menu_list mega-menu-height z-20 background-header toggle-menu child absolute top-full transition-all shadow-showdownInset duration-header-menu delay-header-menu ease-in-out"
+        inert
+      >
+        <template x-if="isLoaded">
+          <div class="h-full column-mega-menu-container py-8 {% if rtl %} pr-8{% else %} pl-8{% endif %} flex mega-menu-height overflow-y-auto scrollbar-body scrollbar-visible flex-col">
+            <div
+              class="column-menu__link-list h-full flex gap-5 {% if rtl %} pl-8{% else %} pr-8{% endif %} {% if position_promotion == 'left' %}flex-row-reverse{%  elsif position_promotion == "bottom" %}flex-col{% endif %}"
+            >
+              {%- if links != blank -%}
+                {% liquid
+                  if links.size < grid_col
+                    assign grid_col = links.size
+                  endif
+                  if grid_col < 2
+                    assign grid_col = 2
+                  endif
+                %}
+                <ul class="mega-nav gap-5 w-full h-full grid grid-cols-{{ grid_col }}">
+                  {%- for childlink in links -%}
+                    <li
+                      class="mega-menu__item relative h-full w-full"
+                      style="--menu-delay-animation: {{ forloop.index | times: 100 }}ms"
+                    >
+                      <div class="flex gap-2.5 flex-col">
+                        <div class="w-full h-full rounded-corners overflow-hidden">
+                          {%- render 'menu-item-image', link: childlink, auto_fill_menu_image_with: block.settings.show_1st_menu_image, collection_metafield: block.settings.collection_image_metafield, image_ratio: block.settings.image_ratio, show_menu_content: true, is_link: true -%}
+                        </div>
+                        <a
+                          href="{{ childlink.url }}"
+                          class="link-animation h6 hover:color-text-[rgba(var(--color-link))] relative transition duration-200 x-break-words inline-block {% if childlink.current or childlink.child_active %}active{% endif %}"
+                        >
+                          <span class="{{ font_weight_class }}">
+                            {{ childlink.title | escape }}
+                          </span>
+                        </a>
+                      </div>
+                      {%- if childlink.links != blank -%}
+                        {% assign time_wait = forloop.index | times: 100 %}
+                        <ul
+                          class="list-unstyled mt-2.5 last-level-menu"
+                          role="list"
+                        >
+                          {%- for grandchildlink in childlink.links -%}
+                            <li
+                              class="mega-menu__item flex items-center relative mt-1.5 font-normal"
+                              style="--menu-delay-animation: {{ forloop.index | times: 50 | plus: time_wait  }}ms"
+                            >
+                              <span class="flex-1">
+                                <a
+                                  href="{{ grandchildlink.url }}"
+                                  class="link-animation link relative transition duration-200 x-break-words inline-block {% if grandchildlink.current or request.path == grandchildlink %} active{% endif %}"
+                                >
+                                  {{ grandchildlink.title | escape }}
+                                </a>
+                              </span>
+                            </li>
+                          {%- endfor -%}
+                        </ul>
+                      {%- endif -%}
+                    </li>
+                  {%- endfor -%}
+                </ul>
+              {%- endif -%}
+
+              {% if image_count > 0 %}
+                {%- if position_promotion != 'bottom' -%}
+                  {%- capture sizes -%}
+                    (min-width: 768px)
+                    {%- if image_count > 1 and block.settings.layout_promotion != 'vertical' -%}
+                      calc({{ promotion_wrapper_width | divided_by: image_count }}vw - 1.25rem)
+                    {%- else -%}
+                      {{ promotion_wrapper_width }}vw
+                    {%- endif -%}
+                    , calc(80vw / {{ columns_mobile | default: 1 }})
+                  {%- endcapture -%}
+                {%- endif -%}
+                <div class="column-menu__image-wrapper gap-5 shrink-0 h-full grid {% if block.settings.layout_promotion == "vertical" %}grid-cols-1{% else %}grid-cols-{{ image_count }} {% endif %} {% if promotion_wrapper_width == "full" %}w-full{% else %}w-[{{ promotion_wrapper_width }}%]{% endif %}">
+                  {% if block.settings.image_1 != blank or block.settings.mobile_image_1 != blank %}
+                    <div class="mega-menu-promotion promotion-1 w-full group h-fit">
+                      {% render 'menu-promotion-block',
+                        blockID: block.id,
+                        desktop_image: block.settings.image_1,
+                        mobile_image: block.settings.mobile_image_1,
+                        image_link: block.settings.image_link_1,
+                        heading: block.settings.heading_1,
+                        content: block.settings.text_1,
+                        block: block,
+                        image_overlay_opacity: block.settings.overlay_opacity_1,
+                        columns_desktop: columns_desktop,
+                        text_alignment: block.settings.text_alignment_1,
+                        title_size: block.settings.text_size_1,
+                        text_size: block.settings.text_size_1,
+                        color_scheme_light: block.settings.color_scheme_light_1,
+                        color_scheme_dark: block.settings.color_scheme_dark_1,
+                        enable_text_overlay: block.settings.text_overlay_1,
+                        mobile_image_height: block.settings.mobile_image_height,
+                        desktop_image_height: block.settings.image_height,
+                        index: 1,
+                        button_label: block.settings.button_label_1,
+                        button_link: block.settings.button_link_1,
+                        open_new_window: block.settings.open_new_window_button_1,
+                        button_style: block.settings.button_style_1,
+                        sizes: sizes
+                      %}
+                    </div>
+                  {% endif %}
+                  {% if block.settings.image_2 != blank or block.settings.mobile_image_2 != blank %}
+                    <div class="mega-menu-promotion promotion-2 w-full group h-fit">
+                      {% render 'menu-promotion-block',
+                        blockID: block.id,
+                        desktop_image: block.settings.image_2,
+                        mobile_image: block.settings.mobile_image_2,
+                        image_link: block.settings.image_link_2,
+                        heading: block.settings.heading_2,
+                        content: block.settings.text_2,
+                        block: block,
+                        image_overlay_opacity: block.settings.overlay_opacity_2,
+                        columns_desktop: columns_desktop,
+                        text_alignment: block.settings.text_alignment_2,
+                        title_size: block.settings.text_size_2,
+                        text_size: block.settings.text_size_2,
+                        color_scheme_light: block.settings.color_scheme_light_2,
+                        color_scheme_dark: block.settings.color_scheme_dark_2,
+                        enable_text_overlay: block.settings.text_overlay_2,
+                        mobile_image_height: block.settings.mobile_image_height,
+                        desktop_image_height: block.settings.image_height,
+                        index: 2,
+                        button_label: block.settings.button_label_2,
+                        button_link: block.settings.button_link_2,
+                        open_new_window: block.settings.open_new_window_button_2,
+                        button_style: block.settings.button_style_2,
+                        sizes: sizes
+                      %}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+            {% unless block.settings.view_all_link == blank %}
+              <div class="w-full mt-2.5 {% if rtl %} pl-8{% else %} pr-8{% endif %}">
+                <div class="flex justify-center border-t rounded-corners">
+                  <a
+                    class="pt-4 link-hover relative w-fit color-text-[rgba(var(--color-text))] flex items-center gap-1"
+                    href="{{ block.settings.view_all_link }}"
+                    {% if block.settings.open_link_in_new_window %}
+                      target="_blank"
+                    {% endif %}
+                  >
+                    {% assign view_all_button_label_varr = block.settings.view_all_title | default: 'View more' %}
+                    {%- render 'button-view-all', view_all_button_label: view_all_button_label_varr, button_style: 'direction_link', button_link: block.settings.view_all_link -%}
+                  </a>
+                </div>
+              </div>
+            {% endunless %}
+          </div>
+        </template>
+      </div>
+    {% endif %}
+  {% when 'product_menu' %}
+    {%- if block.settings.heading != blank and block.settings.menu.links != blank -%}
+      <div
+        class="mega-menu__panel product-mega-menu mega-menu-wrapper toggle-menu mega-menu-height z-10 background-header h-screen overflow-hidden absolute top-full transition-all shadow-showdownInset duration-header-menu delay-header-menu ease-in-out"
+        style="height: 0px;"
+        inert
+      >
+        <template x-if="isLoaded">
+          <div class="product-menu-list hidden w-full py-8 h-full">
+            <div
+              class="mega-nav {% if rtl %} pl-5 pr-8{% else %} pl-8 pr-5{% endif %} h-full"
+              x-init="$store.xHeaderMenu._resizeProductMenu($el);"
+            >
+              <ul class="mega-list-nav product-list-item max-h-full items-end flex-wrap overflow-y-auto scrollbar-body scrollbar-visible">
+                {%- for link in block.settings.menu.links -%}
+                  {%- liquid
+                    assign count = 0
+                    for childlink in link.links
+                      if childlink.type == 'product_link'
+                        assign count = count | plus: 1
+                      endif
+                    endfor
+                    assign enable_slider = false
+                    if count > 4
+                      assign enable_slider = true
+                    endif
+                  -%}
+                  <li
+                    class="menu-item table color-text-[rgba(var(--color-heading))]"
+                    x-data="animationHover"
+                    {% if desktop_motion == 'hover' %}
+                      x-on:mouseenter="handleEnter($event); $store.xHeaderMenu.selectItem($el, 'menu', true);"
+                      @mouseleave="handleLeave($event)"
+                      @focusin="$store.xHeaderMenu.selectItem($el, 'menu', true);"
+                    {% else %}
+                      x-on:mouseenter="handleEnter($event);"
+                      @mouseleave="handleLeave($event)"
+                    {% endif %}
+                    {%- if link.current or link.child_active %}
+                      x-init="active = true;"
+                    {% endif %}
+                  >
+                    <div class="sub-menu overflow-hidden flex items-end z-10 relative w-[300px]">
+                      <div
+                        class="hover-rect rounded-corners-md"
+                        :style="!isHovered ? { transform: directionTranslate } : { transform: 'translateY(0)' }"
+                      ></div>
+                      <span class="flex-1 btn-wrapper">
+                        <a
+                          href="{{ link.url }}"
+                          class="p-break-words relative z-10 border-b {% if settings.edges_type == 'rounded_corners' %} rounded-b-md{% endif %} flex items-center justify-between py-3.5 hover:color-text-[rgba(var(--color-highlight))] px-2.5 is-focus-child:effect-inline{%- if link.current or link.child_active %} flex active{% endif %}"
+                          {% if count > 0 %}
+                            x-init="$store.xHeaderMenu.isTouch && $store.xHeaderMenu.touchItem($el, 'menu', true)"
+                          {% endif %}
+                          {% if desktop_motion == 'click' and count > 0 %}
+                            @click="$store.xHeaderMenu.selectItem($el.closest('li'), 'menu', true, $event);"
+                          {% endif %}
+                        >
+                          <span class="p-break-words">{{ link.title | escape }}</span>
+                          {%- if count > 0 and link.links != blank -%}
+                            <span class="z-10 w-5 h-4 p-1 rounded-full block shrink-0 {% if rtl %} left-0 rotate-90{% else %} right-0 -rotate-90{% endif %}">
+                              {% render 'icon-all', icon: 'icon-caret' %}
+                            </span>
+                          {%- endif -%}
+                        </a>
+                      </span>
+                    </div>
+                    {%- if count > 0 -%}
+                      <div
+                        class="toggle-menu-sub pb-8 product-mega-menu_wrapper overflow-hidden delay-header-menu {% if rtl %} ml-8{% else %} mr-8{% endif %} z-0 absolute background-header inset-0 hidden{% if forloop.first %} is-open{% endif %}"
+                        x-intersect.once="document.dispatchEvent(new CustomEvent('maximize:animation:reveal'))"
+                      >
+                        <div class="mega-sub-container product-mega-menu__list-product anm-reveal-container max-h-full {% if rtl %} pl-0{% else %} pr-0{% endif %} relative overflow-auto h-max scrollbar-body scrollbar-visible ltr {% if rtl %} pr-[332px]{% else %} pl-[332px]{% endif %} w-full">
+                          <div class="mega-sub-nav scrollbar-body scrollbar-visible pt-8 {% if rtl %} pr-5{% unless enable_slider %} rtl{% endunless %}{% else %} pl-5{% endif %}">
+                            <div
+                              class="order-2 w-full swiffy-slider slider-item-snapstart slider-nav-animation-fadein enable-effect-hover slider-nav-animation"
+                              {% if true %}
+                                x-intersect.once="
+                                  $store.xSwiffy.load($el, {
+                                    'mediaQuery': 'min',
+                                    'breakPoints':{
+                                      '768': {
+                                        'slidesPerView': 4,
+                                        'gap': '10px'
+                                      }
+                                    }
+                                  });
+                                "
+                              {% endif %}
+                            >
+                              {% if count > 4 %}
+                                {% render 'slider-navigation-button' %}
+                              {% endif %}
+                              <div class="slider-container slider-item-show4 {% if rtl %} rtl{% endif %}" style="--swiffy-slider-item-gap: 10px">
+                                {%- assign grid_items_count = 0 -%}
+                                {%- assign menu_child_index = block.id | append: forloop.index -%}
+                                {%- for childlink in link.links -%}
+                                  {% if childlink.type == 'product_link' %}
+                                    {%- assign grid_items_count = grid_items_count | plus: 1 -%}
+                                    {%- liquid
+                                      assign card_product = childlink.object
+                                      assign product_card_id = menu_child_index | append: forloop.index | append: '-desktop'
+                                    -%}
+                                    <div class="slide-item w-full h-full">
+                                      {% render 'product-card',
+                                        product: card_product,
+                                        section_id: section.id,
+                                        show_vendor: false,
+                                        show_rating: false,
+                                        class_slide: 'h-auto',
+                                        index: forloop.index,
+                                        columns_desktop: 5,
+                                        column_mobile: 1,
+                                        enable_desktop_slider: true,
+                                        block_id: blockID,
+                                        append_id: product_card_id,
+                                        disable_color_swatch: true,
+                                        index_param: forloop.index,
+                                        disable_button: true,
+                                        disable_estimate_delivery: true,
+                                        disable_inventory_status: true,
+                                        disable_highlight_attributes: true,
+                                        disable_pickup_message: true,
+                                        menu_product_card: true,
+                                        show_b2b_price_label: true
+                                      %}
+                                    </div>
+                                  {% endif %}
+                                {%- endfor -%}
+                              </div>
+                            </div>
+                          </div>
+                          {% if block.settings.view_all_link != blank %}
+                            <div class="product-view-all-link hidden md:block pt-5 {% if rtl %} pr-5{% else %} pl-5{% endif %}">
+                              <div class="border-t w-full pt-4 hidden md:flex justify-center rounded-corners px-5">
+                                <a
+                                  href="{{ block.settings.view_all_link }}"
+                                  class="product-menu-view-all link-hover relative w-fit h7 color-text-[rgba(var(--color-text))] flex items-center gap-1{% if rtl %} rtl{% endif %}"
+                                  {% if block.settings.open_new_window %}
+                                    target="_blank"
+                                  {% endif %}
+                                >
+                                  {% assign view_all_button_label_varr = block.settings.view_all_title | default: 'View more' %}
+                                  {%- render 'button-view-all', view_all_button_label: view_all_button_label_varr , button_style: 'direction_link', button_link: block.settings.view_all_link -%}
+                                </a>
+                              </div>
+                            </div>
+                          {% endif %}
+                        </div>
+                      </div>
+                    {% endif %}
+                  </li>
+                {%- endfor -%}
+              </ul>
+            </div>
+          </div>
+        </template>
+      </div>
+    {%- endif -%}
+  {% when 'contact_menu' %}
+    <div
+      class="mega-menu__panel contact-mega-menu mega-menu-wrapper toggle-menu mega-menu_list py-8 mega-menu-height overflow-y-auto scrollbar-body scrollbar-visible background-header h-auto z-30 overflow-hidden absolute top-full transition-all shadow-showdownInset duration-header-menu delay-header-menu ease-in-out"
+      inert
+    >
+      <template x-if="isLoaded">
+        <div class="contact-mega-menu__content h-full flex mx-auto gap-7.5 px-8">
+          <div
+            class="overflow-hidden mega-menu__item {{ class_map }} rounded-corners"
+            style="--menu-delay-animation: 200ms"
+          >
+            {%- if block.settings.image != blank -%}
+              {%- capture sizes -%}
+                (min-width: {{ settings.page_width }}px) calc({{ settings.page_width | divided_by: 3 | plus: 200 }}px ), (min-width: 768px) 50vw, 100vw
+              {%- endcapture -%}
+              {% liquid
+                assign default_image_alt = 'accessibility.default_alt' | t
+                assign image_alt = block.settings.image | default: default_image_alt | escape
+              %}
+              {{ block.settings.image | image_url: width: 3000 | image_tag: loading: 'lazy', sizes: sizes, widths: '375, 450, 750, 900, 1100, 1500, 1780, 2000, 3000, 3840', class: 'w-full h-full object-center object-cover z-0 inset-0 image-hover', alt: image_alt }}
+            {%- elsif block.settings.store_address != blank -%}
+              <div
+                x-data="xMap('{{ block.settings.store_address }}')"
+                class="map-frame invisible h-full"
+                x-intersect.once.margin.250px="load()"
+              >
+                <iframe
+                  src=""
+                  class="w-full h-full"
+                  title="Map"
+                ></iframe>
+              </div>
+            {%- else -%}
+              <div class="flex items-center justify-center w-full h-full">
+                {% render 'placeholder-image', image_type: 'image' %}
+              </div>
+            {%- endif -%}
+          </div>
+          {% assign form_id = 'desktop-contact-form-' | append: block.id %}
+          <div
+            class="mega-menu__item {{ class_form }}"
+            style="--menu-delay-animation: {{ form_index | times: 200 }}ms"
+            x-data="xContactForm('{{ form_id }}')"
+            @input.debounce.300ms="validateForm()"
+            @change="validateForm()"
+          >
+            {%- if block.settings.contact_heading != blank -%}
+              <h2 class="heading-{{ block.id }} h4 p-break-words">
+                {{ block.settings.contact_heading | escape }}
+              </h2>
+            {%- endif -%}
+            {% if block.settings.infomation != blank %}
+              <div class="rte mt-4 font-normal p-break-words">
+                {{ block.settings.infomation }}
+              </div>
+            {% endif %}
+            {%- form 'contact', id: form_id, class: 'maximize' -%}
+              <div class="contact__fields mt-4">
+                <div
+                  id="ContactMegaMenu__validation"
+                  class="contact-form__email-error-{{ form_id }} hidden flash-message error-message mb-1"
+                >
+                </div>
+                <div class="flex gap-x-2.5">
+                  <div class="text-field__wrapper mb-2.5 flex-1">
+                    <input
+                      type="text"
+                      id="ContactFormNameDesktop-{{ section.id }}"
+                      class="text-field__input"
+                      name="contact[name]"
+                      value="{% if form.name %}{{ form.name }}{% elsif customer %}{{ customer.name }}{% endif %}"
+                      autocapitalize="words"
+                      placeholder="{{ 'customer.name' | t }}"
+                      {% if block.settings.mark_as_required %}
+                        required
+                      {% endif %}
+                    >
+                    <label
+                      class="text-field__label"
+                      for="ContactFormNameDesktop-{{ section.id }}"
+                    >
+                      {{ 'customer.name' | t }}
+                      {% if block.settings.mark_as_required %}
+                        <span aria-hidden="true">*</span>
+                      {%- endif %}
+                    </label>
+                  </div>
+                  <div class="text-field__wrapper mb-2.5 flex-1">
+                    <input
+                      type="email"
+                      id="ContactFormEmailDesktop-{{ section.id }}"
+                      class="text-field__input"
+                      name="contact[email]"
+                      autocomplete="email"
+                      autocapitalize="off"
+                      autocorrect="off"
+                      value="{% if form.email %}{{ form.email }}{% elsif customer %}{{ customer.email }}{% endif %}"
+                      placeholder="{{ 'customer.email' | t }}"
+                      required
+                    >
+                    <label
+                      class="text-field__label"
+                      for="ContactFormEmailDesktop-{{ section.id }}"
+                    >
+                      {{ 'customer.email' | t }}
+                      <span aria-hidden="true">*</span>
+                    </label>
+                  </div>
+                </div>
+                <div class="text-field__wrapper mb-2.5">
+                  <input
+                    type="tel"
+                    id="ContactFormPhoneDesktop-{{ section.id }}"
+                    class="text-field__input{% if rtl %} rtl{% endif %}"
+                    name="contact[phone]"
+                    pattern="[0-9\-]*"
+                    value="{% if form.phone %}{{ form.phone }}{% elsif customer %}{{ customer.phone }}{% endif %}"
+                    placeholder="{{ 'customer.email' | t }}"
+                    {% if block.settings.mark_as_required -%}
+                      required
+                    {%- endif -%}
+                  >
+                  <label
+                    class="text-field__label"
+                    for="ContactFormPhoneDesktop-{{ section.id }}"
+                  >
+                    {{ 'customer.phone' | t }}
+                    {% if block.settings.mark_as_required %}
+                      <span aria-hidden="true">*</span>
+                    {%- endif -%}
+                  </label>
+                </div>
+                <div class="text-field__wrapper mb-2.5">
+                  <textarea
+                    id="ContactFormMessageDesktop-{{ section.id }}"
+                    class="text-field__input"
+                    rows="4"
+                    name="contact[message]"
+                    placeholder="{{ 'customer.message' | t }}"
+                    {% if block.settings.mark_as_required %}
+                      required
+                    {% endif %}
+                  >
+                    {{- form.message -}}
+                  </textarea>
+                  <label
+                    class="text-field__label"
+                    for="ContactFormMessageDesktop-{{ section.id }}"
+                  >
+                    {{ 'customer.message' | t }}
+                    {% if block.settings.mark_as_required %}
+                      <span aria-hidden="true">*</span>
+                    {%- endif -%}
+                  </label>
+                </div>
+              </div>
+              <div class="{% if rtl %} text-right{% else %} text-left{% endif %} mt-2.5">
+                <custom-button>
+                  <button
+                    type="submit"
+                    class="button button-primary px-10 py-3 cursor-pointer empty:hidden pointer-events-auto"
+                    disabled
+                    :disabled="!isFormValid"
+                  >
+                    {{ 'customer.send' | t }}
+                  </button>
+                </custom-button>
+              </div>
+            {%- endform -%}
+          </div>
+          {% if block.settings.show_contact_information %}
+            <div
+              class="contact-information mega-menu__item {{ class_information }}"
+              style="--menu-delay-animation: {{ info_index | times: 200 }}ms"
+            >
+              {%- if block.settings.heading_information != blank -%}
+                <h2 class="h4 p-break-words">
+                  {{ block.settings.heading_information | escape }}
+                </h2>
+              {%- endif -%}
+              {% if block.settings.subheading != blank %}
+                <div class="rte mt-5 font-normal text-small p-break-words">
+                  {{ block.settings.subheading }}
+                </div>
+              {% endif %}
+              <ul class="flex gap-y-5 flex-col{% if block.settings.heading != blank %} mt-5{% endif %} pb-5 font-normal">
+                {% if block.settings.store_address != blank %}
+                  <li class="rte relative flex items-center">
+                    <span class="w-5{% if rtl %} ml-4 right-0{% else %} mr-4 left-0{% endif %} absolute top-1/2 -translate-y-1/2">{% render 'icon-all', icon: 'icon-location' %}</span>
+                    <span class="{% if rtl %} pr-8{% else %} pl-8{% endif %} pt-0.5">{{ block.settings.store_address }}</span>
+                  </li>
+                {% endif %}
+                {% if block.settings.phone_nummber != blank %}
+                  <li class="rte relative flex items-center">
+                    <span class="w-5{% if rtl %} ml-4 right-0{% else %} mr-4 left-0{% endif %} absolute top-1/2 -translate-y-1/2">{%- render 'icon-all', icon: 'icon-phone' -%}</span>
+                    <span class="{% if rtl %} pr-8{% else %} pl-8{% endif %} pt-0.5">{{ block.settings.phone_nummber }}</span>
+                  </li>
+                {% endif %}
+                {% if block.settings.email_address != blank %}
+                  <li class="rte relative flex items-center">
+                    <span class="w-5{% if rtl %} ml-4 right-0{% else %} mr-4 left-0{% endif %} absolute top-1/2 -translate-y-1/2">{%- render 'icon-all', icon: 'icon-email' -%}</span>
+                    <span class="{% if rtl %} pr-8{% else %} pl-8{% endif %} pt-0.5">{{ block.settings.email_address }}</span>
+                  </li>
+                {% endif %}
+              </ul>
+              {% if block.settings.contact_text != blank or block.settings.enable_social_icon %}
+                <div class="font-normal">
+                  {% if block.settings.contact_text != blank %}
+                    <div class="rte mb-3 p-break-words">
+                      {{ block.settings.contact_text }}
+                    </div>
+                  {% endif %}
+                  {% if block.settings.enable_social_icon %}
+                    <div class="flex flex-wrap">
+                      {%- render 'social-media', class: ' flex-wrap gap-2.5' -%}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      </template>
+    </div>
+  {% when 'blog_menu' %}
+    {% if blog %}
+      <div
+        class="mega-menu__panel toggle-menu mega-menu-wrapper mega-menu_list background-header z-30 overflow-hidden absolute top-full transition-all shadow-showdownInset duration-header-menu delay-header-menu ease-in-out"
+        inert
+      >
+        <template x-if="isLoaded">
+          <div class="w-full h-full mega-menu-height overflow-y-auto scrollbar-body scrollbar-visible{% if show_view_all %}flex gap-7.5 p-10 flex-col {% endif %}">
+            <div class="w-full {% if blog and blog.articles_count > 0 or show_menu_content %} flex gap-x-3{% endif %} mx-auto {% if rtl %} rtl{% endif %}">
+              {% assign post_limit = block.settings.rows_desktop | times: block.settings.columns_desktop %}
+              {% if blog %}
+                <div class="blog-posts-menu{% if show_menu_content %} list-blog{% endif %} p-8 w-full scrollbar-body scrollbar-visible overflow-y-auto">
+                  <div
+                    class="grid grid-cols-{{ block.settings.columns_desktop }} gap-5"
+                    {% if rtl %}
+                      style="direction: rtl"
+                    {% endif %}
+                  >
+                    {%- for article in blog.articles limit: post_limit -%}
+                      {% liquid
+                        assign image_desktop_top = false
+                        if block.settings.enable_featured_post and forloop.index <= block.settings.columns_desktop
+                          assign image_desktop_top = true
+                        endif
+                      %}
+                      <div
+                        class="mega-menu__item w-full h-full"
+                        style="--menu-delay-animation: {{ forloop.index | times: 100 }}ms"
+                      >
+                        {%- render 'article-card',
+                          article: article,
+                          index: forloop.index,
+                          columns_desktop: block.settings.columns_desktop,
+                          columns_mobile: '2',
+                          blog_header: true,
+                          image_desktop_top: image_desktop_top,
+                          class_margin: '',
+                          image_ratio: block.settings.image_ratio,
+                          show_image: block.settings.show_image,
+                          show_excerpt: block.settings.show_excerpt,
+                          show_in_header: true,
+                          font_weight_class: font_weight_class
+                        -%}
+                      </div>
+                    {%- endfor -%}
+                  </div>
+                  {% if block.settings.view_all_link != blank %}
+                    <span class="see-more border-t mt-7.5 pt-4 hidden md:flex justify-center rounded-corners">
+                      <a
+                        href="{{ block.settings.view_all_link }}"
+                        class="blog-menu__view-all link-hover relative w-fit flex gap-1.5 items-center {% if rtl %} rtl{% endif %}"
+                        {% if block.settings.open_link_in_new_window %}
+                          target="_blank"
+                        {% endif %}
+                      >
+                        {% assign view_all_label = block.settings.view_all_title | default: 'View more' %}
+                        {%- render 'button-view-all', view_all_button_label:  view_all_label, button_style: 'direction_link', button_link: block.settings.view_all_link -%}
+                      </a>
+                    </span>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </template>
+      </div>
+    {% endif %}
+  {% when 'banner_menu' %}
+    {% if columns_desktop > 0 %}
+      <div
+        class="mega-menu__panel toggle-menu mega-menu-wrapper mega-menu-height background-header z-30 scrollbar-body scrollbar-visible overflow-auto absolute top-full transition-all shadow-showdownInset duration-header-menu delay-header-menu ease-in-out"
+        inert
+      >
+        <template x-if="isLoaded">
+          <div class="flex h-auto md:gap-5{% unless block.settings.full_width %} mx-auto page-width{% endunless %} p-8">
+            {%- if block.settings.image_1 != blank -%}
+              <div class="mega-menu-promotion w-full group relative rounded-corners overflow-hidden">
+                {% render 'menu-promotion-block',
+                  blockID: block.id,
+                  desktop_image: block.settings.image_1,
+                  enable_text_overlay: block.settings.enable_text_overlay,
+                  image_link: block.settings.image_link_1,
+                  open_new_window_image: block.settings.open_new_window_image_1,
+                  heading: block.settings.heading_1,
+                  content: block.settings.text_1,
+                  button_label: block.settings.button_label_1,
+                  button_link: block.settings.button_link_1,
+                  open_new_window: block.settings.open_new_window_button_1,
+                  button_style: block.settings.button_style_1,
+                  text_alignment: block.settings.text_alignment_1,
+                  columns_desktop: columns_desktop,
+                  full_width: false,
+                  image_overlay_opacity: block.settings.overlay_opacity_1,
+                  title_size: block.settings.text_size_1,
+                  text_size: block.settings.text_size_1,
+                  color_scheme_light: block.settings.color_scheme_light_1,
+                  color_scheme_dark: block.settings.color_scheme_dark_1,
+                  mobile_image_height: block.settings.image_height,
+                  desktop_image_height: block.settings.image_height,
+                  index: 1
+                %}
+              </div>
+            {% endif %}
+            {%- if block.settings.image_2 != blank -%}
+              <div class="mega-menu-promotion w-full group relative rounded-corners overflow-hidden">
+                {% render 'menu-promotion-block',
+                  blockID: block.id,
+                  desktop_image: block.settings.image_2,
+                  enable_text_overlay: block.settings.enable_text_overlay,
+                  image_link: block.settings.image_link_2,
+                  open_new_window_image: block.settings.open_new_window_image_2,
+                  heading: block.settings.heading_2,
+                  content: block.settings.text_2,
+                  button_label: block.settings.button_label_2,
+                  button_link: block.settings.button_link_2,
+                  open_new_window: block.settings.open_new_window_button_2,
+                  button_style: block.settings.button_style_2,
+                  text_alignment: block.settings.text_alignment_2,
+                  columns_desktop: columns_desktop,
+                  full_width: false,
+                  image_overlay_opacity: block.settings.overlay_opacity_2,
+                  title_size: block.settings.text_size_2,
+                  text_size: block.settings.text_size_2,
+                  color_scheme_light: block.settings.color_scheme_light_2,
+                  color_scheme_dark: block.settings.color_scheme_dark_2,
+                  mobile_image_height: block.settings.image_height,
+                  desktop_image_height: block.settings.image_height,
+                  index: 2
+                %}
+              </div>
+            {% endif %}
+            {%- if block.settings.image_3 != blank -%}
+              <div class="mega-menu-promotion w-full group relative rounded-corners overflow-hidden">
+                {% render 'menu-promotion-block',
+                  blockID: block.id,
+                  desktop_image: block.settings.image_3,
+                  enable_text_overlay: block.settings.enable_text_overlay,
+                  image_link: block.settings.image_link_3,
+                  open_new_window_image: block.settings.open_new_window_image_3,
+                  heading: block.settings.heading_3,
+                  content: block.settings.text_3,
+                  button_label: block.settings.button_label_3,
+                  button_link: block.settings.button_link_3,
+                  open_new_window: block.settings.open_new_window_button_3,
+                  button_style: block.settings.button_style_3,
+                  text_alignment: block.settings.text_alignment_3,
+                  columns_desktop: columns_desktop,
+                  full_width: false,
+                  image_overlay_opacity: block.settings.overlay_opacity_3,
+                  title_size: block.settings.text_size_3,
+                  text_size: block.settings.text_size_3,
+                  color_scheme_light: block.settings.color_scheme_light_3,
+                  color_scheme_dark: block.settings.color_scheme_dark_3,
+                  mobile_image_height: block.settings.image_height,
+                  desktop_image_height: block.settings.image_height,
+                  index: 3
+                %}
+              </div>
+            {% endif %}
+            {%- if block.settings.image_4 != blank -%}
+              <div class="mega-menu-promotion w-full group relative rounded-corners overflow-hidden">
+                {% render 'menu-promotion-block',
+                  blockID: block.id,
+                  desktop_image: block.settings.image_4,
+                  enable_text_overlay: block.settings.enable_text_overlay,
+                  image_link: block.settings.image_link_4,
+                  open_new_window_image: block.settings.open_new_window_image_4,
+                  heading: block.settings.heading_4,
+                  content: block.settings.text_4,
+                  button_label: block.settings.button_label_4,
+                  button_link: block.settings.button_link_4,
+                  open_new_window: block.settings.open_new_window_button_4,
+                  button_style: block.settings.button_style_4,
+                  text_alignment: block.settings.text_alignment_4,
+                  columns_desktop: columns_desktop,
+                  full_width: false,
+                  image_overlay_opacity: block.settings.overlay_opacity_4,
+                  title_size: block.settings.text_size_4,
+                  text_size: block.settings.text_size_4,
+                  color_scheme_light: block.settings.color_scheme_light_4,
+                  color_scheme_dark: block.settings.color_scheme_dark_4,
+                  mobile_image_height: block.settings.image_height,
+                  desktop_image_height: block.settings.image_height,
+                  index: 4
+                %}
+              </div>
+            {% endif %}
+            {%- if block.settings.image_5 != blank -%}
+              <div class="mega-menu-promotion w-full group relative rounded-corners overflow-hidden">
+                {% render 'menu-promotion-block',
+                  blockID: block.id,
+                  desktop_image: block.settings.image_5,
+                  enable_text_overlay: block.settings.enable_text_overlay,
+                  image_link: block.settings.image_link_5,
+                  open_new_window_image: block.settings.open_new_window_image_5,
+                  heading: block.settings.heading_5,
+                  content: block.settings.text_5,
+                  button_label: block.settings.button_label_5,
+                  button_link: block.settings.button_link_5,
+                  open_new_window: block.settings.open_new_window_button_5,
+                  button_style: block.settings.button_style_5,
+                  text_alignment: block.settings.text_alignment_5,
+                  columns_desktop: columns_desktop,
+                  full_width: false,
+                  image_overlay_opacity: block.settings.overlay_opacity_5,
+                  title_size: block.settings.text_size_5,
+                  text_size: block.settings.text_size_5,
+                  color_scheme_light: block.settings.color_scheme_light_5,
+                  color_scheme_dark: block.settings.color_scheme_dark_5,
+                  mobile_image_height: block.settings.image_height,
+                  desktop_image_height: block.settings.image_height,
+                  index: 5
+                %}
+              </div>
+            {% endif %}
+          </div>
+        </template>
+      </div>
+    {% endif %}
+  {% when 'tabbed_menu' %}
+    {% if show_menu_content %}
+      <div
+        class="mega-menu__panel tabbed-mega-menu__container mega-menu-wrapper toggle-menu z-30 background-header absolute top-full transition-all shadow-showdownInset duration-header-menu delay-header-menu ease-in-out"
+        inert
+      >
+        <template x-if="isLoaded">
+          {% liquid
+            assign grid_col = 4
+            assign col_minus = 0
+            assign promotion_wrapper_width = 'full'
+            if show_2nd_level_menu_image != 'none'
+              if show_second_level_image == 'next'
+                assign col_minus = col_minus | plus: 1
+              endif
+            endif
+            assign columns_desktop = 3
+            if image_count > 0
+              if block.settings.position_promotion != 'bottom'
+                if block.settings.layout_promotion == 'vertical'
+                  assign col_minus = col_minus | plus: 1
+                  assign promotion_wrapper_width = 25
+                else
+                  assign col_minus = col_minus | plus: image_count
+                  assign promotion_wrapper_width = 25 | times: image_count
+                endif
+                assign columns_desktop = columns_desktop | plus: image_count
+              else
+                if block.settings.layout_promotion == 'vertical'
+                  assign columns_desktop = 2
+                else
+                  assign columns_desktop = image_count | plus: 1
+                endif
+              endif
+            endif
+            assign grid_col = grid_col | minus: col_minus
+          %}
+          <div
+            class="tabbed-mega-menu__list md:p-8 {% if rtl %} md:pl-0 {% else %} md:pr-0{% endif %} w-full mega-menu-height overflow-y-auto scrollbar-body scrollbar-visible flex gap-7.5"
+            x-data="
+              {
+                activeIndex: 1,
+                activeIndexes: [1],
+                touchItem(el, currentIndex) {
+                  el.addEventListener('touchend', (e) => {
+                    if (this.activeIndex === currentIndex) {
+                      window.location.replace(el.getAttribute('href'));
+                    } else {
+                      e.preventDefault();
+                      this.activeIndex = currentIndex
+                    }
+                  });
+                },
+              }
+            "
+            x-init="
+              $watch('activeIndex', (value) => {
+                if (value !== null && !activeIndexes.includes(value)) {
+                  activeIndexes.push(value);
+                }
+              })
+            "
+          >
+            <div class="menu-tab flex flex-col justify-start w-[340px]">
+              <div class="w-full {% if rtl %} pr-2.5{% else %} pl-2.5{% endif %}">
+                <div class="w-full flex items-center justify-between gap-2.5 px-2.5 pb-4 {% if settings.edges_type == 'rounded_corners' %} rounded-b-md{% endif %} border-b-2">
+                  <p class="h5">{{ block.settings.heading }}</p>
+                  {% unless block.settings.view_all_link == blank %}
+                    <a
+                      href="{{ block.settings.view_all_link }}"
+                      {% if block.settings.open_link_in_new_window %}
+                        target="_blank"
+                      {% endif %}
+                      class="view-all-link link-hover shrink-0 max-w-[40%]"
+                    >
+                      {% assign view_all_label = block.settings.view_all_title | default: 'View more' %}
+                      {%- render 'button-view-all', view_all_button_label:  view_all_label, button_style: 'direction_link', button_link: block.settings.view_all_link -%}
+                    </a>
+                  {% endunless %}
+                </div>
+              </div>
+              <ul class="tabbed-mega-menu-list -scale-x-100 overflow-y-auto scrollbar-body scrollbar {% if rtl %} pl-2{% else %} pr-2{% endif %}">
+                {% for link in block_menu.links %}
+                  {% liquid
+                    assign has_child_link = false
+                    if link.links != blank
+                      assign has_child_link = true
+                    endif
+                  %}
+                  <li
+                    class="menu-item block overflow-hidden w-full {% if settings.edges_type == 'rounded_corners' %} rounded-b-md{% endif %} border-b -scale-x-100"
+                    x-data="animationHover"
+                    {% if desktop_motion == 'hover' %}
+                      @mouseenter="handleEnter($event); activeIndex = {{ forloop.index }};"
+                      @mouseleave="handleLeave($event)"
+                    {% else %}
+                      @mouseenter="handleEnter($event);"
+                      @mouseleave="handleLeave($event)"
+                    {% endif %}
+                  >
+                    <div
+                      class="hover-rect rounded-corners-md"
+                      :style="{
+                        transform: (isHovered || activeIndex === {{ forloop.index }})
+                          ? 'translateY(0)'
+                          : directionTranslate
+                      }"
+                    ></div>
+                    <div
+                      class="sub-menu btn-wrapper px-2.5 py-3.5 flex items-center rounded-corners gap-2.5 cursor-pointer"
+                      {% if desktop_motion == 'click' and link.links != blank %}
+                        @click="
+                          () => {
+                            if (activeIndex === {{ forloop.index }}) {
+                              return;
+                            };
+                            $event.preventDefault();
+                            activeIndex = {{ forloop.index }};
+                          }
+                        "
+                      {% endif %}
+                    >
+                      {%- render 'menu-item-image', link: link, auto_fill_menu_image_with: show_1st_menu_image, collection_metafield: collection_metafield, image_ratio: 0, custom_class: '!w-10 h-10 rounded-corners-md', show_menu_content: true, minimal_image: true, is_link: true -%}
+                      <span class="flex-1">
+                        <a
+                          href="{{ link.url }}"
+                          class="link relative x-break-words w-full color-text-[rgba(var(--color-heading))] flex items-center justify-between gap-2.5 {% if link.current or link.child_active %}active{% endif %} {% if has_child_link %} flex items-center{% else %} inline-block{% endif %}"
+                          {% if has_child_link %}
+                            x-init="$store.xHeaderMenu.isTouch && touchItem($el, {{ forloop.index }})"
+                          {% endif %}
+                        >
+                          <span>{{ link.title | escape }}</span>
+                          {%- if link.links != blank -%}
+                            <span
+                              class="icon-child z-10 w-5 h-5 p-1 rounded-full block align-end -rotate-90 rtl:rotate-90 shrink-0"
+                              tabindex="0"
+                              @keyup.enter="activeIndex = {{ forloop.index }}; "
+                            >
+                              {%- render 'icon-all', icon: 'icon-caret' -%}
+                            </span>
+                          {%- endif -%}
+                        </a>
+                      </span>
+                    </div>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+            <div class="tabbed-menu_content flex-1 flex w-full gap-5 {% if rtl %} pl-7 ml-1{% else %} pr-7 mr-1{% endif %} overflow-y-auto scrollbar-body overflow-x-hidden scrollbar-visible {% if block.settings.position_promotion == 'left' %}md:flex-row-reverse{%  elsif block.settings.position_promotion == "bottom" %}md:flex-col{% endif %}">
+              <div class="tabbed-menu_menu-list h-max w-full relative">
+                {% for link in block_menu.links %}
+                  {% liquid
+                    assign has_child_link = false
+                    if link.links != blank
+                      assign has_child_link = true
+                    endif
+                  %}
+                  {% if has_child_link %}
+                    <div
+                      class="tabbed-mega-menu mega-menu_list h-full rounded-r-[10px] child top-0 bottom-0 left-0 w-full right-0"
+                      :class="[activeIndex === {{ forloop.index }} ? 'is-open relative' : 'invisible absolute', activeIndexes.includes({{ forloop.index }}) ? 'block' : 'hidden']"
+                    >
+                      {% liquid
+                        assign child_grid_col = grid_col
+                        if link.links.size < grid_col
+                          assign child_grid_col = link.links.size
+                        endif
+                        if child_grid_col < 2
+                          assign child_grid_col = 2
+                        endif
+                      %}
+                      <ul class="grid w-full h-max md:gap-5 grid-cols-{{ child_grid_col }}">
+                        {% for childlink in link.links %}
+                          {%- liquid
+                            assign has_child_link = false
+                            if childlink.links != blank
+                              assign has_child_link = true
+                            endif
+                          -%}
+                          <li
+                            class="mega-menu__item flex w-full h-full gap-2.5 {% if show_second_level_image == 'above' %}flex-col{% endif %}"
+                            style="--menu-delay-animation: {{ forloop.index | times: 100 }}ms"
+                          >
+                            {% capture image_item %}
+                              {% render 'menu-item-image', link: childlink, auto_fill_menu_image_with: show_2nd_level_menu_image, collection_metafield: collection_metafield, image_ratio: image_ratio, custom_class: 'rounded-corners', show_menu_content: true, is_link: true %}
+                            {% endcapture %}
+                            {% assign image_item = image_item | strip %}
+                            {% unless image_item contains 'Liquid syntax error' %}
+                              {% if image_item != blank and show_second_level_image != 'none' %}
+                                <div class="w-full h-fit empty:hidden">
+                                  {{ image_item }}
+                                </div>
+                              {% endif %}
+                            {% endunless %}
+                            <div class="w-full h-full">
+                              <div class="h6">
+                                <a
+                                  href="{{ childlink.url }}"
+                                  class="link-animation relative p-break-words hover:color-text-[rgba(var(--color-highlight))] {{ font_weight_class }} {% if childlink.current or childlink.child_active %} active{% endif %}"
+                                >
+                                  {{ childlink.title }}
+                                </a>
+                              </div>
+                              {% if childlink.links != blank %}
+                                <ul class="last-level-menu mt-2.5 font-normal">
+                                  {% assign time_wait = forloop.index | times: 100 %}
+                                  {% for grandchildlink in childlink.links %}
+                                    <li
+                                      class="mega-menu__item font-normal mt-1.5"
+                                      style="--menu-delay-animation: {{ forloop.index | times: 50 | plus: time_wait  }}ms"
+                                    >
+                                      <a
+                                        class="link-animation relative link p-break-words {% if grandchildlink.current or request.path == grandchildlink %} active{% endif %}"
+                                        href="{{ grandchildlink.url }}"
+                                      >
+                                        {{- grandchildlink.title -}}
+                                      </a>
+                                    </li>
+                                  {% endfor %}
+                                </ul>
+                              {% endif %}
+                            </div>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+              {% if image_count > 0 %}
+                {%- if position_promotion != 'bottom' -%}
+                  {%- capture sizes -%}
+                    (min-width: 768px)
+                    {%- if image_count > 1 and block.settings.layout_promotion != 'vertical' -%}
+                      calc({{ promotion_wrapper_width | divided_by: image_count }}vw - 1.25rem)
+                    {%- else -%}
+                      {{ promotion_wrapper_width }}vw
+                    {%- endif -%}
+                    , calc(80vw / {{ columns_mobile | default: 1 }})
+                  {%- endcapture -%}
+                {%- endif -%}
+                <div class="tabbed-menu_media grid {% if block.settings.layout_promotion == "vertical" %}grid-cols-1{% else %}grid-cols-{{ image_count }}{% endif %} gap-5 {% if promotion_wrapper_width == "full" %}w-full{% else %}w-[{{ promotion_wrapper_width }}%]{% endif %}">
+                  {% if block.settings.image_1 != blank or block.settings.mobile_image_1 != blank %}
+                    <div class="mega-menu-promotion promotion-1 w-full group h-fit">
+                      {% render 'menu-promotion-block',
+                        blockID: block.id,
+                        desktop_image: block.settings.image_1,
+                        mobile_image: block.settings.mobile_image_1,
+                        image_link: block.settings.image_link_1,
+                        heading: block.settings.heading_1,
+                        content: block.settings.text_1,
+                        block: block,
+                        image_overlay_opacity: block.settings.overlay_opacity_1,
+                        columns_desktop: columns_desktop,
+                        text_alignment: block.settings.text_alignment_1,
+                        title_size: block.settings.text_size_1,
+                        text_size: block.settings.text_size_1,
+                        color_scheme_light: block.settings.color_scheme_light_1,
+                        color_scheme_dark: block.settings.color_scheme_dark_1,
+                        enable_text_overlay: block.settings.text_overlay_1,
+                        mobile_image_height: block.settings.mobile_image_height,
+                        desktop_image_height: block.settings.image_height,
+                        index: 1,
+                        button_label: block.settings.button_label_1,
+                        button_link: block.settings.button_link_1,
+                        open_new_window: block.settings.open_new_window_button_1,
+                        button_style: block.settings.button_style_1,
+                        sizes: sizes
+                      %}
+                    </div>
+                  {% endif %}
+                  {% if block.settings.image_2 != blank or block.settings.mobile_image_2 != blank %}
+                    <div class="mega-menu-promotion promotion-2 w-full group h-fit">
+                      {% render 'menu-promotion-block',
+                        blockID: block.id,
+                        desktop_image: block.settings.image_2,
+                        mobile_image: block.settings.mobile_image_2,
+                        image_link: block.settings.image_link_2,
+                        heading: block.settings.heading_2,
+                        content: block.settings.text_2,
+                        block: block,
+                        image_overlay_opacity: block.settings.overlay_opacity_2,
+                        columns_desktop: columns_desktop,
+                        text_alignment: block.settings.text_alignment_2,
+                        title_size: block.settings.text_size_2,
+                        text_size: block.settings.text_size_2,
+                        color_scheme_light: block.settings.color_scheme_light_2,
+                        color_scheme_dark: block.settings.color_scheme_dark_2,
+                        enable_text_overlay: block.settings.text_overlay_2,
+                        mobile_image_height: block.settings.mobile_image_height,
+                        desktop_image_height: block.settings.image_height,
+                        index: 2,
+                        button_label: block.settings.button_label_2,
+                        button_link: block.settings.button_link_2,
+                        open_new_window: block.settings.open_new_window_button_2,
+                        button_style: block.settings.button_style_2,
+                        sizes: sizes
+                      %}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </template>
+      </div>
+    {% endif %}
+  {% when 'button' %}
+    {% unless block.settings.button_label == blank %}
+      {% liquid
+        if block.settings.button_style != 'text-link'
+          assign class_button = 'px-2.5 py-2'
+        endif
+      %}
+      <div class="button-menu leading-[0] {% if forloop.last %} {% if rtl %} pr-[15px] {% else %} pl-[15px] {% endif %}{% else %} pl-[15px] pr-[15px]{% endif %}">
+        {% render 'button', button_style: block.settings.button_style, button_label: block.settings.button_label, button_link: block.settings.button_link, open_new_window_button: block.settings.open_new_window, class: class_button %}
+      </div>
+    {% endunless %}
+  {% when 'withdrawal_request' %}
+    {% unless block.settings.button_label == blank %}
+      {% liquid
+        if block.settings.button_style != 'text'
+          assign class_button = 'px-2.5 py-2'
+        endif
+
+        assign button_link = block.settings.button_link
+        if customer
+            assign button_link = routes.account_url | append: '/orders'
+          endif
+      %}
+      {% if block.settings.button_style == 'text' %}
+        <a
+          {% if button_link %}
+            href="{{ button_link }}"
+          {% else %}
+            role="link"
+          {% endif %}
+          aria-label="{{ block.settings.button_label | escape }}"
+          class="link whitespace-nowrap is-focus:color-text-[rgba(var(--color-highlight))] pl-[15px] pr-[15px] cursor-pointer inline-block relative"
+          {% if block.settings.open_new_window %}
+            target="_blank"
+          {% endif %}
+        >
+          <span>{{ block.settings.button_label | escape }}</span>
+        </a>
+      {% else %}  
+        <div class="button-menu leading-[0] {% if forloop.last %} {% if rtl %} pr-[15px] {% else %} pl-[15px] {% endif %}{% else %} pl-[15px] pr-[15px]{% endif %}">
+          {% render 'button', button_style: block.settings.button_style, button_label: block.settings.button_label, button_link: button_link, open_new_window_button: block.settings.open_new_window, class: class_button %}
+        </div>
+      {% endif %}
+    {% endunless %}  
+{% endcase %}

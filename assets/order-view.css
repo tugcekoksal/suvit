@@ -1,0 +1,133 @@
+/* switching */
+
+.order-view-list {
+  display: none;
+}
+
+.list-layout .order-view-list {
+  display: flex;
+}
+
+.list-layout .order-view-grid {
+  display: none !important;
+}
+
+/* card outline */
+
+/* The card draws its own box, so its rows only draw the lines between them. The shared rules stay
+   as they are: Quick order list and Bulk order groups have no border of their own. */
+.order-view__card .row-group__header,
+.order-view__card .row-group__row {
+  border-width: 1px 0px 0px 0px;
+}
+.row-group--open .row-group__header.order-view__row {
+  border-top-color: rgba(var(--color-line-and-border));
+  background-color: transparent;
+}
+
+/* The accent runs the card's full height instead of restarting at every row; mobile keeps its own
+   on the header's top edge. Mirrored by hand off `[dir]`, the way order-row-shared.css flips
+   `.row-toggle-icon` — layout/theme.liquid always writes one of the two values. */
+@media screen and (min-width: 1024px) {
+  .order-view__card {
+    transition: border-color 0.2s ease;
+  }
+
+  /* [dir="ltr"] .order-view__card {
+    border-left-width: 2px;
+  }
+
+  [dir="rtl"] .order-view__card {
+    border-right-width: 2px;
+  } */
+
+  [dir="ltr"] .order-view__card.row-group--open {
+    box-shadow: inset 1px 0px rgba(var(--color-line-and-border));
+  }
+
+  [dir="rtl"] .order-view__card.row-group--open {
+    box-shadow: inset 1px 0px rgba(var(--color-line-and-border));
+  }
+}
+
+@media screen and (min-width: 1024px) and (hover: hover) {
+  [dir="ltr"] .order-view__card:hover {
+    box-shadow: inset 1px 0px rgba(var(--color-line-and-border));
+  }
+
+  [dir="rtl"] .order-view__card:hover {
+    box-shadow: inset 1px 0px rgba(var(--color-line-and-border));
+  }
+}
+
+/* order table */
+
+/* Mobile: thumbnail + one stack (title/price/stock/qty). Desktop: stack becomes
+   `display: contents` so each cell drops into its own grid column — see .order-row__stack
+   in assets/order-row-shared.css (shared with the Quick order list variant row). */
+.order-view__row {
+  display: flex;
+  align-items: flex-start;
+}
+
+.order-view__row--variant {
+  align-items: stretch;
+}
+.btn-facets.is-active {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+/* Mobile stack order: see .stack-cell--* in assets/order-row-shared.css. */
+
+.order-view__row-error {
+  flex-basis: 100%;
+}
+
+@media screen and (min-width: 1024px) {
+  .order-view__row {
+    display: grid;
+    /* media | product | status | price | qty | total | toggle. Same column order/count as .qol-row
+       in assets/quick-order-list.css — the media column's width differs (OV images are bigger).
+
+       Every data column flexes off a minimum rather than taking a fixed width. The viewport says
+       when the row becomes a table; only the row knows how much table there is room for. With the
+       filter sidebar open the list is a fifth of the page narrower, and fixed tracks overran it at
+       every desktop width up to ~1400px: the product column is the only one that flexed, so it
+       took the whole shortfall — the title collapsed to an ellipsis and the row spilled past the
+       card. Shares are weighted so the title still gets the lion's share of any room going.
+
+       The minimums add up to 654px (gaps included), which the list keeps down to a 1024px viewport
+       with the sidebar beside it — keep them under that budget if they are ever retuned. */
+    grid-template-columns:
+      5.625rem
+      minmax(6rem, 2.5fr)
+      minmax(4rem, 1fr)
+      minmax(5rem, 1fr)
+      minmax(7.75rem, 1fr)
+      minmax(4.5rem, 1fr)
+      2rem;
+    align-items: center;
+    row-gap: 6px;
+    column-gap: 1rem;
+  }
+
+  .order-view__row-error {
+    grid-column: 1 / -1;
+  }
+}
+
+/* variants */
+
+/* Expand surface, scroll box, toggle icon, row-group border/hover: see order-row-shared.css. */
+
+order-view-card.is-open .order-view__footer {
+  background-color: transparent;
+}
+
+.order-view__atc[disabled] {
+  opacity: 0.5;
+}
+.order-view__atc[aria-busy="true"] .btn__text {
+  visibility: hidden;
+}

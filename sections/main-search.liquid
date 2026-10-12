@@ -1,0 +1,812 @@
+{%- liquid
+  assign sort_by = search.sort_by | default: search.default_sort_by
+  assign terms = search.terms | escape
+  assign search_url = '?q=' | append: terms | append: '&options%5Bprefix%5D=last&sort_by=' | append: sort_by
+
+  assign show_filter = true
+  if search.filters.size < 1
+    assign show_filter = false
+  endif
+  for filter in search.filters
+    if filter.type == 'price_range' and search.filters.size <= 1
+      assign show_filter = false
+    endif
+  endfor
+
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  else
+    assign is_rtl = false
+  endif
+
+  assign search_type = ''
+  if settings.predictive_search_show_products
+    assign search_type = search_type | append: ',product'
+  endif
+  if settings.predictive_search_show_articles
+    assign search_type = search_type | append: ',article'
+  endif
+  if settings.predictive_search_show_collections
+    assign search_type = search_type | append: ',collection'
+  endif
+  if settings.predictive_search_show_pages
+    assign search_type = search_type | append: ',page'
+  endif
+  assign search_type = 'query' | append: search_type
+
+  assign tab_style = section.settings.tab_style
+-%}
+{%- style -%}
+  {% if section.settings.sticky_filtering %}
+    :root{
+      --height-sticky-filter: 50px;
+    }
+  {% endif %}
+  .gap-{{ section.id }} {
+    gap: {{ section.settings.spacing_mobile }}px;
+  }
+  .section--{{ section.id }} {
+    padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+    padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+  }
+  @media (min-width: 768px) {
+    .gap-{{ section.id }} {
+      gap: {{ section.settings.spacing_desktop }}px;
+    }
+    .section--{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+{%- endstyle -%}
+<script src="{{ 'pagination-search.js' | asset_url }}" defer></script>
+{{ 'main-collection.css' | asset_url | stylesheet_tag }}
+{{ "featured-blog.css" | asset_url | stylesheet_tag }}
+{{ 'search-page.css' | asset_url | stylesheet_tag }}
+{% render 'section-divider' %}
+
+<div
+  id="{{ section.id }}"
+  {% if search.filters != empty %}
+    {%- if section.settings.enable_filtering or section.settings.enable_sorting -%}x-data="xFiltersAndSortBy('{{ section.id }}', '{{ section.settings.filter_type }}', true, '{{ section.settings.expand_filter }}')"{% endif -%}
+  {% endif %}
+  class="section--{{ section.id }} search-page anm-btn-controller {{ section.settings.section_width }}"
+>
+  <div
+    id="ResultCount"
+    class="hidden"
+  >
+    {{ search.results_count }}
+  </div>
+  <div class="main-search-form__wrapper">
+    <h1 class="search-heading text-center h2 font-semibold mb-4">
+      {{ 'templates.search.title' | t }}
+    </h1>
+    <div
+      x-data="xModalSearch('{{ search_type }}',{{ settings.search_desktop_maximum_results }},{{ settings.search_mobile_maximum_results }})"
+      class="main-search-form flex justify-center relative mb-5.5 md:mb-14"
+      tabindex="-1"
+    >
+      <form
+        action="{{ routes.search_url }}"
+        method="get"
+        role="search"
+        class="max-w-3xl w-full"
+        @click.away="isFocusedSearchForm && close()"
+        @keydown.esc="isFocusedSearchForm && close()"
+      >
+        <div
+          id="MainSearchForm"
+          class="relative field"
+        >
+          <input
+            class="input-search focus-visible:outline-none bg-transparent border-2 pt-3 pb-3 md:pt-4 md:pb-4 pl-7 rtl:pl-20 pr-20 rtl:pr-7 text-left rtl:text-right text-sm w-full appearance-none relative outline-none placeholder:opacity-70 placeholder:color-text-[rgba(var(--color-text))]{% if settings.edges_type == 'rounded_corners' %} rounded-[100px]{% endif %}"
+            type="search"
+            name="q"
+            id="InputSearch__{{ section.id }}"
+            value="{{ search.terms | escape }}"
+            x-on:keydown="handleKeyUpModal($event)"
+            @input.debounce.500ms="handleChangeInput()"
+            @focus="focusForm()"
+            placeholder="{{ 'general.search.search' | t }}"
+            x-ref="input_search"
+          >
+          <label for="InputSearch__{{ section.id }}" class="hidden">{{ 'general.search.search' | t }}</label>
+          <input
+            type="hidden"
+            name="type"
+            value="product"
+          >
+          <button
+            class="btn-search absolute none_border bg-none w-8 h-8{% if is_rtl %} left-1.5 md:left-2{% else %} right-1.5 md:right-2{% endif %} p-1.5 top-1/2 -translate-y-1/2 opacity-60 bg-transparent dark:bg-transparent text-current"
+            aria-label="{{ 'general.search.search' | t }}"
+          >
+            {%- render 'icon-all', icon: 'icon-search' -%}
+          </button>
+          {% if settings.show_speech_search %}
+            <button
+              class="search__speech cursor-pointer absolute none_border bg-none w-8 h-8{% if is_rtl %} left-10{% else %} right-10{% endif %} p-1.5 top-1/2 -translate-y-1/2 opacity-60 bg-transparent dark:bg-transparent text-current"
+              x-data="xSpeechSearch($el)"
+              x-show="show"
+              x-cloak
+            >
+              {% render 'icon-all', icon: 'icon-voice' %}
+            </button>
+            <script src="{{ 'speech-search.js' | asset_url }}" defer></script>
+          {% endif %}
+        </div>
+        {%- if settings.predictive_search_enabled -%}
+          <div
+            x-show="isFocusedSearchForm"
+            class="md:max-h-96 md:absolute z-50 max-w-3xl top-full w-full"
+            tabindex="-1"
+            data-predictive-search
+            x-html="result"
+          ></div>
+        {%- endif -%}
+      </form>
+    </div>
+  </div>
+  {% comment %} Search tab {% endcomment %}
+  <div
+    class="search-tab__wrapper flex flex-col gap-4 md:gap-5"
+    x-data="xSearchTab('{{ section.id }}')"
+  >
+    <div
+      id="SearchTermContent"
+      class="hidden"
+    >
+      {{- search.terms -}}
+    </div>
+    <tab-animation class="search-tab__button-wrapper has-initial-active flex justify-between w-fit mx-auto max-w-full overflow-auto scrollbar-body scrollbar-visible px-0.5 pt-0.5 pb-2 
+      {%- if tab_style == 'pills' %} tab-animation-pills{% else %} tab-animation-underline{% endif -%}">
+      <div class="tab-list flex gap-1 px-0.5">
+        <button
+        class="button-tab-product font-base-body tabs__button-horizontal text-medium py-2 px-3 md:py-3 md:px-5 shrink-0 rounded-corners-md disable-button-tap-highlight is-active-initial"
+        @click="activeTab='product'"
+        x-bind:class="activeTab === 'product' ? 'color-text-[rgba(var(--color-heading))] is-active font-semibold' : 'color-text-[rgba(var(--color-text),0.6)] after:color-border-[rgba(var(--color-text),0.2)] before:color-border-[rgba(var(--color-text),0.2)]'"
+        x-cloak
+      >
+        <div class="block-text-button__container h-full">
+          {% if tab_style == 'pills' %}
+            <span >
+              {{- 'templates.search.products' | t }}
+                  <span>({{ search.results_count }})</span></span
+            >
+          {% else %} 
+          <span class="block-text-button-text-active-invisible">
+            {{- 'templates.search.products' | t }}
+            <span>({{ search.results_count }})</span></span
+          >
+          <span class="block-text-button-text-effect-1">
+            {{- 'templates.search.products' | t }}
+            <span>({{ search.results_count }})</span></span
+          >
+          <span class="block-text-button-text-effect-2">
+            {{- 'templates.search.products' | t }}
+            <span>({{ search.results_count }})</span></span
+          >
+          {% endif %}
+        </div>
+      </button>
+      <button
+        class="button-tab-collection font-base-body tabs__button-horizontal text-medium px-3 py-2 md:py-3 md:px-5 shrink-0 rounded-corners-md disable-button-tap-highlight"
+        @click="activeTab='collection'"
+        x-bind:class="activeTab === 'collection' ? 'color-text-[rgba(var(--color-heading))] is-active font-semibold' : 'color-text-[rgba(var(--color-text),0.6)] after:color-border-[rgba(var(--color-text),0.2)] before:color-border-[rgba(var(--color-text),0.2)]'"
+        x-cloak
+      >
+        <div class="block-text-button__container h-full">
+          {% if tab_style == 'pills' %}
+            <span>
+              {{- 'templates.search.collections' | t }}
+              <span x-text="`(${collectionCount})`"></span
+            ></span>
+          {% else %} 
+            <span class="block-text-button-text-active-invisible">
+              {{- 'templates.search.collections' | t }}
+              <span x-text="`(${collectionCount})`"></span
+            ></span>
+            <span class="block-text-button-text-effect-1">
+              {{- 'templates.search.collections' | t }}
+              <span x-text="`(${collectionCount})`"></span
+            ></span>
+            <span class="block-text-button-text-effect-2">
+              {{- 'templates.search.collections' | t }}
+              <span x-text="`(${collectionCount})`"></span
+            ></span>
+          {% endif %}  
+        </div>
+      </button>
+      <button
+        class="button-tab-article font-base-body tabs__button-horizontal text-medium py-2 px-3 md:py-3 md:px-5 shrink-0 rounded-corners-md disable-button-tap-highlight"
+        @click="activeTab='article'"
+        x-bind:class="activeTab === 'article' ? 'color-text-[rgba(var(--color-heading))] is-active font-semibold' : 'color-text-[rgba(var(--color-text),0.6)] after:color-border-[rgba(var(--color-text),0.2)] before:color-border-[rgba(var(--color-text),0.2)]'"
+        x-cloak
+      >
+        <div class="block-text-button__container h-full">
+          {% if tab_style == 'pills' %}
+            <span > 
+            {{- 'templates.search.blog_post' | t }}
+            <span x-text="`(${articleCount})`"></span
+            ></span>
+          {% else %} 
+            <span class="block-text-button-text-active-invisible"> 
+              {{- 'templates.search.blog_post' | t }}
+              <span x-text="`(${articleCount})`"></span
+            ></span>
+            <span class="block-text-button-text-effect-1">
+              {{- 'templates.search.blog_post' | t }}
+              <span x-text="`(${articleCount})`"></span
+            ></span>
+            <span class="block-text-button-text-effect-2">
+              {{- 'templates.search.blog_post' | t }}
+              <span x-text="`(${articleCount})`"></span
+            ></span>
+          {% endif %}
+        </div>
+      </button>
+      <button
+        class="button-tab-page font-base-body tabs__button-horizontal text-medium py-2 px-3 md:py-3 md:px-5 shrink-0 rounded-corners-md disable-button-tap-highlight"
+        @click="activeTab='page'"
+        x-bind:class="activeTab === 'page' ? 'color-text-[rgba(var(--color-heading))] is-active font-semibold' : 'color-text-[rgba(var(--color-text),0.6)] after:color-border-[rgba(var(--color-text),0.2)] before:color-border-[rgba(var(--color-text),0.2)]'"
+        x-cloak
+      >
+        <div class="block-text-button__container h-full">
+          {% if tab_style == 'pills' %}
+            <span >
+            {{- 'templates.search.pages' | t }}
+            <span x-text="`(${pageCount})`"></span
+          ></span>
+          {% else %} 
+            <span class="block-text-button-text-active-invisible">
+              {{- 'templates.search.pages' | t }}
+              <span x-text="`(${pageCount})`"></span
+            ></span>
+            <span class="block-text-button-text-effect-1">
+              {{- 'templates.search.pages' | t }}
+              <span x-text="`(${pageCount})`"></span
+            ></span>
+            <span class="block-text-button-text-effect-2">
+              {{- 'templates.search.pages' | t }}
+              <span x-text="`(${pageCount})`"></span
+            ></span>
+          {% endif %}  
+        </div>
+      </button>
+      </div>
+    </tab-animation>
+    <div
+      id="MainSearchResult"
+      class="search-result-container anm-tab-content"
+    >
+      <div
+        id="TotalSearchResult"
+        x-show="activeTab==='product'"
+        x-transition:enter="tab-panel-enter"
+        x-transition:enter-start="tab-panel-enter-start"
+        x-transition:enter-end="tab-panel-enter-end"
+        x-transition:leave="tab-panel-leave"
+        x-transition:leave-start="tab-panel-leave-start"
+        x-transition:leave-end="tab-panel-leave-end"
+        x-transition:opacity
+        {% if section.settings.enable_filtering or section.settings.enable_sorting %}
+          :class="!showFilterAside && 'filter-aside'"
+        {% endif %}
+
+      >
+        {%- if search.performed -%}
+          <div
+            class="{% if section.settings.sticky_filtering %} sticky sticky-filter-top duration-300 z-20 bg-gradient{% endif %}"
+            id="header-filter"
+          ></div>
+          <div
+            class="{% if section.settings.filter_type == 'above' %}md:mt-0{% else %}md:mt-5{% endif %}{% if section.settings.filter_type == 'aside' and section.settings.enable_filtering and show_filter %} flex flex-col md:flex-row md:gap-7.5{% endif %}"
+          >
+            {%- if search.filters != empty -%}
+              {%- if section.settings.enable_filtering or section.settings.enable_sorting -%}
+                <div class="facet-filter-wrapper h-max
+                  {%- if section.settings.filter_type == 'aside' %} md:grow-0 md:shrink-0 md:basis-1/5{% endif -%}
+                  {%- if section.settings.default_hide_filtering %}{% if section.settings.filter_type != 'drawer' %} md:hidden{% endif %} filter-aside:md:block{% else %} filter-aside:md:hidden{% endif -%}
+                  {%- if section.settings.sticky_filtering and section.settings.filter_type != "drawer" %} md:sticky duration-300 md:z-[19] color-bg-gradient-[var(--gradient-background)]{% if section.settings.filter_type == 'aside' %} sticky-filter-aside-content-top{% else %} sticky-filter-above-top{% endif %}{% endif -%}
+                  "
+                >
+                  {% render 'facets',
+                    results: search,
+                    enable_filtering: section.settings.enable_filtering,
+                    enable_sorting: section.settings.enable_sorting,
+                    products_per_page: section.settings.products_per_page,
+                    search_page: true,
+                    filter_type: section.settings.filter_type,
+                    sticky_filter: section.settings.sticky_filtering,
+                    show_filter: show_filter,
+                    expand_filter: section.settings.expand_filter
+                  %}
+                </div>
+              {%- endif -%}
+            {%- endif -%}
+            <div
+              class="mt-3 {% if section.settings.filter_type == 'above' %}md:mt-5{% elsif section.settings.filter_type == 'aside' %}flex-1 md:mt-0 {% else %} md:mt-0{% endif %}"
+              id="ProductGridContainer"
+            >
+              <h2 class="h-0 w-0 absolute opacity-0">{{ 'templates.search.title' | t }}</h2>
+              {%- if search.results.size == 0 and search.filters != empty -%}
+                <div class="msg-no-product w-full">
+                  <p class="text-center">
+                    {{ 'sections.collection_template.empty' | t -}}
+                    <br>
+                    {{ 'sections.collection_template.use_fewer_filters_html' | t: link: search_url, class: ' remove-all-link text-link inline-text-link' }}
+                  </p>
+                </div>
+              {% elsif search.results_count == 0 %}
+                <div class="msg-no-result w-full">
+                  <p class="text-center">
+                    {{ 'templates.search.no_results' | t: terms: search.terms }}
+                  </p>
+                </div>
+              {%- else -%}
+                {% liquid
+                  assign results_pagination = section.settings.products_per_page
+                  if search.types.first == 'page'
+                    assign results_pagination = 10
+                  endif
+                %}
+                {% paginate search.results by results_pagination %}
+                  <div class="main-search-result-list relative">
+                    {% if search.filters != empty %}
+                      <div
+                        class="loading-cover left-0 absolute -top-2.5 md:-top-4 flex justify-center"
+                        x-show="isLoading"
+                        x-cloak
+                      >
+                        <span class="loading-bar"></span>
+                      </div>
+                    {% endif %}
+                    <div
+                      id="ItemsGrid-{{ search.types  }}"
+                      class="anm-reveal-container grid gap-{{ section.id }} {% if search.types.size == 1 and search.types.first == "page" %} grid-cols-1{% else %} grid-cols-{{ section.settings.columns_mobile_grid }} md:grid-cols-2 lg:grid-cols-{{ section.settings.columns_desktop_grid }}{% endif %}"
+                    >
+                      {%- for item in search.results -%}
+                        {%- if forloop.index < 3 -%}
+                          {%- assign loading = 'eager' -%}
+                        {%- else -%}
+                          {%- assign loading = 'lazy' -%}
+                        {%- endif -%}
+                        <div class="grid-item {% if item.object_type == "product" %}product-card{% endif %}">
+                          {%- case item.object_type -%}
+                            {%- when 'product' -%}
+                              {% liquid
+                                assign index_param_variable = section.index | append: forloop.index | plus: 0
+                                assign column_mobile_variable = section.settings.columns_mobile_grid | plus: 0
+                                assign disable_badges = false
+                                if section.settings.show_label_badges == false
+                                  assign disable_badges = true
+                                endif 
+                              %}
+                              {%
+                                render 'product-card',
+                                index_param: index_param_variable,
+                                index: forloop.index,
+                                product: item,
+                                section_id: section.id,
+                                block_id: forloop.index,
+                                collection: collection,
+                                columns_desktop: section.settings.products_per_row_on_desktop,
+                                column_mobile: column_mobile_variable,
+                                list_layout: true,
+                                product_card_id: forloop.index,
+                                show_vendor: section.settings.show_vendor,
+                                show_rating: section.settings.show_rating,
+                                show_shipping_information: section.settings.show_shipping_information,
+                                show_inventory_status: section.settings.show_inventory_status,
+                                show_sale_label: section.settings.show_sale_labels,
+                                show_highlight_attributes: section.settings.show_highlight_attributes,
+                                show_estimated_delivery: section.settings.show_estimated_delivery,
+                                show_quickview: section.settings.show_quickview,
+                                disable_badges: disable_badges,
+                                show_b2b_price_label: section.settings.show_b2b_price_label,
+                                view_context: "search"
+                              %}
+                            {%- when 'article' -%}
+                              <div class="search-result__article_card h-full w-full">
+                                {% assign columns_mobile_variable = section.settings.columns_mobile_grid | plus: 0 %}
+                                {%
+                                  render 'article-card',
+                                  article: item,
+                                  disable_divider: true,
+                                  image_desktop_top: true,
+                                  show_image: true,
+                                  loading: loading,
+                                  image_ratio: section.settings.image_ratio,
+                                  show_name: section.settings.show_name,
+                                  show_author: section.settings.show_author,
+                                  show_date: section.settings.show_date,
+                                  columns_desktop: section.settings.columns_desktop_grid,
+                                  columns_mobile: columns_mobile_variable,
+                                  list_layout: true,
+                                  custom_class: 'anm-reveal-item',
+                                  custom_attribute: 'data-active="false"'
+                                %}
+                              </div>
+                            {%- when 'page' -%}
+                              <div
+                                class="search-result__page-card anm-reveal-item h-full w-full border rounded-corners"
+                                data-active="false"
+                              >
+                                <div class="pt-3 pb-3 md:pt-4 md:pb-4 pl-4 pr-4 w-full relative rounded-corners">
+                                  <p class="p-break-words line-clamp-3 mb-1 color-text-[rgba(var(--color-heading))]">
+                                    <a
+                                      href="{{ item.url }}"
+                                      class="h6 hover:color-text-[rgba(var(--color-link))]"
+                                    >
+                                      {{ item.title | truncate: 50 | escape }}
+                                    </a>
+                                  </p>
+                                  <div class="line-clamp-2 md:list-layout:line-clamp-4 empty:hidden rte">{{ item.content | strip_html }}</div>
+                                  <p class="tracking-wider p-break-words">{{ item.published_at | date: '%b %d, %Y' }}</p>
+                                </div>
+                              </div>
+                          {%- endcase -%}
+                        </div>
+                      {%- endfor -%}
+                    </div>
+                    {%- if paginate.pages > 1 -%}
+                      <div class="pagination-search flex justify-center mt-3 md:mt-9 mb-7 pt-7">
+                        {% render 'pagination-search', paginate: paginate, anchor: '', paginate_type: 'underline', pagination: section.settings.pagination, products_per_page: results_pagination, search_type: search.types %}
+                      </div>
+                    {%- endif -%}
+                  </div>
+                {% endpaginate %}
+              {%- endif -%}
+            </div>
+          </div>
+        {%- endif -%}
+      </div>
+      <div
+        id="MainSearchResult_Page"
+        x-show="activeTab==='page'"
+        x-transition:enter="tab-panel-enter"
+        x-transition:enter-start="tab-panel-enter-start"
+        x-transition:enter-end="tab-panel-enter-end"
+        x-transition:leave="tab-panel-leave"
+        x-transition:leave-start="tab-panel-leave-start"
+        x-transition:leave-end="tab-panel-leave-end"
+        x-intersect.once="document.dispatchEvent(new CustomEvent('maximize:animation:reveal'));"
+        x-transition:opacity
+      ></div>
+      <div
+        id="MainSearchResult_Article"
+        x-show="activeTab==='article'"
+        x-transition:enter="tab-panel-enter"
+        x-transition:enter-start="tab-panel-enter-start"
+        x-transition:enter-end="tab-panel-enter-end"
+        x-transition:leave="tab-panel-leave"
+        x-transition:leave-start="tab-panel-leave-start"
+        x-transition:leave-end="tab-panel-leave-end"
+        x-intersect.once="document.dispatchEvent(new CustomEvent('maximize:animation:reveal'));"
+        x-transition:opacity
+      ></div>
+      <div
+        id="MainSearchResult_Collection"
+        x-show="activeTab==='collection'"
+        x-transition:enter="tab-panel-enter"
+        x-transition:enter-start="tab-panel-enter-start"
+        x-transition:enter-end="tab-panel-enter-end"
+        x-transition:leave="tab-panel-leave"
+        x-transition:leave-start="tab-panel-leave-start"
+        x-transition:leave-end="tab-panel-leave-end"
+        x-intersect.once="document.dispatchEvent(new CustomEvent('maximize:animation:reveal'));"
+        x-transition:opacity
+      >
+        <div
+          id="ItemsGrid-collection"
+          class="anm-reveal-container grid gap-{{ section.id }} grid-cols-{{ section.settings.columns_mobile_grid }} md:grid-cols-2 lg:grid-cols-{{ section.settings.columns_desktop_grid }} list-layout:grid-cols-1 lg:list-layout:grid-cols-2"
+          x-intersect.once="document.dispatchEvent(new CustomEvent('maximize:animation:reveal'));"
+        ></div>
+      </div>
+    </div>
+  </div>
+  <script src="{{ 'search-tab.js' | asset_url }}" defer></script>
+
+  {% comment %} End search tab {% endcomment %}
+</div>
+{% schema %}
+{
+  "name": "t:main_search.name",
+  "tag": "section",
+  "class": "maximize-section section-main-search",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:main_search.settings.filtering_sorting.header"
+    },
+    {
+      "type": "range",
+      "id": "products_per_page",
+      "label": "t:main_product_grid.settings.products_per_page",
+      "min": 6,
+      "max": 50,
+      "step": 2,
+      "default": 10
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_filtering",
+      "default": true,
+      "label": "t:main_product_grid.settings.filtering_sorting.enable_filtering",
+      "info": "t:main_product_grid.settings.filtering_sorting.enable_filtering_info"
+    },
+    {
+      "type": "checkbox",
+      "id": "sticky_filtering",
+      "default": false,
+      "label": "t:main_product_grid.settings.filtering_sorting.sticky_filtering"
+    },
+    {
+      "type": "select",
+      "id": "filter_type",
+      "options": [
+        {
+          "value": "drawer",
+          "label": "t:main_product_grid.settings.filtering_sorting.filter_type.option_1"
+        },
+        {
+          "value": "aside",
+          "label": "t:main_product_grid.settings.filtering_sorting.filter_type.option_2"
+        },
+        {
+          "value": "above",
+          "label": "t:main_product_grid.settings.filtering_sorting.filter_type.option_3"
+        }
+      ],
+      "default": "drawer",
+      "label": "t:main_product_grid.settings.filtering_sorting.filter_type.label",
+      "info": "t:main_product_grid.settings.filtering_sorting.filter_type.info"
+    },
+    {
+      "type": "checkbox",
+      "id": "default_hide_filtering",
+      "default": false,
+      "label": "t:main_product_grid.settings.filtering_sorting.collapse_filter",
+      "info": "t:main_product_grid.settings.filtering_sorting.collapse_filter_info"
+    },
+    {
+      "type": "checkbox",
+      "id": "expand_filter",
+      "default": false,
+      "label": "t:main_product_grid.settings.filtering_sorting.expand_filter",
+      "info": "t:main_product_grid.settings.filtering_sorting.expand_filter_info"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_result_count",
+      "default": true,
+      "label": "t:main_search.settings.filtering_sorting.enable_results_count"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_sorting",
+      "default": true,
+      "label": "t:main_product_grid.settings.filtering_sorting.enable_sorting"
+    },
+    {
+      "type": "select",
+      "id": "pagination",
+      "options": [
+        {
+          "value": "infinite_scroll",
+          "label": "t:main_product_grid.settings.pagination.option_1"
+        },
+        {
+          "value": "click_to_load",
+          "label": "t:main_product_grid.settings.pagination.option_2"
+        },
+        {
+          "value": "pagination",
+          "label": "t:main_product_grid.settings.pagination.option_3"
+        }
+      ],
+      "default": "pagination",
+      "label": "t:global.carousel.pagination",
+      "info": "t:main_product_grid.settings.pagination.info"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop_grid",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "default": 4,
+      "label": "t:global.section.number_of_columns_on_desktop"
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile_grid",
+      "default": "2",
+      "label": "t:global.section.number_of_columns_on_mobile",
+      "options": [
+        {
+          "value": "1",
+          "label": "t:global.section.columns.1_column"
+        },
+        {
+          "value": "2",
+          "label": "t:global.section.columns.2_columns"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.product_card"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_vendor",
+      "default": false,
+      "label": "t:global.product.show_vendor"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_rating",
+      "default": false,
+      "label": "t:global.product.show_rating",
+      "info": "t:global.product.show_product_rating_info"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_quickview",
+      "default": true,
+      "label": "t:global.product.show_quick_view_button"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_label_badges",
+      "label": "t:product_comparison_grid.settings.grid.show_label",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_b2b_price_label",
+      "default": true,
+      "label": "t:settings.products.settings.login_to_view_price.show_b2b_price_label"
+    },
+    {
+      "type": "header",
+      "content": "t:main_search.settings.blog_card.header"
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "options": [
+        {
+          "value": "auto",
+          "label": "t:global.ratio.natural"
+        },
+        {
+          "value": "100",
+          "label": "t:global.ratio.square"
+        },
+        {
+          "value": "75",
+          "label": "t:global.ratio.landscape"
+        },
+        {
+          "value": "150",
+          "label": "t:global.ratio.portrait"
+        },
+        {
+          "value": "56",
+          "label": "t:global.ratio.wide"
+        },
+        {
+          "value": "133",
+          "label": "t:global.ratio.standard"
+        }
+      ],
+      "default": "100",
+      "label": "t:global.ratio.image_ratio"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_date",
+      "default": true,
+      "label": "t:global.blog.show_date"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_author",
+      "default": true,
+      "label": "t:global.blog.show_author"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.style"
+    },
+    {
+      "type": "select",
+      "id": "tab_style",
+      "label": "t:tabs.settings.tab_style",
+      "default": "underline",
+      "options": [
+        {
+          "label": "t:tabs.settings.horizontal_tab_style.option_1",
+          "value": "underline"
+        },
+        {
+          "label": "t:tabs.settings.horizontal_tab_style.option_2",
+          "value": "pills"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "range",
+      "id": "spacing_desktop",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.section.block_spacing_desktop",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "spacing_mobile",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.section.block_spacing_mobile",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "label": "t:global.section.section_width.label",
+      "id": "section_width",
+      "options": [
+        {
+          "label": "t:global.section.section_width.option_1",
+          "value": "page-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_2",
+          "value": "full-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_3",
+          "value": "full-width-padded"
+        }
+      ],
+      "default": "page-width"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.top_padding",
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.bottom_padding",
+      "default": 28
+    },
+    {
+      "type": "checkbox",
+      "id": "show_section_divider",
+      "label": "t:global.section.show_section_divider",
+      "default": false
+    }
+  ]
+}
+{% endschema %}

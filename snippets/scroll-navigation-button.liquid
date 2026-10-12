@@ -1,0 +1,36 @@
+<span 
+  x-show="show && !isAtStart"
+  x-cloak
+  class="scroll-nav scroll-nav-prev {{ class_nav }}" 
+  tabindex="0"
+  @click="scrollToLeft()"
+  @keyup.enter="scrollToLeft()"
+  @keydown.enter.prevent
+  :disabled="isAtStart"
+  x-transition:enter="transition-opacity ease-out duration-300"
+  x-transition:enter-start="opacity-0"
+  x-transition:enter-end="opacity-100"
+  x-transition:leave="transition-opacity ease-in duration-300"
+  x-transition:leave-start="opacity-100"
+  x-transition:leave-end="opacity-0"
+>
+  {% render 'icon-all', icon: 'icon-nav-arrow' %}
+</span>
+<span 
+  x-show="show && !isAtEnd"
+  x-cloak
+  class="scroll-nav scroll-nav-next {{ class_nav }}"
+  tabindex="0"
+  @click="scrollToRight()"
+  @keyup.enter="scrollToRight()"
+  @keydown.enter.prevent
+  :disabled="isAtEnd"
+  x-transition:enter="transition-opacity ease-out duration-300"
+  x-transition:enter-start="opacity-0"
+  x-transition:enter-end="opacity-100"
+  x-transition:leave="transition-opacity ease-in duration-300"
+  x-transition:leave-start="opacity-100"
+  x-transition:leave-end="opacity-0"
+>
+  {% render 'icon-all', icon: 'icon-nav-arrow' %}
+</span>

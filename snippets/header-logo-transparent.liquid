@@ -1,0 +1,60 @@
+{%- liquid
+  assign logo_alt_transparent = logo_transparent.alt | default: shop.name | escape
+-%}
+
+<div
+  class="flex"
+  x-data="
+    {
+      showMainLogo: false,
+      setLogo() {
+        if($store.xHeaderMenu.isSticky == false && $store.xHeaderMenu.showLogoTransparent) {
+          if ($store.xHeaderMenu.isTouch) {
+            if ($store.xHeaderMenu.clickedHeader == false) {
+              this.showMainLogo = false;
+            } else {
+              this.showMainLogo = true;
+            }
+          } else {
+            this.showMainLogo = false;
+          }
+        }
+
+        if($store.xHeaderMenu.isSticky || $store.xHeaderMenu.showLogoTransparent == false) {
+          this.showMainLogo = true;
+        }
+      }
+    }
+  "
+  x-effect="setLogo();"
+>
+  <span class="header-logo-transparent__wrapper inline-block w-full">
+    <span class="logo-transparent logo-image block w-full" x-show="!showMainLogo">
+      <img
+        src="{{ logo_transparent | image_url: width: logo_transparent.width }}"
+        alt="{{ logo_alt_transparent }}"
+        sizes="(min-width: 768px) {{ section.settings.logo_width }}px, {{ section.settings.logo_width_mobile }}px"
+        srcset="
+          {{ logo_transparent | image_url: width: 50 }} 50w,
+          {{ logo_transparent | image_url: width: 100 }} 100w,
+          {{ logo_transparent | image_url: width: 150 }} 150w,
+          {{ logo_transparent | image_url: width: 200 }} 200w,
+          {{ logo_transparent | image_url: width: 250 }} 250w,
+          {{ logo_transparent | image_url: width: 300 }} 300w,
+          {{ logo_transparent | image_url: width: 400 }} 400w,
+          {{ logo_transparent | image_url: width: 500 }} 500w,
+          {{ logo_transparent | image_url: width: 600 }} 600w
+        "
+        width="{{ logo_transparent.width }}"
+        height="{{ logo_transparent.height }}"
+        class="header-logo relative w-full h-full object-cover"
+        loading="eager"
+        fetchpriority="high"
+        decoding="sync"
+      >
+    </span>
+    <span class="logo-image main-logo block relative" x-show="showMainLogo" x-cloak>
+      {%- render 'header-logo', imageUrlMobile: imageUrlMobile, imageUrlDesktop: imageUrlDesktop, logo_width: section.settings.logo_width, logo_width_mobile: section.settings.logo_width_mobile -%}
+    </span>
+  </span>
+</div>

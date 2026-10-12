@@ -1,0 +1,1562 @@
+{% liquid
+  assign menu_font_weight = settings.menu_font.weight | plus: 0
+  assign font_weight_class = ' font-weight-menu'
+  if menu_font_weight < 600 
+    assign font_weight_class = ' !font-semibold'
+  endif
+
+  assign is_active = false
+  for link_child in block.settings.menu.links
+    if link_child.current or link_child.child_active
+      assign is_active = true
+      break
+    endif
+  endfor
+%}
+{% case block.type %}
+  {% when "column_menu" %}
+    {% liquid
+      assign is_link = false
+      if block.settings.menu.links != blank
+        assign is_link = true
+      endif
+
+      assign image_count = 0
+      if block.settings.image_1 != blank or block.settings.mobile_image_1 != blank
+        assign image_count = image_count | plus: 1
+      endif
+      if block.settings.image_2 != blank or block.settings.mobile_image_2 != blank
+        assign image_count = image_count | plus: 1
+      endif
+
+      assign menu_level1_id = block.id | append: '-' | append: block.type | append: '-' | append: start_level | append: '-' | append: forloop.index
+    %}
+    <div 
+      {% if is_link %}
+        @click="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level1_id }}')"
+        @keyup.enter="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level1_id }}')"
+        tabindex="0"
+      {% endif %} 
+      class="menu-link flex items-center {% if request.path == block.settings.menu_item_link or is_active %} active{% endif %}"
+    >
+      {% if is_link %}
+        <p class="flex-1 flex items-center cursor-pointer" {% if block.settings.open_new_window %} target="_blank"{% endif %}>
+      {% else %}
+        <a {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %} 
+          class="flex-1 flex items-center cursor-pointer" 
+          {% if block.settings.open_new_window %} target="_blank"{% endif %}
+        >
+      {% endif %}
+        <span class="x-break-words py-2">
+          <span>{{ block.settings.heading | escape }}</span>
+        </span>
+      {% if is_link %}</p>{% else %}</a>{% endif %}
+      {%- if is_link -%}
+        <span
+          class="w-2.5 h-auto block icon-caret-mobile{% if rtl %} rotate-90{% else %} -rotate-90{% endif %}{%- if link.child_active %} color-text-[rgba(var(--color-link))]{% endif %}"
+        >{% render 'icon-all', icon: 'icon-caret' %}</span>
+      {%- endif -%}
+    </div>
+    {% if is_link %}
+      <div
+        class="mobile-menu-drawer absolute top-0 left-0 w-full h-full z-30 mobile-column-menu background-header flex overflow-x-hidden flex-col{% if rtl %} -translate-x-full{% else %} translate-x-full{% endif %} invisible"
+        :class="$store.xMobileNav.currentMenuLinks.includes('{{ menu_level1_id }}') && 'menu-opening'"
+        :class="$store.xMobileNav.currentMenuLinks.length == {{ start_level | plus: 1 }} ? 'visible' : 'invisible'"
+      >
+        <ul
+          id="menu-level-{{ start_level | plus: 1 }}"
+          class="top-0 w-full h-auto max-h-full overflow-y-auto scrollbar-body scrollbar z-30 pt-2.5 px-4 grid grid-cols-2 gap-1 flex-wrap justify-between" 
+        >
+          <li class="flex items-center justify-between border-b px-2.5 col-span-2 w-full{% if rtl %} text-left{% else %} text-right{% endif %}{% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}">
+            <span class="flex-1 max-w-[100px]">
+              <span class="w-7.5 h-7.5 px-2.5 pt-2.5 block cursor-pointer{% if rtl %} ml-4 -rotate-90{% else %} mr-4 rotate-90{% endif %}" 
+                @click="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}');"
+                @keyup.enter="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}');"
+                tabindex="0"
+                role="button"
+                aria-label="{{ 'accessibility.back' | t }}"
+              >
+                {% render 'icon-all', icon: 'icon-caret' %}
+              </span>
+            </span>
+            <a 
+              {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %}
+              class="flex-1 h5 py-4 {% unless block.settings.view_all_link == blank %} text-center{% endunless %} {% if link.current or link.child_active %} active{% endif %}"
+              {% if block.settings.open_new_window %}
+                target="_blank"
+              {% endif %}
+            >
+              <span class="{{ font_weight_class }} x-break-words">{{ block.settings.heading | escape }}</span>
+            </a>
+            {% unless block.settings.view_all_link == blank %}
+              <a
+                href="{{ block.settings.view_all_link }}"
+                {% if block.settings.open_link_in_new_window %}
+                  target="_blank"
+                {% endif %}
+                class="flex-1 max-w-[100px] flex items-center gap-1 flex-nowrap justify-end"
+              >
+                <span>{{ block.settings.view_all_title | default: 'View more' }}</span> <span class="w-2 h-2 shrink-0 inline-block mt-0.5 rtl:rotate-180">{% render 'icon-all', icon: 'icon-double-arrow' %}</span>
+              </a>
+            {% endunless %}
+          </li>
+          {% for link in block.settings.menu.links %}
+            {%- liquid
+              assign is_link = false
+              if link.links != blank
+                assign is_link = true
+              endif
+  
+              assign menu_level2_id = block.type | append: '-' | append: menu_level1_id | append: '-' | append: forloop.index
+            -%}
+            <li {% if link.current or link.child_active -%}x-init="active = true;"{% endif %}>
+              <div 
+                {% if is_link %}
+                  @click="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level2_id }}')"
+                  @keyup.enter="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level2_id }}')"
+                  tabindex="0"
+                {% endif %} 
+                class="flex items-center h-full px-2.5 gap-1.5 border-b cursor-pointer {% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}"
+                {%- if link.current or link.child_active %}x-init="active = true;"{% endif %}
+              >
+                {% if is_link %}
+                  <p class="menu-link flex-1 py-2.5 flex gap-2.5 items-center{% if link.current or link.child_active %} active{% endif %}">
+                {% else %}
+                  <a href="{{ link.url }}" class="menu-link flex-1 py-2.5 flex gap-2.5 items-center{% if link.current or link.child_active %} active{% endif %}">
+                {% endif %} 
+                  {%- render 'menu-item-image',
+                    link: link, 
+                    auto_fill_menu_image_with: block.settings.show_1st_menu_image, 
+                    collection_metafield: block.settings.collection_image_metafield,
+                    image_ratio: 0,
+                    custom_class: 'rounded-corners-md !w-[50px] h-[50px] shrink-0',
+                    minimal_image: true
+                  -%}
+                  <span class="x-break-words py-2">{{ link.title | escape }}</span>
+                {% if is_link %}</p>{% else %}</a>{% endif %}
+                {%- if is_link -%}
+                  <span
+                    class="w-2.5 h-auto block icon-caret-mobile{% if rtl %} rotate-90{% else %} -rotate-90{% endif %}{%- if link.child_active %} color-text-[rgba(var(--color-link))]{% endif %}"
+                  >{% render 'icon-all', icon: 'icon-caret' %}</span>
+                {%- endif -%}
+              </div>
+              {% if is_link %}
+                <div
+                  class="mobile-menu-drawer absolute top-0 left-0 w-full h-full z-30 pb-5 background-header overflow-y-auto scrollbar-body scrollbar px-4 pt-2.5{% if rtl %} -translate-x-full{% else %} translate-x-full{% endif %} invisible"
+                  :class="$store.xMobileNav.currentMenuLinks.includes('{{ menu_level2_id }}') && 'menu-opening'"
+                  :class="$store.xMobileNav.currentMenuLinks.length == {{ start_level | plus: 2 }} ? 'visible' : 'invisible'"
+                >
+                  <ul
+                    id="menu-level-{{ start_level | plus: 2 }}"
+                    class="sub-column-mega-menu w-full h-full z-30"
+                  >
+                    <li
+                      class="flex items-center justify-between border-b px-2.5 py-4{% if rtl %} text-left{% else %} text-right{% endif %}{% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}"
+                    >
+                      <span class="flex-1 max-w-[100px]">
+                        <span
+                          class="w-7.5 h-7.5 px-2.5 pt-2.5 block cursor-pointer{% if rtl %} ml-4 -rotate-90{% else %} mr-4 rotate-90{% endif %}{%- if childlink.current %} color-text-[rgba(var(--color-link))]{% endif %}"
+                          @click="$store.xMobileNav.removeActiveLink('{{ menu_level2_id }}')"
+                          @keyup.enter="$store.xMobileNav.removeActiveLink('{{ menu_level2_id }}')"
+                          tabindex="0"
+                          role="button"
+                          aria-label="{{ 'accessibility.back' | t }}"
+                        >
+                          {% render 'icon-all', icon: 'icon-caret' %}
+                        </span>
+                      </span>
+                      <a href="{{ link.url }}" class="x-break-words flex-1 font-semibold {% unless block.settings.view_all_link == blank %} text-center{% endunless %} {% if link.current %} active{% endif %}">
+                        {{ link.title | escape }}
+                      </a>
+                      {% unless block.settings.view_all_link == blank %}
+                        <a
+                          href="{{ block.settings.view_all_link }}"
+                          {% if block.settings.open_link_in_new_window %}
+                            target="_blank"
+                          {% endif %}
+                          class="flex-1 max-w-[100px] flex items-center gap-1 flex-nowrap justify-end"
+                        >
+                          <span>{{ block.settings.view_all_title | default: 'View more' }}</span> <span class="w-2 h-2 inline-block mt-0.5 rtl:rotate-180 shrink-0">{% render 'icon-all', icon: 'icon-double-arrow' %}</span>
+                        </a>
+                      {% endunless %}
+                    </li>
+                    {%- for childlink in link.links -%}
+                      <li class="border-b {% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %} px-2.5" {%- if link.current or link.child_active %}x-init="active = true;"{% endif %}>
+                        <a
+                          href="{{ childlink.url }}"
+                          class="x-break-words py-4 flex items-center{% if childlink.current %} active{% endif %}"
+                          {% if childlink.current %} aria-current="page"{% endif %}
+                        >
+                          {{ childlink.title | escape }}
+                        </a>
+                      </li>
+                    {%- endfor -%}
+                  </ul>
+                </div>
+              {% endif %}
+            </li>
+          {% endfor %}
+          {% if image_count > 0 %}
+            <div class="flex gap-1.5 w-full col-span-2 h-auto mt-4 flex-col">
+              {% if block.settings.image_1 != blank or block.settings.mobile_image_1 != blank %}
+                <div class="promotion-1 w-full group h-fit">
+                  {% render 'menu-promotion-block',
+                    blockID: block.id,
+                    desktop_image: block.settings.image_1,
+                    mobile_image: block.settings.mobile_image_1,
+                    image_link: block.settings.image_link_1,
+                    heading: block.settings.heading_1,
+                    content: block.settings.text_1,
+                    block: block,
+                    image_overlay_opacity: block.settings.overlay_opacity_1,
+                    text_alignment: block.settings.text_alignment_1,
+                    title_size: block.settings.text_size_1,
+                    text_size: block.settings.text_size_1,
+                    color_scheme_light: block.settings.color_scheme_light_1,
+                    color_scheme_dark: block.settings.color_scheme_dark_1,
+                    enable_text_overlay: block.settings.text_overlay_1,
+                    mobile_image_height: block.settings.mobile_image_height,
+                    desktop_image_height: block.settings.image_height,
+                    index: 1,
+                    button_label: block.settings.button_label_1,
+                    button_link: block.settings.button_link_1,
+                    open_new_window: block.settings.open_new_window_button_1,
+                    button_style: block.settings.button_style_1
+                  %}
+                </div>
+              {% endif %}
+              {% if block.settings.image_2 != blank or block.settings.mobile_image_2 != blank %}
+                <div class="promotion-2 w-full group h-fit">
+                  {% render 'menu-promotion-block',
+                    blockID: block.id,
+                    desktop_image: block.settings.image_2,
+                    mobile_image: block.settings.mobile_image_2,
+                    image_link: block.settings.image_link_2,
+                    heading: block.settings.heading_2,
+                    content: block.settings.text_2,
+                    block: block,
+                    image_overlay_opacity: block.settings.overlay_opacity_2,
+                    text_alignment: block.settings.text_alignment_2,
+                    title_size: block.settings.text_size_2,
+                    text_size: block.settings.text_size_2,
+                    color_scheme_light: block.settings.color_scheme_light_2,
+                    color_scheme_dark: block.settings.color_scheme_dark_2,
+                    enable_text_overlay: block.settings.text_overlay_2,
+                    mobile_image_height: block.settings.mobile_image_height,
+                    desktop_image_height: block.settings.image_height,
+                    index: 2,
+                    button_label: block.settings.button_label_2,
+                    button_link: block.settings.button_link_2,
+                    open_new_window: block.settings.open_new_window_button_2,
+                    button_style: block.settings.button_style_2
+                  %}
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        </ul>
+      </div>
+    {% endif %}
+  {% when "tabbed_menu" %}
+    {% liquid
+      assign is_link = false
+      if block.settings.menu.links != blank
+        assign is_link = true
+      endif
+
+      assign image_count = 0
+      if block.settings.image_1 != blank or block.settings.mobile_image_1 != blank
+        assign image_count = image_count | plus: 1
+      endif
+      if block.settings.image_2 != blank or block.settings.mobile_image_2 != blank
+        assign image_count = image_count | plus: 1
+      endif
+
+      assign menu_level1_id = block.id | append: '-' | append: block.type | append: '-' | append: start_level | append: '-' | append: forloop.index
+
+      assign show_second_level_collection_image = block.settings.show_second_level_collection_image
+    %}
+    <div 
+      {% if is_link %}
+        @click="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level1_id }}')"
+        @keyup.enter="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level1_id }}')"
+        tabindex="0"
+      {% endif %} 
+        class="menu-link flex items-center {% if request.path == block.settings.menu_item_link or is_active %} active{% endif %}"
+      >
+      {% if is_link %}
+        <p class="flex-1 flex items-center cursor-pointer" {% if block.settings.open_new_window %} target="_blank"{% endif %}>
+      {% else %}
+        <a {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %} 
+          class="flex-1 flex items-center cursor-pointer" 
+          {% if block.settings.open_new_window %} target="_blank"{% endif %}
+        >
+      {% endif %}
+        <span class="x-break-words py-2">
+          <span>{{ block.settings.heading | escape }}</span>
+        </span>
+      {% if is_link %}</p>{% else %}</a>{% endif %}
+      {%- if is_link -%}
+        <span
+          class="w-2.5 h-auto block icon-caret-mobile{% if rtl %} rotate-90{% else %} -rotate-90{% endif %}{%- if link.child_active %} color-text-[rgba(var(--color-link))]{% endif %}"
+        >
+          {% render 'icon-all', icon: 'icon-caret' %}
+        </span>
+      {%- endif -%}
+    </div>
+    {% if is_link %}
+      <div
+        class="mobile-menu-drawer absolute top-0 left-0 w-full h-full z-30 mobile-tabbed-menu background-header{% if rtl %} -translate-x-full{% else %} translate-x-full{% endif %} invisible"
+        :class="$store.xMobileNav.currentMenuLinks.includes('{{ menu_level1_id }}') && 'menu-opening'"
+        :class="$store.xMobileNav.currentMenuLinks.length == {{ start_level | plus: 1 }} ? 'visible' : 'invisible'"
+      >
+        <ul
+          id="menu-level-{{ start_level | plus: 1 }}"
+          class="top-0 w-full h-auto max-h-full z-30 overflow-auto scrollbar-body scrollbar pt-2.5 px-4 flex flex-wrap justify-between" 
+        >
+          <li class="flex items-center justify-between border-b px-2.5 h-fit w-full{% if rtl %} text-left{% else %} text-right{% endif %}{% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}">
+            <span class="flex-1 max-w-[100px]">
+              <span 
+                class="w-7.5 h-7.5 px-2.5 pt-2.5 block cursor-pointer{% if rtl %} -rotate-90{% else %} rotate-90{% endif %}" 
+                @click="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}');" 
+                @keyup.enter="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}');" 
+                tabindex="0"
+                aria-label="{{ 'accessibility.back' | t }}" 
+                role="button"
+              >
+                {% render 'icon-all', icon: 'icon-caret' %}
+              </span>
+            </span>
+            <a 
+              {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %}
+              class="flex-1 h5 py-4 {{ font_weight_class }} {% if block.settings.view_all_link != blank %} text-center{% endif %}{% if link.current or link.child_active %} active{% endif %}"
+              {% if block.settings.open_new_window %}
+                target="_blank"
+              {% endif %}
+            >
+              <span class="x-break-words {{ font_weight_class }}">{{ block.settings.heading | escape }}</span>
+            </a>
+            {% unless block.settings.view_all_link == blank %}
+              <a
+                href="{{ block.settings.view_all_link }}"
+                {% if block.settings.open_link_in_new_window %}
+                  target="_blank"
+                {% endif %}
+                class="flex-1 max-w-[100px] flex items-center gap-1 flex-nowrap justify-end"
+              >
+                <span>{{ block.settings.view_all_title | default: 'View more' }}</span> <span class="w-2 h-2 inline-block mt-0.5 rtl:rotate-180 shrink-0">{% render 'icon-all', icon: 'icon-double-arrow' %}</span>
+              </a>
+            {% endunless %}
+          </li>
+          {% for link in block.settings.menu.links %}
+            {%- liquid
+              assign is_link = false
+              if link.links != blank
+                assign is_link = true
+              endif
+  
+              assign menu_level2_id = block.type | append: '-' | append: menu_level1_id | append: '-' | append: forloop.index
+            -%}
+            <li {% if link.current or link.child_active -%}x-init="active = true;"{% endif %} class="w-full h-fit">
+              <div 
+                {% if is_link %}
+                @click="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level2_id }}')"
+                @keyup.enter="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level2_id }}')"
+                tabindex="0"
+                {% endif %} 
+                class="flex items-center px-2.5 border-b cursor-pointer {% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}" 
+                {%- if link.current or link.child_active %}x-init="active = true;"{% endif %}
+              >
+                {% if is_link %}
+                  <p class="menu-link flex-1 py-2.5 flex gap-2.5 items-center{% if link.current or link.child_active %} active{% endif %}">
+                {% else %}
+                  <a href="{{ link.url }}" class="menu-link flex-1 py-2.5 flex gap-2.5 items-center{% if link.current or link.child_active %} active{% endif %}">
+                {% endif %} 
+                  {%- render 'menu-item-image',
+                    link: link,
+                    auto_fill_menu_image_with: block.settings.show_1st_menu_image,
+                    collection_metafield: block.settings.collection_image_metafield,
+                    image_ratio: 0,
+                    custom_class: "rounded-corners-md !w-[50px] h-[50px]",
+                    minimal_image: true,
+                    is_link: false
+                  -%}
+                  <span class="x-break-words py-2">{{ link.title | escape }}</span>
+                {% if is_link %}</p>{% else %}</a>{% endif %}
+                {%- if is_link -%}
+                  <span
+                    class="w-2.5 h-auto block icon-caret-mobile{% if rtl %} rotate-90{% else %} -rotate-90{% endif %}{%- if link.child_active %} color-text-[rgba(var(--color-link))]{% endif %}"
+                  >{% render 'icon-all', icon: 'icon-caret' %}</span>
+                {%- endif -%}
+              </div>
+              {% if is_link %}
+                <div
+                  class="mobile-menu-drawer absolute top-0 left-0 w-full h-full z-30 pb-5 background-header overflow-auto scrollbar scrollbar-body px-4 pt-2.5{% if rtl %} -translate-x-full{% else %} translate-x-full{% endif %} invisible"
+                  :class="$store.xMobileNav.currentMenuLinks.includes('{{ menu_level2_id }}') && 'menu-opening'"
+                  :class="$store.xMobileNav.currentMenuLinks.length == {{ start_level | plus: 2 }} ? 'visible' : 'invisible'"
+                >
+                  <div class="flex h-fit items-center{% if rtl %} text-left{% else %} text-right{% endif %} justify-between px-2.5 border-b {% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %} {% if show_second_level_collection_image != "next" %}col-span-2{% endif %}">
+                    <span class="flex-1 max-w-[100px]">
+                      <span
+                        class="w-7.5 h-7.5 px-2.5 pt-2.5 block cursor-pointer{% if rtl %} -rotate-90{% else %} rotate-90{% endif %}"
+                        @click="$store.xMobileNav.removeActiveLink('{{ menu_level2_id }}');"
+                        @keyup.enter="$store.xMobileNav.removeActiveLink('{{ menu_level2_id }}');"
+                        tabindex="0"
+                        role="button"
+                        aria-label="{{ 'accessibility.back' | t }}"
+                      >
+                        {% render 'icon-all', icon: 'icon-caret' %}
+                      </span>
+                    </span>
+                    <a href="{{ link.url }}" class="flex-1 h5 py-4 {% unless block.settings.view_all_link == blank %} text-center{% endunless %}{% if link.current or link.child_active %} active{% endif %}">
+                      <span class="x-break-words {{ font_weight_class }}">{{ link.title | escape }}</span>
+                    </a>
+                    {% unless block.settings.view_all_link == blank %}
+                      <a
+                        href="{{ block.settings.view_all_link }}"
+                        {% if block.settings.open_link_in_new_window %}
+                          target="_blank"
+                        {% endif %}
+                        class="flex-1 max-w-[100px] flex items-center gap-1 flex-nowrap justify-end"
+                      >
+                        <span>{{ block.settings.view_all_title | default: 'View more' }}</span> <span class="w-2 h-2 inline-block mt-0.5 rtl:rotate-180 shrink-0">{% render 'icon-all', icon: 'icon-double-arrow' %}</span>
+                      </a>
+                    {% endunless %}
+                  </div>
+                  <ul
+                    id="menu-level-{{ start_level | plus: 1 }}"
+                    class="top-0 w-full h-fit z-30 pt-4 {% if show_second_level_collection_image != "next" %}grid grid-cols-2 gap-y-5 gap-x-2.5{% else %} flex flex-col gap-4{% endif %}" 
+                  >
+                    {% for childlink in link.links %}
+                      {% liquid
+                        assign has_grandchild_link = false
+                        if childlink.links != blank
+                          assign has_grandchild_link = true
+                        endif
+                      %}
+                      <li class="h-fit">
+                        <div class="flex flex-col">
+                          <div
+                            class="flex justify-between gap-2.5 {% if show_second_level_collection_image == 'above' %}flex-col{% endif %}"
+                          >
+                            {% capture image_item %}
+                              {% render 'menu-item-image',
+                                link: childlink,
+                                auto_fill_menu_image_with: block.settings.show_2nd_level_menu_image,
+                                collection_metafield: block.settings.collection_image_metafield,
+                                image_ratio: block.settings.image_ratio,
+                                custom_class: "rounded-corners"
+                                is_link: true
+                              %}
+                            {% endcapture %}
+                            {% assign image_item = image_item | strip %}
+                            {% unless image_item contains "Liquid syntax error" %}
+                              {% if image_item != blank and show_second_level_collection_image != "none" %}
+                                <div class="h-full {% if show_second_level_collection_image == 'next' %}w-[50%]{% else %}w-full{% endif %}">
+                                  {{ image_item }}
+                                </div>
+                              {% endif %}
+                            {% endunless %}
+                            <div class="flex flex-col w-full h-full gap-1.5">
+                              <a href="{{ childlink.url }}" class="color-text-[rgba(var(--color-heading))] h5 p-break-words {% if childlink.current %} active{% endif %} {{ font_weight_class }}">{{ childlink.title | escape }}</a>
+                              {% if has_grandchild_link %}
+                                <div class="h-full w-full">
+                                  <ul
+                                    id="menu-level-{{ start_level | plus: 2 }}"
+                                    class="w-full h-full z-30 last-level-menu font-normal text-medium"
+                                  >
+                                    {%- for grandchildlink in childlink.links -%}
+                                      <li class="font-normal mt-[3px]" {%- if childlink.current or childlink.child_active %}x-init="active = true;"{% endif %}>
+                                        <a
+                                          href="{{ grandchildlink.url }}"
+                                          class="x-break-words flex items-center{% if grandchildlink.current %} active{% endif %}"
+                                          {% if grandchildlink.current %} aria-current="page"{% endif %}
+                                        >
+                                          {{ grandchildlink.title | escape }}
+                                        </a>
+                                      </li>
+                                    {%- endfor -%}
+                                  </ul>
+                                </div>
+                              {% endif %}
+                            </div>
+                          </div>
+                        </div>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+            </li>
+          {% endfor %}
+          {% if image_count > 0 %}
+            <div class="flex gap-1.5 overflow-y-auto mt-6 w-full h-auto flex-col">
+              {% if block.settings.image_1 != blank or block.settings.mobile_image_1 != blank %}
+                <div class="promotion-1 w-full group h-fit">
+                  {% render 'menu-promotion-block',
+                    blockID: block.id,
+                    desktop_image: block.settings.image_1,
+                    mobile_image: block.settings.mobile_image_1,
+                    image_link: block.settings.image_link_1,
+                    heading: block.settings.heading_1,
+                    content: block.settings.text_1,
+                    block: block,
+                    image_overlay_opacity: block.settings.overlay_opacity_1,
+                    text_alignment: block.settings.text_alignment_1,
+                    title_size: block.settings.text_size_1,
+                    text_size: block.settings.text_size_1,
+                    color_scheme_light: block.settings.color_scheme_light_1,
+                    color_scheme_dark: block.settings.color_scheme_dark_1,
+                    enable_text_overlay: block.settings.text_overlay_1,
+                    mobile_image_height: block.settings.mobile_image_height,
+                    desktop_image_height: block.settings.image_height,
+                    index: 1,
+                    button_label: block.settings.button_label_1,
+                    button_link: block.settings.button_link_1,
+                    open_new_window: block.settings.open_new_window_button_1,
+                    button_style: block.settings.button_style_1
+                  %}
+                </div>
+              {% endif %}
+              {% if block.settings.image_2 != blank or block.settings.mobile_image_2 != blank %}
+                <div class="promotion-2 w-full group h-fit">
+                  {% render 'menu-promotion-block',
+                    blockID: block.id,
+                    desktop_image: block.settings.image_2,
+                    mobile_image: block.settings.mobile_image_2,
+                    image_link: block.settings.image_link_2,
+                    heading: block.settings.heading_2,
+                    content: block.settings.text_2,
+                    block: block,
+                    image_overlay_opacity: block.settings.overlay_opacity_2,
+                    text_alignment: block.settings.text_alignment_2,
+                    title_size: block.settings.text_size_2,
+                    text_size: block.settings.text_size_2,
+                    color_scheme_light: block.settings.color_scheme_light_2,
+                    color_scheme_dark: block.settings.color_scheme_dark_2,
+                    enable_text_overlay: block.settings.text_overlay_2,
+                    mobile_image_height: block.settings.mobile_image_height,
+                    desktop_image_height: block.settings.image_height,
+                    index: 2,
+                    button_label: block.settings.button_label_2,
+                    button_link: block.settings.button_link_2,
+                    open_new_window: block.settings.open_new_window_button_2,
+                    button_style: block.settings.button_style_2
+                  %}
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        </ul>
+      </div>
+    {% endif %}
+  {% when 'banner_menu' %}
+    {%- liquid
+      assign image_count = 0
+      if block.settings.image_5 != blank
+        assign image_count = image_count | plus: 1
+      endif
+      if block.settings.image_4 != blank
+        assign image_count = image_count | plus: 1
+      endif
+      if block.settings.image_3 != blank
+        assign image_count = image_count | plus: 1
+      endif
+      if block.settings.image_2 != blank
+        assign image_count = image_count | plus: 1
+      endif
+      if block.settings.image_1 != blank
+        assign image_count = image_count | plus: 1
+      endif
+      assign columns_mobile = block.settings.mobile_layout
+
+      assign menu_level1_id = block.id | append: '-' | append: block.type | append: '-' | append: start_level | append: '-' | append: forloop.index
+    -%}
+    <div 
+      {% if image_count > 0 %}
+        @click="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level1_id }}')"
+        @keyup.enter="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level1_id }}')"
+        tabindex="0"
+      {% endif %} 
+      class="menu-link flex items-center {% if request.path == block.settings.menu_item_link or is_active %} active{% endif %}"
+    >
+      {% if image_count > 0 %}
+        <p class="flex-1 flex items-center cursor-pointer" {% if block.settings.open_new_window %} target="_blank"{% endif %}>
+      {% else %}
+        <a {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %} class="flex-1 flex items-center cursor-pointer" {% if block.settings.open_new_window %} target="_blank"{% endif %}>
+      {% endif %}
+        <span class="x-break-words py-2">
+          <span>{{ block.settings.heading | escape }}</span>
+        </span>
+      {% if image_count > 0 %}</p>{% else %}</a>{% endif %}
+      {%- if image_count > 0 -%}
+        <span
+          class="w-2.5 h-auto block icon-caret-mobile{% if rtl %} rotate-90{% else %} -rotate-90{% endif %}{%- if link.child_active %} color-text-[rgba(var(--color-link))]{% endif %}"
+        >{% render 'icon-all', icon: 'icon-caret' %}</span>
+      {%- endif -%}
+    </div>
+    {% if image_count > 0 %}
+      <div
+        class="mobile-menu-drawer absolute top-0 left-0 w-full h-full z-30 mobile-column-menu pt-2.5 px-4 background-header overflow-y-auto scrollbar-body scrollbar{% if rtl %} -translate-x-full{% else %} translate-x-full{% endif %} invisible"
+        :class="$store.xMobileNav.currentMenuLinks.includes('{{ menu_level1_id }}') && 'menu-opening'"
+        :class="$store.xMobileNav.currentMenuLinks.length == {{ start_level | plus: 1 }} ? 'visible' : 'invisible'"
+      >
+        <div class="flex items-center justify-between border-b px-2.5{% if rtl %} text-left{% else %} text-right{% endif %}{% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}">
+          <span
+            class="w-7.5 h-7.5 px-2.5 pt-2.5 block cursor-pointer{% if rtl %} ml-4 -rotate-90{% else %} mr-4 rotate-90{% endif %}"
+            @click="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}');"
+            @keyup.enter="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}');"
+            tabindex="0"
+            role="button"
+            aria-label="{{ 'accessibility.back' | t }}"
+          >
+            {% render 'icon-all', icon: 'icon-caret' %}
+          </span>
+          <a {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %} 
+            {% if block.settings.open_new_window %}
+              target="_blank"
+            {% endif %} 
+            class="flex-1 h5 py-4"
+          >
+            <span class="x-break-words {{ font_weight_class }}">{{ block.settings.heading | escape }}</span>
+          </a>
+        </div>
+        <div class="grid grid-cols-{{ columns_mobile }} gap-2.5 mt-4 h-auto pb-8">
+          {% style %}
+            .image-{{ block.id }} {
+              height: {{ block.settings.image_height }}px;
+            }
+            .promotion-{{ block.id }} {
+              {% if block.settings.text_color.alpha != 0.0 %}
+                color: {{ block.settings.text_color }};
+              {% endif %}
+              {% if block.settings.heading_color.alpha != 0.0 %}
+                --color-heading: {{ block.settings.heading_color }};
+              {% endif %}
+            }
+            .dark .promotion-{{ block.id }} {
+              {% if block.settings.text_color_dark.alpha != 0.0 %}
+                --color-text: {{ block.settings.text_color_dark }};
+              {% else %}
+                color: var(--color-text);
+              {% endif %}
+              {% if block.settings.heading_color_dark.alpha != 0.0 %}
+                --color-heading: {{ block.settings.heading_color_dark }};
+              {% else %}
+                --color-heading: {{ settings.header_heading_dark.red }} {{ settings.header_heading_dark.green }} {{ settings.header_heading_dark.blue }} / {{ settings.header_heading_dark.alpha }};
+              {% endif %}
+            }
+          {% endstyle %}
+          {%- if block.settings.image_1 != blank -%}
+            <div class="w-full group relative rounded-corners overflow-hidden">
+              {% render 'menu-promotion-block',
+                blockID: block.id,
+                desktop_image: block.settings.image_1,
+                enable_text_overlay: block.settings.enable_text_overlay,
+                image_link: block.settings.image_link_1,
+                open_new_window_image: block.settings.open_new_window_image_1,
+                heading: block.settings.heading_1,
+                content: block.settings.text_1,
+                button_label: block.settings.button_label_1,
+                button_link: block.settings.button_link_1,
+                open_new_window: block.settings.open_new_window_button_1,
+                button_style: block.settings.button_style_1,
+                text_alignment: block.settings.text_alignment_1,
+                columns_mobile: columns_mobile,
+                full_width: false,
+                image_overlay_opacity: block.settings.overlay_opacity_1,
+                title_size: block.settings.text_size_1,
+                text_size: block.settings.text_size_1,
+                color_scheme_light: block.settings.color_scheme_light_1,
+                color_scheme_dark: block.settings.color_scheme_dark_1,
+                mobile_image_height: block.settings.image_height,
+                desktop_image_height: block.settings.image_height,
+                index: 1
+              %}
+            </div>
+          {% endif %}
+          {%- if block.settings.image_2 != blank -%}
+            <div class="w-full group relative rounded-corners overflow-hidden">
+              {% render 'menu-promotion-block',
+                blockID: block.id,
+                desktop_image: block.settings.image_2,
+                enable_text_overlay: block.settings.enable_text_overlay,
+                image_link: block.settings.image_link_2,
+                open_new_window_image: block.settings.open_new_window_image_2,
+                heading: block.settings.heading_2,
+                content: block.settings.text_2,
+                button_label: block.settings.button_label_2,
+                button_link: block.settings.button_link_2,
+                open_new_window: block.settings.open_new_window_button_2,
+                button_style: block.settings.button_style_2,
+                text_alignment: block.settings.text_alignment_2,
+                columns_mobile: columns_mobile,
+                full_width: false,
+                image_overlay_opacity: block.settings.overlay_opacity_2,
+                title_size: block.settings.text_size_2,
+                text_size: block.settings.text_size_2,
+                color_scheme_light: block.settings.color_scheme_light_2,
+                color_scheme_dark: block.settings.color_scheme_dark_2,
+                mobile_image_height: block.settings.image_height,
+                desktop_image_height: block.settings.image_height,
+                index: 2
+              %}
+            </div>
+          {% endif %}
+          {%- if block.settings.image_3 != blank -%}
+            <div class="w-full group relative rounded-corners overflow-hidden">
+              {% render 'menu-promotion-block',
+                blockID: block.id,
+                desktop_image: block.settings.image_3,
+                enable_text_overlay: block.settings.enable_text_overlay,
+                image_link: block.settings.image_link_3,
+                open_new_window_image: block.settings.open_new_window_image_3,
+                heading: block.settings.heading_3,
+                content: block.settings.text_3,
+                button_label: block.settings.button_label_3,
+                button_link: block.settings.button_link_3,
+                open_new_window: block.settings.open_new_window_button_3,
+                button_style: block.settings.button_style_3,
+                text_alignment: block.settings.text_alignment_3,
+                columns_mobile: columns_mobile,
+                full_width: false,
+                image_overlay_opacity: block.settings.overlay_opacity_3,
+                title_size: block.settings.text_size_3,
+                text_size: block.settings.text_size_3,
+                color_scheme_light: block.settings.color_scheme_light_3,
+                color_scheme_dark: block.settings.color_scheme_dark_3,
+                mobile_image_height: block.settings.image_height,
+                desktop_image_height: block.settings.image_height,
+                index: 3
+              %}
+            </div>
+          {% endif %}
+          {%- if block.settings.image_4 != blank -%}
+            <div class="w-full group relative rounded-corners overflow-hidden">
+              {% render 'menu-promotion-block',
+                blockID: block.id,
+                desktop_image: block.settings.image_4,
+                enable_text_overlay: block.settings.enable_text_overlay,
+                image_link: block.settings.image_link_4,
+                open_new_window_image: block.settings.open_new_window_image_4,
+                heading: block.settings.heading_4,
+                content: block.settings.text_4,
+                button_label: block.settings.button_label_4,
+                button_link: block.settings.button_link_4,
+                open_new_window: block.settings.open_new_window_button_4,
+                button_style: block.settings.button_style_4,
+                text_alignment: block.settings.text_alignment_4,
+                columns_mobile: columns_mobile,
+                full_width: false,
+                image_overlay_opacity: block.settings.overlay_opacity_4,
+                title_size: block.settings.text_size_4,
+                text_size: block.settings.text_size_4,
+                color_scheme_light: block.settings.color_scheme_light_4,
+                color_scheme_dark: block.settings.color_scheme_dark_4,
+                mobile_image_height: block.settings.image_height,
+                desktop_image_height: block.settings.image_height,
+                index: 4
+              %}
+            </div>
+          {% endif %}
+          {%- if block.settings.image_5 != blank -%}
+            <div class="w-full group relative rounded-corners overflow-hidden">
+              {% render 'menu-promotion-block',
+                blockID: block.id,
+                desktop_image: block.settings.image_5,
+                enable_text_overlay: block.settings.enable_text_overlay,
+                image_link: block.settings.image_link_5,
+                open_new_window_image: block.settings.open_new_window_image_5,
+                heading: block.settings.heading_5,
+                content: block.settings.text_5,
+                button_label: block.settings.button_label_5,
+                button_link: block.settings.button_link_5,
+                open_new_window: block.settings.open_new_window_button_5,
+                button_style: block.settings.button_style_5,
+                text_alignment: block.settings.text_alignment_5,
+                columns_mobile: columns_mobile,
+                full_width: false,
+                image_overlay_opacity: block.settings.overlay_opacity_5,
+                title_size: block.settings.text_size_5,
+                text_size: block.settings.text_size_5,
+                color_scheme_light: block.settings.color_scheme_light_5,
+                color_scheme_dark: block.settings.color_scheme_dark_5,
+                mobile_image_height: block.settings.image_height,
+                desktop_image_height: block.settings.image_height,
+                index: 5
+              %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  {% when "blog_menu" %}
+    {%- liquid
+      assign blog = false
+      if block.settings.blog and block.settings.blog.articles_count > 0
+        assign blog = block.settings.blog
+      endif
+
+      assign menu_level1_id = block.id | append: '-' | append: block.type | append: '-' | append: start_level | append: '-' | append: forloop.index
+    -%}
+    <div 
+      {% if blog %}
+        @click="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level1_id }}')"
+        @keyup.enter="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level1_id }}')"
+        tabindex="0"
+      {% endif %} 
+      class="menu-link flex items-center {% if request.path == block.settings.menu_item_link or is_active %} active{% endif %}"
+    >
+      {% if blog %}
+        <p class="flex-1 flex items-center cursor-pointer" {% if block.settings.open_new_window %} target="_blank"{% endif %}>
+      {% else %}
+        <a {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %} class="flex-1 flex items-center cursor-pointer" {% if block.settings.open_new_window %} target="_blank"{% endif %}>
+      {% endif %}
+        <span class="x-break-words py-2">
+          <span>{{ block.settings.heading | escape }}</span>
+        </span>
+      {% if blog %}</p>{% else %}</a>{% endif %}
+      {%- if blog -%}
+        <span
+          class="w-2.5 h-auto block icon-caret-mobile{% if rtl %} rotate-90{% else %} -rotate-90{% endif %}{%- if link.child_active %} color-text-[rgba(var(--color-link))]{% endif %}"
+        >{% render 'icon-all', icon: 'icon-caret' %}</span>
+      {%- endif -%}
+    </div>
+    <div
+      class="mobile-blog_menu mobile-menu-drawer absolute top-0 left-0 w-full h-full z-30 mobile-column-menu scrollbar-body scrollbar overflow-y-auto background-header pt-2.5 pb-5 px-4{% if rtl %} -translate-x-full{% else %} translate-x-full{% endif %} invisible"
+      :class="$store.xMobileNav.currentMenuLinks.includes('{{ menu_level1_id }}') && 'menu-opening'"
+      :class="$store.xMobileNav.currentMenuLinks.length == {{ start_level | plus: 1 }} ? 'visible' : 'invisible'"
+    >
+      <div class="flex items-center justify-between border-b px-2.5{% if rtl %} text-left{% else %} text-right{% endif %}{% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}">
+        <span class="flex-1 max-w-[100px]">
+          <span
+            class="w-7.5 h-7.5 px-2.5 pt-2.5 block cursor-pointer{% if rtl %} ml-4 -rotate-90{% else %} mr-4 rotate-90{% endif %}"
+            @click="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}');"
+            @keyup.enter="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}');"
+            tabindex="0"
+            role="button"
+            aria-label="{{ 'accessibility.back' | t }}"
+          >
+            {% render 'icon-all', icon: 'icon-caret' %}
+          </span>
+        </span>
+        <a {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %} class="flex-1 h5 py-4 {% unless block.settings.view_all_link == blank %}text-center{% endunless %}{% if link.current or link.child_active %} active{% endif %}">
+          <span class="x-break-words {{ font_weight_class }}">{{ block.settings.heading | escape }}</span>
+        </a>
+        {% unless block.settings.view_all_link == blank %}
+          <a
+            href="{{ block.settings.view_all_link }}"
+            {% if block.settings.open_link_in_new_window %}
+              target="_blank"
+            {% endif %}
+            class="flex-1 max-w-[100px] flex items-center gap-1 flex-nowrap justify-end"
+          >
+            <span>{{ block.settings.view_all_title | default: 'View more' }}</span> <span class="w-2 h-2 inline-block mt-0.5 rtl:rotate-180 shrink-0">{% render 'icon-all', icon: 'icon-double-arrow' %}</span>
+          </a>
+        {% endunless %}
+      </div>
+      <div class="w-full {% if blog and blog.articles_count > 0 or is_link %} flex gap-x-3{% endif %} mx-auto mt-4 ltr">
+        {% assign post_limit = block.settings.rows_desktop | times: block.settings.columns_desktop %}
+        {% if blog %}
+          <div class="blog-posts-menu{% if is_link %} list-blog{% endif %} overflow-x-hidden">
+            <div
+              class="menu-blog-posts_list grid grid-cols-1 md:gap-x-8 gap-y-4 pb-1"
+              {% if rtl %}
+                style="direction: rtl"
+              {% endif %}
+            >
+              {%- for article in blog.articles limit: post_limit -%}
+                {%- render 'article-card',
+                  article: article,
+                  index: forloop.index,
+                  columns_desktop: block.settings.columns_desktop,
+                  columns_mobile: '2',
+                  blog_header: true,
+                  image_desktop_top: true,
+                  class_margin: '',
+                  image_ratio: block.settings.image_ratio,
+                  show_image: block.settings.show_image,
+                  show_excerpt: block.settings.show_excerpt,
+                  show_in_header: true,
+                  font_weight_class: font_weight_class
+                -%}
+              {%- endfor -%}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    {% when "contact_menu" %}
+      {%- liquid
+        assign menu_level1_id = block.id | append: '-' | append: block.type | append: '-' | append: start_level | append: '-' | append: forloop.index
+        if block.settings.sort_order == 'options__2'
+          assign class_information = class_information | append: ' order-2'
+          assign class_map = class_map | append: ' order-3'
+          assign class_form = class_form | append: ' order-1'
+        endif
+        if block.settings.sort_order == 'options__3'
+          assign class_information = class_information | append: ' order-2'
+          assign class_map = class_map | append: ' order-1'
+          assign class_form = class_form | append: ' order-3'
+        endif
+        if block.settings.sort_order == 'options__4'
+          assign class_information = class_information | append: ' order-1'
+          assign class_map = class_map | append: ' order-3'
+          assign class_form = class_form | append: ' order-2'
+        endif
+      -%}
+      <div 
+        @click="$store.xMobileNav.scrollTop(); $store.xMobileNav.setActiveLink('{{ menu_level1_id }}')" 
+        @keyup.enter="$store.xMobileNav.scrollTop(); $store.xMobileNav.setActiveLink('{{ menu_level1_id }}')" 
+        tabindex="0"
+        class="menu-link flex items-center {% if request.path == block.settings.menu_item_link or is_active %} active{% endif %}"
+      >
+        <p {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %} class="flex-1 flex items-center cursor-pointer">
+          <span class="x-break-words py-2">
+            <span>{{ block.settings.heading | escape }}</span>
+          </span>
+        </p>
+        <span
+          class="w-2.5 h-auto block icon-caret-mobile{% if rtl %} rotate-90{% else %} -rotate-90{% endif %}{%- if link.child_active %} color-text-[rgba(var(--color-link))]{% endif %}"
+        >{% render 'icon-all', icon: 'icon-caret' %}</span>
+      </div>
+      <div
+        class="mobile-menu-drawer absolute top-0 left-0 w-full h-full z-30 mobile-contact-menu overflow-y-auto scrollbar-body scrollbar pt-2.5 pb-5 px-4 background-header{% if rtl %} -translate-x-full{% else %} translate-x-full{% endif %} invisible"
+        :class="$store.xMobileNav.currentMenuLinks.includes('{{ menu_level1_id }}') && 'menu-opening'"
+        :class="$store.xMobileNav.currentMenuLinks.length == {{ start_level | plus: 1 }} ? 'visible' : 'invisible'"
+      >
+        <div class="flex items-center justify-between border-b px-2.5{% if rtl %} text-left{% else %} text-right{% endif %}{% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}">
+          <span
+            class="w-7.5 h-7.5 px-2.5 pt-2.5 block cursor-pointer{% if rtl %} ml-4 -rotate-90{% else %} mr-4 rotate-90{% endif %}"
+            @click="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}');"
+            @keyup.enter="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}');"
+            tabindex="0"
+            role="button"
+            aria-label="{{ 'accessibility.back' | t }}"
+          >
+            {% render 'icon-all', icon: 'icon-caret' %}
+          </span>
+          <a {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %}
+            class="flex-1 h5 py-4 {% if link.current or link.child_active %} active{% endif %}"
+            {% if block.settings.open_new_window %}
+              target="_blank"
+            {% endif %} 
+          >
+            <span class="x-break-words {{ font_weight_class }}">{{ block.settings.heading | escape }}</span>
+          </a>
+        </div>
+        <div class="contact-menu__mobile h-full flex mx-auto flex-col gap-y-5 pt-4 pb-5">
+          <div class="contact-menu__map overflow-hidden h-auto shrink-0 {% if block.settings.image == blank and block.settings.store_address != blank %} min-h-[250px] {% endif %} {{ class_map }} rounded-corners">
+            {%- if block.settings.image != blank -%}
+              {%- capture sizes -%}
+                (min-width: {{ settings.page_width }}px) calc({{ settings.page_width | divided_by: 3 | plus: 200 }}px ), (min-width: 768px) 50vw, 100vw
+              {%- endcapture -%}
+              {% liquid
+                assign default_image_alt = 'accessibility.default_alt' | t
+                assign image_alt = block.settings.image | default: default_image_alt | escape
+              %}
+              {{ block.settings.image | image_url: width: 3000 | image_tag: loading: 'lazy', sizes: sizes, widths: '375, 450, 750, 900, 1100, 1500, 1780, 2000, 3000, 3840', class: 'w-full h-full object-center object-cover z-0 inset-0 image-hover', alt: image_alt }}
+            {%- elsif block.settings.store_address != blank -%}
+              <div
+                x-data="xMap('{{ block.settings.store_address }}')"
+                class="h-full"
+                x-intersect.once.margin.250px="load()"
+              >
+                <iframe
+                  src=""
+                  class="w-full h-full"
+                  title="Map"
+                ></iframe>
+              </div>
+            {%- else -%}
+              <div class="flex items-center justify-center w-full h-full">
+                {% render 'placeholder-image', image_type: 'image' %}
+              </div>
+            {%- endif -%}
+          </div>
+          {% assign form_id = 'mobile-contact-form-' | append: block.id %}
+          <div class="{{ class_form }}" x-data="xContactForm('{{ form_id }}')" @input.debounce.300ms="validateForm()" @change="validateForm()">
+            {%- if block.settings.contact_heading != blank -%}
+              <p class="mb-2 h4 p-break-words">
+                {{ block.settings.contact_heading | escape }}
+              </p>
+            {%- endif -%}
+            {% if block.settings.infomation != blank %}
+              <div class="rte font-normal p-break-words mb-3">
+                {{ block.settings.infomation }}
+              </div>
+            {% endif %}
+            {%- form 'contact', id: form_id, class: 'maximize' -%}
+              <div 
+                id="ContactFormNameMobile-{{ section.id }}__validation"
+                class="contact-form__email-error-{{ form_id }} hidden flash-message error-message mb-1"
+              >
+              </div>
+              <div class="contact__fields font-normal">
+                <div class="flex gap-x-2.5">
+                  <div class="text-field__wrapper mb-2.5 flex-1">
+                    <input
+                      type="text"
+                      id="ContactFormNameMobile-{{ section.id }}"
+                      class="text-field__input"
+                      name="contact[name]"
+                      value="{% if form.name %}{{ form.name }}{% elsif customer %}{{ customer.name }}{% endif %}"
+                      autocapitalize="words"
+                      placeholder="{{ 'customer.name' | t }}"
+                      {% if block.settings.mark_as_required %}
+                        required
+                      {% endif %}
+                    >
+                    <label
+                      class="text-field__label"
+                      for="ContactFormNameMobile-{{ section.id }}"
+                    >
+                      {{ 'customer.name' | t }}
+                      {% if block.settings.mark_as_required %}
+                        <span aria-hidden="true">*</span>
+                      {%- endif %}
+                    </label>
+                  </div>
+                  <div class="text-field__wrapper mb-2.5 flex-1">
+                    <input
+                      type="email"
+                      id="ContactFormEmailMobile-{{ section.id }}"
+                      class="text-field__input"
+                      name="contact[email]"
+                      autocomplete="email"
+                      autocapitalize="off"
+                      autocorrect="off"
+                      value="{% if form.email %}{{ form.email }}{% elsif customer %}{{ customer.email }}{% endif %}"
+                      placeholder="{{ 'customer.email' | t }}"
+                      required
+                    >
+                    <label
+                      class="text-field__label"
+                      for="ContactFormEmailMobile-{{ section.id }}"
+                    >
+                      {{ 'customer.email' | t }}
+                      <span aria-hidden="true">*</span>
+                    </label>
+                  </div>
+                </div>
+                <div class="text-field__wrapper mb-2.5">
+                  <input
+                    type="tel"
+                    id="ContactFormPhoneMobile-{{ section.id }}"
+                    class="text-field__input{% if rtl %} rtl{% endif %}"
+                    name="contact[phone]"
+                    pattern="[0-9\-]*"
+                    value="{% if form.phone %}{{ form.phone }}{% elsif customer %}{{ customer.phone }}{% endif %}"
+                    placeholder="{{ 'customer.phone' | t }}"
+                    {% if block.settings.mark_as_required -%}
+                      required
+                    {%- endif -%}
+                  >
+                  <label
+                    class="text-field__label"
+                    for="ContactFormPhoneMobile-{{ section.id }}"
+                  >
+                    {{ 'customer.phone' | t }}
+                    {% if block.settings.mark_as_required %}
+                      <span aria-hidden="true">*</span>
+                    {%- endif -%}
+                  </label>
+                </div>
+                <div class="text-field__wrapper mb-2.5">
+                  <textarea
+                    id="ContactFormMessageMobile-{{ section.id }}"
+                    class="text-field__input"
+                    rows="4"
+                    name="contact[message]"
+                    placeholder="{{ 'customer.message' | t }}"
+                    {% if block.settings.mark_as_required %}
+                      required
+                    {% endif %}
+                  >
+                    {{- form.message -}}
+                  </textarea>
+                  <label
+                    class="text-field__label"
+                    for="ContactFormMessageMobile-{{ section.id }}"
+                  >
+                    {{ 'customer.message' | t }}
+                    {% if block.settings.mark_as_required %}
+                      <span aria-hidden="true">*</span>
+                    {%- endif -%}
+                  </label>
+                </div>
+              </div>
+              <div class="{% if rtl %} text-right{% else %} text-left{% endif %} mt-2.5">
+                <button
+                  type="submit"
+                  class="button button-primary pl-7.5 pr-7.5 pt-2.5 pb-2.5 lg:pt-3 lg:pb-3 cursor-pointer empty:hidden pointer-events-auto"
+                  disabled
+                  :disabled="!isFormValid"
+                >
+                  {{ 'customer.send' | t }}
+                </button>
+              </div>
+            {%- endform -%}
+          </div>
+          {% if block.settings.show_contact_information %}
+            <div class="contact-information {{ class_information }}">
+              {%- if block.settings.heading_information != blank -%}
+                <p class="h4 mb-2.5">
+                  {{ block.settings.heading_information | escape }}
+                </p>
+              {%- endif -%}
+              {% if block.settings.subheading != blank %}
+                <div class="rte mb-2.5 font-normal">
+                  {{ block.settings.subheading }}
+                </div>
+              {% endif %}
+              <ul class="flex gap-y-2.5 flex-col pb-5 font-normal">
+                {% if block.settings.store_address != blank %}
+                  <li class="rte relative flex items-center">
+                    <span class="w-5{% if rtl %} ml-4 right-0{% else %} mr-4 left-0{% endif %} absolute top-1/2 -translate-y-1/2">{% render 'icon-all', icon: 'icon-location' %}</span>
+                    <span class="{% if rtl %} pr-8{% else %} pl-8{% endif %} pt-0.5">{{ block.settings.store_address }}</span>
+                  </li>
+                {% endif %}
+                {% if block.settings.phone_nummber != blank %}
+                  <li class="rte relative flex items-center">
+                    <span class="w-5{% if rtl %} ml-4 right-0{% else %} mr-4 left-0{% endif %} absolute top-1/2 -translate-y-1/2">{%- render 'icon-all', icon: 'icon-phone' -%}</span>
+                    <span class="{% if rtl %} pr-8{% else %} pl-8{% endif %} pt-0.5">{{ block.settings.phone_nummber }}</span>
+                  </li>
+                {% endif %}
+                {% if block.settings.email_address != blank %}
+                  <li class="rte relative flex items-center">
+                    <span class="w-5{% if rtl %} ml-4 right-0{% else %} mr-4 left-0{% endif %} absolute top-1/2 -translate-y-1/2">{%- render 'icon-all', icon: 'icon-email' -%}</span>
+                    <span class="{% if rtl %} pr-8{% else %} pl-8{% endif %} pt-0.5">{{ block.settings.email_address }}</span>
+                  </li>
+                {% endif %}
+              </ul>
+              {% if block.settings.contact_text != blank or block.settings.enable_social_icon %}
+                <div class="contact-form-additional-info">
+                  {% if block.settings.contact_text != blank %}
+                    <div class="rte mb-1.5 p-break-words">
+                      {{ block.settings.contact_text }}
+                    </div>
+                  {% endif %}
+                  {% if block.settings.enable_social_icon %}
+                    <div class="flex flex-wrap">
+                      {%- render 'social-media', class: " flex-wrap gap-2.5" -%}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+  {% when "product_menu" %}
+    {% liquid
+      assign menu_level1_id = block.id | append: '-' |append: block.type | append: '-' | append: start_level | append: '-' | append: forloop.index
+
+      assign is_link = false
+      if block.settings.menu.links != blank
+        assign is_link = true
+      endif
+    %}
+    <div
+      {% if is_link %}
+        @click="$store.xMobileNav.scrollTop(); $store.xMobileNav.setActiveLink('{{ menu_level1_id }}')" 
+        @keyup.enter="$store.xMobileNav.scrollTop(); $store.xMobileNav.setActiveLink('{{ menu_level1_id }}')" 
+        tabindex="0"
+      {% endif %}
+      class="menu-link flex items-center {% if request.path == block.settings.menu_item_link or is_active %} active{% endif %}"
+    >
+      {% if is_link %}
+        <p class="flex-1 flex items-center cursor-pointer" {% if block.settings.open_new_window %} target="_blank"{% endif %}>
+      {% else %}
+        <a {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %} 
+          class="flex-1 flex items-center cursor-pointer" 
+          {% if block.settings.open_new_window %} target="_blank"{% endif %}
+        >
+      {% endif %}  
+        <span class="x-break-words py-2">
+          <span>{{ block.settings.heading | escape }}</span>
+        </span>
+      {% if is_link %}</p>{% else %}</a>{% endif %}
+      {% if is_link %}
+        <span
+          class="w-2.5 h-auto block icon-caret-mobile{% if rtl %} rotate-90{% else %} -rotate-90{% endif %}{%- if link.child_active %} color-text-[rgba(var(--color-link))]{% endif %}"
+        >{% render 'icon-all', icon: 'icon-caret' %}</span>
+      {% endif %}
+    </div>
+    {% if is_link %}
+      <div
+        class="mobile-menu-drawer absolute top-0 left-0 w-full h-full z-30 mobile-product-menu background-header pt-2.5{% if rtl %} -translate-x-full{% else %} translate-x-full{% endif %} invisible"
+        :class="$store.xMobileNav.currentMenuLinks.includes('{{ menu_level1_id }}') && 'menu-opening'"
+        :class="$store.xMobileNav.currentMenuLinks.length == {{ start_level | plus: 1 }} ? 'visible' : 'invisible'"
+      >
+        <ul
+          id="menu-level-{{ start_level | plus: 1 }}"
+          class="top-0 w-full h-full px-4 overflow-y-auto overflow-x-hidden scrollbar-body scrollbar z-30 flex flex-col" 
+        >
+          <li class="flex items-center justify-between border-b px-2.5 w-full h-fit{% if rtl %} text-left{% else %} text-right{% endif %}{% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}">
+            <span class="flex-1 max-w-[100px]">
+              <span
+                class="w-7.5 h-7.5 px-2.5 pt-2.5 block cursor-pointer{% if rtl %} ml-4 -rotate-90{% else %} mr-4 rotate-90{% endif %}"
+                @click="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}');"
+                @keyup.enter="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}');"
+                tabindex="0"
+                role="button"
+                aria-label="{{ 'accessibility.back' | t }}"
+              >
+                {% render 'icon-all', icon: 'icon-caret' %}
+              </span>
+            </span>
+              <a 
+                {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %}
+                class="flex-1 h5 py-4 {% unless block.settings.view_all_link == blank %}text-center{% endunless %} {% if link.current or link.child_active %} active{% endif %}"
+                {% if block.settings.open_new_window %}
+                  target="_blank"
+                {% endif %}
+              >
+                <span class="x-break-words {{ font_weight_class }}">{{ block.settings.heading | escape }}</span>
+              </a>
+              {% unless block.settings.view_all_link == blank %}
+                <a
+                  href="{{ block.settings.view_all_link }}"
+                  {% if block.settings.open_link_in_new_window %}
+                    target="_blank"
+                  {% endif %}
+                  class="flex-1 max-w-[100px] flex items-center gap-1 flex-nowrap justify-end"
+                >
+                  <span>{{ block.settings.view_all_title | default: 'View more' }}</span> <span class="w-2 h-2 inline-block mt-0.5 rtl:rotate-180 shrink-0">{% render 'icon-all', icon: 'icon-double-arrow' %}</span>
+                </a>
+              {% endunless %}
+            </li>
+          {% for link in block.settings.menu.links %}
+            {%- liquid
+              assign has_product_link = false
+              for childlink in link.links
+                if childlink.type == "product_link"
+                  assign has_product_link = true
+                  break
+                endif
+              endfor
+
+              assign menu_level2_id = menu_level1_id | append: '-' | append: forloop.index
+            -%}
+            <li {% if link.current or link.child_active -%}x-init="active = true;"{% endif %} class="w-full h-fit border-b {% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %} px-2.5">
+              <div 
+                {% if has_product_link %}
+                @click="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level2_id }}')"
+                @keyup.enter="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level2_id }}')"
+                tabindex="0"
+                {% endif %} 
+                class="flex items-center" {%- if link.current or link.child_active %}x-init="active = true;"{% endif %}
+              >
+                {% if has_product_link %}
+                  <p class="menu-link flex-1 pt-3.5 pb-3.5 flex gap-2.5 items-center cursor-pointer{% if link.current or link.child_active %} active{% endif %}">
+                {% else %}
+                  <a href="{{ link.url }}" class="menu-link flex-1 pt-3.5 pb-3.5 flex gap-2.5 items-center cursor-pointer{% if link.current or link.child_active %} active{% endif %}">
+                {% endif %}
+                  <span class="x-break-words">{{ link.title | escape }}</span>
+                {% if has_product_link %}</p>{% else %}</a>{% endif %}
+                {%- if has_product_link -%}
+                  <span
+                    class="w-2.5 h-auto block icon-caret-mobile{% if rtl %} rotate-90{% else %} -rotate-90{% endif %}{%- if link.child_active %} color-text-[rgba(var(--color-link))]{% endif %}"
+                  >{% render 'icon-all', icon: 'icon-caret' %}</span>
+                {%- endif -%}
+              </div>
+              {% if has_product_link %}
+                <div
+                  class="mobile-menu-drawer absolute top-0 left-0 w-full h-full z-30 pb-5 background-header overflow-auto scrollbar scrollbar-body px-4 pt-2.5{% if rtl %} -translate-x-full{% else %} translate-x-full{% endif %} invisible"
+                  :class="$store.xMobileNav.currentMenuLinks.includes('{{ menu_level2_id }}') && 'menu-opening'"
+                  :class="$store.xMobileNav.currentMenuLinks.length == {{ start_level | plus: 2 }} ? 'visible' : 'invisible'"
+                >
+                  <div
+                    id="menu-level-{{ start_level | plus: 1 }}"
+                    class="grandchild-product-menu-list top-0 w-full h-full z-30" 
+                  > 
+                    <div class="flex items-center justify-between border-b px-2.5{% if rtl %} text-left{% else %} text-right{% endif %}{% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}">
+                      <span class="flex-1 max-w-[100px]">
+                        <span
+                          class="w-7.5 h-7.5 px-2.5 pt-2.5 block cursor-pointer{% if rtl %} ml-4 -rotate-90{% else %} mr-4 rotate-90{% endif %}"
+                          @click="$store.xMobileNav.removeActiveLink('{{ menu_level2_id }}');"
+                          @keyup.enter="$store.xMobileNav.removeActiveLink('{{ menu_level2_id }}');"
+                          tabindex="0"
+                          role="button"
+                          aria-label="{{ 'accessibility.back' | t }}"
+                        >
+                          {% render 'icon-all', icon: 'icon-caret' %}
+                        </span>
+                      </span>
+                      <a href="{{ link.url }}" class="flex-1 h5 py-4 {% unless block.settings.view_all_link == blank %} text-center {% endunless %} {% if link.current or link.child_active %} active{% endif %}">
+                        <span class="x-break-words {{ font_weight_class }}">{{ link.title | escape }}</span>
+                      </a>
+                      {% unless block.settings.view_all_link == blank %}
+                        <a
+                          href="{{ block.settings.view_all_link }}"
+                          {% if block.settings.open_link_in_new_window %}
+                            target="_blank"
+                          {% endif %}
+                          class="flex-1 max-w-[100px] flex items-center gap-1 flex-nowrap justify-end"
+                        >
+                          <span>{{ block.settings.view_all_title | default: 'View more' }}</span> <span class="w-2 h-2 inline-block mt-0.5 rtl:rotate-180 shrink-0">{% render 'icon-all', icon: 'icon-double-arrow' %}</span>
+                        </a>
+                      {% endunless %}
+                    </div>
+                    <div class="mega-sub-container{% if rtl %} pl-0{% else %} pr-0{% endif %} mt-4 relative scrollbar-body scrollbar ltr w-full mx-auto">
+                      <div class="anm-reveal-container w-full grid grid-cols-2 gap-2.5">
+                        {%- assign grid_items_count = 0 -%}
+                        {%- assign menu_child_index = block.id | append: forloop.index -%}
+                        {%- for childlink in link.links -%}
+                          {% if childlink.type == 'product_link' %}
+                            {%- assign grid_items_count = grid_items_count | plus: 1 -%}
+                            {%- liquid
+                              assign product = childlink.object
+                              assign product_card_id = menu_child_index | append: forloop.index | append: '-mobile'
+                            -%}
+                            {% render 'product-card',
+                              product: product,
+                              section_id: section.id,
+                              show_vendor: false,
+                              show_rating: false,
+                              class_slide: 'h-auto',
+                              index: forloop.index,
+                              columns_desktop: columns_desktop,
+                              column_mobile: 1,
+                              enable_desktop_slider: true,
+                              block_id: blockID,
+                              append_id: product_card_id,
+                              disable_button: true,
+                              disable_color_swatch: true,
+                              index_param: forloop.index,
+                              disable_estimate_delivery: true,
+                              disable_inventory_status: true,
+                              disable_highlight_attributes: true,
+                              disable_pickup_message: true,
+                              menu_product_card: true,
+                              show_b2b_price_label: true
+                            %}
+                          {% endif %}
+                        {%- endfor -%}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  {% when "tree_menu" %}
+    {% liquid
+      assign is_link = false
+      if block.settings.menu.links != blank
+        assign is_link = true
+      endif
+      assign menu_level1_id = block.id | append: '-' |append: block.type | append: '-' | append: start_level | append: '-' | append: forloop.index
+    %}
+    <div 
+      {% if is_link %}
+        @click="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level1_id }}')"
+        @keyup.enter="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level1_id }}')"
+        tabindex="0"
+      {% endif %} 
+      class="menu-link flex items-center {% if request.path == block.settings.menu_item_link or is_active %} active{% endif %}"
+    >
+      {% if is_link %}
+        <p class="flex-1 flex items-center cursor-pointer" {% if block.settings.open_new_window %} target="_blank"{% endif %}>
+      {% else %}
+        <a {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %} 
+          class="flex-1 flex items-center cursor-pointer" 
+          {% if block.settings.open_new_window %} target="_blank"{% endif %}
+        >
+      {% endif %}
+        <span class="x-break-words py-2">
+          <span>{{ block.settings.heading | escape }}</span>
+        </span>
+      {% if is_link %}</p>{% else %}</a>{% endif %}
+      {%- if is_link -%}
+        <span
+          class="w-2.5 h-auto block icon-caret-mobile{% if rtl %} rotate-90{% else %} -rotate-90{% endif %}{%- if link.child_active %} color-text-[rgba(var(--color-link))]{% endif %}"
+        >{% render 'icon-all', icon: 'icon-caret' %}</span>
+      {%- endif -%}
+    </div>
+    {%- if is_link -%}
+      <div
+        class="mobile-menu-drawer absolute top-0 left-0 w-full h-full z-30 background-header{% if rtl %} -translate-x-full{% else %} translate-x-full{% endif %} invisible"
+        :class="$store.xMobileNav.currentMenuLinks.includes('{{ menu_level1_id }}') && 'menu-opening'"
+        :class="$store.xMobileNav.currentMenuLinks.length == {{ start_level | plus: 1 }} ? 'visible' : 'invisible'"
+      >
+        <ul 
+          id="menu-level-{{ start_level | plus: 1 }}"
+          class="top-0 background-header w-full h-full z-30 pt-2.5 px-4 overflow-auto scrollbar-body scrollbar" 
+          >
+          <li class="flex items-center justify-between border-b px-2.5{% if rtl %} text-left{% else %} text-right{% endif %}{% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}">
+            <span 
+              class="w-7.5 h-7.5 px-2.5 pt-2.5 block cursor-pointer{% if rtl %} ml-4 -rotate-90{% else %} mr-4 rotate-90{% endif %}"
+              @click="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}');"
+              @keyup.enter="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}');"
+              aria-label="{{ 'accessibility.back' | t }}" 
+              role="button"
+              tabindex="0"
+            >
+              {% render 'icon-all', icon: 'icon-caret' %}
+            </span>
+            <a 
+              {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %}
+              class="flex-1 h5 py-4 {% unless block.settings.view_all_link == blank %} text-center{% endunless %} {% if link.current or link.child_active %} active{% endif %}"
+              {% if block.settings.open_new_window %}
+                target="_blank"
+              {% endif %}
+            >
+              <span class="{{ font_weight_class }} x-break-words">{{ block.settings.heading | escape }}</span>
+            </a>
+          </li>
+          {%- for childlink in block.settings.menu.links -%}
+            {%- liquid
+              assign is_link = false
+              if childlink.links != blank
+                assign is_link = true
+              endif
+  
+              assign menu_level2_id = type| append: menu_level1_id | append: '-' | append: forloop.index
+            -%}
+            <li {%- if childlink.current or childlink.child_active -%}x-init="active = true;"{% endif %}>
+              <div class="items-center"> 
+                <div
+                  class="flex items-center border-b {% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %} px-2.5 cursor-pointer justify-between"
+                  {% if is_link %}
+                    @click="$store.xMobileNav.setActiveLink('{{ menu_level2_id }}');"
+                    @keyup.enter="$store.xMobileNav.setActiveLink('{{ menu_level2_id }}');"
+                    role="button"
+                    tabindex="0"
+                  {% endif %}
+                >
+                  {% if is_link %}
+                    <p class="x-break-words flex-1 py-4 items-center{% if childlink.current or childlink.child_active %} color-text-[rgba(var(--color-link))] active{% endif %}">
+                  {% else %}
+                    <a href="{{ childlink.url }}" class="x-break-words flex-1 py-4 items-center{% if childlink.current or childlink.child_active %} color-text-[rgba(var(--color-link))] active{% endif %}">
+                  {% endif %}
+                    {{ childlink.title | escape }}
+                  {% if is_link %}</p>{% else %}</a>{% endif %}
+                  {%- if is_link -%}
+                    <span
+                      class="w-2.5 h-auto block icon-caret-mobile pt-2.5{% if rtl %} rotate-90{% else %} -rotate-90{% endif %}{% if childlink.current or childlink.child_active %} color-text-[rgba(var(--color-link))]{% endif %}"
+                    >
+                      {% render 'icon-all', icon: 'icon-caret' %}
+                    </span>
+                  {%- endif -%}
+                </div>
+                {%- if is_link -%}
+                  <div
+                    class="mobile-menu-drawer absolute top-0 left-0 w-full h-full z-30 background-header{% if rtl %} -translate-x-full{% else %} translate-x-full{% endif %} invisible" 
+                    :class="$store.xMobileNav.currentMenuLinks.includes('{{ menu_level2_id }}') && 'menu-opening'"
+                    :class="$store.xMobileNav.currentMenuLinks.length == {{ start_level | plus: 2 }} ? 'visible' : 'invisible'"
+                  >
+                    <ul
+                      id="menu-level-{{ start_level | plus: 2 }}"
+                      class="w-full top-0 background-header px-4 py-2.5 absolute h-full left-0 overflow-y-auto scrollbar-body z-30"
+                    >
+                      <li
+                        class="flex items-center justify-between border-b px-2.5{% if rtl %} text-left{% else %} text-right{% endif %}{% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}"
+                      >
+                        <span
+                          class="w-7.5 h-7.5 px-2.5 pt-2.5 block cursor-pointer{% if rtl %} ml-4 -rotate-90{% else %} mr-4 rotate-90{% endif %}{%- if childlink.current %} color-text-[rgba(var(--color-link))]{% endif %}"
+                          @click="$store.xMobileNav.removeActiveLink('{{ menu_level2_id }}')"
+                          @keyup.enter="$store.xMobileNav.removeActiveLink('{{ menu_level2_id }}')"
+                          role="button"
+                          aria-label="{{ 'accessibility.back' | t }}"
+                          tabindex="0"
+                        >{% render 'icon-all', icon: 'icon-caret' %}</span>
+                        <a href="{{ childlink.url }}" class="h5 x-break-words pt-4 pb-4 flex-1 {% if childlink.current %} active{% endif %}">
+                          <span class="x-break-words {{ font_weight_class }}">{{ childlink.title | escape }}</span>
+                        </a>
+                      </li>
+                      {%- for grandchildlink in childlink.links -%}
+                        <li class="px-2.5 py-4 border-b {% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}" {%- if childlink.current or childlink.child_active %}x-init="active = true;"{% endif %}>
+                          <a
+                            href="{{ grandchildlink.url }}"
+                            class="x-break-words flex items-center{% if grandchildlink.current %} active{% endif %}"
+                            {% if grandchildlink.current %} aria-current="page"{% endif %}
+                          >
+                            {{ grandchildlink.title | escape }}
+                          </a>
+                        </li>
+                      {%- endfor -%}
+                    </ul>
+                  </div>
+                {%- endif -%}
+              </div>
+            </li>
+          {%- endfor -%}
+        </ul>
+      </div>
+    {%- endif -%}
+  {% when "drawer_menu" %}
+    {% liquid
+      assign is_link = false
+      assign menu_links = block.settings.menu.links
+      if block.settings.menu.links != blank
+        assign is_link = true 
+      endif 
+      assign menu_level0_id = block.id | append: '-' | append: block.type | append: '-' | append: start_level | append: '-' | append: forloop.index
+
+      assign show_1st_menu_image = block.settings.show_1st_menu_image
+      assign collection_metafield_1st = block.settings.collection_image_metafield
+      assign show_second_level_image = block.settings.show_second_level_collection_image
+      assign show_2nd_level_menu_image = block.settings.show_2nd_level_menu_image
+      assign collection_metafield_2nd = block.settings.collection_image_metafield_3
+      assign image_ratio = block.settings.image_ratio
+    %}
+    <div 
+      {% if is_link %}
+        @click="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level0_id }}')"
+        @keyup.enter="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level0_id }}')"
+        tabindex="0"
+      {% endif %} 
+        class="menu-link flex items-center {% if request.path == block.settings.menu_item_link or is_active %} active{% endif %}"
+      >
+      {% if is_link %}
+        <p class="flex-1 flex items-center cursor-pointer" {% if block.settings.open_new_window %} target="_blank"{% endif %}>
+      {% else %}
+        <a {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %} 
+          class="flex-1 flex items-center cursor-pointer" 
+          {% if block.settings.open_new_window %} target="_blank"{% endif %}
+        >
+      {% endif %}
+        <span class="x-break-words py-2">
+          <span>{{ block.settings.heading | escape }}</span>
+        </span>
+      {% if is_link %}</p>{% else %}</a>{% endif %}
+      {%- if is_link -%}
+        <span
+          class="w-2.5 h-auto block icon-caret-mobile{% if rtl %} rotate-90{% else %} -rotate-90{% endif %}{%- if link.child_active %} color-text-[rgba(var(--color-link))]{% endif %}"
+        >
+          {% render 'icon-all', icon: 'icon-caret' %}
+        </span>
+      {%- endif -%}
+    </div>
+    {% render 'mobile-drawer-menu', 
+      start_level: start_level,
+      menu_links: menu_links,
+      menu_level0_id: menu_level0_id,
+      type: block.id,
+      block: block,
+      show_1st_menu_image: show_1st_menu_image, 
+      collection_metafield_1st: collection_metafield_1st,
+      show_second_level_image: show_second_level_image, 
+      show_2nd_level_menu_image: show_2nd_level_menu_image, 
+      collection_metafield_2nd: collection_metafield_2nd, 
+      image_ratio: image_ratio,
+      is_block_menu: true
+    %}
+  {% when 'button' %}
+    {% unless block.settings.button_label == blank %}
+      {% liquid
+        if block.settings.button_style != 'text-link'
+          assign class_button = 'px-2.5 py-2'
+        endif
+      %}
+      <div class="button-menu">
+        {% render 'button', button_style: block.settings.button_style, button_label: block.settings.button_label, button_link: block.settings.button_link, open_new_window_button: block.settings.open_new_window, class: class_button %}
+      </div>
+    {% endunless %}
+  
+{% endcase %}

@@ -1,0 +1,62 @@
+{%- case metafield_type -%}
+  {%- when 'single_line_text_field', 'number_decimal' -%}
+    <span>{{ metafield_value | escape }}</span>
+  {%- when 'boolean' -%}
+    <span>{{ metafield_value | capitalize }}</span>
+  {%- when 'url' -%}
+    <a href="{{ metafield_value }}" class="text-link inline-text-link p-break-words" target="_blank">{{ metafield_value }}</a>
+  {%- when 'link' -%}
+    <a href="{{ metafield_value.url }}" class="text-link inline-text-link p-break-words" target="_blank">{{ metafield_value.text }}</a>
+  {%- when 'date_time' -%}
+    <span>{{ metafield_value | date: format: 'date_at_time' }}</span>
+  {%- when 'color' -%}
+    <div class="w-7.5 h-7.5 rounded-corners" style="background-color: {{ metafield_value }};"></div>
+  {%- when 'rich_text_field' -%}
+    <div class="rte p-break-words">{{ metafield | metafield_tag  }}</div>
+  {%- when 'product_reference', 'variant_reference', 'collection_reference', 'page_reference' -%}
+    <a href="{{- metafield_value.url -}}" class="text-link inline-text-link" target="_blank">{{- metafield_value.title -}}</a>
+  {%- when 'rating' -%}
+    <span>{{ metafield_value.rating }} out of {{ metafield_value.scale_max }}</span>
+  {%- when 'money' -%}
+    {%- if settings.currency_code_enable %}
+      <span>
+        {{ metafield_value | money_with_currency }}
+      </span>
+    {% else %}
+      <span>
+        {{ metafield_value | money }}
+      </span>
+    {% endif %}
+  {%- when 'dimension', 'weight', 'volume' -%}
+    <span>{{ metafield_value.value }} {{ metafield_value.unit }}</span>
+  {%- when 'file_reference' -%}
+    {%- if metafield_value.media_type == "image" -%}
+      <img class="rounded-corners" src="{{ metafield_value | image_url }}" height="{{ metafield_value.height }}" width="{{ metafield_value.width }}" loading="lazy" alt="{{ metafield_value.alt | json }}"/>
+    {%- else -%}
+      {%- liquid
+        assign url = metafield_value.url
+        if metafield_value.media_type == "video"
+          for source in metafield_value.sources
+            if source != blank and source.format == "mp4"
+              assign url = source.url
+              break
+            endif
+          endfor
+        endif
+      -%}
+      <a href="{{- url -}}" class="inline-flex items-center link rounded-corners w-full" target="_blank">
+        <img 
+          src="{{ metafield_value.preview_image | image_url }}" class="w-full h-auto rounded-corners"
+          height="{{ metafield_value.preview_image.height }}"
+          sizes="100vw"
+          width="{{ metafield_value.preview_image.width }}" loading="lazy" alt="{{ metafield_value.alt   }}"
+        />
+      </a>
+    {%- endif -%}
+  {%- else -%}
+    {%- if metafield.type contains "metaobject_reference" -%}
+      <span></span>
+    {%- else -%}
+      <div class="rte p-break-words">{{ metafield_value | newline_to_br }}</div>
+    {%- endif -%}
+{%- endcase -%}

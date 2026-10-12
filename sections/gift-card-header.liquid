@@ -1,0 +1,63 @@
+{% assign logo_class = 'logo-' | append: section.id %}
+{% style %}
+  .{{ logo_class }} {
+    width: {{ section.settings.logo_width_mobile }}px;
+  }
+  @media screen and (min-width: 768px) {
+    .{{ logo_class }} {
+      width: {{ section.settings.logo_width }}px;
+    }
+  }
+{% endstyle %}
+<div class="gift-card-logo page-width w-fit text-center mx-auto pl-5 pr-5 p-break-words md:pl-20 md:pr-20 mb-8 lg:mb-12">
+  {%- if section.settings.logo != blank -%}
+    {%- assign logo_alt = section.settings.logo.alt | default: shop.name | escape -%}
+    {%- capture sizes -%}
+      (min-width: 768px) {{ section.settings.logo_width | times: 3 }}px, {{ section.settings.logo_width_mobile | times: 3 }}px
+    {%- endcapture -%}
+    {% comment %}theme-check-disable ImgLazyLoading{% endcomment %}
+    {% render "image"
+      img: section.settings.logo,
+      img_class: logo_class,
+      alt: logo_alt,
+      eager_loading: true,
+      img_width: 768,
+      sizes: sizes
+    %}
+    {% comment %}theme-check-enable ImgLazyLoading{% endcomment %}
+  {%- else -%}
+    <h1>{{ shop.name }}</h1>
+  {%- endif -%}
+</div>
+{% schema %}
+{
+  "name": "t:header.name",
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "logo",
+      "label": "t:main_password_header.settings.logo_image"
+    },
+    {
+      "type": "range",
+      "id": "logo_width",
+      "min": 50,
+      "max": 200,
+      "step": 10,
+      "default": 120,
+      "unit": "px",
+      "label": "t:gift_card_header.settings.logo_desktop_width"
+    },
+    {
+      "type": "range",
+      "id": "logo_width_mobile",
+      "min": 40,
+      "max": 150,
+      "step": 10,
+      "default": 100,
+      "unit": "px",
+      "label": "t:gift_card_header.settings.logo_mobile_width"
+    }
+  ]
+}
+{% endschema %}

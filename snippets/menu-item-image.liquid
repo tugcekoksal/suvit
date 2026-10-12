@@ -1,0 +1,89 @@
+{%- comment -%}
+    Renders an article card for a given blog with settings to either show the image or not.
+
+    Accepts:
+      - link: link object
+      - auto_fill_menu_image_with: option to fill collection image by another image if collection image is blank
+      - collection_metafield: metafield to match with collection image metafield 
+      - image_ratio: the percentage of padding bottom of image wrapper tag to match image ratio
+      - is_link: use a tag 
+    Usage:
+    {% render 'menu-item-image', show_image_collection: true, link: link %}
+{%- endcomment -%}
+{%- if link.type == 'collection_link' and auto_fill_menu_image_with != "none" -%}
+  {%- liquid
+    assign handle = link.object.handle
+    if link.type == "collection_link"
+      assign result = collections[handle]
+    elsif link.type == "product_link"
+      assign result = all_products[handle]
+    endif
+    assign featured_image = false
+    if auto_fill_menu_image_with == "featured-image" and result.image != blank
+      assign featured_image = result.featured_image
+    elsif auto_fill_menu_image_with == "first-product-image" and link.type == "collection_link"
+      if result.products_count > 0
+        if result.products.first.images.size > 0
+          assign featured_image = result.products.first.images.first
+        else
+          assign featured_image = "placeholder"
+        endif
+      endif
+    elsif auto_fill_menu_image_with == "collection-image-metafield"
+      assign featured_image = result.metafields.custom[collection_metafield].value
+    endif
+
+    if result
+      assign default_image_alt = result.title
+    else 
+      assign default_image_alt = 'accessibility.default_alt' | t 
+    endif
+  -%}
+  {%- if featured_image -%}
+    {% capture image_ratio_style %}
+      class="block relative overflow-hidden w-full pb-[{{ image_ratio }}%] {{ custom_class }} {% if is_link %} media-hyperlink{% endif %}"
+      aria-label="image"
+      {% if image_ratio == 'auto' and featured_image != "placeholder" %} 
+        style='padding-bottom: {{ 1 | divided_by: featured_image.aspect_ratio | times: 100 }}%;'
+      {% elsif image_ratio == 'auto' and featured_image == "placeholder" %} 
+        style='padding-bottom: 100%;'
+      {% endif %}
+    {% endcapture %}
+    {% if is_link %}
+      <a href="{{ link.url }}" {{ image_ratio_style }}>
+    {% else %}
+      <span {{ image_ratio_style }}>
+    {% endif %}
+      {% if featured_image != "placeholder" %}
+        <img
+          {% if minimal_image %}
+            src="{{ featured_image | image_url: width: 50 }}"
+          {% else %}
+            srcset="{{ featured_image | image_url: width: 100 }} 100w,
+            {{ featured_image | image_url: width: 225 }} 225w,
+            {{ featured_image | image_url: width: 375 }} 375w,
+            {{ featured_image | image_url: width: 450 }} 450w,
+            {{ featured_image | image_url: width: 750 }} 750w"
+            src="{{ featured_image | image_url: width: 750 }}"
+          {% endif %}
+          sizes="{%- unless image_left -%}
+            (min-width: 768px) calc({{ settings.page_width }}px / {{ column | plus: 1 }}), 100vw
+          {%- else -%} (min-width: 768px) 100px, 100vw{%- endunless -%}"
+          alt="{{ featured_image.alt | default: default_image_alt | escape }}"
+          height="{{ featured_image.height }}"
+          width="{{ featured_image.width }}"
+          loading="lazy"
+          class="w-full h-full object-cover z-10 object-center image-hover anm-image-hover absolute top-0 right-0"
+        >
+      {% else %}
+        <span class="absolute inline-block h-full w-full top-0 left-0">
+          {% render 'placeholder-image', image_type: 'image' %}
+        </span>
+      {% endif %}
+    {% if is_link %}
+      </a>
+    {% else %}
+      </span>
+    {% endif %}
+  {%- endif -%}
+{%- endif -%}

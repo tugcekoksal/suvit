@@ -1,0 +1,193 @@
+{{ 'page.css' | asset_url | stylesheet_tag: preload: true }}
+
+{% style %}
+  .section--{{ section.id }} {
+    padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+    padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+  }
+  @media (min-width: 768px) {
+    .section--{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+{% endstyle %}
+
+{% if section.settings.show_breadcrumbs %}
+  <div class="page__breadcrumbs page-width">
+    {% render 'breadcrumbs',
+      background_color_light: section.settings.breadcrumbs_background_light,
+      text_color_light: section.settings.breadcrumbs_text_light,
+      text_link_color_light: section.settings.breadcrumbs_text_link_light,
+      background_color_dark: section.settings.breadcrumbs_background_dark,
+      text_color_dark: section.settings.breadcrumbs_text_dark,
+      text_link_color_dark: section.settings.breadcrumbs_text_link_dark,
+      show_image_banner: false
+    %}
+  </div>
+{% endif %}
+{% if page.content != blank or section.settings.show_heading %}
+  <div class="page-width section--{{ section.id }} ltr">
+    <div class="page__container">
+      {% if section.settings.show_heading %}
+        <{{ section.settings.heading_tag }} class="heading-{{ section.settings.heading_size }} block pointer-events-auto page__title mb-4 md:mb-6.5{% if settings.lang_direction contains request.locale.iso_code %} rtl{% endif %} anm-fade-element" data-fade-on-intersect>
+          {{ page.title | escape }}
+        </{{ section.settings.heading_tag }}>
+      {% endif %}
+      {% if page.content != blank %}
+      <div class="page__body-container page__body{% if settings.lang_direction contains request.locale.iso_code %} rtl{% endif %}">
+        <div class="rte anm-fade-element" data-fade-on-intersect>
+          {{ page.content }}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+
+{% schema %}
+{
+  "name": "t:main_page.name",
+  "tag": "section",
+  "class": "maximize-section section-main-page",
+  "settings": [
+    {
+      "id": "show_heading",
+      "type": "checkbox",
+      "label": "t:main_page.settings.show_heading",
+      "info": "t:main_page.settings.show_heading_info",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "t:global.text.heading_size",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:global.size.small"
+        },
+        {
+          "value": "medium",
+          "label": "t:global.size.medium"
+        },
+        {
+          "value": "large",
+          "label": "t:global.size.large"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "default": "h1",
+      "label": "t:global.text.heading_tag",
+      "options": [
+        {
+          "value": "h1",
+          "label": "H1"
+        },
+        {
+          "value": "h2",
+          "label": "H2"
+        },
+        {
+          "value": "h3",
+          "label": "H3"
+        },
+        {
+          "value": "h4",
+          "label": "H4"
+        },
+        {
+          "value": "h5",
+          "label": "H5"
+        },
+        {
+          "value": "h6",
+          "label": "H6"
+        },
+        {
+          "value": "p",
+          "label": "p"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.breadcrumbs"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_breadcrumbs",
+      "default": true,
+      "label": "t:global.breadcrumbs.show_breadcrumbs"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.top_padding",
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.bottom_padding",
+      "default": 28
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.colors"
+    },
+    {
+      "type": "color",
+      "id": "breadcrumbs_background_light",
+      "default": "rgba(0,0,0,0)",
+      "label": "t:global.colors.breadcrumbs_background_light"
+    },
+    {
+      "type": "color",
+      "id": "breadcrumbs_text_light",
+      "default": "rgba(0,0,0,0)",
+      "label": "t:global.colors.breadcrumbs_text_light"
+    },
+    {
+      "type": "color",
+      "id": "breadcrumbs_text_link_light",
+      "default": "rgba(0,0,0,0)",
+      "label": "t:global.colors.breadcrumbs_text_link_light"
+    },
+    {
+      "type": "color",
+      "id": "breadcrumbs_background_dark",
+      "default": "rgba(0,0,0,0)",
+      "label": "t:global.colors.breadcrumbs_background_dark"
+    },
+    {
+      "type": "color",
+      "id": "breadcrumbs_text_dark",
+      "default": "rgba(0,0,0,0)",
+      "label": "t:global.colors.breadcrumbs_text_dark"
+    },
+    {
+      "type": "color",
+      "id": "breadcrumbs_text_link_dark",
+      "default": "rgba(0,0,0,0)",
+      "label": "t:global.colors.breadcrumbs_text_link_dark"
+    }
+  ]
+}
+{% endschema %}

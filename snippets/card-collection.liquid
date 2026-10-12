@@ -1,0 +1,214 @@
+{% doc %}
+Documentation: Collection Card
+
+Renders a collection card component with flexibility for appearance and layout.
+
+@param card_collection - {Collection} Collection Liquid object.
+@param image_ratio - {String} Card image ratio ("square", "rectangle", "round", "natural"). Default: "square" (optional)
+@param columns_desktop - {Number} Number of columns on desktop.
+@param columns_tablet - {Number} Number of columns on tablet.
+@param columns_mobile - {Number} Number of columns on mobile.
+@param collection_metafield - {String} Collection metafield key.
+@param text_overlay - {Boolean} Whether to enable text overlay on the card.
+@param color_scheme_light - {String} Light color scheme key (optional).
+@param color_scheme_dark - {String} Dark color scheme key (optional).
+@param enabled_background - {Boolean} Whether the background color is toggled on (optional).
+@param content_alignment - {String} Content alignment: 'left', 'center', 'right' (optional).
+@param content_position - {String} Overlay content position: 'top', 'center', 'bottom' (optional).
+@param image - {Object} Image object override (optional).
+@param ratio - {Number} Aspect ratio for image container (optional).
+@param mobile_title_size - {String} Mobile-specific title size (optional).
+@param desktop_title_size - {String} Desktop-specific title size (optional).
+@param index - {Number} Loop/index for placeholder images (optional).
+@param is_collection_list_unoptimized - {Boolean} Whether the collection list is unoptimized (optional).
+
+@usage
+{% render 'card-collection',
+    card_collection: collection,
+    image_ratio: 'square',
+    columns_desktop: 4,
+    columns_tablet: 3,
+    columns_mobile: 2,
+    collection_metafield: 'featured_image',
+    text_overlay: true,
+    color_scheme_light: 'default',
+    color_scheme_dark: 'default-dark',
+    enabled_background: false,
+    content_alignment: 'center',
+    content_position: 'bottom',
+    image: collection.featured_image,
+    ratio: 100,
+    mobile_title_size: 'md',
+    desktop_title_size: 'xl',
+    index: forloop.index
+%}
+{% enddoc %}
+
+<div
+    class="collection-card collection-card-{{ section.id }} group card relative block
+    {%- if enabled_background or text_overlay %} color-{{ color_scheme_light }} dark-color-{{ color_scheme_dark }}{% endif -%}
+    {%- if text_overlay %} h-fit collection-card__overlay{%- else %}{% if enabled_background %} pt-1.5 pb-1.5 pl-1.5 pr-1.5 md:pt-3 md:pb-3 md:pl-3 md:pr-3{% endif %} h-full{% endif -%}
+    {%- if text_overlay and image_ratio == "round" %} rounded-full{%- else %} rounded-corners{% endif -%}
+    {%- if card_collection.url != blank %} media-hyperlink{% endif -%}
+  "
+>
+  {% unless text_overlay %}
+  <div>{% endunless %}
+    <div
+        class="w-full relative overflow-hidden z-0 before:h-0 before:block{% unless image_ratio == "round" %} rounded-corners{% endunless %}{% if image_ratio == "round" %} rounded-full{%- endif -%}{% unless image_ratio == "auto" %} pb-[{{ ratio }}%]{% endunless %}"
+        {% if image_ratio == "auto" and card_collection.featured_image %} style="padding-bottom: {{ 100 | divided_by: card_collection.featured_image.aspect_ratio }}%;"{% endif %}
+    >
+      {%- if card_collection != blank -%}
+        <div
+            class="card-collection__media block{% if image_ratio == "round" %} rounded-full{% endif %}{% unless image_ratio == "round" %} rounded-corners{% endunless %}"
+        >
+          {% capture sizes %}
+            {% if section.settings.section_width == 'page-width' %}
+              (min-width: {{ settings.page_width }}px) {{ settings.page_width | plus: 100 | divided_by: columns_desktop }}px,
+            {% else %}
+              (min-width: 1024px) calc(100vw / {{ columns_desktop }}),
+            {% endif %}
+            (min-width: 768px) calc(100vw / {{ columns_tablet }}),
+            calc(100vw / {{ columns_mobile }})
+          {% endcapture %}
+          {%- capture sizes -%}{% render 'media-sizes-design-mode', sizes: sizes %}{%- endcapture -%}
+          {%- assign sizes = sizes | strip -%}
+          {%- if image != blank -%}
+            <div
+                class="w-full h-full bg-skeleton top-0 left-0 absolute overflow-hidden duration-300 transition ease-out">
+              <img
+                  srcset="{{ image | image_url: width: 225 }} 225w,
+              {{ image | image_url: width: 375 }} 375w,
+              {{ image | image_url: width: 450 }} 450w,
+              {{ image | image_url: width: 750 }} 750w,
+              {{ image | image_url: width: 900 }} 900w,
+              {{ image | image_url: width: 1100 }} 1100w,
+              {{ image | image_url: width: 1500 }} 1500w,
+              {{ image | image_url: width: 1780 }} 1780w,
+              {{ image | image_url: width: 2000 }} 2000w,
+              {{ image | image_url: width: 3000 }} 3000w,
+              {{ image | image_url: width: 3840 }} 3840w"
+                  src="{{ image | image_url: width: 3840 }}"
+                  sizes="{{ sizes }}"
+                  alt="{{ image.alt | default: card_collection.title | escape }}"
+                  height="{{ image.height }}"
+                  width="{{ image.width }}"
+                  loading="lazy"
+                  style="object-position:{{ image.presentation.focal_point }}"
+                  class="aspect-{{ image_ratio }} w-full h-full object-cover z-10 anm-image-hover image-hover{% if image_ratio == "round" %} rounded-full{% endif %}{% unless image_ratio == "round" %} rounded-corners{% endunless %}"
+                  onload="this.parentElement.classList.remove('bg-skeleton')"
+              >
+            </div>
+          {%- elsif card_collection.featured_image or collection_metafield != blank and card_collection.metafields.custom[collection_metafield] != nil -%}
+            {% liquid
+              if collection_metafield != blank and card_collection.metafields.custom[collection_metafield]
+                assign collection_featured_image = card_collection.metafields.custom[collection_metafield]
+              else
+                assign collection_featured_image = card_collection.featured_image
+              endif
+            %}
+            <div
+                class="card-collection__image bg-skeleton w-full h-full top-0 left-0 absolute overflow-hidden duration-300 transition ease-out">
+              <img
+                  srcset="{{ collection_featured_image | image_url: width: 225 }} 225w,
+              {{ collection_featured_image | image_url: width: 375 }} 375w,
+              {{ collection_featured_image | image_url: width: 450 }} 450w,
+              {{ collection_featured_image | image_url: width: 750 }} 750w,
+              {{ collection_featured_image | image_url: width: 900 }} 900w,
+              {{ collection_featured_image | image_url: width: 1100 }} 1100w,
+              {{ collection_featured_image | image_url: width: 1500 }} 1500w,
+              {{ collection_featured_image | image_url: width: 1780 }} 1780w,
+              {{ collection_featured_image | image_url: width: 2000 }} 2000w,
+              {{ collection_featured_image | image_url: width: 3000 }} 3000w,
+              {{ collection_featured_image | image_url: width: 3840 }} 3840w"
+                  src="{{ collection_featured_image | image_url: width: 3840 }}"
+                  sizes="{{ sizes }}"
+                  alt="{{ collection_featured_image.alt | default: card_collection.title | escape }}"
+                  height="{{ collection_featured_image.height }}"
+                  width="{{ collection_featured_image.width }}"
+                  loading="lazy"
+                  class="aspect-{{ image_ratio }} w-full h-full object-cover z-10 object-center anm-image-hover image-hover{% if image_ratio == "round" %} rounded-full{% endif %}{% unless image_ratio == "round" %} rounded-corners{% endunless %}"
+                  onload="this.parentElement.classList.remove('bg-skeleton')"
+              >
+            </div>
+          {%- else -%}
+            <div
+                class="flex{% unless image_ratio == "auto" %} absolute{% endunless %} top-0 left-0 w-full h-full justify-center items-center">
+              {% liquid
+                assign index = index | default: 1
+                assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+                assign placeholder_product_name = 'collection_' | append: index
+              %}
+              {% render 'placeholder-image', image_type: placeholder_product_name %}
+            </div>
+          {%- endif -%}
+        </div>
+      {%- else -%}
+        <div
+            class='flex{% unless image_ratio == "auto" %} absolute{% endunless %} top-0 left-0 w-full h-full justify-center items-center rounded-corners overflow-hidden'>
+          {% liquid
+            assign index = index | default: 1
+            assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+            assign placeholder_collection_name = 'collection_' | append: index
+          %}
+          <span class="w-full relative h-full">
+          {% render 'placeholder-image', image_type: placeholder_collection_name %}
+        </span>
+        </div>
+      {%- endif -%}
+      {% unless text_overlay %}
+    </div>
+  {% else %}
+    <div class="image-overlay absolute top-0 bottom-0 h-full w-full scheme-image-overlay"></div>
+    {% endunless %}
+    <a
+        {% if card_collection == blank %} role="link" aria-disabled="true"{% else %} href="{{ card_collection.url }}"{% endif %}
+        class="absolute inset-0 focus-visible:-outline-offset-1"
+        aria-label="{{ 'accessibility.image_link' | t }}"
+    >
+    </a>
+    <div class="card-collection__content content--{{ section.id }} text-{{ content_alignment }} pt-2.5 pb-2.5 pointer-events-none
+      {%- if text_overlay %} overflow-hidden absolute pl-8 pr-8 md:pl-6 md:pr-6
+        {%- if columns_desktop < 2 and content_alignment == 'center' %} left-1/2 -translate-x-1/2 rtl:translate-x-0 w-full{% else %} left-0{% endif %} right-0
+        {%- if content_position == 'top' %} top-0{% elsif content_position == 'center' %} top-1/2 -translate-y-1/2{% else %} bottom-0{% endif -%}
+      {%- else %} left-0 right-0 grow{% endif -%}
+      {%- if card_full_width %} pl-5 pr-5 md:pl-0 md:pr-0{% endif -%}"
+    >
+      {% if is_collection_list_unoptimized == true %}
+      <div class="block-title-size h2 pointer-events-auto{%- if image_ratio == "round" %} mt-1{% endif -%}"
+           x-data
+           x-intersect.once="$refs.text_animation.classList.add('is-visible')
+        {%- if description != blank and card_collection != blank %}, $refs.desc_animation.classList.add('is-visible'){% endif -%}"
+      >
+        {% else %}
+        <div class="block-title-size h2 pointer-events-auto{%- if image_ratio == "round" %} mt-1{% endif -%}">
+          {% endif %}
+          <div
+              class="card-collection__title p-break-words transition duration-200 anm-fade-element {% unless is_collection_list_unoptimized == true %} text-animation-item {% endunless %}
+            {%- if mobile_title_size != blank %} xs:heading-{{ mobile_title_size }}{% endif -%}
+            {%- if desktop_title_size != blank %} md:heading-{{ desktop_title_size }}{% endif -%}"
+              x-ref="text_animation"
+          >
+            {%- if card_collection != blank and card_collection.title != blank -%}
+              <a class="link-reveal" tabindex="-1" role="link" aria-disabled="true"
+                 href="{{ card_collection.url }}">
+                {{- card_collection.title | escape -}}
+              </a>
+            {%- else -%}
+              {{ 'sections.collection_list.collection_title' | t }}
+            {%- endif -%}
+          </div>
+        </div>
+        {%- if card_collection != blank and section.settings.show_item_count -%}
+          <p
+              class="card-collection__items anm-fade-element mt-1.5 {% unless is_collection_list_unoptimized == true %} text-animation-item {% endunless %}"
+              {% if is_collection_list_unoptimized == true %}
+                data-fade-on-intersect
+              {% endif %}
+          >
+            {{ card_collection.all_products_count }}{% if card_collection.all_products_count > 1 %} {{ 'sections.collection_list.items' | t }} {% else %} {{ 'sections.collection_list.item' | t }}{% endif %}
+          </p>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>

@@ -1,0 +1,364 @@
+{% liquid
+  assign is_show_custom_fields = false
+
+  if settings.show_cart_custom_field and settings.cart_custom_field_label != blank
+    assign is_show_custom_fields = true
+  endif
+%}
+
+{% if settings.cart_enable_featured_discount or settings.enable_estimate_shipping or settings.cart_show_note or settings.enable_share_cart or is_show_custom_fields %}
+  <cart-accordion class="cart-drawer__custom-accordion__wrapper border-t border-solid color-border-[rgba(var(--color-line-and-border))] {% if is_rounded_conners %} rounded-[10px]{% endif %} pr-4 pl-4 md:pr-7.5 md:pl-7.5">
+    {% if is_show_custom_fields %}
+      <div
+        class="cart-drawer__custom-fields__wrapper w-full border-b border-solid accordion {% if cart.items_subtotal_price <= cart.total_price %} last-of-type:border-0{% endif %}"
+      >
+        <div
+          class="cart-drawer__custom-fields__header flex relative flex-row gap-2.5 items-center w-full pt-3 pb-3 cursor-pointer text-medium color-text-[rgba(var(--color-heading),0.8)]"
+          data-toggle="custom_field"
+          tabindex="0"
+        >
+          <div class="h5 md:h6 flex-auto p-break-words">
+            {{ settings.cart_custom_field_label | escape -}}
+            {%- if settings.cart_custom_field_required %}<span class="label-required"> *</span>{% endif %}
+          </div>
+          <div
+            class="w-2.5 min-w-[10px] relative duration-500 rotate-0"
+            data-caret="custom_field"
+          >
+            {% render 'icon-all', icon: 'icon-caret' %}
+          </div>
+        </div>
+        <div
+          class="cart-drawer__custom-fields__content pb-3"
+          data-content="custom_field"
+          hidden
+        >
+          {%- capture cart_fiedls_data -%}
+            {
+            "custom_field_label": "{{ settings.cart_custom_field_label | escape }}",
+            "custom_field_required": {{ settings.cart_custom_field_required | default: false }},
+            "custom_field_pattern": "{{ settings.cart_custom_field_pattern | escape }}"
+            }
+          {%- endcapture %}
+          <cart-fields
+            class="pb-3"
+            data-cart-custom-field="{{ cart_fiedls_data | escape }}"
+          >
+            <label
+              class="hidden"
+              for="CartDrawer__CustomField"
+            >
+              {{- settings.cart_custom_field_label -}}
+            </label>
+            <input
+              id="CartDrawer__CustomField"
+              type="text"
+              class="w-full px-4 py-3.5 border border-solid color-bg-[var(--element-background)] focus-within:outline-none placeholder:text-current placeholder:opacity-60{% if settings.edges_type == 'rounded_corners' %} !rounded-md{% endif %}"
+              placeholder="{{ settings.cart_custom_field_label }}"
+            >
+            {% if settings.cart_custom_field_required %}
+              <p class="cart-fields__error flash-message error-message mt-2 hidden">
+                {{ 'sections.cart.required_cart_note' | t }}
+                {{ settings.cart_custom_field_label }}
+              </p>
+            {% endif %}
+          </cart-fields>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if settings.cart_show_note %}
+      <div
+        class="cart-drawer__cart-note__wrapper w-full border-b border-solid accordion {% if cart.items_subtotal_price <= cart.total_price %} last-of-type:border-0{% endif %}"
+      >
+        <div
+          class="cart-drawer__cart-note__header flex relative flex-row gap-2.5 items-center w-full pt-3 pb-3 cursor-pointer text-medium color-text-[rgba(var(--color-heading),0.8)]"
+          data-toggle="cart_note"
+          tabindex="0"
+        >
+          <div class="h5 md:h6 flex-auto p-break-words">{{ 'general.cart.note' | t }}</div>
+          <div
+            class="w-2.5 min-w-[10px] relative duration-500 rotate-0"
+            data-caret="cart_note"
+          >
+            {% render 'icon-all', icon: 'icon-caret' %}
+          </div>
+        </div>
+        <div
+          class="cart-drawer__cart-note__content"
+          data-content="cart_note"
+          hidden
+        >
+          <div class="pb-3">
+            <textarea
+              id="x-cart-note"
+              rows="4"
+              cols="50"
+              class="w-full pl-4 pr-4 pt-4 pb-4 border border-solid color-bg-[var(--element-background)] focus-within:outline-none placeholder:text-current placeholder:opacity-60{% if settings.edges_type == 'rounded_corners' %} !rounded-md{% endif %}"
+              placeholder="{{ 'general.cart.cart_note_label' | t }}"
+              data-note-input
+            >{{- cart.note -}}</textarea>
+            <label
+              for="x-cart-note"
+              class="hidden"
+            >
+              {{- 'general.cart.cart_note_label' | t -}}
+            </label>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if settings.cart_enable_featured_discount or settings.enable_estimate_shipping or settings.enable_share_cart %}
+      <div class="w-full block pt-3 pb-1.5 gap-5 text-medium color-text-[rgba(var(--color-heading),0.8)] {% if cart.items_subtotal_price <= cart.total_price %} last-of-type:border-0{% endif %} border-b border-solid color-border-[rgba(var(--color-line-and-border))]">
+        <div
+          class="grid auto-rows-auto grid-flow-col auto-cols-max gap-5 overflow-x-auto scrollbar-horizontal pb-1.5"
+          style="font-family: var(--heading-font-family);"
+        >
+          {% if settings.cart_enable_featured_discount %}
+            <div
+              class="cart-drawer__featured-discount-button inline-flex flex-row gap-1 items-end cursor-pointer font-base-heading focus-visible:-outline-offset-1"
+              data-open="discount_field"
+              tabindex="0"
+            >
+              <div class="w-5 h-full justify-center">{% render 'icon-all', icon: 'icon-sale' %}</div>
+              <div>{{ 'general.cart.discount' | t }}</div>
+            </div>
+          {% endif %}
+
+          {% if settings.enable_estimate_shipping %}
+            <div
+              class="cart-drawer__estimate-shipping-button inline-flex flex-row gap-1 items-end cursor-pointer focus-visible:-outline-offset-1"
+              data-open="estimate_shipping"
+              tabindex="0"
+            >
+              <div class="w-5 h-full justify-center">{% render 'icon-all', icon: 'icon-delivery' %}</div>
+              <div>{{ 'shipping.estimate' | t }}</div>
+            </div>
+          {% endif %}
+
+          {% if settings.enable_share_cart %}
+            <div
+              class="cart-drawer__share-cart-button inline-flex flex-row gap-1 items-end cursor-pointer focus-visible:-outline-offset-1"
+              data-open="share_cart"
+              tabindex="0"
+            >
+              <div class="w-5 h-full justify-center">{% render 'icon-all', icon: 'icon-share' %}</div>
+              <div>{{ 'general.cart.share_cart' | t }}</div>
+            </div>
+          {% endif %}
+        </div>
+
+        <div
+          id="CartDrawerFields__Overlay"
+          class="absolute color-bg-[rgba(var(--color-overlay))] opacity-80 top-0 right-0 bottom-0 left-0 z-30 hidden {% if settings.edges_type == 'rounded_corners' %} rounded-[var(--border-radius-drawer)]{% endif %}"
+          data-overlay
+        ></div>
+
+        <div
+          class="cart-drawer__field fixed md:absolute color-bg-gradient-[var(--gradient-background)] w-full z-[31] left-0 top-0 {% if is_rounded_conners %} rounded-t-[var(--border-radius-drawer)] md:rounded-[var(--border-radius-drawer)]{% endif %} pb-5 md:pb-7.5 flex flex-col gap-4 md:gap-6 border-t border-solid color-border-[rgba(var(--color-line-and-border))]"
+          data-panel-wrapper
+          inert
+          id="CustomAccordionWrapper"
+        >
+          <div class="w-full flex flex-col">
+            <button
+              id="CloseCustomAccordion"
+              class="modal__button-close"
+              data-close
+              @keydown.enter.prevent
+              aria-label="{{ 'accessibility.close' | t }}"
+            >
+              <span class="button__close icon-close-medium-desktop icon-close-large-mobile">{% render 'icon-all', icon: 'icon-close' %}</span>
+            </button>
+            <div class="flex-auto text-center md:text-start px-4 md:px-7.5">
+              <div x-data="xScrollNav" class="scroll-container relative flex justify-center whitespace-nowrap overflow-hidden">
+                <span x-show="show" x-cloak class="relative w-10 h-10 p-3 shrink-0 cursor-pointer duration-300 inline-block ltr:rotate-180"
+                  @click="scrollToLeft()"
+                  :class="isAtStart && 'opacity-40 cursor-not-allowed'"
+                  :disabled="isAtStart"
+                >
+                  {% render 'icon-all', icon: 'icon-pagination-right' %}
+                </span>
+                {% assign cart_drawer_tab_style = settings.cart_drawer_tab_style %}
+                <tab-animation class="nav-content overflow-hidden {%- if cart_drawer_tab_style == 'pills' %} tab-animation-pills{% else %} tab-animation-underline{% endif -%}">
+                  <div
+                    x-intersect.once="$store.xHelper.dragToScroll($el);"
+                    class="flex gap-0.5 link-list items-center overflow-x-auto scrollbar-hidden tab-list px-0.5"
+                  >
+                    {% if settings.cart_enable_featured_discount %}
+                      <div
+                        class="cart-drawer__field__title px-3 tabs__button-horizontal disable-button-tap-highlight focus-visible:-outline-offset-1"
+                        id="cartDrawerFieldDiscount"
+                        data-tab="discount_field"
+                        data-open="discount_field"
+                        tabindex="0"
+                      >
+                        <div class="block-text-button__container">
+                            {% if cart_drawer_tab_style == 'pills' %}
+                              <span>{{ 'general.cart.discount' | t }}</span>
+                            {% else %} 
+                              <span class="block-text-button-text-active-invisible md:whitespace-nowrap md:line-clamp-none">{{ 'general.cart.discount' | t }}</span>
+                              <span class="block-text-button-text-effect-1 md:md:whitespace-nowrap md:line-clamp-none">{{ 'general.cart.discount' | t }}</span>
+                              <span class="block-text-button-text-effect-2 md:whitespace-nowrap md:line-clamp-none">{{ 'general.cart.discount' | t }}</span>
+                            {% endif %}
+                        </div>
+                      </div>
+                    {% endif %}
+                    {% if settings.enable_estimate_shipping %}
+                      <div
+                        class="cart-drawer__field__title pl-3 pr-3 tabs__button-horizontal disable-button-tap-highlight focus-visible:-outline-offset-1"
+                        id="cartDrawerFieldEstimateShipping"
+                        data-tab="estimate_shipping"
+                        data-open="estimate_shipping"
+                        tabindex="0"
+                      >
+                        <div class="block-text-button__container">
+                          {% if cart_drawer_tab_style == 'pills' %}
+                            <span>{{ 'shipping.estimate' | t }}</span>
+                          {% else %} 
+                            <span class="block-text-button-text-active-invisible">{{ 'shipping.estimate' | t }}</span>
+                            <span class="block-text-button-text-effect-1 md:whitespace-nowrap md:line-clamp-none">{{ 'shipping.estimate' | t }}</span>
+                            <span class="block-text-button-text-effect-2 md:whitespace-nowrap md:line-clamp-none">{{ 'shipping.estimate' | t }}</span>
+                          {% endif %}
+                          </div>
+                      </div>
+                    {% endif %}
+                    {% if settings.enable_share_cart %}
+                      <div
+                        class="cart-drawer__field__title pl-3 pr-3 tabs__button-horizontal disable-button-tap-highlight focus-visible:-outline-offset-1"
+                        id="cartDrawerFieldShareCart"
+                        data-tab="share_cart"
+                        data-open="share_cart"
+                        tabindex="0"
+                      >
+                        <div class="block-text-button__container">
+                          {% if cart_drawer_tab_style == 'pills' %}
+                            <span>{{ 'general.cart.share_cart' | t }}</span>
+                          {% else %} 
+                            <span class="block-text-button-text-active-invisible">{{ 'general.cart.share_cart' | t }}</span>
+                            <span class="block-text-button-text-effect-1 md:whitespace-nowrap md:line-clamp-none">{{ 'general.cart.share_cart' | t }}</span>
+                            <span class="block-text-button-text-effect-2 md:whitespace-nowrap md:line-clamp-none">{{ 'general.cart.share_cart' | t }}</span>
+                          {% endif %}
+                          </div>
+                      </div>
+                    {% endif %}
+                  </div>
+                </tab-animation>
+                <span x-show="show" x-cloak class="relative w-10 h-10 p-3 shrink-0 cursor-pointer duration-300 inline-block rtl:rotate-180"
+                  @click="scrollToRight()"
+                  :class="isAtEnd && 'opacity-40 cursor-not-allowed'"
+                  :disabled="isAtEnd"
+                >
+                  {% render 'icon-all', icon: 'icon-pagination-right' %}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="relative flex-auto mx-4 md:mx-7.5 anm-tab-content">
+            {% if settings.cart_enable_featured_discount %}
+              <div
+                class="{% if settings.enable_estimate_shipping %}absolute {% endif %}w-full h-full opacity-0 invisible"
+                data-panel="discount_field"
+              >
+                <coupon-code data-section-id="{{ section.id }}">
+                  <div class="flex pt-1 pb-1 pl-1 pr-1 border border-solid color-border-[rgba(var(--color-line-and-border))] {% if is_rounded_conners %} rounded-md{% endif %}">
+                    <div class="grow">
+                      <label
+                        class="hidden"
+                        for="CartDrawer__DiscountField"
+                      >
+                        {{- 'general.cart.discount_code' | t -}}
+                      </label>
+                      <input
+                        id="CartDrawer__DiscountField"
+                        type="text"
+                        class="w-full pl-5 pr-5 pt-2.5 pb-2.5 focus:outline-none focus-within:outline-none focus:border-0 bg-transparent placeholder:text-current placeholder:opacity-60"
+                        placeholder="{{ 'general.cart.placeholder_discount' | t }}"
+                        data-coupon-input
+                      >
+                    </div>
+                    <custom-button>
+                      <button
+                        data-action="apply"
+                        class="button button-primary p-break-words inline-block empty:hidden whitespace-nowrap cursor-pointer pointer-events-auto {% if is_rounded_conners %} rounded-md{% endif %}"
+                      >
+                        <span class="coupon-button-label lg:block">
+                          <span class="flex items-center justify-center">
+                            {% assign button_label = 'general.cart.apply' | t %}
+                            {% render 'button-label', button_label: button_label, show_button_style: 'primary' %}
+                          </span>
+                        </span>
+                        <div class="coupon-spinner animate-spin w-4 h-4 md:w-5 md:h-5 absolute top-[calc(50%-8px)] left-[calc(50%-8px)] md:top-[calc(50%-10px)] md:left-[calc(50%-10px)] hidden">
+                          {% render 'icon-all', icon: 'icon-loading' %}
+                        </div>
+                      </button>
+                    </custom-button>
+                  </div>
+                  <p class="coupon-failed flash-message error-message mt-2 hidden">{{ 'general.cart.discount_wrong' | t }}</p>
+                  <p class="coupon-applied flash-message error-message mt-2 hidden">{{ 'general.cart.discount_applied' | t }}</p>
+                  <p class="coupon-correct flash-message success-message mt-2 hidden">{{ 'general.cart.discount_correct' | t }}</p>
+                </coupon-code>
+              </div>
+            {% endif %}
+
+            {% if settings.enable_estimate_shipping %}
+              <div
+                class="w-full h-full overflow-auto scrollbar-body scrollbar-visible opacity-0 invisible"
+                data-panel="estimate_shipping"
+              >
+                {% render 'estimate-shipping-rate-drawer', is_cart_drawer: true %}
+              </div>
+            {% endif %}
+
+            {% if settings.enable_share_cart %}
+              <div
+                class="{% if settings.enable_estimate_shipping or settings.cart_enable_featured_discount %}absolute {% endif %}top-0 w-full h-full opacity-0 invisible"
+                data-panel="share_cart"
+              >
+                <div class="flex pt-1 pb-1 pl-1 pr-1 border border-solid color-border-[rgba(var(--color-line-and-border))] {% if is_rounded_conners %} rounded-md{% endif %}">
+                  <div class="grow">
+                    <label
+                      for="cart-share"
+                      class="hidden"
+                    >
+                      {{- 'general.cart.copy' | t -}}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="cart/?="
+                      autocorrect="off"
+                      autocapitalize="off"
+                      id="cart-share"
+                      class="w-full pl-5 pr-5 pt-2.5 pb-2.5 focus:outline-none focus-within:outline-none focus:border-0 bg-transparent placeholder:text-current placeholder:opacity-60"
+                      data-share-url
+                      readonly
+                    >
+                  </div>
+                  <custom-button>
+                    <button
+                      class="button button-primary p-break-words inline-block empty:hidden cursor-pointer pointer-events-auto whitespace-nowrap {% if is_rounded_conners %} rounded-md{% endif %}"
+                      data-copy-btn
+                      data-text-copy="{{ 'general.cart.copy' | t }}"
+                      data-text-copied="{{ 'general.cart.copied' | t }}"
+                    >
+                      {{ 'general.cart.copy' | t }}
+                    </button>
+                  </custom-button>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+
+          <div
+            class="element-end-modal h-0 w-0 absolute pointer-events-none"
+            tabindex="0"
+            onfocus="document.getElementById('CloseCustomAccordion')?.focus()"
+          ></div>
+        </div>
+      </div>
+    {% endif %}
+  </cart-accordion>
+
+{% endif %}

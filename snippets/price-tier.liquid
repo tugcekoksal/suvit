@@ -1,0 +1,166 @@
+{% doc %}
+  Renders ONE price reading — the price itself, the compare-at price and the sale label — for a
+  given price in cents.
+
+  Used ONLY by the volume-pricing branch of `price.liquid`, which needs the same reading once per
+  quantity tier. That branch is reachable only for B2B customers (no B2B catalog means no
+  quantity_price_breaks), so this snippet is never on the path of an ordinary customer — the
+  single-price markup in `price.liquid` stays the one and only path for them. The markup here is a
+  copy of that markup on purpose; if the price design changes, change both.
+
+  Kept out of this snippet on purpose: the style rule for `.price-label__<price_id>`,
+  which `price.liquid` emits once. Repeating it per tier would emit the same selector N times.
+
+  A tier is always a variant-level price, so there is no "From $x" handling here — `price.liquid`
+  owns that for the product-level case.
+
+  @param price {Number} - Price in cents for this tier. Required.
+  @param compare_at_price {Number} - Compare-at price in cents. Optional.
+  @param product {Product} - Used for the `{qty}` token in the sale label. Optional.
+  @param use_variant {Boolean} - Whether `{qty}` reads the variant's inventory or the product's.
+  @param price_id {String} - Ties the label to the styles emitted by `price.liquid`.
+  @param price_wrapper {String} - Extra classes for the price wrapper.
+  @param price_class {String} - Extra classes for the price itself.
+  @param compare_at_price_class {String} - Extra classes for the compare-at price.
+  @param compare_at_price_size {Boolean} - When false the compare-at price renders at 80%.
+  @param show_compare_at_price {Boolean} - Whether a compare-at price may be shown at all.
+  @param is_show_sale_label {Boolean} - Whether the sale label may be shown.
+  @param sale_label_content {String} - Label template. Supports {sale}, {sale_amount}, {qty}, {price}.
+  @param class_sale_label {String} - Extra classes for the label.
+  @param product_card {Boolean} - Product-card context drops the label's arrow and margin.
+  @param show_b2b_price_label {Boolean} - Whether to render the B2B price label chip.
+  
+{% enddoc %}
+
+{%liquid
+  assign show_compare_b2b = true
+  if customer.b2b? 
+    assign show_compare_b2b = settings.show_compare_at_price
+  else
+    assign show_compare_b2b = show_compare_at_price
+  endif
+%}
+{%- liquid
+  if settings.currency_code_enable
+    assign money_price = price | money_with_currency
+    assign money_compare_at_price = compare_at_price | money_with_currency
+  else
+    assign money_price = price | money
+    assign money_compare_at_price = compare_at_price | money
+  endif
+
+  assign has_compare_at = false
+  if compare_at_price > price and show_compare_at_price and show_compare_b2b
+    assign has_compare_at = true
+  endif
+-%}
+
+{%- if has_compare_at -%}
+  <div
+    class="price flex flex-row gap-1 md:gap-x-2 h3 gap-y-0.5 items-center flex-wrap price-wrapper {{ price_wrapper }}"
+    data-product-id="{{ product.id }}"
+  >
+    <span class="price {{ price_class }}">
+      {{- money_price -}}
+    </span>
+    <span class="{% unless compare_at_price_size %}text-[80%] {% endunless %}compare-at-price line-through {{ compare_at_price_class }}">{{ money_compare_at_price }}</span>
+    {%- liquid
+      assign is_show_label = false
+      if is_show_sale_label and compare_at_price != blank and compare_at_price > price
+        assign is_show_label = true
+      endif
+    -%}
+
+    {%- if is_show_label -%}
+      {% liquid
+        assign label_text = sale_label_content
+
+        if label_text contains '{sale}'
+          assign discount_percentage = compare_at_price | minus: price | times: 100.00 | divided_by: compare_at_price | round
+          assign discount_percentage = '-' | append: discount_percentage | append: '%'
+          assign label_text = label_text | replace: '{sale}', discount_percentage
+        endif
+
+        if label_text contains '{sale_amount}'
+          assign discount_amount = compare_at_price | minus: price
+          if settings.currency_code_enable
+            assign money_discount_amount = discount_amount | money_with_currency
+          else
+            assign money_discount_amount = discount_amount | money
+          endif
+          assign discount_amount_text = '-' | append: money_discount_amount
+          assign label_text = label_text | replace: '{sale_amount}', discount_amount_text
+        endif
+
+        if label_text contains '{qty}'
+          assign quantity = ''
+          if use_variant
+            assign label_variant = product.selected_or_first_available_variant
+            if label_variant.inventory_management != blank
+              if label_variant.inventory_policy == 'continue' and label_variant.inventory_quantity == 0
+                assign quantity = ''
+              else
+                assign quantity = label_variant.inventory_quantity
+              endif
+            endif
+          else
+            assign inventory_quantity = 0
+            for label_variant in product.variants
+              if label_variant.inventory_management == 'shopify'
+                assign inventory_quantity = inventory_quantity | plus: label_variant.inventory_quantity
+              endif
+            endfor
+            if inventory_quantity > 0
+              assign quantity = inventory_quantity
+            endif
+          endif
+          assign label_text = label_text | replace: '{qty}', quantity
+        endif
+
+        if label_text contains '{price}'
+          assign label_text = label_text | replace: '{price}', money_price
+        endif
+        assign label_text_strip = label_text | strip
+      %}
+      {%- if label_text_strip != '' -%}
+        <div class="price-label__wrapper flex items-center{% unless product_card %} ml-1 rtl:mr-1 rtl:ml-0{% endunless %}">
+          <div
+            class="
+              price-label price-label__{{ price_id }} h-fit inline-block color-bg-[rgba(var(--background-color-label))] color-text-[rgba(var(--color-text-label))] relative {{ class_sale_label -}}
+              {%- if settings.edges_type == 'rounded_corners' %} rounded{% endif -%}
+              {%- unless product_card %} before:content-[''] before:absolute before:left-0 rtl:before:right-0 rtl:before:left-auto before:top-1/2 before:-translate-y-1/2 before:border-solid before:-ml-3 rtl:before:ml-0 rtl:before:-mr-3 rtl:before:rotate-180 unicode-bidi-plaintext{% endunless -%}
+            "
+          >
+            {{ label_text }}
+          </div>
+        </div>
+      {%- endif -%}
+    {%- endif -%}
+    {% if customer.b2b? and settings.b2b_price_label != blank and show_b2b_price_label %}
+      <div
+        class="price-b2b-label self-center text-x-small bg-[rgba(var(--color-button))] color-text-[rgba(var(--color-button-text))] py-0.5 px-1 font-semibold
+        {%- if settings.edges_type == 'rounded_corners' %} rounded{% endif -%}"
+      >
+        {{ settings.b2b_price_label }}
+      </div>
+    {% endif %}  
+  </div>
+{%- else -%}
+  {% if customer.b2b? and settings.b2b_price_label != blank and show_b2b_price_label %}
+    <div class="flex gap-1.5 flex-wrap">
+      <p class="h3 price-wrapper {{ price_wrapper }}">
+        <span class="main-price {{ price_class }}">{{ money_price }}</span>
+      </p>
+      <div
+        class="price-b2b-label self-center text-x-small bg-[rgba(var(--color-button))] color-text-[rgba(var(--color-button-text))] py-0.5 px-1 font-semibold
+        {%- if settings.edges_type == 'rounded_corners' %} rounded{% endif -%}"
+      >
+        {{ settings.b2b_price_label }}
+      </div>
+    </div>
+  {% else %}
+    <p class="h3 price-wrapper {{ price_wrapper }}">
+      <span class="main-price {{ price_class }}">{{ money_price }}</span>
+    </p>  
+  {% endif %}  
+{%- endif -%}

@@ -1,0 +1,55 @@
+{%- liquid
+  assign mode = settings.login_to_view_price
+  assign hide = false
+
+  if mode != 'none' and product != blank
+
+    assign in_scope = false
+    if settings.login_to_view_price_products != blank or settings.login_to_view_price_collections != blank
+      for scoped_product in settings.login_to_view_price_products
+        if scoped_product.id == product.id
+          assign in_scope = true
+          break
+        endif
+      endfor
+      if settings.login_to_view_price_products == blank
+        unless in_scope
+          for scoped_collection in settings.login_to_view_price_collections
+            for product_collection in product.collections
+              if product_collection.id == scoped_collection.id
+                assign in_scope = true
+                break
+              endif
+            endfor
+            if in_scope
+              break
+            endif
+          endfor
+        endunless
+      endif
+    else 
+      assign in_scope = true 
+    endif
+    if in_scope
+      if can_view == nil
+        capture view_result
+          render 'can-view-price'
+        endcapture
+        assign customer_can_view = false
+        if view_result contains 'true'
+          assign customer_can_view = true
+        endif
+      else
+        assign customer_can_view = false
+        if can_view == true or can_view == 'true'
+          assign customer_can_view = true
+        endif
+      endif
+
+      if customer_can_view == false
+        assign hide = true
+      endif
+    endif
+  endif
+-%}
+{{- hide -}}

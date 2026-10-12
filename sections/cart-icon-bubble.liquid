@@ -1,0 +1,12 @@
+{% comment %}<div id="cart-icon-bubble" class="count_item absolute -top-0.5 right-0">{% endcomment %}
+<div id="cart-icon-bubble" class="relative -left-0.5 rtl:left-0 rtl:-right-0.5">
+  {% unless cart == empty %}
+    <div class="cart-bubble__container color-bg-[rgba(var(--color-cart))] color-text-[rgba(var(--color-cart-text))] h-5 w-5 lg:h-6 lg:w-6 rounded-full text-x-small" data-count-item="{{ cart.item_count }}">
+      {%- if cart.item_count < 100 -%}
+        <span class="h-full flex items-center justify-center" aria-hidden="true">{{ cart.item_count }}</span>
+      {%- else -%}
+        <span class="h-full flex items-center justify-center">99+</span>
+      {%- endif -%}
+    </div>
+  {% endunless %}
+</div>

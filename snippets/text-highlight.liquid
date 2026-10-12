@@ -1,0 +1,95 @@
+{% comment %}
+  Highlight heading/text snippet
+  Accepts:
+  - highlight_effect: {String} Highlight effect
+  - text: {String} Highlight text
+  - id: {String} Section/Block id
+  - text_transform: {String} Text transform effect
+  - disable_animation_fade: {Boolean} Disable truncate text animation
+  - custom_class: {String} Custom class for the text
+  - allow_html: {Boolean} If true, preserve HTML (for richtext fields). Default: false.
+  Usage:
+  {% render 'text-highlight', 
+    id: id, 
+    text: text, 
+    highlight_effect: highlight_effect, 
+    text_transform: text_transform,
+    custom_class: custom_class,
+    allow_html: true 
+  %}
+{% endcomment %}
+
+{%- unless allow_html -%}
+  {%- assign text = text | strip_html -%}
+{%- endunless -%}
+{% if text_transform != 'none' %}
+  {% style %} 
+    .highlight-text-transform-{{ id }} {
+      {% if text_transform == 'italic' %}
+        font-style: italic;
+      {% elsif text_transform == 'uppercase' %}
+        text-transform: uppercase;
+      {% else %}
+        text-transform: uppercase;
+        font-style: italic;
+      {% endif %}
+    }
+  {% endstyle %}
+{% endif %}
+
+{%- capture icon_highlight -%}
+  {%- if highlight_effect == "underline" -%}
+    <svg class="svg-highlight-{{ id }} text-svg-underline absolute left-[6%] top-auto bottom-0 w-4/5 h-[15%] rtl:rotate-180"
+      xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 12" fill="none" preserveAspectRatio="none"
+    >
+      <path d="M447.927 2.35583C338.059 -1.20265 110.867 1.8394 6.15217 2.51143C3.52318 2.5283 1.37007 4.83214 1.46495 7.41709C1.54483 9.59366 3.27775 11.2031 5.494 11.159L447.927 2.35583Z" fill="currentColor" stroke="currentColor"/>
+    </svg>
+  {%- endif -%}
+{%- endcapture -%}
+
+{% liquid
+  case highlight_effect
+    when 'underline'
+      assign heading_highlight = '<span class="highlight-text-transform-' | append: id | append: ' relative heading-highlight-underline" data-highlight-class="heading-highlight-underline--active" data-highlight-delay="700">'
+    when 'marker'
+      assign heading_highlight = '<span class="highlight-text-transform-' | append: id | append: ' heading-highlight-marker" data-highlight-class="heading-highlight-marker--active" data-highlight-delay="700">'
+    when 'text-color-change'
+      assign heading_highlight = '<span class="highlight-text-transform-' | append: id | append: ' heading-highlight-color-change" data-highlight-class="heading-highlight-color-change--active" data-highlight-delay="700">'
+    when 'shadow'
+      assign heading_highlight = '<span class="highlight-text-transform-' | append: id | append: ' heading-highlight-shadow" data-highlight-class="heading-highlight-shadow--active" data-highlight-delay="700">'
+  endcase
+
+  assign icon_highlight = icon_highlight | append: "</span>"
+%}
+
+{% liquid
+  if text contains '[' and text contains ']'
+    if text contains '<a' and text contains '</a>'
+      assign parts = text | split: '<a'
+      for part in parts
+        assign new_part = part
+        if part contains '</a>' and part contains '">'
+          assign a_tag_attributes = part | split: '">' | first
+          if a_tag_attributes contains '[' and text contains ']'
+            assign a_tag_attributes_new = a_tag_attributes | replace: '[', 'replace-to-&#91;' | replace: ']', 'replace-to-&#93;'
+            assign new_part = part | replace: a_tag_attributes, a_tag_attributes_new
+          endif
+        endif
+
+        if new_part != part
+          assign text = text | replace: part, new_part
+        endif
+      endfor
+    endif
+
+    assign text = text | replace: '[', heading_highlight | replace: ']', icon_highlight
+    if text contains 'replace-to-&#91;' and text contains 'replace-to-&#93;'
+      assign text = text | replace: 'replace-to-&#91;', '[' | replace: 'replace-to-&#93;', ']'
+    endif
+  endif
+%}
+<span class="inline-block{% unless disable_animation_fade %} anm-fade-element{% endunless %} {{ custom_class }}"
+  {% unless disable_animation_fade %}data-fade-on-intersect{% endunless %}
+>
+  {{ text }}
+</span>

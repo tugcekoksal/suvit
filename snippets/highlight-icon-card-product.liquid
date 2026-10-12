@@ -1,0 +1,25 @@
+<div class="relative flex highlight-icon">
+  {% if highlight_icon.type == 'file_reference' %}
+    <img
+      src="{{ highlight_icon | image_url: width: 100 }}"
+      alt="{{ highlight_icon.value.alt | default: highlight_icon.type | escape }}"
+      loading="lazy"
+      width="{{ highlight_icon.value.width }}"
+      height="{{ highlight_icon.value.height }}"
+      class="h-[30px]"
+      style="width: {{ highlight_icon.value.aspect_ratio | times: 30 }}px"
+    >
+  {% elsif highlight_icon.type == 'single_line_text_field' %}
+    <span class="inline-block relative w-[30px] h-[30px] empty:hidden">{%- render 'icon-another', icon: highlight_icon -%}</span>
+  {% endif %}
+  {% if label_icon != blank %}
+    {%- assign highlight_label = label_icon | escape -%}
+    {%- render 'custom-tooltip',
+      content: highlight_label,
+      position: 'top',
+      align: 'center',
+      layout_class: 'left-[calc(50%+var(--left-tooltip,0px))] -translate-x-1/2 w-max max-w-[200px]',
+      clamp_boundary: 'highlight-attribute-prd-card'
+    -%}
+  {% endif %}
+</div>

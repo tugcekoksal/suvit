@@ -1,0 +1,260 @@
+{% if block.settings.counter != blank %}
+  {% style %}
+    .block-{{ block.id }} {
+      --pad-top: {{ block.settings.desktop_padding_top }}px;
+      --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+      --pad-left: {{ block.settings.desktop_padding_left }}px;
+      --pad-right: {{ block.settings.desktop_padding_right }}px;
+      --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+      --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+      --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+      --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+    }
+    {% if block.settings.font_size == 'custom' %}
+      .block-{{ block.id }} {
+        font-size: {{ block.settings.mobile_font_size }}px;
+        line-height: {{ block.settings.line_height }}%;
+      }
+      @media (min-width: 768px) {
+        .block-{{ block.id }} {
+          font-size: {{ block.settings.desktop_font_size }}px;
+          line-height: {{ block.settings.line_height }}%;
+        }
+      }
+    {% endif %}
+  {% endstyle %}
+  {% liquid
+    assign font_family_class = ''
+
+    if block.settings.font_family == 'heading'
+      assign font_family_class = font_family_class | append: ' color-text-[rgba(var(--color-heading))] font-base-heading heading-' | append: block.settings.font_size
+    else
+      assign font_family_class = font_family_class | append: ' color-text-[rgba(var(--color-text))] font-base-body text-' | append: block.settings.font_size
+    endif
+  %}
+  <div class="block-counter block-counter__wrapper block__counter__wrapper block-padding block-{{ block.id }} {{ font_family_class }}" {{ block.shopify_attributes }}>
+    <counter-stat class="block-counter__stat relative inline-block" data-value="{{ block.settings.counter }}" data-duration="{{ block.settings.duration | times: 1000 }}" data-margin="200" style="font-variant-numeric: tabular-nums;">
+      <span class="block-counter__final counter-final invisible">{{ block.settings.counter }}</span>
+      <span class="block-counter__live counter-live absolute top-0 left-0"></span>
+    </counter-stat>
+  </div>
+  <script src="{{ 'counter.js' | asset_url }}" defer></script>
+{% endif %}
+{% schema %}
+{
+  "name": "Heading",
+  "tag": null,
+  "class": "maximize-block block__counter",
+  "settings": [
+    {
+      "type": "text",
+      "id": "counter",
+      "label": "Counter",
+      "default": "10+",
+      "info": "Enter a number with optional prefix or suffix (e.g. 100, 50+, $200, 30%). Invalid formats may prevent the counter from animating."
+    },
+    {
+      "type": "range",
+      "id": "duration",
+      "min": 0.5,
+      "max": 5,
+      "step": 0.1,
+      "unit": "s",
+      "label": "Duration",
+      "default": 2.0
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "select",
+      "id": "font_family",
+      "label": "Font family",
+      "options": [
+        {
+          "value": "heading",
+          "label": "Heading"
+        },
+        {
+          "value": "text",
+          "label": "Text"
+        }
+      ],
+      "default": "heading"
+    },
+    {
+      "type": "select",
+      "id": "font_size",
+      "label": "Font size",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small"
+        },
+        {
+          "value": "medium",
+          "label": "Medium"
+        },
+        {
+          "value": "large",
+          "label": "Large"
+        },
+        {
+          "value": "custom",
+          "label": "Custom"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "range",
+      "id": "desktop_font_size",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Desktop font size",
+      "default": 32,
+      "visible_if": "{{ block.settings.font_size == 'custom' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_font_size",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Mobile font size",
+      "default": 32,
+      "visible_if": "{{ block.settings.font_size == 'custom' }}"
+    },
+    {
+      "type": "range",
+      "id": "line_height",
+      "min": 100,
+      "max": 300,
+      "step": 5,
+      "unit": "%",
+      "label": "Line height",
+      "default": 140,
+      "visible_if": "{{ block.settings.font_size == 'custom' }}"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "select",
+      "id": "spacing_choose_device",
+      "label": "Choose device",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "Desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "Mobile"
+        }
+      ],
+      "default": "desktop",
+      "info": "Desktop and Mobile settings are configured separately."
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Counter",
+      "category": "Metrics"
+    }
+  ]
+}
+{% endschema %}

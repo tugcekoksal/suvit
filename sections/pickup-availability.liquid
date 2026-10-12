@@ -1,0 +1,202 @@
+{% liquid
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  else
+    assign is_rtl = false
+  endif
+%}
+<div x-data="xProductDrawer" class="mt-4 md:mt-5">
+  {%- assign pick_up_availabilities = product_variant.store_availabilities | where: 'pick_up_enabled', true -%}
+  {%- if pick_up_availabilities.size > 0 -%}
+    <div 
+      x-data='{ 
+        storeAvailabilites: {
+          {%- for store in pick_up_availabilities -%}
+            {{ store.location.name | json }}: {{ store.available }}{% unless forloop.last %},{% endunless %}
+          {%- endfor -%}
+        },
+        pickupLocation: [
+        {%- for store in pick_up_availabilities -%}
+          {{ store.location.name | json }}{% unless forloop.last %},{% endunless %}
+        {%- endfor -%}
+        ]
+      }'
+    >
+      <div 
+        class="inline-flex gap-2"
+        x-show="!pickupLocation.includes($store.xStoreMap?.getStore())"
+      >
+        {%- assign closest_location = pick_up_availabilities.first -%}
+        {%- if closest_location.available -%}
+            <div class="pickup__available-icon w-6 h-6 color-text-[rgba(var(--success-message-color))]">{% render 'icon-all', icon: 'pickup-available' %}</div>
+        {%- else -%}
+          <div class="pickup__unavailable-icon w-6 h-6 rounded-full color-text-[rgba(var(--error-message-color))]">
+            {% render 'icon-all', icon: 'pickup-unavailable' %}
+          </div>
+        {%- endif -%}
+        <div>
+          {%- if closest_location.available -%}
+            <p>
+              {{ 'products.product.pickup_availability.pick_up_available_at_html' | t: location_name: closest_location.location.name }}
+            </p>
+            <p>
+              {{ closest_location.pick_up_time }}
+            </p>
+            <div
+              id="OpenPickUp"
+              class="relative cursor-pointer {% if request.design_mode %} will-change-transform{% endif %}"
+              @click.prevent="openDrawer('#PickupDrawer')"
+              @keyup.enter="openDrawer('#PickupDrawer')"
+              tabindex="0"
+            >
+              <span class="text-link">
+                {%- if pick_up_availabilities.size == 1 -%}
+                  {{ 'products.product.pickup_availability.view_store_info' | t }}
+                {%- else -%}
+                  {{ 'products.product.pickup_availability.check_other_stores' | t }}
+                {%- endif -%}
+              </span>
+            </div>
+          {%- else -%}
+            <p>
+              {{ 'products.product.pickup_availability.pick_up_unavailable_at_html' | t: location_name: closest_location.location.name }}
+            </p>
+            {%- if pick_up_availabilities.size > 1 -%}
+              <div
+                id="OpenPickUpOther"
+                class="relative cursor-pointer"
+                @click.prevent="openDrawer('#PickupDrawer')"
+                tabindex="0"
+                @keyup.enter="openDrawer('#PickupDrawer')"
+              >
+                <span class="text-link">{{ 'products.product.pickup_availability.check_other_stores' | t }}</span>
+              </div>
+            {%- endif -%}
+          {%- endif -%}
+        </div>
+      </div>
+
+      <div 
+        class="inline-flex" 
+        x-show="pickupLocation.includes($store.xStoreMap?.getStore())"
+      >
+        <span x-cloak x-show="$store.xStoreMap?.checkAvailability(storeAvailabilites)" class="pickup__available-icon w-6 h-6 color-text-[rgba(var(--success-message-color))] inline-block mr-2 rtl:ml-2 rtl:mr-0">{% render 'icon-all', icon: 'pickup-available' %}</span>
+        <span x-cloak x-show="! $store.xStoreMap?.checkAvailability(storeAvailabilites)" class="pickup__unavailable-icon w-6 h-6 rounded-full color-text-[rgba(var(--error-message-color))] inline-block mr-2 rtl:ml-2 rtl:mr-0">{% render 'icon-all', icon: 'pickup-unavailable' %}</span>
+        <div>
+          {% capture store_name %}
+            <span x-text="$store.xStoreMap?.getStoreText()"></span>
+          {% endcapture %}
+          <p x-show="$store.xStoreMap?.checkAvailability(storeAvailabilites)">
+            {{ 'products.product.pickup_availability.pick_up_available_at_html' | t: location_name: store_name }}
+          </p>
+          <p x-cloak x-show="! $store.xStoreMap?.checkAvailability(storeAvailabilites)">
+            {{ 'products.product.pickup_availability.pick_up_unavailable_at_html' | t: location_name: store_name }}
+          </p>
+          {%- for store in pick_up_availabilities -%}
+            <p x-cloak x-show='$store.xStoreMap?.checkAvailability(storeAvailabilites) && $store.xStoreMap?.getStore() === {{ store.location.name | escape | json }}'>
+              {{ store.pick_up_time }}
+            </p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <template x-teleport="body">
+      <div
+        id="PickupDrawer"
+        x-show="isShowDrawer"
+        class="pickup-drawer__wrapper drawer__wrapper"
+        tabindex="0"
+      >
+        <div
+          id="PickupDrawer__Overlay"
+          class="drawer__overlay pickup-drawer__overlay"
+          x-show="isShowDrawer"
+          @click.prevent="closeDrawer(true)"
+        ></div>
+        <div
+          class="pickup-drawer__container drawer__container transform flex flex-col outline-none"
+          id="PickupDrawer__Content"
+          x-cloak
+          x-show="isShowDrawer"
+          tabindex="0"
+          x-transition:enter-start="opacity-0 translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+          x-transition:enter-end="opacity-100 translate-y-0 md:translate-x-0"
+          x-transition:leave-end="opacity-0 translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+          x-intersect.full="$store.xFocusElement.trapFocus('PickupDrawer', 'ClosePickupDrawer')"
+          @keyup.escape="closeDrawer()"
+        >
+          <div class="modal-title-container modal-title-padding-x">
+            <div class="modal-title-wrapper">
+              <div class="pickup-drawer__header flex grow items-center">
+                <div class="pickup-drawer__title relative flex-auto">
+                  <p class="h5">{{ product_variant.product.title | escape }}</p>
+                  {%- unless product_variant.product.has_only_default_variant -%}
+                    <p class="mt-1 capitalize">
+                      {%- for product_option in product_variant.product.options_with_values -%}
+                        {{ product_option.name | escape }}:&nbsp;
+                        {%- for value in product_option.values -%}
+                          {%- if product_option.selected_value == value -%}
+                            <span>{{ value | escape }}</span>
+                          {%- endif -%}
+                        {%- endfor -%}
+                        {%- unless forloop.last -%},&nbsp;{%- endunless -%}
+                      {%- endfor -%}
+                    </p>
+                  {%- endunless -%}
+                </div>
+              </div>
+
+              <button
+                id="ClosePickupDrawer"
+                class="modal-title__button-close"
+                @click.prevent="closeDrawer()"
+                @keyup.enter="closeDrawer()"
+                @keydown.enter.prevent
+                aria-label="{{ 'accessibility.close' | t }}"
+              >
+                <span class="button__close icon-close-large-desktop icon-close-large-mobile">{% render 'icon-all', icon: 'icon-close' %}</span>
+              </button>
+            </div>
+          </div>
+
+          <ul
+            class="pickup-drawer__list drawer__content scrollbar-body scrollbar-visible flex-auto pr-4 pl-4 md:pl-7.5 md:pr-7.5 overflow-y-auto overflow-x-hidden {% if settings.edges_type == 'rounded_corners' %} rounded-t-[10px]{% endif %} min-h-[24rem] md:min-h-0 md:flex-auto"
+            role="list"
+          >
+            {%- for availability in pick_up_availabilities -%}
+              <li class="pick-up-availability__item border-t border-solid color-border-[rgba(var(--color-line-and-border))] pt-3 pb-3 pl-3 pr-3 {% if settings.edges_type == 'rounded_corners' %} rounded-t-[10px]{% endif %}">
+                <p class="pick-up-availability__item__location-name h6 pb-2 text-[{{ settings.text_base_size | times: 0.007875 }}rem] md:text-[{{ settings.text_base_size | times: 0.00875 }}rem]">
+                  {{ availability.location.name }}
+                </p>
+                <div class="pick-up-availability__item__status flex pb-2.5">
+                  {%- if availability.available -%}
+                    <span class="pick-up-availability__item__available inline-flex gap-2 color-text-[rgba(var(--color-in-stock))] items-center">
+                      <span class="w-6 h-6 ">{% render 'icon-all', icon: 'pickup-available' %}</span>
+                      <span>{{ 'products.product.pickup_availability.pick_up_available' | t }}, {{ availability.pick_up_time | downcase }}</span>
+                    </span>
+                  {%- else -%}
+                    <span class="pick-up-availability__item__unavailable inline-flex gap-2 color-text-[rgba(var(--color-out-of-stock))] items-center">
+                      <span class="w-6 h-6">{% render 'icon-all', icon: 'pickup-unavailable' %}</span>
+                      <span>{{ 'products.product.pickup_availability.pick_up_unavailable' | t }}</span>
+                    </span>
+                  {%- endif -%}
+                </div>
+                {%- assign address = availability.location.address -%}
+                <address class="pick-up-availability__item__address not-italic">
+                  {{ address | format_address }}
+                </address>
+                {%- if address.phone.size > 0 -%}
+                  <p class="pick-up-availability__item__phone">
+                    {{ address.phone -}}
+                    <br>
+                  </p>
+                {%- endif -%}
+              </li>
+            {%- endfor -%}
+          </ul>
+        </div>
+      </div>
+    </template>
+  {%- endif -%}
+</div>

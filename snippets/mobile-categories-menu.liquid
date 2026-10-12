@@ -1,0 +1,191 @@
+
+    {% if is_link %}
+      <div
+        class="mobile-menu-drawer mobile-tabbed-menu top-0 left-0 absolute background-header w-full h-full z-30{% if rtl %} -translate-x-full{% else %} translate-x-full{% endif %} invisible"
+        :class="$store.xMobileNav.currentMenuLinks.includes('{{ menu_level1_id }}') && 'menu-opening'"
+        :class="$store.xMobileNav.currentMenuLinks.length == {{ start_level | plus: 1 }} ? 'visible' : 'invisible'"
+      >
+        <ul
+          id="menu-level-{{ start_level | plus: 1 }}"
+          class="top-0 w-full h-auto max-h-full z-30 overflow-auto scrollbar-body scrollbar pt-2.5 px-4 flex flex-wrap justify-between" 
+        >
+          <li class="flex items-center{% if rtl %} text-left{% else %} text-right{% endif %} justify-between border-b h-fit {% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %} w-full px-2.5">
+            <span class="flex-1 max-w-[100px]">
+              <span 
+                class="w-7.5 h-7.5 px-2.5 pt-2.5 block cursor-pointer {% if rtl %} -rotate-90{% else %} rotate-90{% endif %}" 
+                @click="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}');" 
+                @keyup.enter="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}');" 
+                tabindex="0"
+                aria-label="{{ 'accessibility.back' | t }}" 
+                role="button"
+              >
+                {% render 'icon-all', icon: 'icon-caret' %}
+              </span>
+            </span>
+            <a 
+              {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %}
+              class="flex-1 h5 py-4 {{ font_weight_class }} {% if block.settings.view_all_link != blank %} text-center{% endif %}{% if link.current or link.child_active %} active{% endif %}"
+              {% if block.settings.open_new_window %}
+                target="_blank"
+              {% endif %}
+            >
+              <span class="x-break-words {{ font_weight_class }}">{{ block.settings.heading | escape }}</span>
+            </a>
+            {% unless block.settings.view_all_link == blank %}
+              <a
+                href="{{ block.settings.view_all_link }}"
+                {% if block.settings.open_link_in_new_window %}
+                  target="_blank"
+                {% endif %}
+                class="flex-1 max-w-[100px]"
+              >
+                <span class="link-hover">
+                  <span>{{ block.settings.view_all_title | default: 'View more' }}</span> <span class="w-2 h-2 inline-block mt-0.5 rtl:rotate-180 ">{% render 'icon-all', icon: 'icon-double-arrow' %}</span>
+                </span>
+              </a>
+            {% endunless %}
+          </li>
+          {% for link in block.settings.menu.links %}
+            {%- liquid
+              assign is_link = false
+              if link.links != blank
+                assign is_link = true
+              endif
+  
+              assign menu_level2_id = block.type | append: '-' | append: menu_level1_id | append: '-' | append: forloop.index
+            -%}
+            <li {% if link.current or link.child_active -%}x-init="active = true;"{% endif %} class="w-full h-fit">
+              <div 
+                {% if is_link %}
+                @click="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level2_id }}')"
+                @keyup.enter="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level2_id }}')"
+                tabindex="0"
+                {% endif %} 
+                class="flex items-center px-2.5 border-b cursor-pointer {% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}" 
+                {%- if link.current or link.child_active %}x-init="active = true;"{% endif %}
+              >
+                {% if is_link %}
+                  <p class="menu-link flex-1 py-2.5 flex gap-2.5 items-center{% if link.current or link.child_active %} active{% endif %}">
+                {% else %}
+                  <a href="{{ link.url }}" class="menu-link flex-1 py-2.5 flex gap-2.5 items-center{% if link.current or link.child_active %} active{% endif %}">
+                {% endif %} 
+                  {%- render 'menu-item-image',
+                    link: link,
+                    auto_fill_menu_image_with: block.settings.show_1st_menu_image,
+                    collection_metafield: block.settings.collection_image_metafield,
+                    image_ratio: 0,
+                    custom_class: "rounded-corners-md !w-[50px] h-[50px]",
+                    minimal_image: true,
+                    is_link: false
+                  -%}
+                  <span class="x-break-words py-2">{{ link.title | escape }}</span>
+                {% if is_link %}</p>{% else %}</a>{% endif %}
+                {%- if is_link -%}
+                  <span
+                    class="icon-caret-mobile w-2.5 h-auto block {% if rtl %} rotate-90 {% else %} -rotate-90{% endif %}{%- if link.child_active %} color-text-[rgba(var(--color-link))]{% endif %}"
+                  >{% render 'icon-all', icon: 'icon-caret' %}</span>
+                {%- endif -%}
+              </div>
+              {% if is_link %}
+                <div
+                  class="mobile-menu-drawer top-0 left-0 absolute pb-5 background-header overflow-auto scrollbar scrollbar-body px-4 pt-2.5 w-full h-full z-30{% if rtl %} -translate-x-full{% else %} translate-x-full{% endif %} invisible" 
+                  :class="$store.xMobileNav.currentMenuLinks.includes('{{ menu_level2_id }}') && 'menu-opening'"
+                  :class="$store.xMobileNav.currentMenuLinks.length == {{ start_level | plus: 2 }} ? 'visible' : 'invisible'"
+                >
+                  <div class="flex h-fit items-center{% if rtl %} text-left{% else %} text-right{% endif %} justify-between px-2.5 border-b {% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %} {% if show_second_level_collection_image != "next" %}col-span-2{% endif %}">
+                    <span class="flex-1 max-w-[100px]">
+                      <span
+                        class="w-7.5 h-7.5 px-2.5 pt-2.5 block cursor-pointer {% if rtl %} -rotate-90{% else %} rotate-90{% endif %}"
+                        @click="$store.xMobileNav.removeActiveLink('{{ menu_level2_id }}');"
+                        @keyup.enter="$store.xMobileNav.removeActiveLink('{{ menu_level2_id }}');"
+                        tabindex="0"
+                        role="button"
+                        aria-label="{{ 'accessibility.back' | t }}"
+                      >
+                        {% render 'icon-all', icon: 'icon-caret' %}
+                      </span>
+                    </span>
+                    <a href="{{ link.url }}" class="flex-1 h5 py-4 {% unless block.settings.view_all_link == blank %} text-center{% endunless %}{% if link.current or link.child_active %} active{% endif %}">
+                      <span class="x-break-words {{ font_weight_class }}">{{ link.title | escape }}</span>
+                    </a>
+                    {% unless block.settings.view_all_link == blank %}
+                      <a
+                        href="{{ block.settings.view_all_link }}"
+                        {% if block.settings.open_link_in_new_window %}
+                          target="_blank"
+                        {% endif %}
+                        class="flex-1 link-hover max-w-[100px]"
+                      >
+                        <span>{{ block.settings.view_all_title | default: 'View more' }}</span> <span class="w-2 h-2 inline-block mt-0.5 rtl:rotate-180 ">{% render 'icon-all', icon: 'icon-double-arrow' %}</span>
+                      </a>
+                    {% endunless %}
+                  </div>
+                  <ul
+                    id="menu-level-{{ start_level | plus: 1 }}"
+                    class="top-0 w-full h-fit z-30 pt-4 {% if show_second_level_collection_image != "next" %}grid grid-cols-2 gap-y-5 gap-x-2.5{% else %} flex flex-col gap-4{% endif %}" 
+                  >
+                    {% for childlink in link.links %}
+                      {% liquid
+                        assign has_grandchild_link = false
+                        if childlink.links != blank
+                          assign has_grandchild_link = true
+                        endif
+                      %}
+                      <li class="h-fit">
+                        <div class="flex flex-col">
+                          <div
+                            class="flex justify-between gap-2.5 {% if show_second_level_collection_image == 'above' %}flex-col{% endif %}"
+                          >
+                            {% capture image_item %}
+                              {% render 'menu-item-image',
+                                link: childlink,
+                                auto_fill_menu_image_with: block.settings.show_2nd_level_menu_image,
+                                collection_metafield: block.settings.collection_image_metafield_3,
+                                image_ratio: block.settings.image_ratio,
+                                custom_class: "rounded-corners"
+                                is_link: true
+                              %}
+                            {% endcapture %}
+                            {% assign image_item = image_item | strip %}
+                            {% unless image_item contains "Liquid syntax error" %}
+                              {% if image_item != blank and show_second_level_collection_image != "none" %}
+                                <div class="h-full {% if show_second_level_collection_image == 'next' %}w-[50%]{% else %}w-full{% endif %}">
+                                  {{ image_item }}
+                                </div>
+                              {% endif %}
+                            {% endunless %}
+                            <div class="flex flex-col w-full h-full gap-1.5">
+                              <a href="{{ childlink.url }}" class="color-text-[rgba(var(--color-heading))] h5 p-break-words {% if childlink.current %} active{% endif %} {{ font_weight_class }}">{{ childlink.title | escape }}</a>
+                              {% if has_grandchild_link %}
+                                <div class="mobile-menu-drawer h-full w-full z-30">
+                                  <ul
+                                    id="menu-level-{{ start_level | plus: 2 }}"
+                                    class="w-full h-full z-30 last-level-menu font-normal text-medium"
+                                  >
+                                    {%- for grandchildlink in childlink.links -%}
+                                      <li class="font-normal mt-[3px]" {%- if childlink.current or childlink.child_active %}x-init="active = true;"{% endif %}>
+                                        <a
+                                          href="{{ grandchildlink.url }}"
+                                          class="x-break-words flex items-center{% if grandchildlink.current %} active{% endif %}"
+                                          {% if grandchildlink.current %} aria-current="page"{% endif %}
+                                        >
+                                          {{ grandchildlink.title | escape }}
+                                        </a>
+                                      </li>
+                                    {%- endfor -%}
+                                  </ul>
+                                </div>
+                              {% endif %}
+                            </div>
+                          </div>
+                        </div>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}

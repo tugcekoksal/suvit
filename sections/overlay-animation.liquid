@@ -1,0 +1,68 @@
+<overlay-animation
+    id="overlay-animation-root"
+    class="section-{{ section.id }} pointer-events-none fixed inset-0 z-[99999]"
+    data-animation="{{ section.settings.animation_type }}"
+    data-timeout="{{ section.settings.timeout_seconds }}"
+    data-snow-speed="{{ section.settings.snow_speed }}"
+    data-fireworks-speed="{{ section.settings.fireworks_speed }}"
+    style="width: 100vw; height: 100vh;"
+></overlay-animation>
+
+<script src="{{ 'overlay-animation.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Overlay Animation",
+  "tag": "section",
+  "class": "overlay-animation-section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "animation_type",
+      "label": "Animation type",
+      "default": "none",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "snow", "label": "Snow" },
+        { "value": "fireworks", "label": "Fireworks" }
+      ]
+    },
+    {
+      "type": "range",
+      "id": "timeout_seconds",
+      "label": "Auto turn off after",
+      "default": 0,
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "s"
+    },
+    {
+      "type": "range",
+      "id": "snow_speed",
+      "label": "Snow speed",
+      "default": 3.0,
+      "min": 1.0,
+      "max": 5.0,
+      "step": 0.1,
+      "visible_if": "{{ section.settings.animation_type == 'snow' }}"
+    },
+    {
+      "type": "range",
+      "id": "fireworks_speed",
+      "label": "Fireworks speed",
+      "default": 1.0,
+      "min": 0.5,
+      "max": 3.0,
+      "step": 0.1,
+      "visible_if": "{{ section.settings.animation_type == 'fireworks' }}"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Overlay Animation",
+      "category": "Animation"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,228 @@
+{% comment %}
+  Renders a localization form
+
+  Accepts:
+  - currency_selector: {Boolean} Show currency selector
+  - locale_selector: {Boolean} Show language selector
+  - id: {String} Unique identifier
+  - enable_country_selector: {Boolean} Enable country selector
+  - enable_language_selector: {Boolean} Enable language selector
+  - position: {String} Position of the selector
+  - dropdown_animation: {String} Custom dropdown animation class
+  Usage:
+  {% render 'localization-form' %}
+{% endcomment %}
+{% liquid
+  assign currency_selector = false
+  assign locale_selector = false
+  if enable_country_selector and shop.enabled_currencies.size > 1
+    assign currency_selector = true
+  endif
+  if enable_language_selector and shop.published_locales.size > 1 
+    assign locale_selector = true
+  endif
+
+  assign dropdown_animation = dropdown_animation | default: 'origin-top'
+%}
+{%- if currency_selector or locale_selector -%}
+  {%- form 'localization' -%}
+    <div 
+      x-data="xLocalizationForm('{{ form.current_locale.endonym_name }}')" 
+      class="localization-form"
+      @keydown.escape.stop="openForm = false"
+      @click.away="openForm = false"
+    >
+      {% if currency_selector and locale_selector %}
+        <div 
+          class="select-toggle items-center py-2.5"
+          role="button" tabindex="0" aria-pressed="false" aria-expanded="false" aria-controls="LanguageCountry" aria-describedby="LanguageCountry"
+          x-init="initPosition('{{ position }}'), initEventScroll()"
+          :class="openForm ? 'active' : ''"
+          @click.prevent="toggleOpenForm()"
+          @keyup.enter="toggleOpenForm()"
+          @keydown.space.prevent="toggleOpenForm()"
+          @keydown.esc="openForm ? openForm = false : ''"
+        >
+          <span class="h-4 w-4 min-w-[1rem] me-2 icon" :class="openForm && ' -rotate-180 active'">{% render 'icon-all', icon: 'icon-globe' %}</span>
+          <span class="select-text whitespace-nowrap text-small">
+            {%- if currency_selector -%}{{ form.current_locale.endonym_name }}{%- endif %} {% if locale_selector -%}({%- if settings.stack_currency_enable -%}
+              {%- liquid
+                assign list_contains = ''
+                assign displayed_countries = '||'
+                for country in localization.available_countries 
+                  assign market_currency = '||' | append: country.market.id | append: country.currency.iso_code | append:country.currency.symbol | append: "||"
+                  if displayed_countries contains market_currency
+                    assign list_contains = list_contains | append: market_currency 
+                  endif
+                  assign displayed_countries = displayed_countries | append: country.market.id | append: country.currency.iso_code | append:country.currency.symbol | append: "||"
+                endfor
+              -%}
+              {%- if list_contains contains localization.country.currency.iso_code and list_contains contains localization.country.currency.symbol and list_contains contains localization.country.market.id -%}
+                {{- localization.country.currency.iso_code }} {{ localization.country.currency.symbol -}}
+              {%- else -%}
+                {{- localization.country.currency.iso_code }} {{ localization.country.currency.symbol -}}
+              {%- endif -%}
+            {%- else -%}
+              {{- localization.country.currency.iso_code }} {{ localization.country.currency.symbol -}}
+            {%- endif -%}){% endif -%}
+          </span>
+          <span class="icon-caret transition-transform w-2.5 h-2.5 flex right-0" :class="openForm && ' -rotate-180'">{% render 'icon-all', icon: 'icon-caret' %}</span>
+        </div>
+        <div 
+          :class="{ 'mt-[3px]': $el.closest('.utility-block'), 'is-open': openForm }"
+          x-ref="localization_listbox"
+          class="select-listbox dropdown-anm {{ dropdown_animation }} w-56 p-5 absolute top-full z-[51] flex flex-col gap-3 md:gap-4 rounded-corners border border-solid color-border-[rgba(var(--color-text),0.12)] color-bg-gradient-[var(--gradient-background)]
+            {%- if position == 'right' %} -right-px left-auto{% else %} -left-px right-auto{% endif -%}"
+        >
+      {% endif %}
+      {%- if locale_selector -%}
+        <select-element
+          class="language-selector dropdown-small{% if currency_selector %} font-semibold{% else %} single-selector{% endif %}"
+          @keyup.escape="openLanguage = false"
+          data-picker-type="dropdown"
+        >
+          {% if currency_selector %}
+            <span class="inline-block mb-1.5">{{ 'general.global.language' | t }}</span>
+          {% endif %}
+          <div class="select relative">
+            <div 
+              class="select-button rounded-corners"
+              role="button" aria-pressed="false" aria-expanded="false" aria-describedby="LanguageHeading"
+              :tabindex="{{ currency_selector }} ? (openForm ? '0' : '-1') : '0'"
+            >
+              {% unless currency_selector %}
+                <span class="h-4 w-4 min-w-[1rem] icon" :class="openForm && ' -rotate-180'">{% render 'icon-all', icon: 'icon-globe' %}</span>
+              {% endunless %}
+              <span 
+                class="select-button__label select-text color-text-[rgba(var(--color-text))] text-small{% if currency_selector %} h7 font-normal{% endif %}"
+                data-section-id="{{ section.id }}"
+              >
+                {{ form.current_locale.endonym_name }}
+              </span>
+              <span class="select-arrow transition-transform w-2.5 h-2.5 flex">{% render 'icon-all', icon: 'icon-caret' %}</span>
+            </div>
+            <div class="select-options-wrapper scrollbar-visible scrollbar-body color-bg-gradient-[var(--gradient-background)]">
+              <ul 
+                role="listbox"
+                class="select-options color-bg-gradient-[var(--gradient-background)] whitespace-normal"
+                aria-label="LanguageList"
+                {% unless currency_selector %} :class="$el.closest('.utility-block') && 'mt-[3px]'"{% endunless %}
+              >
+                {% for locale in form.available_locales %}
+                  <li 
+                    class="select-option rounded-corners font-normal" 
+                    data-option-name="{{ locale.endonym_name }}"
+                    data-value="{{ locale.iso_code }}"
+                    data-select-value="{{ locale.endonym_name }}"
+                    :aria-selected="languageSelector == '{{ locale.endonym_name }}' ? true : false"
+                    data-type="dropdown"
+                    role="option"
+                    tabindex="-1"
+                    data-no-instant
+                    x-intersect.once="handleOptionEvent('{{ currency_selector }}', '{{ locale.endonym_name }}', '{{ locale.iso_code }}', 'locale_selector')"
+                  >
+                    {{ locale.endonym_name }}
+                  </li>
+                {%- endfor -%}
+              </ul>
+            </div>
+          </div>
+          <label class="hidden">
+            <input
+              id="locale_selector"
+              name="locale_code"
+              class="select-option-selected"
+              value="{{ form.current_locale.iso_code }}"
+              data-disclosure-input
+            >
+          </label>
+        </select-element>
+      {%- endif -%}
+      {%- if currency_selector -%}
+        <select-element
+          class="country-selector dropdown-small{% if locale_selector %} font-semibold{% else %} single-selector{% endif %}"
+          @keyup.escape="openLanguage = false"
+          data-picker-type="dropdown"
+          data-select-type="currency-selector"
+          {% if locale_selector %} data-show-popup="true"{% endif %}
+        >
+          {% if locale_selector %}
+            <span class="inline-block mb-1.5">{{ 'general.global.currency' | t }}</span>
+          {% endif %}
+          <div class="select relative">
+            <div 
+              @click.prevent="loadCountry($el);"
+              @keyup.enter="loadCountry($el);"
+              class="select-button relative rounded-corners"
+              role="button" :tabindex="{{ locale_selector }} ? (openForm ? '0' : '-1') : '0'" aria-pressed="false" aria-expanded="false" aria-describedby="CurrencyHeading"
+            >
+              {% unless locale_selector %}
+                <span class="h-4 w-4 min-w-[1rem] icon" :class="openForm && ' -rotate-180'">{% render 'icon-all', icon: 'icon-globe' %}</span>
+              {% endunless %}
+              <span 
+                class="select-button__label select-text color-text-[rgba(var(--color-text))] text-small min-w-0 text-ellipsis flex-grow overflow-hidden{% if locale_selector %} h7 font-normal{% endif %}"
+                data-section-id="{{ section.id }}"
+                x-ref="currentCountry"
+              >
+                {% if settings.stack_currency_enable %}
+                  {% liquid
+                    assign list_contains = ''
+                    assign displayed_countries = '||'
+                    for country in localization.available_countries 
+                      assign market_currency = '||'| append: country.market.id | append: country.currency.iso_code | append:country.currency.symbol | append: "||"
+                      if displayed_countries contains market_currency
+                        assign list_contains = list_contains | append: market_currency 
+                      endif
+                      assign displayed_countries = displayed_countries | append: country.market.id | append: country.currency.iso_code | append:country.currency.symbol | append: "||"
+                    endfor
+                  %}
+                  {% if list_contains contains localization.country.currency.iso_code and list_contains contains localization.country.currency.symbol and list_contains contains localization.country.market.id  %}
+                    {{ localization.country.market.handle}} ({{ localization.country.currency.iso_code }} {{ localization.country.currency.symbol }})
+                  {% else %}
+                    {{ localization.country.name }} ({{ localization.country.currency.iso_code }} {{ localization.country.currency.symbol }})
+                  {% endif %}
+                  
+                {% else %}
+                  {{ localization.country.name }} ({{ localization.country.currency.iso_code }} {{ localization.country.currency.symbol }})
+                {% endif %}
+              </span>
+              <span class="select-arrow transition-transform w-2.5 h-2.5 min-w-[10px]" :class="{ 'opacity-0 hidden': loading, 'opacity-100 block': !loading }">{% render 'icon-all', icon: 'icon-caret' %}</span>
+              <span x-show="loading" class="w-2.5 h-2.5 top-[calc(50%-6px)] animate-spin" x-cloak>{% render 'icon-all', icon: 'icon-loading' %}</span>
+            </div>
+            <div class="select-options-wrapper scrollbar-visible scrollbar-body color-bg-gradient-[var(--gradient-background)]">
+              <ul 
+                role="listbox"
+                class="select-options country-options p-0 whitespace-normal"
+                aria-label="CurrencyList"
+                {% unless locale_selector %} :class="$el.closest('.utility-block') && 'mt-[3px]'"{% endunless %}
+              >
+              </ul>
+            </div>
+          </div>
+          <label class="hidden">
+            <input
+              id="currency_selector"
+              name="country_code"
+              class="select-option-selected"
+              value="{{ localization.country.iso_code }}"
+              data-disclosure-input
+            >
+          </label>
+        </select-element>
+      {%- endif -%}
+      {% if currency_selector and locale_selector %}
+        <custom-button>
+          <button 
+            class="button localization-button button-secondary" 
+            @click="submit($el)"
+            :tabindex="openForm ? '0' : '-1'"
+          >
+            {{ 'general.global.save' | t }}
+          </button>
+        </custom-button>
+      </div>
+      {% endif %}
+    </div>
+  {%- endform -%}
+{%- endif -%}
+<script src="{{ 'locales-form.js' | asset_url }}" defer></script>

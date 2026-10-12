@@ -1,0 +1,46 @@
+{% comment %}
+  Renders a button
+
+  Accepts:
+  - button_style: {String} Collection Liquid object
+  - button_label: {String} Size of the product image card. Values are "square", "rectangle", "round", "natural". Default is "square"
+  - button_link: {String} url button
+  - open_new_window_button: {Boolean} Open link in a new window
+  - class: {String} class button
+  - isAlwaysActive: {Boolean} is active button. Default is "False"
+  - disabledFocus: {Boolean} disabled focus
+  - additional_attributes: {String} additional attribute for button
+  - allow_wrap: {Boolean} allow wrap for button label. Default is "False"
+  Usage:
+  {% render 'button' %}
+{% endcomment %}
+<custom-button>
+  <a
+    class="button empty:hidden cursor-pointer md:min-h-6 min-h-5
+      {%- if class != blank %} {{ class -}}{% endif -%}
+      {%- if button_style == 'secondary' %} inline-block button-secondary {{ button_size -}}
+      {%- elsif button_style == 'text-link' %} button-link button-no-padding anm-button-{{ settings.button_link_hover_animation -}}
+      {%- elsif button_style == 'direction_link' %} direction_link button-no-padding anm-button-arrow_push
+      {%- else %} inline-block button-primary {{ button_size -}}{% endif -%}
+      {%- if button_link == blank and isAlwaysActive != true %} hover:cursor-not-allowed{% endif -%}"
+    {% if button_link != blank %}
+      href="{{ button_link }}"
+      {% if open_new_window_button %} 
+        target="_blank"
+      {% endif %}
+    {% else %}
+      role="link" 
+      {% if isAlwaysActive != true %}
+        aria-disabled="true"
+      {% else %}
+        tabindex="0"
+        {% if inheritFunction %}
+          @keyup.enter="$el.parentNode.click()"
+        {% endif %}
+      {% endif %}
+    {% endif %}
+    {{ additional_attributes }}
+  >
+    {% render 'button-label', button_label: button_label, show_button_style: button_style, allow_wrap: allow_wrap %}
+  </a>
+</custom-button>

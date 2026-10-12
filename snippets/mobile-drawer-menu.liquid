@@ -1,0 +1,299 @@
+{% liquid
+  assign menu_font_weight = settings.menu_font.weight | plus: 0
+  assign font_weight_class = ' font-weight-menu'
+  if menu_font_weight < 600 
+    assign font_weight_class = ' !font-semibold'
+  endif
+  if settings.lang_direction contains request.locale.iso_code
+    assign rtl = true
+  else
+    assign rtl = false
+  endif
+%}
+{% if menu_links != blank %}
+<div 
+  {% if is_block_menu %}
+    class="mobile-menu-drawer absolute top-0 left-0 w-full h-full z-30 mobile-tabbed-menu background-header{% if rtl %} -translate-x-full{% else %} translate-x-full{% endif %} invisible"
+    :class="$store.xMobileNav.currentMenuLinks.includes('{{ menu_level0_id }}') && 'menu-opening'"
+    :class="$store.xMobileNav.currentMenuLinks.length == {{ start_level | plus: 1 }} ? 'visible' : 'invisible'"
+  {% else %}
+    id="drawer-menu-level-0" class="pt-5 pb-5 px-4 border-b"
+  {% endif %}  
+>
+  {% unless is_block_menu %}
+    {% if section.settings.mobile_drawer_menu_title != blank %}
+      <div class="flex items-center gap-2 mb-4 h4">
+        <span class="inline-block w-4 shrink-0">{% render "icon-all", icon: "icon-category" %}</span>
+        <h4 class="p-break-words">{{ section.settings.mobile_drawer_menu_title }}</h4>
+      </div>
+    {% endif %}
+  {% endunless %}
+  <ul 
+    {% if is_block_menu %}
+      id="menu-level-{{ start_level | plus: 1 }}"
+      class="top-0 w-full h-auto max-h-full z-30 overflow-auto scrollbar-body scrollbar pt-2.5 px-4 flex flex-wrap justify-between"
+    {% else %}
+      class="flex flex-col gap-0.5 h5"
+    {% endif %}
+  >
+    {% if is_block_menu %}
+      <li class="flex items-center justify-between border-b px-2.5 h-fit w-full{% if rtl %} text-left{% else %} text-right{% endif %}{% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}">
+        <span class="flex-1 max-w-[100px]">
+          <span 
+            class="w-7.5 h-7.5 px-2.5 pt-2.5 block cursor-pointer{% if rtl %} -rotate-90{% else %} rotate-90{% endif %}" 
+            @click="$store.xMobileNav.removeActiveLink('{{ menu_level0_id }}');" 
+            @keyup.enter="$store.xMobileNav.removeActiveLink('{{ menu_level0_id }}');" 
+            tabindex="0"
+            aria-label="{{ 'accessibility.back' | t }}" 
+            role="button"
+          >
+            {% render 'icon-all', icon: 'icon-caret' %}
+          </span>
+        </span>
+        <a 
+          {% if block.settings.menu_item_link %} href="{{ block.settings.menu_item_link }}" {% else %} role="link" {% endif %}
+          class="flex-1 h5 py-4 {{ font_weight_class }} {% if block.settings.view_all_link != blank %} text-center{% endif %}{% if link.current or link.child_active %} active{% endif %}"
+          {% if block.settings.open_new_window %}
+            target="_blank"
+          {% endif %}
+        >
+          <span class="x-break-words {{ font_weight_class }}">{{ block.settings.heading | escape }}</span>
+        </a>
+        {% unless block.settings.view_all_link == blank %}
+          <a
+            href="{{ block.settings.view_all_link }}"
+            {% if block.settings.open_link_in_new_window %}
+              target="_blank"
+            {% endif %}
+            class="flex-1 max-w-[100px]"
+          >
+            <span>{{ block.settings.view_all_title | default: 'View more' }}</span> <span class="w-2 h-2 inline-block mt-0.5 rtl:rotate-180 ">{% render 'icon-all', icon: 'icon-double-arrow' %}</span>
+          </a>
+        {% endunless %}
+      </li>
+    {% endif %}
+    {% for link in menu_links %}
+      {% liquid
+        assign has_link = false
+        if link.links != blank
+          assign has_link = true
+        endif
+
+        assign menu_level1_id = menu_level0_id | append: '-' | append: type | append: '-' | append: start_level | append: '-' | append: forloop.index
+
+        assign mega_nav = false
+        unless is_block_menu
+          assign link_title = link.title | strip 
+          for block in section.blocks
+            assign mega_name_titles = block.settings.heading | strip
+            if mega_name_titles == link_title
+              assign mega_nav = block
+              break
+            endif
+          endfor
+        endunless
+      %}
+      <li {% if link.current or link.child_active -%}x-init="active = true;"{% endif %} class="w-full h-fit">
+        <div
+        {% if has_link %}
+          @click="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level1_id }}')"
+          @keyup.enter="{% if start_level > 0 %}$store.xMobileNav.scrollTop(); {% endif %}$store.xMobileNav.setActiveLink('{{ menu_level1_id }}')"
+          tabindex="0"
+        {% endif %} 
+          class="flex items-center md:px-2.5 lg:border-b cursor-pointer{% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}"
+          {%- if link.current or link.child_active %}x-init="active = true;"{% endif %}
+        >
+          {% if has_link %}
+            <p class="menu-link flex-1 py-2 md:py-2.5 flex gap-2.5 items-center cursor-pointer {% if link.current or link.child_active %} active{% endif %}">
+          {% else %}
+            <a href="{{ link.url }}" class="menu-link flex-1 py-2 md:py-2.5 flex gap-2.5 items-center cursor-pointer{% if link.current or link.child_active %} active{% endif %}">
+          {% endif %}
+            {%- render 'menu-item-image',
+              link: link,
+              auto_fill_menu_image_with: show_1st_menu_image,
+              collection_metafield: collection_metafield_1st,
+              image_ratio: 0,
+              custom_class: "rounded-corners-md !w-10 h-10",
+              minimal_image: true,
+              is_link: false
+            -%}
+            <span class="x-break-words">{{ link.title | escape }}</span>
+          {% if has_link %}</p>{% else %}</a>{% endif %}
+          {%- if has_link -%}
+            <span
+              class="w-2.5 h-auto block icon-caret-mobile{% if rtl %} rotate-90{% else %} -rotate-90{% endif %}{%- if link.child_active %} color-text-[rgba(var(--color-link))]{% endif %}"
+            >{% render 'icon-all', icon: 'icon-caret' %}</span>
+          {%- endif -%}
+        </div>
+        {% if has_link %}
+          {% if mega_nav %}
+            {% liquid
+              assign image_count = 0
+              if mega_nav.settings.image_1 != blank or mega_nav.settings.mobile_image_1 != blank
+                assign image_count = image_count | plus: 1
+              endif
+              if mega_nav.settings.image_2 != blank or mega_nav.settings.mobile_image_2 != blank
+                assign image_count = image_count | plus: 1
+              endif
+            %}
+          {% endif %}
+          <div
+            class="mobile-menu-drawer absolute top-0 left-0 w-full h-full z-30 background-header pt-2.5 px-4 pb-5 overflow-auto scrollbar-body scrollbar{% if rtl %} -translate-x-full{% else %} translate-x-full{% endif %} invisible"
+            :class="$store.xMobileNav.currentMenuLinks.includes('{{ menu_level1_id }}') && 'menu-opening'"
+            :class="$store.xMobileNav.currentMenuLinks.length == {{ start_level | plus: 1 }} ? 'visible' : 'invisible'"
+          >
+            <div class="flex items-center justify-between border-b px-2.5{% if rtl %} text-left{% else %} text-right{% endif %}{% if settings.edges_type == 'rounded_corners' %} rounded-b-[10px]{% endif %}">
+              <span class="flex-1 max-w-[100px]">
+                <span
+                  class="w-7.5 h-auto px-2.5 pt-2.5 block cursor-pointer {% if rtl %} ml-4 -rotate-90{% else %}  mr-4 rotate-90{% endif %}"
+                  @click="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}'); "
+                  @keyup.enter="$store.xMobileNav.removeActiveLink('{{ menu_level1_id }}'); "
+                  tabindex="0"
+                  role="button"
+                  aria-label="{{ 'accessibility.back' | t }}"
+                >
+                  {% render 'icon-all', icon: 'icon-caret' %}
+                </span>
+              </span>
+              <a href="{{ link.url }}" class="flex-1 h5 pt-4 pb-4 {% unless mega_nav.settings.view_all_link == blank %} text-center{% endunless %} {% if link.current or link.child_active %} active{% endif %}">
+                <span class="x-break-words {{ font_weight_class }}">{{ link.title | escape }}</span>
+              </a>
+              {% unless mega_nav.settings.view_all_link == blank %}
+                <a
+                  href="{{ mega_nav.settings.view_all_link }}"
+                  {% if mega_nav.settings.open_link_in_new_window %}
+                    target="_blank"
+                  {% endif %}
+                  class="flex-1 max-w-[100px]"
+                >
+                  <span>{{ mega_nav.settings.view_all_title | default: 'View more' }}</span> <span class="w-2 h-2 inline-block ml-0.5 mt-0.5 rtl:rotate-180 rtl:mr-0.5 rtl:ml-0">{% render 'icon-all', icon: 'icon-double-arrow' %}</span>
+                </a>
+              {% endunless %}
+            </div>
+            <ul
+              id="menu-level-{{ start_level | plus: 1 }}"
+              class="top-0 w-full h-auto z-30 overflow-auto grid gap-5 mt-4 scrollbar-body {% unless show_second_level_image == 'next' %} grid-cols-2{% endunless %}" 
+            >
+              {% for childlink in link.links %}
+                {% liquid
+                  assign has_grandchild_link = false
+                  if childlink.links != blank
+                    assign has_grandchild_link = true
+                  endif
+                %}
+                <li class="h-fit">
+                  <div class="flex flex-col">
+                    <div
+                      class="flex items-center justify-between gap-2.5 {% if show_second_level_image == 'above' %}flex-col items-baseline{% endif %}"
+                    >
+                      {% capture image_item %}
+                        {% render 'menu-item-image',
+                          link: childlink,
+                          auto_fill_menu_image_with: show_2nd_level_menu_image,
+                          collection_metafield: collection_metafield_2nd,
+                          image_ratio: image_ratio,
+                          custom_class: "rounded-corners",
+                          is_link: true
+                        %}
+                      {% endcapture %}
+                      {% assign image_item = image_item | strip %}
+                      {% unless image_item contains "Liquid syntax error" %}
+                        {% if image_item != blank and show_second_level_image != "none" %}
+                          <div class="w-full h-auto">
+                            {{ image_item }}
+                          </div>
+                        {% endif %}
+                      {% endunless %}
+                      <div class="flex flex-col w-full h-full gap-1.5">
+                        <a href="{{ childlink.url }}" class="x-break-words h5 {{ font_weight_class }} {% if childlink.current or childlink.child_active %}active{% endif %}">{{ childlink.title | escape }}</a>
+                        {% if has_grandchild_link %}
+                          <div class="h-full w-full">
+                            <ul
+                              id="menu-level-{{ start_level | plus: 2 }}"
+                              class="w-full h-full z-30 last-level-menu font-normal text-medium"
+                            >
+                              {%- for grandchildlink in childlink.links -%}
+                                <li class="mt-[3px]">
+                                  <a
+                                    href="{{ grandchildlink.url }}"
+                                    class="x-break-words flex items-center font-normal{% if grandchildlink.current or request.path == grandchildlink %} active{% endif %}"
+                                    {% if grandchildlink.current %} aria-current="page"{% endif %}
+                                  >
+                                    {{ grandchildlink.title | escape }}
+                                  </a>
+                                </li>
+                              {%- endfor -%}
+                            </ul>
+                          </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+            {% if image_count > 0 %}
+              <div class="flex gap-1.5 w-full h-auto mt-6 flex-col">
+                {% if mega_nav.settings.image_1 != blank or mega_nav.settings.mobile_image_1 != blank %}
+                  <div class="promotion-1 w-full group h-fit">
+                    {% render 'menu-promotion-block',
+                      blockID: mega_nav.id,
+                      desktop_image: mega_nav.settings.image_1,
+                      mobile_image: mega_nav.settings.mobile_image_1,
+                      image_link: mega_nav.settings.image_link_1,
+                      heading: mega_nav.settings.heading_1,
+                      content: mega_nav.settings.text_1,
+                      block: mega_nav,
+                      image_overlay_opacity: mega_nav.settings.overlay_opacity_1,
+                      text_alignment: mega_nav.settings.text_alignment_1,
+                      title_size: mega_nav.settings.text_size_1,
+                      text_size: mega_nav.settings.text_size_1,
+                      color_scheme_light: mega_nav.settings.color_scheme_light_1,
+                      color_scheme_dark: mega_nav.settings.color_scheme_dark_1,
+                      enable_text_overlay: mega_nav.settings.text_overlay_1,
+                      mobile_image_height: mega_nav.settings.mobile_image_height,
+                      desktop_image_height: mega_nav.settings.image_height,
+                      index: 1,
+                      button_label: mega_nav.settings.button_label_1,
+                      button_link: mega_nav.settings.button_link_1,
+                      open_new_window: mega_nav.settings.open_new_window_button_1,
+                      button_style: mega_nav.settings.button_style_1
+                    %}
+                  </div>
+                {% endif %}
+                {% if mega_nav.settings.image_2 != blank or mega_nav.settings.mobile_image_2 != blank %}
+                  <div class="promotion-2 w-full group h-fit">
+                    {% render 'menu-promotion-block',
+                      blockID: mega_nav.id,
+                      desktop_image: mega_nav.settings.image_2,
+                      mobile_image: mega_nav.settings.mobile_image_2,
+                      image_link: mega_nav.settings.image_link_2,
+                      heading: mega_nav.settings.heading_2,
+                      content: mega_nav.settings.text_2,
+                      block: mega_nav,
+                      image_overlay_opacity: mega_nav.settings.overlay_opacity_2,
+                      text_alignment: mega_nav.settings.text_alignment_2,
+                      title_size: mega_nav.settings.text_size_2,
+                      text_size: mega_nav.settings.text_size_2,
+                      color_scheme_light: mega_nav.settings.color_scheme_light_2,
+                      color_scheme_dark: mega_nav.settings.color_scheme_dark_2,
+                      enable_text_overlay: mega_nav.settings.text_overlay_2,
+                      mobile_image_height: mega_nav.settings.mobile_image_height,
+                      desktop_image_height: mega_nav.settings.image_height,
+                      index: 2,
+                      button_label: mega_nav.settings.button_label_2,
+                      button_link: mega_nav.settings.button_link_2,
+                      open_new_window: mega_nav.settings.open_new_window_button_2,
+                      button_style: mega_nav.settings.button_style_2
+                    %}
+                  </div>
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}

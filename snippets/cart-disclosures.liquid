@@ -1,0 +1,107 @@
+{% liquid
+  assign disclosures = product.metafields.shopify.disclosure.value
+  assign disclosure_first = disclosures | first
+  assign remaining_item_count = disclosures | size | minus: 1
+  assign block_id = 'CartDisclosures__' | append: product.id
+%}
+<div
+  class="cart-disclosures__wrapper color-text-[rgba(var(--warning-message-color))] flex gap-1.5 items-center cursor-pointer mb-2"
+  x-data="xDisclosures()"
+>
+  <div
+    class="w-full flex gap-1.5 items-center"
+    @click="openDrawer('{{ block_id }}')"
+    @keyup.enter="openDrawer('{{ block_id }}')"
+    @keydown.enter.prevent
+    tabindex="0"
+  >
+    <div class="w-4.5 h-4.5 shrink-0" data-collapsible-tab-caret>
+      {% render 'icon-all', icon: 'warning-icon' %}
+    </div>
+    <p class="text-small truncate w-fit md:max-w-[250px] max-w-[calc(100vw-198px)] border-b border-solid border-b-[rgba(var(--warning-message-color),1)]">
+      {{ disclosure_first.title.value }}
+    </p>
+    {% if remaining_item_count > 0 %}
+      <div class="text-x-small px-1.5 py-0.5 rounded-corners-md border color-border-[rgba(var(--warning-message-color),0.12)] shrink-0 whitespace-nowrap">
+        <span>+ {{ remaining_item_count }}</span>
+      </div>
+    {% endif %}
+  </div>
+  <template x-teleport="body">
+    <div
+      id="DisclosuresDrawer__{{ block_id }}"
+      x-show="isOpen"
+      x-cloak
+      @keydown.escape.window="closeDrawer('{{ product.id }}', '{{ product.url }}')"
+      class="drawer__wrapper"
+      x-intersect.full="$store.xFocusElement.trapFocus('DisclosuresDrawer__{{ block_id }}', 'DisclosureDrawerClose__{{ block_id }}')"  
+    >
+      <div
+        class="drawer__overlay"
+        x-show="isOpen"
+        @click="closeDrawer('{{ product.id }}', '{{ product.url }}')"
+      ></div>
+
+      <div
+        class="disclosure-drawer__container drawer__container transform"
+        x-show="isOpen"
+        x-cloak
+        x-transition:enter-start="opacity-0 translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+        x-transition:enter-end="opacity-100 translate-y-0 md:translate-x-0"
+        x-transition:leave-end="opacity-0 translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+      >
+        <div class="disclosure-drawer__header flex justify-between md:pl-8 md:pr-6.5 md:py-3 pl-4 py-2 pr-5 items-center">
+          <h2 class="md:h5 h4 anm-fade-element capitalize" data-fade-on-intersect>
+            {{ 'products.product.product_disclosures' | t }}
+          </h2>
+          <button
+            id="DisclosureDrawerClose__{{ block_id }}"
+            @click="closeDrawer('{{ product.id }}', '{{ product.url }}')"
+            @keyup.enter="closeDrawer('{{ product.id }}', '{{ product.url }}')"
+            @keydown.enter.prevent
+            class="modal-title__button-close w-8 h-8 flex items-center justify-center rounded-full"
+            aria-label="{{ 'accessibility.close' | t }}"
+          >
+            <span class="button__close icon-close-large-desktop icon-close-large-mobile">{%- render 'icon-all', icon: 'icon-close' -%}</span>
+          </button>
+        </div>
+        <div class="disclosure-drawer__content md:px-8 pb-8 px-4 overflow-y-auto scrollbar-visible scrollbar-body">
+          {%- for disclosure in disclosures -%}
+            <div class="disclosure-item__drawer px-1.5 py-3 border-t flex flex-col gap-3 color-border-[rgba(var(--color-text),0.12)]">
+              {%- assign title = disclosure.title.value -%}
+              {%- assign img = disclosure.symbol.value -%}
+              {%- assign content = disclosure.content -%}
+
+              <div class="flex items-center justify-between md:h6 h5">
+                <div class="flex items-center gap-1.5 flex-1">
+                  {% if img != blank %}
+                    <div class="inline-block relative h-5 w-6 md:min-w-6 shrink-0">
+                      <img
+                        src="{{ img | image_url: width: 30 }}"
+                        alt="{{ img.alt | default: product.title | escape }}"
+                        loading="lazy"
+                        width="{{ img.width }}"
+                        height="{{ img.height }}"
+                        style="object-position: {{ img.presentation.focal_point }}"
+                        class="disclosure-image object-cover absolute top-0 left-0 w-full h-full rounded-corners custom-icon-image_rounded-corners"
+                      >
+                    </div>
+                  {% endif %}  
+                  <p class="p-break-words">
+                    {{ title | strip | escape }}
+                  </p>
+                </div>
+              </div>
+              {% assign content = content | metafield_tag %}
+              {%- render 'truncate-text', 
+                currentId: block.id,
+                content: content,
+                class_truncate_text: 'm-0'
+              -%}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </template>
+</div>

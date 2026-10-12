@@ -1,0 +1,219 @@
+{% assign settings = block.settings %}
+
+{% liquid
+  assign class_vertical_alignment = ''
+  case settings.mobile_vertical_alignment
+    when 'top'
+      assign class_vertical_alignment = class_vertical_alignment | append: 'sm:justify-' | append: 'start'
+    when 'middle'
+      assign class_vertical_alignment = class_vertical_alignment | append: 'sm:justify-' | append: 'center'
+    when 'bottom'
+      assign class_vertical_alignment = class_vertical_alignment | append: 'sm:justify-' | append: 'end'
+  endcase
+
+  case settings.desktop_vertical_alignment
+    when 'top'
+      assign class_vertical_alignment = class_vertical_alignment | append: ' md:justify-' | append: 'start'
+    when 'middle'
+      assign class_vertical_alignment = class_vertical_alignment | append: ' md:justify-' | append: 'center'
+    when 'bottom'
+      assign class_vertical_alignment = class_vertical_alignment | append: ' md:justify-' | append: 'end'
+  endcase
+%}
+
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ settings.desktop_padding_top }}px;
+    --pad-bottom: {{ settings.desktop_padding_bottom }}px;
+    --pad-left: {{ settings.desktop_padding_left }}px;
+    --pad-right: {{ settings.desktop_padding_right }}px;
+    --pad-top-m: {{ settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ settings.mobile_padding_left }}px;
+    --pad-right-m: {{ settings.mobile_padding_right }}px;
+  }
+
+  .block-product-information__container__{{ block.id }} {
+    gap: calc({{ settings.gap }}px * var(--mobile-padding-ratio));
+  }
+
+  @media screen and (min-width: 768px) {
+    .block-product-information__container__{{ block.id }} {
+      gap: {{ settings.gap }}px;
+    }
+  }
+{% endstyle %}
+
+<div
+  class="block-product-information block-{{ block.id }} block-padding maximize-block grow color-{{ block.settings.color_scheme_light }} dark-color-{{ block.settings.color_scheme_dark }}
+    {%- if settings.show_border %} border border-solid{% endif %} rounded-corners flex flex-col h-full {{ class_vertical_alignment }} {{ class_text_align }}"
+  data-block-id="{{ block.id }}"
+  {{ block.shopify_attributes }}
+>
+  <div class="block-product-information__container block-product-information__container__{{ block.id }} flex flex-col md:flex-row">
+    {% comment %}{% content_for 'blocks' %}{% endcomment %}
+    {% content_for "block", type: "_product-details", id: "product_details_mdQQbM" %}
+    {% content_for "block", type: "_product-purchase", id: "product_purchase_mNT6ry" %}
+  </div>
+</div>
+{% schema  %}
+{
+  "name": "Product information",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Gap",
+      "default": 40
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.style"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_border",
+      "label": "t:product_details.blocks.rich_text.show_border",
+      "default": false
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "select",
+      "id": "device_padding",
+      "label": "t:global.header.choose_device",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    }
+  ],
+  "blocks": [
+
+  ],
+  "presets": [
+    {
+      "name": "Product Details",
+      "category": "t:global.product.product"
+    }
+  ]
+}
+{% endschema %}

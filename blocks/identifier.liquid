@@ -1,0 +1,166 @@
+{% assign current_variant = closest.product.selected_or_first_available_variant %}
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block.settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block.settings.desktop_padding_left }}px;
+    --pad-right: {{ block.settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+  }
+{% endstyle %}
+<div 
+  class="block-identifier block-{{ block.id }} maximize-block product-info__identifier-wrapper anm-fade-element
+    {%- if current_variant.sku != blank or current_variant.barcode != blank %} block-padding{% endif -%}" 
+  data-fade-on-intersect 
+  data-block-id="{{ block.id }}" {{ block.shopify_attributes }}
+>
+  <div class="block-identifier__content flex{% if current_variant.sku != blank and current_variant.barcode != blank %} gap-2.5{% endif %}">
+    {% if current_variant.sku != blank and block.settings.show_sku %}
+      <div class="block-identifier__sku block__identifier--sku">{{ 'products.product.sku' | t }}: {{ current_variant.sku }}</div>
+    {% endif %}
+    {% if current_variant.sku != blank and current_variant.barcode != blank and block.settings.show_sku and block.settings.show_barcode %}
+      <div class="block-identifier__divider block__identifier-divide w-px my-0.5 color-bg-[rgba(var(--color-line-and-border))]"></div>
+    {% endif %}
+    {% if current_variant.barcode != blank and block.settings.show_barcode %}
+      <div class="block-identifier__barcode block__identifier--barcode">{{ 'products.product.barcode' | t }}: {{ current_variant.barcode }}</div>
+    {% endif %}
+  </div>
+</div>
+{% schema %}
+{
+  "name": "t:main_product.blocks.sku_barcode.name",
+  "tag": null,
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_sku",
+      "label": "t:main_product.blocks.sku_barcode.show_sku",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_barcode",
+      "label": "t:main_product.blocks.sku_barcode.show_barcode",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "select",
+      "id": "device_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:main_product.blocks.sku_barcode.name",
+      "category": "t:global.product.product"
+    }
+  ]
+}
+{% endschema %}

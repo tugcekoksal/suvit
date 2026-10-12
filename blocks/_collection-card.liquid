@@ -1,0 +1,417 @@
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block.settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block.settings.desktop_padding_left }}px;
+    --pad-right: {{ block.settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+  }
+
+{% endstyle %}
+
+{% capture card_image %}
+  {% content_for 'block',
+    type: '_collection-image',
+    id: 'collection-card-image',
+    closest.collection: collection,
+    parent_block_id: block.id,
+    collection_list_settings: collection_list_settings,
+    index: index,
+    collection_card_settings: block.settings
+  %}
+{% endcapture %}
+
+{% capture children %}
+  {% content_for 'blocks', closest.collection: collection %}
+{% endcapture %}
+
+<div class="block-collection-card block-{{ block.id }} block-padding maximize-block z-10 h-full rounded-corners color-{{ block.settings.color_scheme_light }} dark-color-{{ block.settings.color_scheme_dark }}
+  {%- if block.settings.show_border_mobile or block.settings.show_border %} color-border-[rgba(var(--color-line-and-border))] border-solid{% if block.settings.show_border %} md:border{% endif %}{% if block.settings.show_border_mobile %} sm:border{% endif %}{% endif -%}"
+  {{ block.shopify_attributes }}>
+  {% render 'card-item-collection', 
+    card_image: card_image, 
+    children: children, 
+    block: block
+  %}
+</div>
+
+{% schema %}
+{
+  "name": "Collection card",
+  "blocks": [
+    {
+      "type": "collection-title"
+    },
+    {
+      "type": "collection-item-count"
+    },
+    {
+      "type": "button"
+    }
+  ],
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "paragraph",
+      "content": "Desktop"
+    },
+    {
+      "type": "select",
+      "id": "desktop_layout",
+      "label": "Desktop layout",
+      "default": "overlay",
+      "options": [
+        {
+          "value": "overlay",
+          "label": "Overlay"
+        },
+        {
+          "value": "separate",
+          "label": "Separate"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "desktop_content_position",
+      "label": "Desktop content position",
+      "default": "image_above",
+      "options": [
+        {
+          "value": "image_above",
+          "label": "Image above"
+        },
+        {
+          "value": "image_below",
+          "label": "Image below"
+        },
+        {
+          "value": "side_by_side",
+          "label": "Side by side"
+        }
+      ],
+      "visible_if": "{{ block.settings.desktop_layout == 'separate' }}"
+    },
+    {
+      "type": "select",
+      "id": "desktop_image_side",
+      "label": "Desktop image side",
+      "default": "right",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "visible_if": "{{ block.settings.desktop_layout == 'separate' and block.settings.desktop_content_position == 'side_by_side' }}"
+    },
+    {
+      "type": "select",
+      "id": "desktop_overlay_position",
+      "label": "Desktop overlay position",
+      "default": "center",
+      "options": [
+        {
+          "value": "top",
+          "label": "Top"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "bottom",
+          "label": "Bottom"
+        }
+      ],
+      "visible_if": "{{ block.settings.desktop_layout == 'overlay' }}"
+    },
+    {
+      "type": "select",
+      "id": "desktop_content_alignment",
+      "label": "Desktop content alignment",
+      "default": "center",
+      "options": [
+        {
+          "value": "start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "end",
+          "label": "Right"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": "Mobile"
+    },
+    {
+      "type": "select",
+      "id": "mobile_layout",
+      "label": "Mobile layout",
+      "default": "overlay",
+      "options": [
+        {
+          "value": "overlay",
+          "label": "Overlay"
+        },
+        {
+          "value": "separate",
+          "label": "Separate"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "mobile_content_position",
+      "label": "Mobile content position",
+      "default": "image_above",
+      "options": [
+        {
+          "value": "image_above",
+          "label": "Image above"
+        },
+        {
+          "value": "image_below",
+          "label": "Image below"
+        },
+        {
+          "value": "side_by_side",
+          "label": "Side by side"
+        }
+      ],
+      "visible_if": "{{ block.settings.mobile_layout == 'separate' }}"
+    },
+    {
+      "type": "select",
+      "id": "mobile_image_side",
+      "label": "Mobile image side",
+      "default": "right",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "visible_if": "{{ block.settings.mobile_layout == 'separate' and block.settings.mobile_content_position == 'side_by_side' }}"
+    },
+    {
+      "type": "select",
+      "id": "mobile_overlay_position",
+      "label": "Mobile overlay position",
+      "default": "center",
+      "options": [
+        {
+          "value": "top",
+          "label": "Top"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "bottom",
+          "label": "Bottom"
+        }
+      ],
+      "visible_if": "{{ block.settings.mobile_layout == 'overlay' }}"
+    },
+    {
+      "type": "select",
+      "id": "mobile_content_alignment",
+      "label": "Mobile content alignment",
+      "default": "center",
+      "options": [
+        {
+          "value": "start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "end",
+          "label": "Right"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "select",
+      "id": "spacing_choose_device",
+      "label": "Choose device",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "Desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "Mobile"
+        }
+      ],
+      "default": "desktop",
+      "info": "Desktop and Mobile settings are configured separately."
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 12,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 12,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 12,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 12,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 6,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 6,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 6,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 6,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Gap",
+      "default": 8,
+      "info": "Spacing between child blocks inside the card."
+    },
+    {
+      "type": "header",
+      "content": "Style"
+    },
+     {
+      "type": "checkbox",
+      "id": "show_border",
+      "label": "Show border (desktop)",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_border_mobile",
+      "label": "Show border (mobile)",
+      "default": false
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Collection card"
+    }
+  ]
+}
+{% endschema %}

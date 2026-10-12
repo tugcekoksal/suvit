@@ -1,0 +1,240 @@
+{% comment %}
+   Accepts:
+      - product: {Object} Product Object
+      - variant: {Object} Variant Object
+      - product_option: {Object} Product Option Object
+      - product_form_id: {string} product form id
+      - section: {Object} Section Object
+      - block: {Object} Block Object
+    Usage:
+   {% render 'variant-options',
+  	product: product,
+  	variant: variant,
+  	product_option: product_option,
+  	product_form_id: product_form_id,
+  	section: section,
+  	block: block
+  %}
+{% endcomment %}
+{% liquid
+  assign swatch_count = false
+
+  assign show_color_swatch = false
+  assign swatch_option_name = settings.swatch_option_name | split: ';'
+  assign list_swatch_option_values = settings.swatch_option_values | newline_to_br | strip_newlines | split: '<br />'
+
+  if enable_color_swatches
+    if swatch_option_name contains product_option.name
+      assign show_color_swatch = true
+    endif
+      assign swatch_count = product_option.values | map: 'swatch' | compact | size
+  endif
+%}
+{% assign swatch_ratio = 1 %}
+{% for option_value in product_option.values %}
+  {% liquid
+    assign is_available_option = option_value.available
+    assign is_selected_option = option_value.selected
+
+    assign option_id = section.id | append: '-' | append: option_value.id
+    
+    assign product_option_position = product_option.position
+    assign product_option_index = product_option_position | minus: 1
+  %}
+
+  {% if variant_picker_type == 'button' %}
+    {% if show_color_swatch or swatch_count > 0 %}
+      {% liquid
+        assign swatch_value = false
+        assign swatch_image = false
+        if swatch_count > 0
+          if option_value.swatch.image
+            assign swatch_image = option_value.swatch.image
+          elsif option_value.swatch.color
+            assign swatch_option_style = 'color'
+            assign swatch_value = 'rgba(' | append: option_value.swatch.color.rgba | append: ')'
+          endif
+        endif
+
+        assign swatch_value_option = null
+        assign multi_colors = null
+        if show_color_swatch
+          for swatch_option in list_swatch_option_values
+            assign swatch_item_key = swatch_option | split: ':' | first
+            assign swatch_item_value = swatch_option | split: ':' | last | strip
+            if swatch_item_key == option_value
+              assign swatch_value_option = swatch_item_value
+              break
+            endif
+          endfor
+          if swatch_value_option
+            if swatch_value_option contains '.'
+              assign image_url = swatch_value_option | file_img_url: '100x100'
+              assign swatch_value = 'url(' | append: image_url | append: ')'
+              assign swatch_option_style = 'image'
+            else
+              assign multi_colors = swatch_value_option | remove_first: '#' | split: '#'
+              assign swatch_value = swatch_value_option
+              assign swatch_option_style = 'color'
+              assign swatch_image = false
+            endif
+          endif
+        endif
+        if settings.replace_color_with_variant_images
+          assign variant_of_option_value = option_value.variant
+          if option_value.product_url == proudct.url
+            if variant_of_option_value.featured_media.preview_image != null
+              assign swatch_image = variant_of_option_value.featured_media.preview_image
+            elsif product.featured_media.preview_image != null
+              assign swatch_image = product.featured_media.preview_image
+            endif
+          else
+            if variant_of_option_value.product.featured_media.preview_image != null
+              assign swatch_image = variant_of_option_value.product.featured_media.preview_image
+            endif
+          endif
+        endif
+
+        if swatch_image != false
+          assign swatch_option_style = 'image'
+          assign image_url = swatch_image | image_url: width: 80
+          assign swatch_value = 'url(' | append: image_url | append: ')'
+          assign selected_swatch_value = 'url(' | append: selected_image_url | append: ')'
+          if forloop.first
+            assign swatch_ratio = 1 | divided_by: swatch_image.aspect_ratio
+          endif
+        endif
+      %}
+      {% capture linear_background %}
+        {% if multi_colors.size == 3 %}
+          linear-gradient(45deg, {{ '#' | append: multi_colors[0] }}, {{ '#' | append: multi_colors[0] }} 33.3%, {{ '#' | append: multi_colors[1] }} 33.3%, {{ '#' | append: multi_colors[1] }} 66.6%, {{ '#' | append: multi_colors[2] }} 66.6%, {{ '#' | append: multi_colors[2] }});
+        {% elsif multi_colors.size == 2 %}
+          linear-gradient(45deg, {{ '#' | append: multi_colors[0] }}, {{ '#' | append: multi_colors[0] }} 50%, {{ '#' | append: multi_colors[1] }} 50%, {{ '#' | append: multi_colors[1] }});
+        {% endif %}
+      {% endcapture %}
+      {% liquid
+        if multi_colors.size > 1 and swatch_image == false
+          assign swatch_value = linear_background
+          assign swatch_option_style = 'image'
+        endif
+        if swatch_value == false
+          assign swatch_option_style = 'color'
+          assign swatch_value = option_value.name
+        endif
+      %}
+      {% style %}
+        {% if settings.swatch_style == 'natural' and swatch_ratio != false %}
+          .swatch-option__label[for="{{ option_id }}"] {
+            --swatch-option-ratio: {{ swatch_ratio }};
+          }
+        {% endif %}
+        .swatch-option__label[for="{{ option_id }}"] {
+        {% if swatch_option_style == "color" and swatch_value != false %}
+          --swatch-color-value: {{ swatch_value }}
+        {% elsif swatch_option_style == "image" and swatch_value != false %}
+          --swatch-image-value: {{ swatch_value }}; --swatch-color-value: {{ option_value.name | downcase }};
+        {% endif %} }
+        {% if selected_swatch_value %}
+          .swatch-option__label.selected[for="{{ swatch_id }}"]::before {background: {{ selected_swatch_value }};}
+        {% endif %}
+      {% endstyle %}
+      <input
+        class="swatch-option__value variant-option w-0 h-0 hidden{% if is_selected_option %} selected{% endif %}{% unless is_available_option %} disabled{% endunless %}"
+        type="radio"
+        id="{{ option_id }}"
+        name="VariantPicker-{{ product_option.name |  escape }}"
+        value="{{ option_value | escape }}"
+        form="{{ product_form_id }}"
+        data-option-value-id="{{ option_value.id }}"
+        data-value="{{ option_value.name | escape }}"
+        data-option-position="{{ product_option_position }}"
+        data-select-value="{{ label_text }}"
+        data-type="swatches"
+        data-product-url="{{ option_value.product_url }}"
+        tabindex="-1"
+        {% if variant.featured_media.id %}
+        data-media-id="{{ variant.featured_media.id }}"
+        {% endif %}
+        aria-label="{{ label_text | default: option_value }}"
+      >
+      <label
+        class="swatch-option__label variant-option-label flex items-center{% if settings.swatch_style == 'natural' %} swatch-option__natural{% endif %} variant-option__label cursor-pointer{% unless is_available_option %} disabled{% endunless %}"
+        data-value="{{ option_value | downcase }}"
+        data-swatch-value="{{ swatch_value }}"
+        data-swatch-style="{{ swatch_option_style }}"
+        data-option-value-id="{{ option_value.id }}"
+        data-swatch-type="color"
+        for="{{ option_id }}"
+        tabindex="0"
+        {% comment %}@keyup.enter="$el.previousElementSibling?.click()"{% endcomment %}
+      >
+        {% if label_text != blank -%}
+          <span class="swatch-option__label-text">{{ label_text }}</span>
+        {%- endif %}
+      </label>
+    {% else %}
+      <input
+        class="h-px w-px hidden variant-option {% if is_selected_option %} selected{% endif %} {% unless is_available_option %} disabled{% endunless %}"
+        type="radio"
+        id="{{ option_id }}"
+        name="VariantPicker-{{ product_option.name |  escape }}"
+        value="{{ option_value | escape }}"
+        form="{{ product_form_id }}"
+        aria-selected="{{ is_selected_option }}"
+        data-option-value-id="{{ option_value.id }}"
+        data-value="{{ option_value | escape }}"
+        data-option-position="{{ product_option_position }}"
+        data-select-value="{{ option_value | escape }}"
+        data-type="buttons"
+        data-product-url="{{ option_value.product_url }}"
+        {% if variant.featured_media?.id != blank %}
+        data-media-id="{{ variant.featured_media.id }}"
+        {% endif %}
+        data-option-name="{{ product_option.name | escape }}"
+      >
+      <label
+        class="variant-option__label variant-option-label select-none cursor-pointer relative text-medium py-2 px-3 md:py-2.5 md:px-5 min-w-[60px] md:min-w-[82px] flex justify-center overflow-hidden break-words {%  if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %} {% unless is_available_option %} disabled{% endunless %}"
+        for="{{ option_id }}"
+        data-swatch-type="button"
+        data-option-value="{{ option_value | escape }}"
+        data-option-value-id="{{ option_value.id }}"
+        tabindex="0"
+        {% comment %}@keyup.enter="handleFocus($event)"{% endcomment %}
+        {% comment %}@click.prevent="handleFocus($event)"{% endcomment %}
+      >
+        {{ option_value | escape }}
+      </label>
+    {% endif %}
+  {% elsif variant_picker_type == 'dropdown' %}
+    {% comment %} Determine the text to show in the select dropdown {% endcomment %}
+    {% capture select_value_text %}
+      {% if is_available_option %}
+        {{ option_value | escape }}
+      {% else %}
+        {% if option_value.variant.available == nil %}
+          {{ 'products.product.value_unavailable' | t: value: option_value  }}
+        {% else %}
+          {{ 'products.product.value_sold_out' | t: value: option_value }}
+        {% endif %}
+      {% endif %}
+    {% endcapture %}
+    {% assign select_value_text = select_value_text | strip %}
+    <li
+      class="select-option variant-option cursor-pointer pl-5 pr-5 pt-3 pb-3 w-full{% if is_selected_option %} selected{% endif %}{% unless is_available_option %} disabled{% endunless %}"
+      data-option-name="{{ product_option.name | escape }}"
+      data-option-position="{{ product_option_position }}"
+      data-value="{{ option_value | escape }}"
+      data-select-value="{{ select_value_text }}"
+      data-option-value-id="{{ option_value.id }}"
+      data-product-url="{{ option_value.product_url }}"
+      aria-selected="{{ is_selected_option }}"
+      data-type="dropdown"
+      role="option"
+      {% comment %}@click.prevent="handleSelectOption($event)"{% endcomment %}
+      {% comment %}@keydown.enter="handleSelectOption($event)"{% endcomment %}
+      tabindex="-1"
+    >
+      {{ select_value_text }}
+    </li>
+  {% endif %}
+{% endfor %}

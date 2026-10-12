@@ -1,0 +1,83 @@
+{% liquid
+  assign img_width = 40
+  unless settings.visual_value_style == "compact" 
+    assign img_width = 140
+  endunless
+  if presentation == 'swatch'
+    assign swatch_type = 'color'
+    assign swatch_value = false
+    if filter_value.swatch.color
+      assign swatch_value = 'rgba(' | append: filter_value.swatch.color.rgba | append: ')'
+    endif
+    if filter_value.swatch.image
+      assign swatch_type = 'image'
+      assign image_url = filter_value.swatch.image | image_url: width: img_width
+      assign swatch_value = 'url(' | append: image_url | append: ')'
+    endif
+  endif
+
+  if presentation == 'image'
+    if filter_value.image
+      assign swatch_type = 'image'
+      assign image_url = filter_value.image | image_url: width: img_width
+      assign swatch_value = 'url(' | append: image_url | append: ')'
+    endif
+  endif
+%}
+{% style %}
+  {% if swatch_value %}
+    .swatch-option__label[for="Filter-{{ filter_type }}-{{ param }}-{{ index}}"]::before {
+    {% if swatch_type == "color" %}
+      --swatch-color-value: {{ swatch_value }}
+    {% elsif swatch_type == "image" %}
+      --swatch-image-value: {{ swatch_value }};
+    {% endif %} }
+  {% endif %}
+{% endstyle %}
+<input
+  type="checkbox"
+  id="Filter-{{ filter_type }}-{{ param }}-{{ index}}"
+  class="input-filter-{{ filter.presentation }} swatch-option__value peer input-checkbox color-border-[rgba(var(--color-text),0.12)] opacity-0 border checked:color-bg-[rgba(var(--color-button))] !absolute cursor-pointer peer
+    {%- if is_rtl %} ml-3{% else %} mr-3{% endif -%}
+    {%- if settings.visual_value_style == "compact" %} min-w-[20px] h-5{% else %}h-[70px] min-w-[70px]{% endif -%}
+    {%- if filter.operator == 'AND' %} filter-and{% endif -%}
+    {%- if settings.edges_type == 'rounded_corners' %} rounded{% else %} rounded-none{% endif -%}"
+  name="{{ filter_value.param_name }}"
+  value="{{ filter_value.value }}"
+  {% if filter_value.active %}
+    checked
+  {% endif %}
+  {% if filter_value.count == 0 and filter_value.active == false %}
+    disabled
+  {% endif %}
+  @change="onSubmit()"
+  @keydown.enter.prevent="$el.click()"
+>
+{% case presentation %}
+  {% when 'swatch' %}
+    <label
+      class="swatch-option__label relative cursor-pointer peer-disabled:cursor-not-allowed filter-swatch-label peer-focus-visible:outline-1 peer-focus-visible:outline before:top-1 before:bottom-1 before:left-1 before:right-1 before:bg-clip-content flex items-center variant-option__label 
+        {%- if settings.visual_value_style == "compact" %} before:h-4.5 before:w-4.5{% else %} before:h-[62px] before:w-[62px] before:aspect-1/1{% endif -%}
+        {%- if settings.swatch_style == "round" %} before:rounded-full {% else %}{%- if settings.edges_type == 'rounded_corners' %} before:rounded{% endif -%}{% endif -%}"
+      for="Filter-{{ filter_type }}-{{ param }}-{{ index}}"
+      data-swatch-type="color"
+    >
+      <span class="swatch-filter-data border color-border-[rgba(var(--color-text),0.12)] {% if settings.swatch_style == "round" %} rounded-full{% else %}{% if settings.edges_type == 'rounded_corners' %} rounded{% endif %}{% endif %} inline-block shrink-0 {% if settings.visual_value_style == "compact" %} h-6.5 w-6.5 {% else %} h-[70px] w-[70px] aspect-1/1{% endif %}"></span>
+      {%- if settings.filter_display_text -%}
+        <span class="swatch-option__label-text relative left-2 rtl:right-2 w-full">{{ filter_value.label | escape }} ({{ filter_value.count }})</span>
+      {%- endif -%}
+    </label>
+  {% when 'image' %}
+    <label
+      class="swatch-option__label relative cursor-pointer peer-disabled:cursor-not-allowed filter-swatch-label peer-focus-visible:outline-1 peer-focus-visible:outline before:top-1 before:bottom-1 before:left-1 before:right-1 before:bg-clip-content flex items-center variant-option__label
+        {%- if settings.visual_value_style == "compact" %} before:h-4.5 before:w-4.5{% else %} before:h-[62px] before:w-[62px] before:aspect-1/1{% endif -%}
+        {%- if settings.swatch_style == "round" %} before:rounded-full{% else %}{%- if settings.edges_type == 'rounded_corners' %} before:rounded{% endif -%}{% endif -%}"
+      for="Filter-{{ filter_type }}-{{ param }}-{{ index}}"
+      data-swatch-type="color"
+    >
+      <span class="swatch-filter-data border color-border-[rgba(var(--color-text),0.12)] {% if settings.swatch_style == "round" %} rounded-full{% else %}{% if settings.edges_type == 'rounded_corners' %} rounded{% endif %}{% endif %} inline-block shrink-0 {% if settings.visual_value_style == "compact" %} h-6.5 w-6.5 {% else %} h-[70px] w-[70px] aspect-1/1{% endif %}"></span>
+      {%- if settings.filter_display_text -%}
+        <span class="swatch-option__label-text relative left-2 rtl:right-2 w-full">{{ filter_value.label | escape }} ({{ filter_value.count }})</span>
+      {%- endif -%}
+    </label>
+{% endcase %}

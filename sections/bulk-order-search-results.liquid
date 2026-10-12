@@ -1,0 +1,11 @@
+{%- if predictive_search.performed -%}
+  <script type="application/json" id="bulk-order-results-data">
+    [
+      {%- for product in predictive_search.resources.products -%}
+        {%- assign full_product = all_products[product.handle] -%}
+        {%- render 'bulk-order-variant-json', product: full_product -%}
+        {%- unless forloop.last -%},{%- endunless -%}
+      {%- endfor -%}
+    ]
+  </script>
+{%- endif -%}

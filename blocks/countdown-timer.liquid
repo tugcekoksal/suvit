@@ -1,0 +1,600 @@
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block.settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block.settings.desktop_padding_left }}px;
+    --pad-right: {{ block.settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+  }
+  {%- if block.settings.show_border_around_timer -%}
+    .countdown-timer__item__{{ block.id }} {
+      border-color: rgb(var(--color-line-and-border));
+    }
+  {%- endif -%}
+  .maximize-theme:not(.dark) .countdown--{{ block.id }} {
+    {% if block.settings.timer_background_light.alpha != 0.0 and block.settings.show_timer_background %}
+      --color-button: {{ block.settings.timer_background_light.red }} {{ block.settings.timer_background_light.green }} {{ block.settings.timer_background_light.blue }} / {{ block.settings.timer_background_light.alpha }};
+    {% endif %}
+    {% if block.settings.color_timer_light.alpha != 0.0 %}
+      --color-button-text: {{ block.settings.color_timer_light.red }} {{ block.settings.color_timer_light.green }} {{ block.settings.color_timer_light.blue }} / {{ block.settings.color_timer_light.alpha }};
+    {% endif %}
+  }
+
+  .maximize-theme.dark .countdown--{{ block.id }} {
+    {% if block.settings.timer_background_dark.alpha != 0.0 and block.settings.show_timer_background %}
+      --color-button: {{ block.settings.timer_background_dark.red }} {{ block.settings.timer_background_dark.green }} {{ block.settings.timer_background_dark.blue }} / {{ block.settings.timer_background_dark.alpha }};
+    {% endif %}
+    {% if block.settings.color_timer_dark.alpha != 0.0 %}
+      --color-button-text: {{ block.settings.color_timer_dark.red }} {{ block.settings.color_timer_dark.green }} {{ block.settings.color_timer_dark.blue }} / {{ block.settings.color_timer_dark.alpha }};
+    {% endif %}
+  }
+
+  {% unless block.settings.show_timer_background %}
+    .countdown-timer__item__{{ block.id }} {
+      background-color: transparent;
+    }
+  {% endunless %}
+{% endstyle %}
+<div class="block-countdown-timer block-{{ block.id }} block-padding maximize-block" data-block-id="{{ block.id }}" {{ block.shopify_attributes }}>
+  {% liquid 
+    assign class_countdown_items = 'countdown-timer__item relative flex flex-col justify-center items-center' | append: ' countdown-timer__item__' | append: block.id
+    if block.settings.show_border_around_timer
+      assign class_countdown_items = class_countdown_items | append: ' border border-dashed'
+    endif
+  %}
+  <div class="block-countdown-timer__container block__countdown-wrapper flex items-center flex-row gap-x-4 gap-y-1 md-lg:max-w-min">
+    <div
+      class="countdown--{{ block.id }} flex h-fit md:self-center items-center gap-1 countdown-timer__wrapper countdown-timer__{{ block.settings.text_size }}"
+      x-data="{ loading: true, textLoad: ' - ', days: 0, hours: 0, minutes: 0, seconds: 0 }"
+      x-intersect.once='
+        $nextTick(() => {
+          $store.xHelper.countdown({
+            "id": "{{ block.id }}",
+            "timezone": {{ 'now' | date: '%z' | replace: '0', ''}},
+            "end_year": {{ block.settings.end_year | default: 0 }},
+            "end_month": {{ block.settings.end_month | default: 0 }},
+            "end_day": {{ block.settings.end_day | default: 0 }},
+            "end_hour": {{ block.settings.end_hour | default: 0 }},
+            "end_minute": {{ block.settings.end_minute | default: 0 }}
+          }, (canShow, s, m, h, d) => {
+            days = d;
+            hours = h;
+            minutes = m;
+            seconds = s;
+            loading = false;
+          })
+        })
+      '
+    >
+      <div class="block-countdown-timer__unit block-countdown-timer__days {{ class_countdown_items }}">
+        <div x-html="loading ? textLoad : days"></div>
+      </div>
+      <span class="color-timer-countdown--{{ block.id }} countdown-timer__colon">:</span>
+      <div class="block-countdown-timer__unit block-countdown-timer__hours {{ class_countdown_items }}">
+        <div x-html="loading ? textLoad : hours"></div>
+      </div>
+      <span class="color-timer-countdown--{{ block.id }} countdown-timer__colon">:</span>
+      <div class="block-countdown-timer__unit block-countdown-timer__minutes {{ class_countdown_items }}">
+        <div x-html="loading ? textLoad : minutes"></div>
+      </div>
+      <span class="color-timer-countdown--{{ block.id }} countdown-timer__colon">:</span>
+      <div class="block-countdown-timer__unit block-countdown-timer__seconds {{ class_countdown_items }}">
+        <div x-html="loading ? textLoad : seconds"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% schema  %}
+{
+  "name": "t:global.header.countdown_timer",
+  "tag": null,
+  "settings": [
+    {
+      "type": "number",
+      "id": "end_year",
+      "default": 2026,
+      "label": "t:global.time.year"
+    },
+    {
+      "type": "select",
+      "id": "end_month",
+      "options": [
+        {
+          "value": "1",
+          "label": "t:global.time.list_month.january"
+        },
+        {
+          "value": "2",
+          "label": "t:global.time.list_month.february"
+        },
+        {
+          "value": "3",
+          "label": "t:global.time.list_month.march"
+        },
+        {
+          "value": "4",
+          "label": "t:global.time.list_month.april"
+        },
+        {
+          "value": "5",
+          "label": "t:global.time.list_month.may"
+        },
+        {
+          "value": "6",
+          "label": "t:global.time.list_month.june"
+        },
+        {
+          "value": "7",
+          "label": "t:global.time.list_month.july"
+        },
+        {
+          "value": "8",
+          "label": "t:global.time.list_month.august"
+        },
+        {
+          "value": "9",
+          "label": "t:global.time.list_month.september"
+        },
+        {
+          "value": "10",
+          "label": "t:global.time.list_month.october"
+        },
+        {
+          "value": "11",
+          "label": "t:global.time.list_month.november"
+        },
+        {
+          "value": "12",
+          "label": "t:global.time.list_month.december"
+        }
+      ],
+      "default": "12",
+      "label": "t:global.time.month"
+    },
+    {
+      "type": "select",
+      "id": "end_day",
+      "options": [
+        {
+          "value": "1",
+          "label": "1"
+        },
+        {
+          "value": "2",
+          "label": "2"
+        },
+        {
+          "value": "3",
+          "label": "3"
+        },
+        {
+          "value": "4",
+          "label": "4"
+        },
+        {
+          "value": "5",
+          "label": "5"
+        },
+        {
+          "value": "6",
+          "label": "6"
+        },
+        {
+          "value": "7",
+          "label": "7"
+        },
+        {
+          "value": "8",
+          "label": "8"
+        },
+        {
+          "value": "9",
+          "label": "9"
+        },
+        {
+          "value": "10",
+          "label": "10"
+        },
+        {
+          "value": "11",
+          "label": "11"
+        },
+        {
+          "value": "12",
+          "label": "12"
+        },
+        {
+          "value": "13",
+          "label": "13"
+        },
+        {
+          "value": "14",
+          "label": "14"
+        },
+        {
+          "value": "15",
+          "label": "15"
+        },
+        {
+          "value": "16",
+          "label": "16"
+        },
+        {
+          "value": "17",
+          "label": "17"
+        },
+        {
+          "value": "18",
+          "label": "18"
+        },
+        {
+          "value": "19",
+          "label": "19"
+        },
+        {
+          "value": "20",
+          "label": "20"
+        },
+        {
+          "value": "21",
+          "label": "21"
+        },
+        {
+          "value": "22",
+          "label": "22"
+        },
+        {
+          "value": "23",
+          "label": "23"
+        },
+        {
+          "value": "24",
+          "label": "24"
+        },
+        {
+          "value": "25",
+          "label": "25"
+        },
+        {
+          "value": "26",
+          "label": "26"
+        },
+        {
+          "value": "27",
+          "label": "27"
+        },
+        {
+          "value": "28",
+          "label": "28"
+        },
+        {
+          "value": "29",
+          "label": "29"
+        },
+        {
+          "value": "30",
+          "label": "30"
+        },
+        {
+          "value": "31",
+          "label": "31"
+        }
+      ],
+      "default": "31",
+      "label": "t:global.time.day"
+    },
+    {
+      "type": "select",
+      "id": "end_hour",
+      "options": [
+        {
+          "value": "0",
+          "label": "12 AM"
+        },
+        {
+          "value": "1",
+          "label": "01 AM"
+        },
+        {
+          "value": "2",
+          "label": "02 AM"
+        },
+        {
+          "value": "3",
+          "label": "03 AM"
+        },
+        {
+          "value": "4",
+          "label": "04 AM"
+        },
+        {
+          "value": "5",
+          "label": "05 AM"
+        },
+        {
+          "value": "6",
+          "label": "06 AM"
+        },
+        {
+          "value": "7",
+          "label": "07 AM"
+        },
+        {
+          "value": "8",
+          "label": "08 AM"
+        },
+        {
+          "value": "9",
+          "label": "09 AM"
+        },
+        {
+          "value": "10",
+          "label": "10 AM"
+        },
+        {
+          "value": "11",
+          "label": "11 AM"
+        },
+        {
+          "value": "12",
+          "label": "12 PM"
+        },
+        {
+          "value": "13",
+          "label": "01 PM"
+        },
+        {
+          "value": "14",
+          "label": "02 PM"
+        },
+        {
+          "value": "15",
+          "label": "03 PM"
+        },
+        {
+          "value": "16",
+          "label": "04 PM"
+        },
+        {
+          "value": "17",
+          "label": "05 PM"
+        },
+        {
+          "value": "18",
+          "label": "06 PM"
+        },
+        {
+          "value": "19",
+          "label": "07 PM"
+        },
+        {
+          "value": "20",
+          "label": "08 PM"
+        },
+        {
+          "value": "21",
+          "label": "09 PM"
+        },
+        {
+          "value": "22",
+          "label": "10 PM"
+        },
+        {
+          "value": "23",
+          "label": "11 PM"
+        }
+      ],
+      "default": "0",
+      "label": "t:global.time.hour"
+    },
+    {
+      "type": "select",
+      "id": "end_minute",
+      "options": [
+        {
+          "value": "0",
+          "label": "00"
+        },
+        {
+          "value": "15",
+          "label": "15"
+        },
+        {
+          "value": "30",
+          "label": "30"
+        },
+        {
+          "value": "45",
+          "label": "45"
+        }
+      ],
+      "default": "0",
+      "label": "t:global.time.minute"
+    },
+    {
+      "type": "header",
+      "content": "t:settings.typography.name"
+    },
+    {
+      "type": "select",
+      "id": "text_size",
+      "label": "t:settings.typography.font_size",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:global.size.small"
+        },
+        {
+          "value": "medium",
+          "label": "t:global.size.medium"
+        },
+        {
+          "value": "large",
+          "label": "t:global.size.large"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "select",
+      "id": "device_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.style"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_border_around_timer",
+      "label": "t:featured_collections.settings.countdown.show_border",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_timer_background",
+      "label": "t:global.header.show_timer_background",
+      "default": true
+    },
+    {
+      "type": "color",
+      "id": "timer_background_light",
+      "label": "t:global.colors.timer_background_color_light",
+      "default": "rgba(0,0,0,0)",
+      "visible_if": "{{ block.settings.show_timer_background == true }}"
+    },
+    {
+      "type": "color",
+      "id": "color_timer_light",
+      "label": "t:global.colors.timer_light",
+      "default": "rgba(0,0,0,0)"
+    },
+    {
+      "type": "color",
+      "id": "timer_background_dark",
+      "label": "t:global.colors.timer_background_color_dark",
+      "default": "rgba(0,0,0,0)",
+      "visible_if": "{{ block.settings.show_timer_background == true }}"
+    },
+    {
+      "type": "color",
+      "id": "color_timer_dark",
+      "label": "t:global.colors.timer_dark",
+      "default": "rgba(0,0,0,0)"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:global.header.countdown_timer",
+      "category": "t:global.product.product"
+    }
+  ]
+}
+{% endschema %}

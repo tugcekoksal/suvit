@@ -1,0 +1,250 @@
+{% style %}
+  .section-{{ section.id }}-padding {
+    padding-top: {{ section.settings.top_padding | times: 0.5  }}px;
+    padding-bottom: {{ section.settings.bottom_padding | times: 0.5 }}px;
+  }
+
+  @media screen and (min-width: 768px) {
+    .section-{{ section.id }}-padding {
+      padding-top: {{ section.settings.top_padding }}px;
+      padding-bottom: {{ section.settings.bottom_padding }}px;
+    }
+  }
+  .content-{{ section.id }} {
+    column-gap: 12px;
+    row-gap: 12px;
+  }
+  .content-{{ section.id }} .quick-link-item {
+    {% if section.settings.mobile_alignment == "start" %}
+      text-align: center;
+    {% else %}
+      text-align: {{ section.settings.mobile_alignment }};
+    {% endif %}
+    {% if section.settings.mobile_layout == "1" %}
+      flex-basis: 100%;
+    {% else %}
+      flex-basis: calc(50% - 6px);
+    {% endif %}
+  }
+  .section--{{ section.id }} {
+    font-weight: var(--font-heading-weight);
+  }
+  @media screen and (min-width: 768px) {
+    {%- if section.settings.show_lines -%}
+      .content-{{ section.id }} .quick-link-item:not(:last-child):after {
+        content: "";
+        border-right: 1px solid rgba(var(--color-text));
+        position: absolute;
+        height: 100%;
+        top: 0;
+        right: -{{ section.settings.link_spacing | divided_by: 2 }}px;
+      }
+    {%- endif -%}
+    .content-{{ section.id }} {
+      column-gap: {{ section.settings.link_spacing }}px;
+    }
+    .content-{{ section.id }} .quick-link-item {
+      flex-basis: auto;
+    }
+  }
+{% endstyle %}
+
+<div class="section--{{ section.id }} gradient color-{{ section.settings.color_scheme_light }} dark-color-{{ section.settings.color_scheme_dark }} ltr section-{{ section.id }}-padding">
+  <div class="content-{{ section.id }} page-width flex-wrap flex justify-{{ section.settings.mobile_alignment }} md:justify-{{ section.settings.alignment }}">
+    {%- for block in section.blocks -%}
+      {%- if block.settings.title != blank -%}
+        <div class="quick-link-item relative">
+          {%- if block.settings.url != blank -%}
+            <a
+              href="{{ block.settings.url }}"
+              class="leading-[initial] relative text-link-animation"
+              {% if block.settings.open_new_window_button %}
+                target="_blank"
+              {% endif %}
+            >
+              {{ block.settings.title }}
+            </a>
+          {%- else -%}
+            <p class="leading-[initial] item-link relative">
+              {{ block.settings.title }}
+            </p>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+    {%- endfor -%}
+  </div>
+</div>
+{% schema %}
+{
+  "name": "t:quick_link.name",
+  "class": "maximize-section section-quick-links",
+  "enabled_on": {
+    "groups": ["footer"]
+  },
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:global.header.desktop_layout"
+    },
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "t:global.alignment.desktop",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:global.position.left"
+        },
+        {
+          "value": "center",
+          "label": "t:global.position.center"
+        },
+        {
+          "value": "right",
+          "label": "t:global.position.right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "link_spacing",
+      "min": 5,
+      "max": 100,
+      "step": 5,
+      "label": "t:quick_link.settings.desktop_layout.link_spacing",
+      "default": 40,
+      "unit": "px"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_lines",
+      "default": false,
+      "label": "t:quick_link.settings.desktop_layout.show_lines",
+      "info": "t:quick_link.settings.desktop_layout.show_lines_info"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.mobile_layout"
+    },
+    {
+      "type": "select",
+      "id": "mobile_layout",
+      "label": "t:global.section.number_of_columns",
+      "options": [
+        {
+          "value": "1",
+          "label": "t:global.section.columns.1_column"
+        },
+        {
+          "value": "2",
+          "label": "t:global.section.columns.2_columns"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "select",
+      "id": "mobile_alignment",
+      "label": "t:global.alignment.mobile_content",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:global.position.left"
+        },
+        {
+          "value": "start",
+          "label": "t:global.position.center"
+        },
+        {
+          "value": "right",
+          "label": "t:global.position.right"
+        }
+      ],
+      "default": "start"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "range",
+      "id": "top_padding",
+      "min": 0,
+      "max": 100,
+      "unit": "px",
+      "step": 4,
+      "default": 24,
+      "label": "t:global.section.top_padding"
+    },
+    {
+      "type": "range",
+      "id": "bottom_padding",
+      "min": 0,
+      "max": 100,
+      "unit": "px",
+      "step": 4,
+      "default": 24,
+      "label": "t:global.section.bottom_padding"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.colors"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "link_list",
+      "name": "t:quick_link.blocks.link_item.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "default": "Quick link",
+          "label": "t:quick_link.blocks.link_item.settings.title"
+        },
+        {
+          "type": "url",
+          "id": "url",
+          "label": "t:quick_link.blocks.link_item.settings.url"
+        },
+        {
+          "type": "checkbox",
+          "id": "open_new_window_button",
+          "default": false,
+          "label": "t:global.text.open_link_new_tab"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:quick_link.name",
+      "category": "t:global.category.content",
+      "blocks": [
+        {
+          "type": "link_list"
+        },
+        {
+          "type": "link_list"
+        },
+        {
+          "type": "link_list"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

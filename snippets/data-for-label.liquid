@@ -1,0 +1,78 @@
+{% capture list_metafield_label %}
+  {% liquid
+    assign metafield_label_list = settings.label_and_badge_mtf | newline_to_br | strip_newlines | split: '<br />'
+    for metafield_key in metafield_label_list
+      assign list_key = metafield_key | split: "."
+      assign data_metafield = current_variant.metafields[list_key[0]][list_key[1]]
+      if data_metafield == blank or data_metafield.type != "single_line_text_field"
+        assign data_metafield = product.metafields[list_key[0]][list_key[1]]
+        if data_metafield.type != "single_line_text_field"
+          assign data_metafield = ""
+        endif 
+      endif 
+      if data_metafield
+        echo '{"' | append: metafield_key | append: '": ' | append: '"' | append: data_metafield | append: '"},'
+      endif
+    endfor
+  %}
+{% endcapture %}
+{% liquid
+  assign list_metafield_label = list_metafield_label | remove_last: ","
+  assign list_metafield_label = "[" | append: list_metafield_label | append: "]"
+
+  # Login to view price: labels-and-badges.js substitutes {price} with price_with_currency
+  # verbatim, so the amount has to be withheld right here — otherwise a hidden-price product
+  # still prints its price inside a label. Callers that already resolved the flag pass it in
+  # as login_hide_price; the rest fall back to resolving it per product.
+  if login_hide_price == blank
+    capture login_hide_price
+      render 'can-hide-price', product: product
+    endcapture
+  endif
+  assign login_hide_price = login_hide_price | strip
+
+  assign current_date = 'now' | date: '%s'
+  assign product_created_at = product.created_at | date: "%s"
+  assign product_published_at = product.published_at | date: "%s"
+  assign difference_in_seconds_created = current_date | minus: product_created_at
+  assign difference_in_days_created = difference_in_seconds_created | times: 1.0 | divided_by: 86400 | round: 2
+  assign difference_in_seconds_published = current_date | minus: product_published_at
+  assign difference_in_days_published = difference_in_seconds_published | times: 1.0 | divided_by: 86400 | round: 2
+%}
+{ 
+  "id": {{ product.id }},
+  "available": {{ target.available | default: false }},
+  "title": "{{ product.title | escape }}",
+  "compare_at_price": {{ target.compare_at_price | default: 0 }},
+  "price": {{ target.price | default: 0 }},
+  "price_with_currency": "{%- unless login_hide_price == 'true' -%}{%- if settings.currency_code_enable -%}{{ target.price | money_with_currency | strip_html | escape }}{%- else -%}{{ target.price | money | strip_html | escape }}{%- endif -%}{%- endunless -%}",
+  "hide_price": {% if login_hide_price == 'true' %}true{% else %}false{% endif %},
+  "sale_amount": "{{ sale_amount | money | strip_html | default: -1 }}", 
+  "collections": "||{{ product.collections | map: 'id' | join: '||' }}||",
+  "inventory_management": "{%- if inventory_management != blank -%}{{ inventory_management }}{%- else -%}{{- target.inventory_management | default: false -}}{%- endif -%}",
+  "qty": {{ label_quantity | default: -1 }},
+  "container": "{{ container }}",
+  "make_content_center": {{ show_content_center | default: false }},
+  {% if desktop_carousel_option %}
+    "desktop_carousel_option": "{{ desktop_carousel_option }}",
+  {% endif %}
+  {% if desktop_carousel_position %}
+    "desktop_carousel_position": "{{ desktop_carousel_position }}",
+  {% endif %}
+  {% if desktop_layout %}
+    "desktop_layout": "{{ desktop_layout }}",
+  {% endif %}
+  {% if difference_in_days_created %}
+    "diff_day_create": {{ difference_in_days_created }},
+  {% endif %}
+  {% if difference_in_days_published %}
+    "diff_day_publish": {{ difference_in_days_published }},
+  {% endif %}
+  {% if label_position %}
+    "label_position": "{{ label_position }}",
+  {% endif %}
+  "is_show_preorder": {{ is_show_preorder }}
+  {% if settings.label_and_badge_mtf != blank %}
+    ,"metafield_label": {{ list_metafield_label }}
+  {% endif %}
+}

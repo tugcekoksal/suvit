@@ -1,0 +1,154 @@
+  <div class="section--{{ section.id }} fixed z-50 withdrawal-overlay__wrapper {{ section.settings.button_position }} bg-transparent" tabindex="0">
+    {% liquid
+      assign button_link = section.settings.button_link
+      if customer
+        assign button_link = routes.account_url | append: '/orders'
+      endif
+    %}
+
+      {% if button_link %}
+        <a
+          href="{{ button_link }}"
+          {% if section.settings.open_new_window %}
+            target="_blank"
+          {% endif %}
+        >
+      {% endif %}
+
+      <custom-button>
+        <button
+          class="button button-{{ section.settings.button_style }} {%- if button_link == blank %} hover:cursor-not-allowed {% endif -%} button-small w-full relative h-full {% if section.settings.button_label != blank %}flex gap-1{% endif %} opacity-95 color-{{ section.settings.color_scheme_light }} dark-color-{{ section.settings.color_scheme_dark }}"
+          {%- if button_link == blank %} 
+            aria-disabled="true"
+          {% endif %}
+        >
+          <span class="w-4 h-4 md:w-5 md:h-5 relative block">
+            {% render 'icon-all', icon: 'icon-return' %}
+          </span>
+          <span>
+            {{ section.settings.button_label }}
+          </span>
+        </button>
+      </custom-button>
+
+      {% if button_link %}
+        </a>
+      {% endif %}
+    </div>
+
+{% schema %}
+{
+  "name": "t:header.blocks.withdrawal_request.name",
+  "class": "maximize-section section-product-components",
+  "tag": "section",
+  "enabled_on": {
+    "groups": ["aside"]
+  },
+  "limit": 1,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "t:withdrawal_request_form.settings.paragraph"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "default": "Return & Cancel here",
+      "label": "t:global.button.button_label"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "t:global.button.button_link"
+    },
+    {
+      "type": "checkbox",
+      "id": "open_new_window",
+      "default": false,
+      "label": "t:global.text.open_link_new_tab"
+    },
+    {
+      "type": "select",
+      "id": "button_style",
+      "options": [
+        {
+          "value": "primary",
+          "label": "t:global.button.style.primary"
+        },
+        {
+          "value": "secondary",
+          "label": "t:global.button.style.secondary"
+        }
+      ],
+      "label": "t:global.button.style.label",
+      "default": "primary"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.layout"
+    },
+    {
+      "type": "select",
+      "id": "button_position",
+      "label": "t:global.header.button_position",
+      "default": "bottom-right",
+      "options": [
+        {
+          "value": "top-left",
+          "label": "t:global.position.top_left"
+        },
+        {
+          "value": "top-center",
+          "label": "t:global.position.top_center"
+        },
+        {
+          "value": "top-right",
+          "label": "t:global.position.top_right"
+        },
+        {
+          "value": "middle-left",
+          "label": "t:global.position.middle_left"
+        },
+        {
+          "value": "middle-right",
+          "label": "t:global.position.middle_right"
+        },
+        {
+          "value": "bottom-left",
+          "label": "t:global.position.bottom_left"
+        },
+        {
+          "value": "bottom-center",
+          "label": "t:global.position.bottom_center"
+        },
+        {
+          "value": "bottom-right",
+          "label": "t:global.position.bottom_right"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.colors"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:header.blocks.withdrawal_request.name",
+      "category": "t:global.category.products"
+    }
+  ]
+}
+{% endschema %}

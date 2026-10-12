@@ -1,0 +1,281 @@
+/* Request for quote — only what Tailwind utilities cannot express: overrides that must outrank a
+   theme component class (hence two classes), a parent's state combined with :hover/:focus-visible,
+   descendants this snippet does not author, and utilities that no other template uses (see the
+   last section — keeping those as utilities put a rule in the shared theme CSS for one snippet). */
+
+.quote-request.popup-container {
+  z-index: 72;
+}
+.quote-request__contact.is-open {
+  box-shadow: 0px -10px 8px -4px #0000001a;
+}
+
+.quote-request--overlay.popup-container {
+  background-color: rgba(var(--color-overlay));
+}
+
+/* `.popup-content` caps at 48rem, which would squash the table into its mobile layout on desktop.
+   Its pb-10 is dropped too — the submit bar brings its own. */
+.quote-request__panel {
+  max-width: 930px;
+  padding-bottom: 0;
+}
+
+/* Confirmation only: centred instead of the bottom sheet, so the panel takes its full radius back. */
+.quote-request--centered.popup-container {
+  align-items: center;
+  justify-content: center;
+}
+
+/* Radius on all four corners, at the compact size: the bottom-sheet panel rounds only its top two,
+   and `--border-radius-popup` doubles to 20px from md up — design keeps the confirmation at 10px, so
+   it reads its own variable. Edge = square still zeroes it. */
+.quote-request__panel.quote-request__panel--success {
+  max-width: 398px;
+  min-height: 0;
+  border-radius: var(--border-radius-popup-compact);
+}
+
+/* ── Product table ──────────────────────────────────────────────────── */
+/* The header carries the SAME eight tracks as `.quote-request__row--header` and merges the first two
+   for its "Product" label. Giving it seven tracks instead — one 3fr column covering media + title —
+   made it 52px plus a gap narrower than the rows, so every label from "Status" rightwards sat left
+   of the data underneath it. */
+@media screen and (min-width: 1024px) {
+  .quote-request__panel.quote-request__panel--success {
+    max-width: 450px;
+  }
+  .quote-request__table-head {
+    grid-template-columns: 52px minmax(0, 3fr) minmax(6rem, 1fr) minmax(5rem, 1fr) 10.5rem minmax(5rem, 1fr) 2rem 2rem;
+  }
+
+  .quote-request__table-head > :first-child {
+    grid-column: 1 / span 2;
+  }
+}
+
+/* ── Sticky heading + column header (row 433) ────────────────────────── */
+/* Bleeds over the scroll container's 0.25rem inline padding so rows cannot show through the gap,
+   and repaints it, so the content box still lines up with the rows. Same paint source as
+   `.popup-content`, which is a solid colour unless the merchant chose a gradient background. */
+.quote-request__sticky-head {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin-inline: -0.25rem;
+  padding-inline: 0.25rem;
+  background: var(--gradient-background-no-alpha, none);
+}
+
+/* ── Quantity stepper focus ring (row 444) ───────────────────────────── */
+/* The stepper box clips its children, and the theme draws focus rings 1px OUTSIDE the element, so
+   half the ring disappeared. Inset it instead — the same fix the theme uses for
+   `.logo-list__content__logo__wrapper`. */
+.quote-request__cell-qty [role="button"]:focus-visible,
+.quote-request__cell-qty input:focus-visible {
+  outline-offset: -1px;
+}
+
+/* ── Group toggle ───────────────────────────────────────────────────── */
+/* Resting/RTL/open are utilities on the icon. These two are not: parent state + hover or focus. */
+@media (hover: hover) {
+  .quote-request__group:not(.is-open):hover .quote-request__toggle-icon {
+    transform: rotate(0deg);
+  }
+}
+
+.quote-request__group:not(.is-open) .quote-request__toggle:focus-visible .quote-request__toggle-icon {
+  transform: rotate(0deg);
+}
+
+/* ── Icons and cross-file state ─────────────────────────────────────── */
+.quote-request__success-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Set by quote-request.js on buttons in five snippets. `pointer-events`, not `disabled` — bulk
+   order binds `:disabled` through Alpine and the two would fight. */
+[data-quote-request-open].is-loading {
+  pointer-events: none;
+}
+
+[data-quote-request-open].is-loading .btn__text {
+  opacity: 0;
+}
+
+/* ── Utilities that lived only here ─────────────────────────────────── */
+/* Everything below was a Tailwind utility used in NO other template, so the build was emitting a
+   rule into the shared theme CSS for a single snippet. Declarations are copied verbatim from that
+   generated output — including the `transition-property` fallbacks and the `:where([dir=…])` RTL
+   guards — so rendering is unchanged. Breakpoints are written the way the build writes them
+   (no `screen and`), because the theme's `lg:`/`md:` utilities apply to every media type. */
+
+.quote-request__scroll,
+.quote-request__contact-panel {
+  margin-left: -0.25rem;
+  margin-right: -0.25rem;
+}
+
+.quote-request__table-head-mobile {
+  grid-template-columns: 1fr auto;
+}
+
+.quote-request__table-head-mobile > span:last-child {
+  text-align: end;
+}
+
+.quote-request__group {
+  transition-property: background-color, border-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 250ms;
+}
+
+@media (max-width: 767px) {
+  .quote-request__group {
+    border-top-width: 2px;
+  }
+}
+
+@media (min-width: 768px) {
+  .quote-request__group {
+    border-inline-start-width: 2px;
+  }
+}
+
+/* ── Row grid ───────────────────────────────────────────────────────── */
+/* The header row and the variant row share every cell role, so the cells share a class; only the
+   column tracks differ. */
+.quote-request__row {
+  transition-property: color, background-color, border-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.quote-request__row--header {
+  grid-template-columns: auto 1fr auto auto;
+}
+
+.quote-request__row--variant {
+  grid-template-columns: auto 1fr auto;
+}
+
+.quote-request__cell-qty {
+  order: 4;
+}
+
+.quote-request__cell-total {
+  grid-row-start: 1;
+  font-size: var(--h5-font-size);
+}
+
+.quote-request__cell-remove {
+  grid-row-start: 2;
+}
+
+.quote-request__cell-remove--header {
+  grid-column-start: 4;
+}
+
+.quote-request__cell-toggle {
+  grid-column-start: 4;
+  grid-row-start: 1;
+}
+
+@media (min-width: 1024px) {
+  .quote-request__row {
+    gap: 0.75rem;
+    overflow: hidden;
+  }
+
+  .quote-request__row--header {
+    grid-template-columns: 52px minmax(0, 3fr) minmax(6rem, 1fr) minmax(5rem, 1fr) 10.5rem minmax(5rem, 1fr) 2rem 2rem;
+  }
+
+  .quote-request__row--variant {
+    grid-template-columns: 52px minmax(0, 3fr) minmax(6rem, 1fr) minmax(5rem, 1fr) 10.5rem minmax(5rem, 1fr) 4.75rem;
+  }
+
+  .quote-request__cell-media {
+    grid-row: auto;
+  }
+
+  .quote-request__cell-info {
+    grid-row: auto;
+    display: contents;
+  }
+
+  .quote-request__cell-name,
+  .quote-request__cell-status,
+  .quote-request__cell-price,
+  .quote-request__cell-qty {
+    order: 0;
+  }
+
+  .quote-request__cell-total {
+    grid-column: auto;
+    grid-row: auto;
+    text-align: start;
+    font-size: var(--h6-font-size);
+    line-height: var(--line-height-heading);
+    /* `whitespace-nowrap` is right on mobile, where the total owns its own row. Here the column is
+       minmax(5rem, 1fr) and a long formatted total overflowed it, printing over the row's action
+       icons. Let it wrap inside its own track instead. */
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .quote-request__cell-remove {
+    grid-column: auto;
+    grid-row: auto;
+    align-self: auto;
+  }
+
+  .quote-request__cell-toggle {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+/* ── Contact panel, notes, flash messages ───────────────────────────── */
+.quote-request__compare-at:where([dir="ltr"], [dir="ltr"] *) {
+  margin-left: 0.25rem;
+}
+
+/* The price column is a narrow track (minmax(5rem, 1fr)) and a measurement string carries no
+   break opportunity of its own — "$4.50/100ml" would print over the neighbouring cell. */
+.quote-request__unit-price {
+  overflow-wrap: anywhere;
+}
+
+.quote-request__toggle--contact {
+  transition-property: color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.quote-request__toggle--contact:hover {
+  background-color: rgba(var(--color-text-no-alpha) / 0.06);
+}
+
+.quote-request__notes {
+  min-height: 120px;
+}
+
+.quote-request__notes-input {
+  resize: none;
+}
+
+.quote-request__alert,
+.quote-request__success-message {
+  border-radius: var(--border-radius-flash-message, 4px);
+}
+
+@media (min-width: 768px) {
+  .quote-request__success-message {
+    font-size: var(--body-font-size-x-small);
+    line-height: 1.6;
+  }
+}

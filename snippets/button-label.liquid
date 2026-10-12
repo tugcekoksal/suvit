@@ -1,0 +1,45 @@
+{%  liquid
+  assign button_link_hover_animation = settings.button_link_hover_animation 
+%}
+
+{% if x_text_quickview %}
+  <span class="button-text" x-text="$store.xQuickView && $store.xQuickView.buttonLabel"></span>
+{% else %}
+  {% if show_button_style == 'text-link' or show_button_style == 'link' %}
+    {% if button_link_hover_animation == 'arrow_push' %}
+      <span class="relative overflow-hidden inline-flex items-center">
+        <span class="text-link-content btn-text-link-default text-default inline-block">{{ button_label }}</span>
+        <span class="text-link-content btn-text-link-anm absolute top-0 ltr:left-0 rtl:right-0 lg:inline-block hidden" aria-hidden="true">{{ button_label }}</span>
+      </span>
+      <span class="text-link-underline absolute bottom-0 ltr:left-0 rtl:right-0"></span>
+      <span class="text-link-arrow lg:inline-block hidden rtl:rotate-180 opacity-0 w-2" role="img" aria-label="arrow" aria-hidden="true">
+        {%- render 'icon-all', icon: 'icon-double-arrow' -%}
+      </span>
+    {% elsif button_link_hover_animation == 'rise' %}
+      <div class="relative overflow-hidden">
+        <span class="button-text btn-text-link-effect-1 relative top-0 is-focus-button:opacity-0">{{ button_label }}</span>
+        <span class="button-text btn-text-link-effect-2 absolute top-full ltr:left-0 rtl:right-0 is-focus-button:opacity-0 lg:block hidden">{{ button_label }}</span>
+      </div>
+    {% elsif button_link_hover_animation == 'flow' %}
+      <span class="button-text {% if allow_wrap != true %} text-nowrap{% endif %} relative">{{ button_label }}</span>
+    {% else  %}
+      <span class="button-text {% if allow_wrap != true %} text-nowrap{% endif %} relative">{{ button_label }}</span>
+      <span class="absolute bottom-0 h-[1px] w-full color-bg-[rgba(var(--color-button-link))]"></span>  
+    {% endif %}
+   {% elsif show_button_style == 'direction_link' %}
+      <div class="text-link-content {% if allow_wrap != true %} text-nowrap{% endif %} relative overflow-hidden inline-flex items-center ltr:lg:pr-2 rtl:lg:pl-2 ltr:pr-1 rtl:pl-2">
+        <span class="btn-text-link-default inline-block">{{ button_label }}</span>
+        <span class="btn-text-link-anm absolute top-0 ltr:left-0 rtl:right-0 opacity-0 lg:inline-block hidden" aria-hidden="true">{{ button_label }}</span>
+      </div>
+      <span class="text-link-arrow lg:inline-flex hidden md:w-2 md:h-2 h-1.5 w-1.5 relative">
+        <span class="text-link-arrow-default opacity-1 absolute top-0 ltr:left-0 rtl:right-0 rtl:rotate-180 md:w-2 w-1.5" role="img" aria-label="arrow" aria-hidden="true">
+          {%- render 'icon-all', icon: 'icon-double-arrow' -%}
+        </span>
+         <span class="text-link-arrow-anm inline-block top-0 ltr:left-0 rtl:right-0 opacity-0 absolute md:w-2 w-1.5" role="img" aria-label="arrow" aria-hidden="true">
+          {%- render 'icon-all', icon: 'icon-double-arrow' -%}
+        </span> 
+      </span>
+  {% else %}
+    <span class="button-text{% if allow_wrap != true %} text-nowrap{% endif %}">{{ button_label }}</span>
+  {% endif %}
+{% endif %}

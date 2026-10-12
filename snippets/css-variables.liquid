@@ -1,0 +1,741 @@
+{%- liquid
+  assign color_schemes_light = settings.color_schemes_light | append: ""
+  assign color_schemes_light = settings.color_schemes | where: "id", color_schemes_light | first
+  assign color_schemes_dark = settings.color_schemes_dark | append: ""
+  assign color_schemes_dark = settings.color_schemes | where: "id", color_schemes_dark | first
+-%}
+
+{%- style %}
+  /* Font size */
+  :root {
+    --heading-font-family: {{ settings.heading_font.family }}, {{ settings.heading_font.fallback_families }};
+    --heading-font-style: {{ settings.heading_font.style }};
+    --heading-font-weight: {{ settings.heading_font.weight }};
+    --heading-base-size: 2rem;
+    --heading-font-scale: {{ settings.heading_font_size | times: 0.01 }};
+    --heading-text-transform: {{ settings.heading_text_tranform }};
+    --subheading-base-size: 14px;
+
+    --rating-star-size: {{ settings.body_font_size | times: 0.00945 }}rem;
+  
+    --menu-font-family: {{ settings.menu_font.family }}, {{ settings.menu_font.fallback_families }};
+    --menu-font-style: {{ settings.menu_font.style }};
+    --menu-font-weight: {{ settings.menu_font.weight }};
+    --menu-letter-spacing: {{ settings.menu_letter_spacing }}px;
+    
+    --body-font-scale: {{ settings.body_font_size | times: 0.01 }};
+    --body-base-size: 0.875rem;
+    --body-font-family: {{ settings.body_font.family }}, {{ settings.body_font.fallback_families }};
+    --body-font-style: {{ settings.body_font.style }};
+    --body-font-weight: {{ settings.body_font.weight }};
+    --button-font: {{ settings.button_font.family }}, {{ settings.button_font.fallback_families }};
+    --button-font-style: {{ settings.button_font.style }};
+    --button-font-weight: {{ settings.button_font.weight }};
+    --button-font-size: {{ settings.button_font_size | times: 0.01 | times: 2 | times: 0.45 | times: 0.8 }}rem;
+    --shopify-accelerated-checkout-button-border-radius: {% if settings.edges_type == 'rounded_corners' %}6px{% else %}0{% endif %};
+    --button-border-radius: {% if settings.edges_type == 'rounded_corners' %}6px{% else %}0{% endif %};
+    --input-field-radius: {% if settings.edges_type == 'rounded_corners' %}6px{% else %}0{% endif %};
+
+    --mobile-padding-ratio: 0.5;
+    --page-width: {{ settings.page_width | default: 1400 }}px;
+
+    --rounded-corners: 10px;
+    --rounded-corners-large: {% if settings.edges_type == 'rounded_corners' %}12px{% else %}0{% endif %};
+    --rounded-corners-small: {% if settings.edges_type == 'rounded_corners' %}6px{% else %}0{% endif %};
+
+    --padding-content-page-width: 16px;
+    --padding-content-full-width: 16px;
+    --padding-content-full-width-padded: 16px;
+    --full-width-padded: 16px;
+
+    --total-padding-page-width: 64px;
+    --total-padding-full-width: 64px;
+    --total-padding-full-width-padded: 128px;
+
+    --text-animation-duration: 700ms;
+    --drawer-transition-duration: 500ms;
+    --card-animation-duration: 400ms;
+    --reveal-transition-duration: 500ms;
+    --header-menu-transition-duration: 300ms;
+    --header-menu-transition-delay: 150ms;
+    --menu-promotion-duration: 1000ms;
+    --menu-item-delay-transition: 450ms;
+    --menu-icon-transition: 300ms;
+    --menu-rect-hover-transition: 350ms;
+    --menu-link-animation: 1s;
+    --transition-slideshow-content: 500ms;
+    --button-animation-duration: 500ms;
+    --popup-animation-duration: 500ms;
+    --choose-option-animation-duration: 300ms;
+    --dropdown-animation-duration: 150ms;
+    --text-link-and-title-link-animation-duration: 400ms;
+    --button-text-link-animation-duration: 400ms;
+    
+    --fade-element-translate-y: 20px;
+    --flow-card-duration: 500ms;
+    --announcement-height: 0px;
+    --top-header: 0px;
+    --segmented-banner-animation-duration-mobile: 1000ms;
+    --segmented-banner-animation-duration-desktop: 1600ms;
+    --product-info-media-width: 100%;
+    --line-height-heading: 1.4;
+    --line-height-body: 1.6;
+    --line-height-button: 1.4;
+    --border-radius-popup: {% if settings.edges_type == 'rounded_corners' %}10px{% else %}0{% endif %};
+    {%- comment -%}
+      Deliberately NOT widened at md like --border-radius-popup below: for small confirmation
+      dialogs the design keeps the compact radius at every width.
+    {%- endcomment -%}
+    --border-radius-popup-compact: {% if settings.edges_type == 'rounded_corners' %}10px{% else %}0{% endif %};
+    --border-radius-drawer: {% if settings.edges_type == 'rounded_corners' %}10px{% else %}0{% endif %};
+    --border-radius-countdown-timer: {% if settings.edges_type == 'rounded_corners' %}6px{% else %}0{% endif %};
+    --progress-bar-active-width: 20%;
+    --border-radius-checkbox: {% if settings.edges_type == 'rounded_corners' %}4px{% else %}0{% endif %};
+    --padding-bottom-product-template-block: 16px;
+    --spacing-between-heading-and-content: 16px;
+    --pad-top-m: 0px;
+    --pad-right-m: 0px;
+    --pad-left-m: 0px;
+    --pad-bottom-m: 0px;
+    --pad-top: 0px;
+    --pad-right: 0px;
+    --pad-left: 0px;
+    --pad-bottom: 0px;
+    --block-width: 1.0;
+    --image-hover-scale: 1.2;
+    --image-transition-duration: 500ms;
+    --tab-animation-duration: 300ms;
+    --tab-animation-scale: 0.97;
+    --tab-animation-offset: 4px;
+    --position-comparison-top: 58px;
+    --text-x-small: 11.2px;
+  }
+
+  :root, #x-header-container header {
+    --h1-font-size: calc(var(--heading-base-size) * var(--heading-font-scale) * 1.75 * 0.55);
+    --h2-font-size: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.65);
+    --h3-font-size: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.75 * 0.75);
+    --h4-font-size: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.65 * 0.75);
+    --h5-font-size: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.55 * 0.75);
+    --h6-font-size: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.45 * 0.8);
+    --h7-font-size: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.4 * 0.8);
+    --heading-font-size-small: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.85 * 0.7);
+    --heading-font-size-medium: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.85);
+    --heading-font-size-large: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.85 * 1.2);
+    --heading-font-size-extra-large: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.85 * 2.5);
+
+    --subheading-font-size-small: calc(var(--subheading-base-size) * var(--heading-font-scale) * 0.9 * 0.9);
+    --subheading-font-size-medium: calc(var(--subheading-base-size) * var(--heading-font-scale) * 0.9);
+    --subheading-font-size-large: calc(var(--subheading-base-size) * var(--heading-font-scale) * 1.2 * 0.9);
+
+    --body-font-size: calc(var(--body-base-size) * var(--body-font-scale) * 0.9);
+    --body-font-size-small: calc(var(--body-base-size) * var(--body-font-scale) * 0.9 * 0.9);
+    --body-font-size-x-small: calc(var(--body-base-size) * var(--body-font-scale) * 0.8 * 0.9);
+    --body-font-size-xx-small: calc(var(--body-base-size) * var(--body-font-scale) * 0.7 * 0.9);
+    --body-font-size-large: calc(var(--body-base-size) * var(--body-font-scale) * 1.2 * 0.9);
+    --announcement-bar-font-size-countdown-timer: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.5 * 0.9);
+  }
+  :root #x-header-container header,
+  :root #x-header-container header *:before {
+    --body-font-scale: {{ settings.menu_font_size | times: 0.01}};
+    --heading-font-scale: {{ settings.menu_font_size | times: 0.01 }};
+  }
+  .block-title-size {
+    --heading-font-size-small: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.45 * 0.85);
+    --heading-font-size-medium: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.55 * 0.85);
+    --heading-font-size-large: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.8 * 0.85);
+  }
+  @media (min-width: 768px){
+    :root, #x-header-container header {
+      --h1-font-size: calc(var(--heading-base-size) * var(--heading-font-scale) * 1.75);
+      --h2-font-size: calc(var(--heading-base-size) * var(--heading-font-scale));
+      --h3-font-size: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.75);
+      --h4-font-size: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.65);
+      --h5-font-size: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.55);
+      --h6-font-size: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.45);
+      --h7-font-size: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.4);
+      --heading-font-size-small: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.7);
+      --heading-font-size-medium: calc(var(--heading-base-size) * var(--heading-font-scale));
+      --heading-font-size-large: calc(var(--heading-base-size) * var(--heading-font-scale) * 1.2);
+      --heading-font-size-extra-large: calc(var(--heading-base-size) * var(--heading-font-scale) * 2.5);
+
+      --subheading-font-size-small: calc(var(--subheading-base-size) * var(--heading-font-scale) * 0.9);
+      --subheading-font-size-medium: calc(var(--subheading-base-size) * var(--heading-font-scale));
+      --subheading-font-size-large: calc(var(--subheading-base-size) * var(--heading-font-scale) * 1.2);
+
+      --body-font-size: calc(var(--body-base-size) * var(--body-font-scale));
+      --body-font-size-small: calc(var(--body-base-size) * var(--body-font-scale) * 0.9);
+      --body-font-size-x-small: calc(var(--body-base-size) * var(--body-font-scale) * 0.8);
+      --body-font-size-xx-small: calc(var(--body-base-size) * var(--body-font-scale) * 0.7);
+      --body-font-size-large: calc(var(--body-base-size) * var(--body-font-scale) * 1.2);
+      --announcement-bar-font-size-countdown-timer: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.5);
+
+      --product-info-media-width: 50%;
+    }
+
+    :root {
+      --button-font-size: {{ settings.button_font_size | times: 0.01 | times: 2 | times: 0.45 }}rem;
+      --padding-content-page-width: 32px;
+      --padding-content-full-width: 32px;
+      --padding-content-full-width-padded: 32px;
+      --full-width-padded: 32px;
+      --border-radius-popup: {% if settings.edges_type == 'rounded_corners' %}20px{% else %}0{% endif %};
+      --border-radius-drawer: {% if settings.edges_type == 'rounded_corners' %}20px{% else %}0{% endif %};
+      --padding-bottom-product-template-block: 20px;
+      --spacing-between-heading-and-content: 26px;
+      --page-width {{ settings.page_width }}px;
+      --max-width-block-text: 950px;
+      --max-width-page-content: 950px;
+      --position-comparison-top: 72px;
+    }
+
+    .block-title-size {
+      --heading-font-size-small: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.45);
+      --heading-font-size-medium: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.55);
+      --heading-font-size-large: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.8);
+    }
+  }
+  /* Colors */
+  :root,
+  *:before, .color-scheme-theme {
+    --color-background: {{ color_schemes_light.settings.background.red }} {{ color_schemes_light.settings.background.green }} {{ color_schemes_light.settings.background.blue }} / {{ color_schemes_light.settings.background.alpha }};
+    --color-background-no-alpha: {{ color_schemes_light.settings.background.red }} {{ color_schemes_light.settings.background.green }} {{ color_schemes_light.settings.background.blue }};
+    {% if color_schemes_light.settings.background_gradient != blank %}
+      --gradient-background: {{ color_schemes_light.settings.background_gradient }};
+      --gradient-background-no-alpha: {{ color_schemes_light.settings.background_gradient }};
+    {% else %}
+      --gradient-background: {{ color_schemes_light.settings.background }};
+      --gradient-background-no-alpha: rgb({{ color_schemes_light.settings.background.rgb }});
+    {% endif %}
+    --color-highlight: {{ color_schemes_light.settings.heading_highlight.red }} {{ color_schemes_light.settings.heading_highlight.green }} {{ color_schemes_light.settings.heading_highlight.blue }} / {{ color_schemes_light.settings.heading_highlight.alpha }};
+    --color-highlight-no-alpha: {{ color_schemes_light.settings.heading_highlight.red }} {{ color_schemes_light.settings.heading_highlight.green }} {{ color_schemes_light.settings.heading_highlight.blue }};
+    --color-link: {{ color_schemes_light.settings.heading_highlight.red }} {{ color_schemes_light.settings.heading_highlight.green }} {{ color_schemes_light.settings.heading_highlight.blue }} / {{ color_schemes_light.settings.heading_highlight.alpha }};
+    --color-link-no-alpha: {{ color_schemes_light.settings.heading_highlight.red }} {{ color_schemes_light.settings.heading_highlight.green }} {{ color_schemes_light.settings.heading_highlight.blue }};
+    --color-heading: {{ color_schemes_light.settings.heading.red }} {{ color_schemes_light.settings.heading.green }} {{ color_schemes_light.settings.heading.blue }} / {{ color_schemes_light.settings.heading.alpha }};
+    --color-heading-no-alpha: {{ color_schemes_light.settings.heading.red }} {{ color_schemes_light.settings.heading.green }} {{ color_schemes_light.settings.heading.blue }};
+    --color-text: {{ color_schemes_light.settings.text.red }} {{ color_schemes_light.settings.text.green }} {{ color_schemes_light.settings.text.blue }} / {{ color_schemes_light.settings.text.alpha }};
+    --color-text-no-alpha: {{ color_schemes_light.settings.text.red }} {{ color_schemes_light.settings.text.green }} {{ color_schemes_light.settings.text.blue }};
+    --color-line-and-border: {{ color_schemes_light.settings.line_and_border_color.red }} {{ color_schemes_light.settings.line_and_border_color.green }} {{ color_schemes_light.settings.line_and_border_color.blue }} / {{ color_schemes_light.settings.line_and_border_color.alpha }};
+    --color-line-and-border-no-alpha: {{ color_schemes_light.settings.line_and_border_color.red }} {{ color_schemes_light.settings.line_and_border_color.green }} {{ color_schemes_light.settings.line_and_border_color.blue }};
+    --color-vendor: {{ color_schemes_light.settings.heading.red }} {{ color_schemes_light.settings.heading.green }} {{ color_schemes_light.settings.heading.blue }} / 0.4;
+    --color-vendor-no-alpha: {{ color_schemes_light.settings.heading.red }} {{ color_schemes_light.settings.heading.green }} {{ color_schemes_light.settings.heading.blue }};
+    
+    --color-button: {{ color_schemes_light.settings.button.red }} {{ color_schemes_light.settings.button.green }} {{ color_schemes_light.settings.button.blue }} / {{ color_schemes_light.settings.button.alpha }};
+    --color-button-no-alpha: {{ color_schemes_light.settings.button.red }} {{ color_schemes_light.settings.button.green }} {{ color_schemes_light.settings.button.blue }};
+    --color-button-text: {{ color_schemes_light.settings.button_label.red }} {{ color_schemes_light.settings.button_label.green }} {{ color_schemes_light.settings.button_label.blue }} / {{ color_schemes_light.settings.button_label.alpha }};
+    --color-button-text-no-alpha: {{ color_schemes_light.settings.button_label.red }} {{ color_schemes_light.settings.button_label.green }} {{ color_schemes_light.settings.button_label.blue }};
+    --color-button-hover: {{ color_schemes_light.settings.button_hover.red }} {{ color_schemes_light.settings.button_hover.green }} {{ color_schemes_light.settings.button_hover.blue }} / {{ color_schemes_light.settings.button_hover.alpha }};
+    --color-button-hover-no-alpha: {{ color_schemes_light.settings.button_hover.red }} {{ color_schemes_light.settings.button_hover.green }} {{ color_schemes_light.settings.button_hover.blue }};
+    --color-button-text-hover: {{ color_schemes_light.settings.button_label_hover.red }} {{ color_schemes_light.settings.button_label_hover.green }} {{ color_schemes_light.settings.button_label_hover.blue }} / {{ color_schemes_light.settings.button_label_hover.alpha }};
+    --color-button-text-hover-no-alpha: {{ color_schemes_light.settings.button_label_hover.red }} {{ color_schemes_light.settings.button_label_hover.green }} {{ color_schemes_light.settings.button_label_hover.blue }};
+    --color-secondary-button: {{ color_schemes_light.settings.secondary_button.red }} {{ color_schemes_light.settings.secondary_button.green }} {{ color_schemes_light.settings.secondary_button.blue }} / {{ color_schemes_light.settings.secondary_button.alpha }};
+    --color-secondary-button-no-alpha: {{ color_schemes_light.settings.secondary_button.red }} {{ color_schemes_light.settings.secondary_button.green }} {{ color_schemes_light.settings.secondary_button.blue }};
+    --color-secondary-button-text: {{ color_schemes_light.settings.secondary_button_label_color.red }} {{ color_schemes_light.settings.secondary_button_label_color.green }} {{ color_schemes_light.settings.secondary_button_label_color.blue }} / {{ color_schemes_light.settings.secondary_button_label_color.alpha }};
+    --color-secondary-button-text-no-alpha: {{ color_schemes_light.settings.secondary_button_label_color.red }} {{ color_schemes_light.settings.secondary_button_label_color.green }} {{ color_schemes_light.settings.secondary_button_label_color.blue }};
+    --color-secondary-button-hover: {{ color_schemes_light.settings.secondary_button_hover.red }} {{ color_schemes_light.settings.secondary_button_hover.green }} {{ color_schemes_light.settings.secondary_button_hover.blue }} / {{ color_schemes_light.settings.secondary_button_hover.alpha }};
+    --color-secondary-button-hover-no-alpha: {{ color_schemes_light.settings.secondary_button_hover.red }} {{ color_schemes_light.settings.secondary_button_hover.green }} {{ color_schemes_light.settings.secondary_button_hover.blue }};
+    --color-secondary-button-text-hover: {{ color_schemes_light.settings.secondary_button_label_hover.red }} {{ color_schemes_light.settings.secondary_button_label_hover.green }} {{ color_schemes_light.settings.secondary_button_label_hover.blue }} / {{ color_schemes_light.settings.secondary_button_label_hover.alpha }};
+    --color-secondary-button-text-hover-no-alpha: {{ color_schemes_light.settings.secondary_button_label_hover.red }} {{ color_schemes_light.settings.secondary_button_label_hover.green }} {{ color_schemes_light.settings.secondary_button_label_hover.blue }};
+    --color-button-link: {{ color_schemes_light.settings.link_button_color.red }} {{ color_schemes_light.settings.link_button_color.green }} {{ color_schemes_light.settings.link_button_color.blue }} / {{ color_schemes_light.settings.link_button_color.alpha }};
+    --color-button-link-no-alpha: {{ color_schemes_light.settings.link_button_color.red }} {{ color_schemes_light.settings.link_button_color.green }} {{ color_schemes_light.settings.link_button_color.blue }};
+    --color-button-link-label-hover: {{ color_schemes_light.settings.link_button_label_hover.red }} {{ color_schemes_light.settings.link_button_label_hover.green }} {{ color_schemes_light.settings.link_button_label_hover.blue }} / {{ color_schemes_light.settings.link_button_label_hover.alpha }};
+    --color-button-link-label-hover-no-alpha: {{ color_schemes_light.settings.link_button_label_hover.red }} {{ color_schemes_light.settings.link_button_label_hover.green }} {{ color_schemes_light.settings.link_button_label_hover.blue }};
+    --button-padding-y-mobile: 10px;
+    --button-padding-x-mobile: 26px;
+    --button-padding-y-desktop: 12px;
+    --button-padding-x-desktop: 33px;
+    --input-border-radius: 0.25rem;
+
+    --error-background-color: {{ settings.color_background_error.red }} {{ settings.color_background_error.green }} {{ settings.color_background_error.blue }} / {{ settings.color_background_error.alpha }};
+    --error-background-color-no-alpha: {{ settings.color_background_error.red }} {{ settings.color_background_error.green }} {{ settings.color_background_error.blue }};
+    --error-message-color: {{ settings.color_error_message.red }} {{ settings.color_error_message.green }} {{ settings.color_error_message.blue }} / {{ settings.color_error_message.alpha }};
+    --error-message-color-no-alpha: {{ settings.color_error_message.red }} {{ settings.color_error_message.green }} {{ settings.color_error_message.blue }};
+    --warning-message-color: {{ settings.color_warning_message.red }} {{ settings.color_warning_message.green }} {{ settings.color_warning_message.blue }} / {{ settings.color_warning_message.alpha }};
+    --warning-message-color-no-alpha: {{ settings.color_warning_message.red }} {{ settings.color_warning_message.green }} {{ settings.color_warning_message.blue }};
+    --success-background-color: {{ settings.color_background_success.red }} {{ settings.color_background_success.green }} {{ settings.color_background_success.blue }} / {{ settings.color_background_success.alpha }};
+    --success-background-color-no-alpha: {{ settings.color_background_success.red }} {{ settings.color_background_success.green }} {{ settings.color_background_success.blue }};
+    --success-message-color: {{ settings.color_success_message.red }} {{ settings.color_success_message.green }} {{ settings.color_success_message.blue }} / {{ settings.color_success_message.alpha }};
+    --success-message-color-no-alpha: {{ settings.color_success_message.red }} {{ settings.color_success_message.green }} {{ settings.color_success_message.blue }};
+    --color-price: {{ settings.price.red }} {{ settings.price.green }} {{ settings.price.blue }} / {{ settings.price.alpha }};
+    --color-price-no-alpha: {{ settings.price.red }} {{ settings.price.green }} {{ settings.price.blue }};
+    --color-sale-price: {{ settings.sale_price.red }} {{ settings.sale_price.green }} {{ settings.sale_price.blue }} / {{ settings.sale_price.alpha }};
+    --color-sale-price-no-alpha: {{ settings.sale_price.red }} {{ settings.sale_price.green }} {{ settings.sale_price.blue }};
+    --rating-color: {{ settings.color_ratings.red }} {{ settings.color_ratings.green }} {{ settings.color_ratings.blue }} / {{ settings.color_ratings.alpha }};
+    --rating-color-no-alpha: {{ settings.color_ratings.red }} {{ settings.color_ratings.green }} {{ settings.color_ratings.blue }};
+    --color-in-stock: {{ settings.color_in_stock.red }} {{ settings.color_in_stock.green }} {{ settings.color_in_stock.blue }} / {{ settings.color_in_stock.alpha }};
+    --color-in-stock-no-alpha: {{ settings.color_in_stock.red }} {{ settings.color_in_stock.green }} {{ settings.color_in_stock.blue }};
+    --color-low-stock: {{ settings.color_low_stock.red }} {{ settings.color_low_stock.green }} {{ settings.color_low_stock.blue }} / {{ settings.color_low_stock.alpha }};
+    --color-low-stock-no-alpha: {{ settings.color_low_stock.red }} {{ settings.color_low_stock.green }} {{ settings.color_low_stock.blue }};
+    --color-out-of-stock: {{ settings.color_out_of_stock.red }} {{ settings.color_out_of_stock.green }} {{ settings.color_out_of_stock.blue }} / {{ settings.color_out_of_stock.alpha }};
+    --color-out-of-stock-no-alpha: {{ settings.color_out_of_stock.red }} {{ settings.color_out_of_stock.green }} {{ settings.color_out_of_stock.blue }};
+    --color-out-of-stock-continue-selling: {{ settings.color_out_of_stock_continue_selling_message.red }} {{ settings.color_out_of_stock_continue_selling_message.green }} {{ settings.color_out_of_stock_continue_selling_message.blue }} / {{ settings.color_out_of_stock_continue_selling_message.alpha }};
+    --color-pre-order: {{ settings.color_pre_order_message.red }} {{ settings.color_pre_order_message.green }} {{ settings.color_pre_order_message.blue }} / {{ settings.color_pre_order_message.alpha }};
+
+    --color-overlay: {{ settings.overlay_background.red }} {{ settings.overlay_background.green }} {{ settings.overlay_background.blue }} / {{ settings.overlay_background.alpha }};
+    --color-overlay-no-alpha: {{ settings.overlay_background.red }} {{ settings.overlay_background.green }} {{ settings.overlay_background.blue }};
+    --color-border-footer: {{ settings.footer_line_and_border_color.red }} {{ settings.footer_line_and_border_color.green }} {{ settings.footer_line_and_border_color.blue }} / {{ settings.footer_line_and_border_color.alpha }};
+    --color-border-footer-no-alpha: {{ settings.footer_line_and_border_color.red }} {{ settings.footer_line_and_border_color.green }} {{ settings.footer_line_and_border_color.blue }};
+    --color-pulse-speech: {{ settings.colors_speech.red }} {{ settings.colors_speech.green }} {{ settings.colors_speech.blue }} / {{ settings.colors_speech.alpha }};
+    --color-pulse-speech-no-alpha: {{ settings.colors_speech.red }} {{ settings.colors_speech.green }} {{ settings.colors_speech.blue }};
+    {%- if settings.breadcrumbs_background_color.alpha != 0.0 -%}
+      --color-breadcrumb-background: {{ settings.breadcrumbs_background_color.red }} {{ settings.breadcrumbs_background_color.green }} {{ settings.breadcrumbs_background_color.blue }} / {{ settings.breadcrumbs_background_color.alpha }};
+      --color-breadcrumb-background-no-alpha: {{ settings.breadcrumbs_background_color.red }} {{ settings.breadcrumbs_background_color.green }} {{ settings.breadcrumbs_background_color.blue }};
+    {%- endif -%}
+    {%- if settings.breadcrumbs_text_color.alpha != 0.0 -%}
+      --color-breadcrumb-text: {{ settings.breadcrumbs_text_color.red }} {{ settings.breadcrumbs_text_color.green }} {{ settings.breadcrumbs_text_color.blue }} / {{ settings.breadcrumbs_text_color.alpha }};
+      --color-breadcrumb-text-no-alpha: {{ settings.breadcrumbs_text_color.red }} {{ settings.breadcrumbs_text_color.green }} {{ settings.breadcrumbs_text_color.blue }};
+    {%- else -%}
+      --color-breadcrumb-text: {{ color_schemes_light.settings.text.red }} {{ color_schemes_light.settings.text.green }} {{ color_schemes_light.settings.text.blue }} / {{ color_schemes_light.settings.text.alpha }};
+      --color-breadcrumb-text-no-alpha: {{ color_schemes_light.settings.text.red }} {{ color_schemes_light.settings.text.green }} {{ color_schemes_light.settings.text.blue }};
+    {%- endif -%}
+    {%- if settings.breadcrumbs_text_link_color.alpha != 0.0 -%}
+      --color-breadcrumb-text-link: {{ settings.breadcrumbs_text_link_color.red }} {{ settings.breadcrumbs_text_link_color.green }} {{ settings.breadcrumbs_text_link_color.blue }} / {{ settings.breadcrumbs_text_link_color.alpha }};
+      --color-breadcrumb-text-link-no-alpha: {{ settings.breadcrumbs_text_link_color.red }} {{ settings.breadcrumbs_text_link_color.green }} {{ settings.breadcrumbs_text_link_color.blue }};
+    {%- else -%}
+      --color-breadcrumb-text-link: {{ color_schemes_light.settings.heading_highlight.red }} {{ color_schemes_light.settings.heading_highlight.green }} {{ color_schemes_light.settings.heading_highlight.blue }} / {{ color_schemes_light.settings.heading_highlight.alpha }};
+      --color-breadcrumb-text-link-no-alpha: {{ color_schemes_light.settings.heading_highlight.red }} {{ color_schemes_light.settings.heading_highlight.green }} {{ color_schemes_light.settings.heading_highlight.blue }};
+    {%- endif -%}
+
+    {% if settings.pc_background_color_light.alpha != 0.0 %}
+      --product-card-bg: {{ settings.pc_background_color_light.red }} {{ settings.pc_background_color_light.green }} {{ settings.pc_background_color_light.blue }} / {{ settings.pc_background_color_light.alpha }};
+      --product-card-bg-no-alpha: {{ settings.pc_background_color_light.red }} {{ settings.pc_background_color_light.green }} {{ settings.pc_background_color_light.blue }};
+    {% endif %}
+    --product-card-padding: {{ settings.pc_padding }}px;
+    --product-card-padding-mobile: {{ settings.pc_padding_mobile }}px;
+    --swatch-option-ratio: 1 / 1;
+    --swatch-option-border-radius: {% if settings.swatch_style == 'round' %}9999px{% elsif settings.swatch_style == 'square' or settings.swatch_style == 'natural' %}{% if settings.edges_type == 'rounded_corners' %}6px{% else %}0px{% endif %}{% endif %};
+    --swatch-option-width: {% if settings.swatch_size == 'small' %}28px{% elsif settings.swatch_size == 'medium' %}34px{% else %}40px{% endif %};
+    --swatch-option-height: {% if settings.swatch_style == 'natural' %}fit-content{% else %}{% if settings.swatch_size == 'small' %}28px{% elsif settings.swatch_size == 'medium' %}34px{% else %}40px{% endif %}{% endif %};
+    --border-radius-flash-message: {% if settings.edges_type == 'rounded_corners' %}4px{% else %}0{% endif %};
+    --border-radius-select-element: {% if settings.edges_type == 'rounded_corners' %}0.375rem{% else %}0{% endif %};
+
+    --color-skeleton: 240 241 243 / 1;
+    --color-skeleton-no-alpha: 240 241 243;
+    --color-background-placeholder-image: 225 230 231 / 1;
+    --color-background-placeholder-image-no-alpha: 229 234 235;
+    --color-icon-placeholder-image: 184 191 198 / 1;
+    --color-icon-placeholder-image-no-alpha: 184 191 198;
+    {% if settings.show_popup_overlay %}
+      --color-background-popup: {{ settings.overlay_background.red }} {{ settings.overlay_background.green }} {{ settings.overlay_background.blue }} / {{ settings.overlay_background.alpha }};
+      --color-background-popup-no-alpha: {{ settings.overlay_background.red }} {{ settings.overlay_background.green }} {{ settings.overlay_background.blue }};
+    {% else %}
+      --color-background-popup: 0 0 0 / 0;
+      --color-background-popup-no-alpha: 0 0 0;
+    {% endif %}
+    --color-scrollbar: {{ color_schemes_light.settings.text.red }} {{ color_schemes_light.settings.text.green }} {{ color_schemes_light.settings.text.blue }} / {{ color_schemes_light.settings.text.alpha }};
+    --color-scrollbar-no-alpha: {{ color_schemes_light.settings.text.red }} {{ color_schemes_light.settings.text.green }} {{ color_schemes_light.settings.text.blue }};
+    {% if color_schemes_light.settings.background_gradient != blank %}
+      --element-background: transparent;
+    {% else %}
+      --element-background: rgba({{ color_schemes_light.settings.background.red }} {{ color_schemes_light.settings.background.green }} {{ color_schemes_light.settings.background.blue }} / {{ color_schemes_light.settings.background.alpha }});
+    {% endif %}
+
+    {% if settings.animated_cursor_bg_color.alpha != 0.0 %} 
+      --animated-cursor-bg: {{ settings.animated_cursor_bg_color.red }} {{ settings.animated_cursor_bg_color.green }} {{ settings.animated_cursor_bg_color.blue }} / {{ settings.animated_cursor_bg_color.alpha }};
+      --animated-cursor-bg-no-alpha: {{ settings.animated_cursor_bg_color.red }} {{ settings.animated_cursor_bg_color.green }} {{ settings.animated_cursor_bg_color.blue }};
+    {% endif %}
+    {% if settings.animated_cursor_text_color.alpha != 0.0 %} 
+      --animated-cursor-text: {{ settings.animated_cursor_text_color.red }} {{ settings.animated_cursor_text_color.green }} {{ settings.animated_cursor_text_color.blue }} / {{ settings.animated_cursor_text_color.alpha }};
+      --animated-cursor-text-no-alpha: {{ settings.animated_cursor_text_color.red }} {{ settings.animated_cursor_text_color.green }} {{ settings.animated_cursor_text_color.blue }};
+    {% endif %}
+  }
+
+  #x-footer,
+  #x-footer *:before {
+    --test-color-bg: {{ settings.footer_background }};
+    --test-color-gradient: {{ settings.footer_background_gradient }};
+    --color-background: {{ settings.footer_background.red }} {{ settings.footer_background.green }} {{ settings.footer_background.blue }} / {{ settings.footer_background.alpha }};
+    --color-background-no-alpha: {{ settings.footer_background.red }} {{ settings.footer_background.green }} {{ settings.footer_background.blue }};
+    {% if settings.footer_background_gradient != blank %}
+      --gradient-background: {{ settings.footer_background_gradient }};
+      --gradient-background-no-alpha: {{ settings.footer_background_gradient }};
+    {% else %}
+      --gradient-background: {{ settings.footer_background }};
+      --gradient-background-no-alpha: rgb({{ settings.footer_background.rgb }});
+    {% endif %}
+
+    --color-highlight: {{ settings.footer_heading_highlight.red }} {{ settings.footer_heading_highlight.green }} {{ settings.footer_heading_highlight.blue }} / {{ settings.footer_heading_highlight.alpha }};
+    --color-highlight-no-alpha: {{ settings.footer_heading_highlight.red }} {{ settings.footer_heading_highlight.green }} {{ settings.footer_heading_highlight.blue }};
+    --color-link: {{ settings.footer_heading_highlight.red }} {{ settings.footer_heading_highlight.green }} {{ settings.footer_heading_highlight.blue }} / {{ settings.footer_heading_highlight.alpha }};
+    --color-link-no-alpha: {{ settings.footer_heading_highlight.red }} {{ settings.footer_heading_highlight.green }} {{ settings.footer_heading_highlight.blue }};
+    --color-text: {{ settings.footer_text.red }} {{ settings.footer_text.green }} {{ settings.footer_text.blue }} / {{ settings.footer_text.alpha }};
+    --color-text-no-alpha: {{ settings.footer_text.red }} {{ settings.footer_text.green }} {{ settings.footer_text.blue }};
+    --color-icon-footer: {{ settings.footer_icon.red }} {{ settings.footer_icon.green }} {{ settings.footer_icon.blue }} / {{ settings.footer_icon.alpha }};
+    --color-icon-footer-no-alpha: {{ settings.footer_icon.red }} {{ settings.footer_icon.green }} {{ settings.footer_icon.blue }};
+    --color-line-and-border: {{ settings.footer_line_and_border_color.red }} {{ settings.footer_line_and_border_color.green }} {{ settings.footer_line_and_border_color.blue }} / {{ settings.footer_line_and_border_color.alpha }};
+    --color-line-and-border-no-alpha: {{ settings.footer_line_and_border_color.red }} {{ settings.footer_line_and_border_color.green }} {{ settings.footer_line_and_border_color.blue }};
+  }
+
+  .maximize-theme:not(.dark) .product-card__wrapper, .maximize-theme:not(.dark) .product-card__wrapper *:before {
+    {% if settings.pc_text_light.alpha != 0.0 and settings.pc_text_light != blank %}
+      --color-text: {{ settings.pc_text_light.red }} {{ settings.pc_text_light.green }} {{ settings.pc_text_light.blue }} / {{ settings.pc_text_light.alpha }};
+      --color-text-no-alpha: {{ settings.pc_text_light.red }} {{ settings.pc_text_light.green }} {{ settings.pc_text_light.blue }};
+    {% endif %}
+    {% if settings.pc_heading_light.alpha != 0.0 and settings.pc_heading_light != blank %}
+      --color-heading: {{ settings.pc_heading_light.red }} {{ settings.pc_heading_light.green }} {{ settings.pc_heading_light.blue }} / {{ settings.pc_heading_light.alpha }};
+      --color-heading-no-alpha: {{ settings.pc_heading_light.red }} {{ settings.pc_heading_light.green }} {{ settings.pc_heading_light.blue }};
+    {% endif %}
+    {% if settings.pc_highlight_light.alpha != 0.0 and settings.pc_highlight_light != blank %}
+      --color-link: {{ settings.pc_highlight_light.red }} {{ settings.pc_highlight_light.green }} {{ settings.pc_highlight_light.blue }} / {{ settings.pc_highlight_light.alpha }};
+      --color-link-no-alpha: {{ settings.pc_highlight_light.red }} {{ settings.pc_highlight_light.green }} {{ settings.pc_highlight_light.blue }};
+    {% endif %}
+    /*  */
+    {% if settings.pc_price_light.alpha != 0.0 and settings.pc_price_light != blank %}
+      --color-price: {{ settings.pc_price_light.red }} {{ settings.pc_price_light.green }} {{ settings.pc_price_light.blue }} / {{ settings.pc_price_light.alpha }};
+      --color-price-no-alpha: {{ settings.pc_price_light.red }} {{ settings.pc_price_light.green }} {{ settings.pc_price_light.blue }};
+    {% endif %}
+    {% if settings.pc_sale_price_light.alpha != 0.0 and settings.pc_sale_price_light != blank %}
+      --color-sale-price: {{ settings.pc_sale_price_light.red }} {{ settings.pc_sale_price_light.green }} {{ settings.pc_sale_price_light.blue }} / {{ settings.pc_sale_price_light.alpha }};
+      --color-sale-price-no-alpha: {{ settings.pc_sale_price_light.red }} {{ settings.pc_sale_price_light.green }} {{ settings.pc_sale_price_light.blue }};
+    {% endif %}
+    {% if settings.pc_rating_light.alpha != 0.0 and settings.pc_rating_light != blank %}
+      --rating-color: {{ settings.pc_rating_light.red }} {{ settings.pc_rating_light.green }} {{ settings.pc_rating_light.blue }} / {{ settings.pc_rating_light.alpha }};
+      --rating-color-no-alpha: {{ settings.pc_rating_light.red }} {{ settings.pc_rating_light.green }} {{ settings.pc_rating_light.blue }};
+    {% endif %}
+  }
+  {% if settings.pc_background_color_light.alpha != 0.0 %}
+    .maximize-theme:not(.dark) .choose-option-wrapper {
+      --gradient-background: {{ settings.pc_background_color_light }};
+    }
+  {% endif %}
+
+  /* Dark Mode */
+  .dark,
+  .dark *:before, .dark .color-scheme-theme {
+    --color-background: {{ color_schemes_dark.settings.background.red }} {{ color_schemes_dark.settings.background.green }} {{ color_schemes_dark.settings.background.blue }} / {{ color_schemes_dark.settings.background.alpha }};
+    --color-background-no-alpha: {{ color_schemes_dark.settings.background.red }} {{ color_schemes_dark.settings.background.green }} {{ color_schemes_dark.settings.background.blue }};
+    {% if color_schemes_dark.settings.background_gradient != blank %}
+      --gradient-background: {{ color_schemes_dark.settings.background_gradient }};
+      --gradient-background-no-alpha: {{ color_schemes_dark.settings.background_gradient }};
+    {% else %}
+      --gradient-background: {{ color_schemes_dark.settings.background }};
+      --gradient-background-no-alpha: rgb({{ color_schemes_dark.settings.background.rgb }});
+    {% endif %}
+
+    --color-highlight: {{ color_schemes_dark.settings.heading_highlight.red }} {{ color_schemes_dark.settings.heading_highlight.green }} {{ color_schemes_dark.settings.heading_highlight.blue }} / {{ color_schemes_dark.settings.heading_highlight.alpha }};
+    --color-highlight-no-alpha: {{ color_schemes_dark.settings.heading_highlight.red }} {{ color_schemes_dark.settings.heading_highlight.green }} {{ color_schemes_dark.settings.heading_highlight.blue }};
+    --color-link: {{ color_schemes_dark.settings.heading_highlight.red }} {{ color_schemes_dark.settings.heading_highlight.green }} {{ color_schemes_dark.settings.heading_highlight.blue }} / {{ color_schemes_dark.settings.heading_highlight.alpha }};
+    --color-link-no-alpha: {{ color_schemes_dark.settings.heading_highlight.red }} {{ color_schemes_dark.settings.heading_highlight.green }} {{ color_schemes_dark.settings.heading_highlight.blue }};
+    --color-heading: {{ color_schemes_dark.settings.heading.red }} {{ color_schemes_dark.settings.heading.green }} {{ color_schemes_dark.settings.heading.blue }} / {{ color_schemes_dark.settings.heading.alpha }};
+    --color-heading-no-alpha: {{ color_schemes_dark.settings.heading.red }} {{ color_schemes_dark.settings.heading.green }} {{ color_schemes_dark.settings.heading.blue }};
+    --color-text: {{ color_schemes_dark.settings.text.red }} {{ color_schemes_dark.settings.text.green }} {{ color_schemes_dark.settings.text.blue }} / {{ color_schemes_dark.settings.text.alpha }};
+    --color-text-no-alpha: {{ color_schemes_dark.settings.text.red }} {{ color_schemes_dark.settings.text.green }} {{ color_schemes_dark.settings.text.blue }};
+    --color-line-and-border: {{ color_schemes_dark.settings.line_and_border_color.red }} {{ color_schemes_dark.settings.line_and_border_color.green }} {{ color_schemes_dark.settings.line_and_border_color.blue }} / {{ color_schemes_dark.settings.line_and_border_color.alpha }};
+    --color-line-and-border-no-alpha: {{ color_schemes_dark.settings.line_and_border_color.red }} {{ color_schemes_dark.settings.line_and_border_color.green }} {{ color_schemes_dark.settings.line_and_border_color.blue }};
+    --color-vendor: {{ color_schemes_dark.settings.heading.red }} {{ color_schemes_dark.settings.heading.green }} {{ color_schemes_dark.settings.heading.blue }} / 0.4;
+    --color-vendor-no-alpha: {{ color_schemes_dark.settings.heading.red }} {{ color_schemes_dark.settings.heading.green }} {{ color_schemes_dark.settings.heading.blue }};
+    
+    --color-button: {{ color_schemes_dark.settings.button.red }} {{ color_schemes_dark.settings.button.green }} {{ color_schemes_dark.settings.button.blue }} / {{ color_schemes_dark.settings.button.alpha }};
+    --color-button-no-alpha: {{ color_schemes_dark.settings.button.red }} {{ color_schemes_dark.settings.button.green }} {{ color_schemes_dark.settings.button.blue }};
+    --color-button-text: {{ color_schemes_dark.settings.button_label.red }} {{ color_schemes_dark.settings.button_label.green }} {{ color_schemes_dark.settings.button_label.blue }} / {{ color_schemes_dark.settings.button_label.alpha }};
+    --color-button-text-no-alpha: {{ color_schemes_dark.settings.button_label.red }} {{ color_schemes_dark.settings.button_label.green }} {{ color_schemes_dark.settings.button_label.blue }};
+    --color-button-hover: {{ color_schemes_dark.settings.button_hover.red }} {{ color_schemes_dark.settings.button_hover.green }} {{ color_schemes_dark.settings.button_hover.blue }} / {{ color_schemes_dark.settings.button_hover.alpha }};
+    --color-button-hover-no-alpha: {{ color_schemes_dark.settings.button_hover.red }} {{ color_schemes_dark.settings.button_hover.green }} {{ color_schemes_dark.settings.button_hover.blue }};
+    --color-button-text-hover: {{ color_schemes_dark.settings.button_label_hover.red }} {{ color_schemes_dark.settings.button_label_hover.green }} {{ color_schemes_dark.settings.button_label_hover.blue }} / {{ color_schemes_dark.settings.button_label_hover.alpha }};
+    --color-button-text-hover-no-alpha: {{ color_schemes_dark.settings.button_label_hover.red }} {{ color_schemes_dark.settings.button_label_hover.green }} {{ color_schemes_dark.settings.button_label_hover.blue }};
+    --color-secondary-button: {{ color_schemes_dark.settings.secondary_button.red }} {{ color_schemes_dark.settings.secondary_button.green }} {{ color_schemes_dark.settings.secondary_button.blue }} / {{ color_schemes_dark.settings.secondary_button.alpha }};
+    --color-secondary-button-no-alpha: {{ color_schemes_dark.settings.secondary_button.red }} {{ color_schemes_dark.settings.secondary_button.green }} {{ color_schemes_dark.settings.secondary_button.blue }};
+    --color-secondary-button-text: {{ color_schemes_dark.settings.secondary_button_label_color.red }} {{ color_schemes_dark.settings.secondary_button_label_color.green }} {{ color_schemes_dark.settings.secondary_button_label_color.blue }} / {{ color_schemes_dark.settings.secondary_button_label_color.alpha }};
+    --color-secondary-button-text-no-alpha: {{ color_schemes_dark.settings.secondary_button_label_color.red }} {{ color_schemes_dark.settings.secondary_button_label_color.green }} {{ color_schemes_dark.settings.secondary_button_label_color.blue }};
+    --color-secondary-button-hover: {{ color_schemes_dark.settings.secondary_button_hover.red }} {{ color_schemes_dark.settings.secondary_button_hover.green }} {{ color_schemes_dark.settings.secondary_button_hover.blue }} / {{ color_schemes_dark.settings.secondary_button_hover.alpha }};
+    --color-secondary-button-hover-no-alpha: {{ color_schemes_dark.settings.secondary_button_hover.red }} {{ color_schemes_dark.settings.secondary_button_hover.green }} {{ color_schemes_dark.settings.secondary_button_hover.blue }};
+    --color-secondary-button-text-hover: {{ color_schemes_dark.settings.secondary_button_label_hover.red }} {{ color_schemes_dark.settings.secondary_button_label_hover.green }} {{ color_schemes_dark.settings.secondary_button_label_hover.blue }} / {{ color_schemes_dark.settings.secondary_button_label_hover.alpha }};
+    --color-secondary-button-text-hover-no-alpha: {{ color_schemes_dark.settings.secondary_button_label_hover.red }} {{ color_schemes_dark.settings.secondary_button_label_hover.green }} {{ color_schemes_dark.settings.secondary_button_label_hover.blue }};
+    --color-button-link: {{ color_schemes_dark.settings.link_button_color.red }} {{ color_schemes_dark.settings.link_button_color.green }} {{ color_schemes_dark.settings.link_button_color.blue }} / {{ color_schemes_dark.settings.link_button_color.alpha }};
+    --color-button-link-no-alpha: {{ color_schemes_dark.settings.link_button_color.red }} {{ color_schemes_dark.settings.link_button_color.green }} {{ color_schemes_dark.settings.link_button_color.blue }};
+    --color-button-link-label-hover: {{ color_schemes_dark.settings.link_button_label_hover.red }} {{ color_schemes_dark.settings.link_button_label_hover.green }} {{ color_schemes_dark.settings.link_button_label_hover.blue }} / {{ color_schemes_dark.settings.link_button_label_hover.alpha }};
+    --color-button-link-label-hover-no-alpha: {{ color_schemes_dark.settings.link_button_label_hover.red }} {{ color_schemes_dark.settings.link_button_label_hover.green }} {{ color_schemes_dark.settings.link_button_label_hover.blue }};
+
+    --error-background-color: {{ settings.color_background_error_dark.red }} {{ settings.color_background_error_dark.green }} {{ settings.color_background_error_dark.blue }} / {{ settings.color_background_error_dark.alpha }};
+    --error-background-color-no-alpha: {{ settings.color_background_error_dark.red }} {{ settings.color_background_error_dark.green }} {{ settings.color_background_error_dark.blue }};
+    --error-message-color: {{ settings.color_error_message_dark.red }} {{ settings.color_error_message_dark.green }} {{ settings.color_error_message_dark.blue }} / {{ settings.color_error_message_dark.alpha }};
+    --error-message-color-no-alpha: {{ settings.color_error_message_dark.red }} {{ settings.color_error_message_dark.green }} {{ settings.color_error_message_dark.blue }};
+    --warning-message-color: {{ settings.color_warning_message_dark.red }} {{ settings.color_warning_message_dark.green }} {{ settings.color_warning_message_dark.blue }} / {{ settings.color_warning_message_dark.alpha }};
+    --warning-message-color-no-alpha: {{ settings.color_warning_message_dark.red }} {{ settings.color_warning_message_dark.green }} {{ settings.color_warning_message_dark.blue }};
+    --success-background-color: {{ settings.color_background_success_dark.red }} {{ settings.color_background_success_dark.green }} {{ settings.color_background_success_dark.blue }} / {{ settings.color_background_success_dark.alpha }};
+    --success-background-color-no-alpha: {{ settings.color_background_success_dark.red }} {{ settings.color_background_success_dark.green }} {{ settings.color_background_success_dark.blue }};
+    --success-message-color: {{ settings.color_success_message_dark.red }} {{ settings.color_success_message_dark.green }} {{ settings.color_success_message_dark.blue }} / {{ settings.color_success_message_dark.alpha }};
+    --success-message-color-no-alpha: {{ settings.color_success_message_dark.red }} {{ settings.color_success_message_dark.green }} {{ settings.color_success_message_dark.blue }};
+    --color-price: {{ settings.price_dark.red }} {{ settings.price_dark.green }} {{ settings.price_dark.blue }} / {{ settings.price_dark.alpha }};
+    --color-price-no-alpha: {{ settings.price_dark.red }} {{ settings.price_dark.green }} {{ settings.price_dark.blue }};
+    --color-sale-price: {{ settings.sale_price_dark.red }} {{ settings.sale_price_dark.green }} {{ settings.sale_price_dark.blue }} / {{ settings.sale_price_dark.alpha }};
+    --color-sale-price-no-alpha: {{ settings.sale_price_dark.red }} {{ settings.sale_price_dark.green }} {{ settings.sale_price_dark.blue }};
+    --rating-color: {{ settings.color_ratings_dark.red }} {{ settings.color_ratings_dark.green }} {{ settings.color_ratings_dark.blue }} / {{ settings.color_ratings_dark.alpha }};
+    --rating-color-no-alpha: {{ settings.color_ratings_dark.red }} {{ settings.color_ratings_dark.green }} {{ settings.color_ratings_dark.blue }};
+    --color-in-stock: {{ settings.dark_color_in_stock.red }} {{ settings.dark_color_in_stock.green }} {{ settings.dark_color_in_stock.blue }} / {{ settings.dark_color_in_stock.alpha }};
+    --color-in-stock-no-alpha: {{ settings.dark_color_in_stock.red }} {{ settings.dark_color_in_stock.green }} {{ settings.dark_color_in_stock.blue }};
+    --color-low-stock: {{ settings.dark_color_low_stock.red }} {{ settings.dark_color_low_stock.green }} {{ settings.dark_color_low_stock.blue }} / {{ settings.dark_color_low_stock.alpha }};
+    --color-low-stock-no-alpha: {{ settings.dark_color_low_stock.red }} {{ settings.dark_color_low_stock.green }} {{ settings.dark_color_low_stock.blue }};
+    --color-out-of-stock: {{ settings.dark_color_out_of_stock.red }} {{ settings.dark_color_out_of_stock.green }} {{ settings.dark_color_out_of_stock.blue }} / {{ settings.dark_color_out_of_stock.alpha }};
+    --color-out-of-stock-no-alpha: {{ settings.dark_color_out_of_stock.red }} {{ settings.dark_color_out_of_stock.green }} {{ settings.dark_color_out_of_stock.blue }};
+    --color-out-of-stock-continue-selling: {{ settings.dark_color_out_of_stock_continue_selling_message.red }} {{ settings.dark_color_out_of_stock_continue_selling_message.green }} {{ settings.dark_color_out_of_stock_continue_selling_message.blue }} / {{ settings.dark_color_out_of_stock_continue_selling_message.alpha }};
+    --color-pre-order: {{ settings.dark_color_pre_order_message.red }} {{ settings.dark_color_pre_order_message.green }} {{ settings.dark_color_pre_order_message.blue }} / {{ settings.dark_color_pre_order_message.alpha }};
+
+    --color-overlay: {{ settings.overlay_background_dark.red }} {{ settings.overlay_background_dark.green }} {{ settings.overlay_background_dark.blue }} / {{ settings.overlay_background_dark.alpha }};
+    --color-overlay-no-alpha: {{ settings.overlay_background_dark.red }} {{ settings.overlay_background_dark.green }} {{ settings.overlay_background_dark.blue }};
+    --color-border-footer: {{ settings.footer_line_and_border_color_dark.red }} {{ settings.footer_line_and_border_color_dark.green }} {{ settings.footer_line_and_border_color_dark.blue }} / {{ settings.footer_line_and_border_color_dark.alpha }};
+    --color-border-footer-no-alpha: {{ settings.footer_line_and_border_color_dark.red }} {{ settings.footer_line_and_border_color_dark.green }} {{ settings.footer_line_and_border_color_dark.blue }};
+    --color-pulse-speech: {{ settings.colors_dark_speech.red }} {{ settings.colors_dark_speech.green }} {{ settings.colors_dark_speech.blue }} / {{ settings.colors_dark_speech.alpha }};
+    --color-pulse-speech-no-alpha: {{ settings.colors_dark_speech.red }} {{ settings.colors_dark_speech.green }} {{ settings.colors_dark_speech.blue }};
+    
+    {% if settings.pc_background_color_dark.alpha != 0.0 %}
+      --product-card-bg: {{ settings.pc_background_color_dark.red }} {{ settings.pc_background_color_dark.green }} {{ settings.pc_background_color_dark.blue }} / {{ settings.pc_background_color_dark.alpha }};
+      --product-card-bg-no-alpha: {{ settings.pc_background_color_dark.red }} {{ settings.pc_background_color_dark.green }} {{ settings.pc_background_color_dark.blue }};
+    {% else %}
+      --product-card-bg: 0 0 0 / 0;
+      --product-card-bg-no-alpha: 0 0 0;
+    {% endif %}
+  
+    {%- if settings.breadcrumbs_background_color_dark.alpha != 0.0 -%}
+      --color-breadcrumb-background: {{ settings.breadcrumbs_background_color_dark.red }} {{ settings.breadcrumbs_background_color_dark.green }} {{ settings.breadcrumbs_background_color_dark.blue }} / {{ settings.breadcrumbs_background_color_dark.alpha }};
+      --color-breadcrumb-background-no-alpha: {{ settings.breadcrumbs_background_color_dark.red }} {{ settings.breadcrumbs_background_color_dark.green }} {{ settings.breadcrumbs_background_color_dark.blue }};
+    {%- else -%}
+      --color-breadcrumb-background: {{ color_schemes_dark.settings.background.red }} {{ color_schemes_dark.settings.background.green }} {{ color_schemes_dark.settings.background.blue }} / {{ color_schemes_dark.settings.background.alpha }};
+      --color-breadcrumb-background-no-alpha: {{ color_schemes_dark.settings.background.red }} {{ color_schemes_dark.settings.background.green }} {{ color_schemes_dark.settings.background.blue }};
+    {%- endif -%}
+    {%- if settings.breadcrumbs_text_color_dark.alpha != 0.0 -%}
+      --color-breadcrumb-text: {{ settings.breadcrumbs_text_color_dark.red }} {{ settings.breadcrumbs_text_color_dark.green }} {{ settings.breadcrumbs_text_color_dark.blue }} / {{ settings.breadcrumbs_text_color_dark.alpha }};
+      --color-breadcrumb-text-no-alpha: {{ settings.breadcrumbs_text_color_dark.red }} {{ settings.breadcrumbs_text_color_dark.green }} {{ settings.breadcrumbs_text_color_dark.blue }};
+    {%- else -%}
+      --color-breadcrumb-text: {{ color_schemes_dark.settings.text.red }} {{ color_schemes_dark.settings.text.green }} {{ color_schemes_dark.settings.text.blue }} / {{ color_schemes_dark.settings.text.alpha }};
+      --color-breadcrumb-text-no-alpha: {{ color_schemes_dark.settings.text.red }} {{ color_schemes_dark.settings.text.green }} {{ color_schemes_dark.settings.text.blue }};
+    {%- endif -%}
+    {%- if settings.breadcrumbs_text_link_color_dark.alpha != 0.0 -%}
+      --color-breadcrumb-text-link: {{ settings.breadcrumbs_text_link_color_dark.red }} {{ settings.breadcrumbs_text_link_color_dark.green }} {{ settings.breadcrumbs_text_link_color_dark.blue }} / {{ settings.breadcrumbs_text_link_color_dark.alpha }};
+      --color-breadcrumb-text-link-no-alpha: {{ settings.breadcrumbs_text_link_color_dark.red }} {{ settings.breadcrumbs_text_link_color_dark.green }} {{ settings.breadcrumbs_text_link_color_dark.blue }};
+    {%- else -%}
+      --color-breadcrumb-text-link: {{ color_schemes_dark.settings.heading_highlight.red }} {{ color_schemes_dark.settings.heading_highlight.green }} {{ color_schemes_dark.settings.heading_highlight.blue }} / {{ color_schemes_dark.settings.heading_highlight.alpha }};
+      --color-breadcrumb-text-link-no-alpha: {{ color_schemes_dark.settings.heading_highlight.red }} {{ color_schemes_dark.settings.heading_highlight.green }} {{ color_schemes_dark.settings.heading_highlight.blue }};
+    {%- endif -%}
+    {% if settings.show_popup_overlay %}
+      --color-background-popup: {{ settings.overlay_background_dark.red }} {{ settings.overlay_background_dark.green }} {{ settings.overlay_background_dark.blue }} / {{ settings.overlay_background_dark.alpha }};
+      --color-background-popup-no-alpha: {{ settings.overlay_background_dark.red }} {{ settings.overlay_background_dark.green }} {{ settings.overlay_background_dark.blue }};
+    {% else %}
+      --color-background-popup: 0 0 0 / 0;
+      --color-background-popup-no-alpha: 0 0 0;
+    {% endif %}
+    --color-scrollbar: {{ color_schemes_dark.settings.text.red }} {{ color_schemes_dark.settings.text.green }} {{ color_schemes_dark.settings.text.blue }} / {{ color_schemes_dark.settings.text.alpha }};
+    --color-scrollbar-no-alpha: {{ color_schemes_dark.settings.text.red }} {{ color_schemes_dark.settings.text.green }} {{ color_schemes_dark.settings.text.blue }};
+    {% if color_schemes_dark.settings.background_gradient != blank %}
+      --element-background: transparent;
+    {% else %}
+      --element-background: rgba({{ color_schemes_dark.settings.background.red }} {{ color_schemes_dark.settings.background.green }} {{ color_schemes_dark.settings.background.blue }} / {{ color_schemes_dark.settings.background.alpha }});
+    {% endif %}
+    
+    {% if settings.animated_cursor_bg_color.alpha != 0.0 %} 
+      --animated-cursor-bg: {{ settings.animated_cursor_bg_color.red }} {{ settings.animated_cursor_bg_color.green }} {{ settings.animated_cursor_bg_color.blue }} / {{ settings.animated_cursor_bg_color.alpha }};
+      --animated-cursor-bg-no-alpha: {{ settings.animated_cursor_bg_color.red }} {{ settings.animated_cursor_bg_color.green }} {{ settings.animated_cursor_bg_color.blue }};
+    {% endif %}
+    {% if settings.animated_cursor_text_color.alpha != 0.0 %} 
+      --animated-cursor-text: {{ settings.animated_cursor_text_color.red }} {{ settings.animated_cursor_text_color.green }} {{ settings.animated_cursor_text_color.blue }} / {{ settings.animated_cursor_text_color.alpha }};
+      --animated-cursor-text-no-alpha: {{ settings.animated_cursor_text_color.red }} {{ settings.animated_cursor_text_color.green }} {{ settings.animated_cursor_text_color.blue }};
+    {% endif %}
+  }
+
+
+  .dark #x-footer,
+  .dark #x-footer *:before {
+    --color-background: {{ settings.footer_background_dark.red }} {{ settings.footer_background_dark.green }} {{ settings.footer_background_dark.blue }} / {{ settings.footer_background_dark.alpha }};
+    --color-background-no-alpha: {{ settings.footer_background_dark.red }} {{ settings.footer_background_dark.green }} {{ settings.footer_background_dark.blue }};
+    {% if settings.footer_background_gradient_dark != blank %}
+      --gradient-background: {{ settings.footer_background_gradient_dark }};
+      --gradient-background-no-alpha: {{ settings.footer_background_gradient_dark }};
+    {% else %}
+      --gradient-background: {{ settings.footer_background_dark }};
+      --gradient-background-no-alpha: rgb({{ settings.footer_background_dark.rgb }});
+    {% endif %}
+
+    --color-highlight: {{ settings.footer_heading_highlight_dark.red }} {{ settings.footer_heading_highlight_dark.green }} {{ settings.footer_heading_highlight_dark.blue }} / {{ settings.footer_heading_highlight_dark.alpha }};
+    --color-highlight-no-alpha: {{ settings.footer_heading_highlight_dark.red }} {{ settings.footer_heading_highlight_dark.green }} {{ settings.footer_heading_highlight_dark.blue }};
+    --color-link: {{ settings.footer_heading_highlight_dark.red }} {{ settings.footer_heading_highlight_dark.green }} {{ settings.footer_heading_highlight_dark.blue }} / {{ settings.footer_heading_highlight_dark.alpha }};
+    --color-link-no-alpha: {{ settings.footer_heading_highlight_dark.red }} {{ settings.footer_heading_highlight_dark.green }} {{ settings.footer_heading_highlight_dark.blue }};
+    --color-text: {{ settings.footer_text_dark.red }} {{ settings.footer_text_dark.green }} {{ settings.footer_text_dark.blue }} / {{ settings.footer_text_dark.alpha }};
+    --color-text-no-alpha: {{ settings.footer_text_dark.red }} {{ settings.footer_text_dark.green }} {{ settings.footer_text_dark.blue }};
+    --color-icon-footer: {{ settings.footer_icon_dark.red }} {{ settings.footer_icon_dark.green }} {{ settings.footer_icon_dark.blue }} / {{ settings.footer_icon_dark.alpha }};
+    --color-icon-footer-no-alpha: {{ settings.footer_icon_dark.red }} {{ settings.footer_icon_dark.green }} {{ settings.footer_icon_dark.blue }};
+    --color-line-and-border: {{ settings.footer_line_and_border_color_dark.red }} {{ settings.footer_line_and_border_color_dark.green }} {{ settings.footer_line_and_border_color_dark.blue }} / {{ settings.footer_line_and_border_color_dark.alpha }};
+    --color-line-and-border-no-alpha: {{ settings.footer_line_and_border_color_dark.red }} {{ settings.footer_line_and_border_color_dark.green }} {{ settings.footer_line_and_border_color_dark.blue }};
+  }
+
+  .dark .product-card__wrapper, .dark .product-card__wrapper *:before {
+    {% if settings.pc_text_dark.alpha != 0.0 and settings.pc_text_dark != blank %}
+      --color-text: {{ settings.pc_text_dark.red }} {{ settings.pc_text_dark.green }} {{ settings.pc_text_dark.blue }} / {{ settings.pc_text_dark.alpha }};
+      --color-text-no-alpha: {{ settings.pc_text_dark.red }} {{ settings.pc_text_dark.green }} {{ settings.pc_text_dark.blue }};
+    {% endif %}
+    {% if settings.pc_heading_dark.alpha != 0.0 and settings.pc_heading_dark != blank %}
+      --color-heading: {{ settings.pc_heading_dark.red }} {{ settings.pc_heading_dark.green }} {{ settings.pc_heading_dark.blue }} / {{ settings.pc_heading_dark.alpha }};
+      --color-heading-no-alpha: {{ settings.pc_heading_dark.red }} {{ settings.pc_heading_dark.green }} {{ settings.pc_heading_dark.blue }};
+    {% endif %}
+    {% if settings.pc_highlight_dark.alpha != 0.0 and settings.pc_highlight_dark != blank %}
+      --color-link: {{ settings.pc_highlight_dark.red }} {{ settings.pc_highlight_dark.green }} {{ settings.pc_highlight_dark.blue }} / {{ settings.pc_highlight_dark.alpha }};
+      --color-link-no-alpha: {{ settings.pc_highlight_dark.red }} {{ settings.pc_highlight_dark.green }} {{ settings.pc_highlight_dark.blue }};
+    {% endif %}
+    {% if settings.pc_price_dark.alpha != 0.0 and settings.pc_price_dark != blank %}
+      --color-price: {{ settings.pc_price_dark.red }} {{ settings.pc_price_dark.green }} {{ settings.pc_price_dark.blue }} / {{ settings.pc_price_dark.alpha }};
+      --color-price-no-alpha: {{ settings.pc_price_dark.red }} {{ settings.pc_price_dark.green }} {{ settings.pc_price_dark.blue }};
+    {% endif %}
+    {% if settings.pc_sale_price_dark.alpha != 0.0 and settings.pc_sale_price_dark != blank %}
+      --color-sale-price: {{ settings.pc_sale_price_dark.red }} {{ settings.pc_sale_price_dark.green }} {{ settings.pc_sale_price_dark.blue }} / {{ settings.pc_sale_price_dark.alpha }};
+      --color-sale-price-no-alpha: {{ settings.pc_sale_price_dark.red }} {{ settings.pc_sale_price_dark.green }} {{ settings.pc_sale_price_dark.blue }};
+    {% endif %}
+    {% if settings.pc_rating_dark.alpha != 0.0 and settings.pc_rating_dark != blank %}
+      --rating-color: {{ settings.pc_rating_dark.red }} {{ settings.pc_rating_dark.green }} {{ settings.pc_rating_dark.blue }} / {{ settings.pc_rating_dark.alpha }};
+      --rating-color-no-alpha: {{ settings.pc_rating_dark.red }} {{ settings.pc_rating_dark.green }} {{ settings.pc_rating_dark.blue }};
+    {% endif %}
+  }
+  {% if settings.pc_background_color_dark.alpha != 0.0 %}
+    .dark .choose-option-wrapper {
+      --gradient-background: {{ settings.pc_background_color_dark }};
+    }
+  {% endif %}
+  /* Schemes */
+  {% for scheme in settings.color_schemes -%}
+    {% assign scheme_classes = scheme_classes | append: ' , .color-' | append: scheme.id | append: ", dark .dark-color-" | append: scheme.id %}
+    .color-{{ scheme.id }}, .color-{{ scheme.id }} *:before, .color-{{ scheme.id }} *:after,
+    .dark .dark-color-{{ scheme.id }}, .dark .dark-color-{{ scheme.id }} *:before, .dark .dark-color-{{ scheme.id }} *:after,
+    .color-scheme-block.color-{{ scheme.id }} *:before, .color-scheme-block.color-{{ scheme.id }} *:after, 
+    .dark .color-scheme-block.dark-color-{{ scheme.id }} *:before, .dark .color-scheme-block.dark-color-{{ scheme.id }} *:after {
+      --color-background: {{ scheme.settings.background.red }} {{ scheme.settings.background.green }} {{ scheme.settings.background.blue }} / {{ scheme.settings.background.alpha }};  
+      --color-background-no-alpha: {{ scheme.settings.background.red }} {{ scheme.settings.background.green }} {{ scheme.settings.background.blue }};
+      {% if scheme.settings.background_gradient != blank %}
+        --gradient-background: {{ scheme.settings.background_gradient }};
+        --gradient-background-no-alpha: {{ scheme.settings.background_gradient }};
+      {% else %}
+        --gradient-background: {{ scheme.settings.background }};
+        --gradient-background-no-alpha: rgb({{ scheme.settings.background.rgb }});
+      {% endif %}
+      --color-highlight: {{ scheme.settings.heading_highlight.red }} {{ scheme.settings.heading_highlight.green }} {{ scheme.settings.heading_highlight.blue }} / {{ scheme.settings.heading_highlight.alpha }};
+      --color-highlight-no-alpha: {{ scheme.settings.heading_highlight.red }} {{ scheme.settings.heading_highlight.green }} {{ scheme.settings.heading_highlight.blue }};
+      --color-heading: {{ scheme.settings.heading.red }} {{ scheme.settings.heading.green }} {{ scheme.settings.heading.blue }} / {{ scheme.settings.heading.alpha }};
+      --color-heading-no-alpha: {{ scheme.settings.heading.red }} {{ scheme.settings.heading.green }} {{ scheme.settings.heading.blue }};
+      --color-link: {{ scheme.settings.heading_highlight.red }} {{ scheme.settings.heading_highlight.green }} {{ scheme.settings.heading_highlight.blue }} / {{ scheme.settings.heading_highlight.alpha }};
+      --color-link-no-alpha: {{ scheme.settings.heading_highlight.red }} {{ scheme.settings.heading_highlight.green }} {{ scheme.settings.heading_highlight.blue }};
+      --color-text: {{ scheme.settings.text.red }} {{ scheme.settings.text.green }} {{ scheme.settings.text.blue }} / {{ scheme.settings.text.alpha }};
+      --color-text-no-alpha: {{ scheme.settings.text.red }} {{ scheme.settings.text.green }} {{ scheme.settings.text.blue }};
+      --color-line-and-border: {{ scheme.settings.line_and_border_color.red }} {{ scheme.settings.line_and_border_color.green }} {{ scheme.settings.line_and_border_color.blue }} / {{ scheme.settings.line_and_border_color.alpha }};
+      --color-line-and-border-no-alpha: {{ scheme.settings.line_and_border_color.red }} {{ scheme.settings.line_and_border_color.green }} {{ scheme.settings.line_and_border_color.blue }};
+      
+      --color-button: {{ scheme.settings.button.red }} {{ scheme.settings.button.green }} {{ scheme.settings.button.blue }} / {{ scheme.settings.button.alpha }};
+      --color-button-no-alpha: {{ scheme.settings.button.red }} {{ scheme.settings.button.green }} {{ scheme.settings.button.blue }};
+      --color-button-text: {{ scheme.settings.button_label.red }} {{ scheme.settings.button_label.green }} {{ scheme.settings.button_label.blue }} / {{ scheme.settings.button_label.alpha }};
+      --color-button-text-no-alpha: {{ scheme.settings.button_label.red }} {{ scheme.settings.button_label.green }} {{ scheme.settings.button_label.blue }};
+      --color-button-hover: {{ scheme.settings.button_hover.red }} {{ scheme.settings.button_hover.green }} {{ scheme.settings.button_hover.blue }} / {{ scheme.settings.button_hover.alpha }};
+      --color-button-hover-no-alpha: {{ scheme.settings.button_hover.red }} {{ scheme.settings.button_hover.green }} {{ scheme.settings.button_hover.blue }};
+      --color-button-text-hover: {{ scheme.settings.button_label_hover.red }} {{ scheme.settings.button_label_hover.green }} {{ scheme.settings.button_label_hover.blue }} / {{ scheme.settings.button_label_hover.alpha }};
+      --color-button-text-hover-no-alpha: {{ scheme.settings.button_label_hover.red }} {{ scheme.settings.button_label_hover.green }} {{ scheme.settings.button_label_hover.blue }};
+      --color-secondary-button: {{ scheme.settings.secondary_button.red }} {{ scheme.settings.secondary_button.green }} {{ scheme.settings.secondary_button.blue }} / {{ scheme.settings.secondary_button.alpha }};
+      --color-secondary-button-no-alpha: {{ scheme.settings.secondary_button.red }} {{ scheme.settings.secondary_button.green }} {{ scheme.settings.secondary_button.blue }};
+      --color-secondary-button-text: {{ scheme.settings.secondary_button_label_color.red }} {{ scheme.settings.secondary_button_label_color.green }} {{ scheme.settings.secondary_button_label_color.blue }} / {{ scheme.settings.secondary_button_label_color.alpha }};
+      --color-secondary-button-text-no-alpha: {{ scheme.settings.secondary_button_label_color.red }} {{ scheme.settings.secondary_button_label_color.green }} {{ scheme.settings.secondary_button_label_color.blue }};
+      --color-secondary-button-hover: {{ scheme.settings.secondary_button_hover.red }} {{ scheme.settings.secondary_button_hover.green }} {{ scheme.settings.secondary_button_hover.blue }} / {{ scheme.settings.secondary_button_hover.alpha }};
+      --color-secondary-button-hover-no-alpha: {{ scheme.settings.secondary_button_hover.red }} {{ scheme.settings.secondary_button_hover.green }} {{ scheme.settings.secondary_button_hover.blue }};
+      --color-secondary-button-text-hover: {{ scheme.settings.secondary_button_label_hover.red }} {{ scheme.settings.secondary_button_label_hover.green }} {{ scheme.settings.secondary_button_label_hover.blue }} / {{ scheme.settings.secondary_button_label_hover.alpha }};
+      --color-secondary-button-text-hover-no-alpha: {{ scheme.settings.secondary_button_label_hover.red }} {{ scheme.settings.secondary_button_label_hover.green }} {{ scheme.settings.secondary_button_label_hover.blue }};
+      --color-button-link: {{ scheme.settings.link_button_color.red }} {{ scheme.settings.link_button_color.green }} {{ scheme.settings.link_button_color.blue }} / {{ scheme.settings.link_button_color.alpha }};
+      --color-button-link-no-alpha: {{ scheme.settings.link_button_color.red }} {{ scheme.settings.link_button_color.green }} {{ scheme.settings.link_button_color.blue }};
+      --color-button-link-label-hover: {{ scheme.settings.link_button_label_hover.red }} {{ scheme.settings.link_button_label_hover.green }} {{ scheme.settings.link_button_label_hover.blue }} / {{ scheme.settings.link_button_label_hover.alpha }};
+      --color-button-link-label-hover-no-alpha: {{ scheme.settings.link_button_label_hover.red }} {{ scheme.settings.link_button_label_hover.green }} {{ scheme.settings.link_button_label_hover.blue }};
+      --color-scrollbar: {{ scheme.settings.text.red }} {{ scheme.settings.text.green }} {{ scheme.settings.text.blue }} / {{ scheme.settings.text.alpha }};
+      --color-scrollbar-no-alpha: {{ scheme.settings.text.red }} {{ scheme.settings.text.green }} {{ scheme.settings.text.blue }};
+      {% if scheme.settings.background_gradient != blank %}
+        --element-background: transparent;
+      {% else %}
+        --element-background: rgba({{ scheme.settings.background.red }} {{ scheme.settings.background.green }} {{ scheme.settings.background.blue }} / {{ scheme.settings.background.alpha }});
+      {% endif %}
+      {% if scheme.settings.background.alpha != 0.0 %}
+        --overlay-background: {{ scheme.settings.background.red }} {{ scheme.settings.background.green }} {{ scheme.settings.background.blue }};
+      {% else %}
+        --overlay-background: var(--color-overlay-no-alpha);
+      {% endif %}
+    }
+  {% endfor %}
+  {{ scheme_classes | prepend: "body" }} {
+    color: rgba(var(--color-text));
+    background-color: rgba(var(--color-background));
+    background: var(--gradient-background, "none");
+  }
+
+  /* Global class */
+  {% if settings.edges_type == 'rounded_corners' %}
+    .button-category {
+      border-radius: 10px;
+    }
+    .rounded-corners-md {
+      border-radius: 6px;
+    }
+    @media screen and (min-width: {{ settings.page_width }}px) {
+      .page-width.rounded-corners-container, .page-width .rounded-corners-container {
+        border-radius: var(--rounded-corners);
+      }
+    }
+    @media screen and (max-width: {{ settings.page_width }}px) {
+      .page-width .media-full-width .rounded-corners-container,
+      .page-width .media-full-width .brb-rounded-corners,
+      .page-width .media-full-width .brb-rounded-corners-dark {
+        --rounded-corners: 0px;
+      }
+    }
+    @media screen and (min-width: 768px) {
+      .full-width-padded.rounded-corners-container,
+      .full-width-padded .rounded-corners-container {
+        border-radius: var(--rounded-corners);
+      }
+    }
+    .custom-icon-image_rounded-corners {
+      --rounded-corners: 6px;
+    }
+    .rounded-corners {
+      border-radius: var(--rounded-corners);
+    }
+    select-element {
+      --rounded-corners: 6px;
+    }
+    .text-field__wrapper,
+    .dropdown-field__wrapper {
+      border-radius: 6px;
+    }
+  {% endif %}
+  .button-action {
+    border: none;
+    color: rgba(var(--color-button-text));
+    background-color: rgba(var(--color-button));
+  }
+  .drawer-menu-wrapper .menu-item.is-focus-child {
+    background: rgba(var(--color-heading-no-alpha) / 0.1);
+  }
+  .bg-heading-highlight {
+    background: rgba(var(--color-highlight));
+  }
+
+  {% if settings.pc_show_highlight and settings.highlight_att_enable_auto_rotate %}
+    {% if settings.highlight_att_text_light.alpha != blank and settings.highlight_att_text_light.alpha != 0.0 %}
+      .maximize-theme:not(.dark) .product-card__highlight-attributes__rotate {
+        --color-text: {{ settings.highlight_att_text_light.red }} {{ settings.highlight_att_text_light.green }} {{ settings.highlight_att_text_light.blue }} / {{ settings.highlight_att_text_light.alpha }};
+        --color-text-no-alpha: {{ settings.highlight_att_text_light.red }} {{ settings.highlight_att_text_light.green }} {{ settings.highlight_att_text_light.blue }};
+        color: rgba(var(--color-text));
+      }
+    {% endif %}
+    {% if settings.highlight_att_text_dark.alpha != blank and settings.highlight_att_text_dark.alpha != 0.0 %}
+      .dark .product-card__highlight-attributes__rotate {
+        --color-text: {{ settings.highlight_att_text_dark.red }} {{ settings.highlight_att_text_dark.green }} {{ settings.highlight_att_text_dark.blue }} / {{ settings.highlight_att_text_dark.alpha }};
+        --color-text-no-alpha: {{ settings.highlight_att_text_dark.red }} {{ settings.highlight_att_text_dark.green }} {{ settings.highlight_att_text_dark.blue }};
+        color: rgba(var(--color-text));
+      }
+    {% endif %}
+  {% endif %}
+
+  {% if settings.img_hover_anm == 'zoom_out' %}
+    @media (min-width: 1024px) {
+      .media-hyperlink {
+        will-change: transform;
+      }
+      .media-hyperlink .anm-image-hover {
+        transition: transform var(--image-transition-duration) ease-out;
+        transform: translateZ(0);
+      }
+      .media-hyperlink:hover .anm-image-hover {
+        transform: scale(var(--image-hover-scale));
+      }
+    }
+  {% endif %}
+{% endstyle -%}

@@ -1,0 +1,112 @@
+{%- comment -%}
+  Data endpoint for the B2B order view — never placed in a template. Fetched per product by
+  assets/order-view.js as {{ product.url }}?section_id=order-view-variants&page=N.
+{%- endcomment -%}
+{%- if product != blank -%}
+  {%- comment -%}
+    Preorder eligibility — variant-order-row.liquid turns this into the "Preorder" stock label and
+    the cart line-item property, but only when the caller supplies it ({% render %} is sealed).
+  {%- endcomment -%}
+  {%- liquid
+    assign ov_is_apply_preorder = false
+    if settings.applied_products_preorder == blank and settings.applied_collections_preorder == blank
+      assign ov_is_apply_preorder = true
+    else
+      assign ov_preorder_product_list = ''
+      for prod in settings.applied_products_preorder
+        assign ov_preorder_product_list = ov_preorder_product_list | append: ';' | append: prod.id
+      endfor
+      for collec in settings.applied_collections_preorder
+        for prod in collec.products
+          assign ov_preorder_product_list = ov_preorder_product_list | append: ';' | append: prod.id
+        endfor
+      endfor
+      if ov_preorder_product_list contains product.id
+        assign ov_is_apply_preorder = true
+      endif
+    endif
+
+    assign ov_message_preorder = 'general.preorder.message_preorder' | t
+    if settings.message_preorder_cart != blank
+      assign ov_message_preorder = settings.message_preorder_cart
+    endif
+  -%}
+
+  {%- assign ov_hide_price = 'false' -%}
+  {%- unless settings.login_to_view_price == 'none' -%}
+    {%- capture ov_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+    {%- assign ov_hide_price = ov_hide_price | strip -%}
+  {%- endunless -%}
+
+  {%- comment -%}
+    Hoisted once per fetch — variant-order-row.liquid can render up to 250x here.
+  {%- endcomment -%}
+  {%- liquid
+    capture ov_icon_minus
+      render 'icon-all', icon: 'icon-minus'
+    endcapture
+    capture ov_icon_plus
+      render 'icon-all', icon: 'icon-plus'
+    endcapture
+    capture ov_icon_loading
+      render 'icon-all', icon: 'icon-loading'
+    endcapture
+    assign ov_lbl_sku = 'products.product.sku' | t
+    assign ov_lbl_minus = 'accessibility.minus' | t
+    assign ov_lbl_plus = 'accessibility.plus' | t
+    assign ov_lbl_qty = 'products.product.quantity.label' | t
+    assign ov_lbl_inc = 'bulk_order.rule.inc' | t
+    assign ov_lbl_min = 'bulk_order.rule.min' | t
+    assign ov_lbl_max = 'bulk_order.rule.max' | t
+    assign ov_money_with_currency = settings.currency_code_enable
+    assign ov_zero_money = 0 | money
+
+    assign ov_is_b2b = false
+    if customer != blank and customer.b2b?
+      assign ov_is_b2b = true
+    endif
+
+    assign ov_rounded = false
+    if settings.edges_type == 'rounded_corners'
+      assign ov_rounded = true
+    endif
+  -%}
+
+  <div class="variant-loader-inner" data-product-id="{{ product.id }}" data-variant-count="{{ product.variants_count }}">
+    {%- paginate product.variants by 250 -%}
+      {%- comment -%} The rows scroll; the pager below them does not. {%- endcomment -%}
+      <div class="order-view__variant-rows variant-rows-scroll scrollbar-body scrollbar-visible">
+        {%- for variant in product.variants -%}
+          {%- render 'variant-order-row',
+            variant: variant,
+            product: product,
+            is_apply_preorder: ov_is_apply_preorder,
+            message_preorder: ov_message_preorder,
+            hide_price: ov_hide_price,
+            tooltip_clamp_boundary: 'order-view__card',
+            index: forloop.index,
+            image_width: 45,
+            row_class: 'p-2 lg:p-4',
+            icon_minus: ov_icon_minus,
+            icon_plus: ov_icon_plus,
+            icon_loading: ov_icon_loading,
+            lbl_sku: ov_lbl_sku,
+            lbl_minus: ov_lbl_minus,
+            lbl_plus: ov_lbl_plus,
+            lbl_qty: ov_lbl_qty,
+            lbl_inc: ov_lbl_inc,
+            lbl_min: ov_lbl_min,
+            lbl_max: ov_lbl_max,
+            money_with_currency: ov_money_with_currency,
+            zero_money: ov_zero_money,
+            is_b2b: ov_is_b2b,
+            rounded: ov_rounded
+          -%}
+        {%- endfor -%}
+      </div>
+      {%- if paginate.pages > 1 -%}
+        {%- render 'variant-pagination', paginate: paginate -%}
+      {%- endif -%}
+    {%- endpaginate -%}
+  </div>
+{%- endif -%}

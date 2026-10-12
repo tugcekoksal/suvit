@@ -1,0 +1,1985 @@
+{% liquid
+  assign is_customer_b2b = false
+  if customer != blank and customer.b2b?
+    assign is_customer_b2b = true
+  endif
+%}
+{% liquid
+  assign form_id = 'B2BRegistrationForm-' | append: section.id
+  assign class_form = 'w-full'
+  assign check_content = false
+  if section.settings.image != blank
+    assign check_content = 'image'
+    assign class_form = 'w-full lg:w-1/2'
+  endif
+
+  if section.settings.image_position == 'right'
+    assign class_form = class_form | append: ' form-align-left'
+  else
+    assign class_form = class_form | append: ' order-2 form-align-right'
+  endif
+
+  unless section.settings.form_container_light == section.settings.color_scheme_light
+    assign class_form = class_form | append: ' md:p-8 p-4'
+  else
+    assign class_form = class_form | append: ' md:p-0 p-0'
+  endunless
+
+  unless section.settings.form_container_dark == section.settings.color_scheme_dark
+    assign class_form = class_form | append: ' md:dark:p-8 dark:p-4'
+  else
+    assign class_form = class_form | append: ' md:dark:p-0 dark:p-0'
+  endunless
+
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  else
+    assign is_rtl = false
+  endif
+
+  assign has_block_email = false
+  assign has_block_additional_information = false
+  if section.blocks.size > 0
+    assign has_block_email = section.blocks | where: 'type', 'email'
+  endif
+  if section.blocks.size > 0
+    assign has_block_additional_information = section.blocks | where: 'type', 'additional_information'
+  endif
+%}
+
+{%- liquid
+  assign block_has_required = section.blocks | map: 'settings' | find: 'mark_as_required', true
+  assign has_required = false
+  if has_block_email != blank or block_has_required != blank
+    assign has_required = true
+  endif
+%}
+
+{%- style -%}
+  .section--{{ section.id }} {
+    padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+    padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+  }
+  .section--{{ section.id }} .additional-information-helper-text {
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+  }
+
+  .section--{{ section.id }} textarea.description-form__block:focus ~ .additional-information-helper-text,
+  .section--{{ section.id }} textarea.description-form__block:not(:placeholder-shown) ~ .additional-information-helper-text {
+    opacity: 0;
+    visibility: hidden;
+  }
+  @media (min-width: 768px) {
+    .section--{{ section.id }} {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+{%- endstyle -%}
+
+{% render 'section-divider' %}
+
+<div class="section--{{ section.id }} color-{{ section.settings.color_scheme_light.id }} dark-color-{{ section.settings.color_scheme_dark.id }} {{ section.settings.section_width }} rounded-corners-container">
+  <div class="heading-form text-{{ section.settings.form_content_alignment }} {% if section.settings.heading != blank or section.settings.text != blank %} heading-content-spacing{%- endif -%}">
+    {%- if section.settings.heading != blank -%}
+      <{{ section.settings.heading_tag }}
+        class="heading-{{ section.settings.heading_size }} block mt-2 leading-tight anm-fade-element"
+        data-fade-on-intersect
+      >
+        {{ section.settings.heading }}
+      </{{ section.settings.heading_tag }}>
+    {%- endif -%}
+    {% if section.settings.text != blank %}
+      <div
+        class="rte mt-0.5 anm-fade-element"
+        data-fade-on-intersect
+      >
+        {{ section.settings.text }}
+      </div>
+    {% endif %}
+  </div>
+  <div class="{% if check_content %}contact-has-{{ check_content }} w-full {% else %} max-w-xl md:mx-auto{% endif %}">
+    <div
+      class="
+        contact-form-{{ section.id }} flex flex-col md:gap-y-0 md:flex-row md:items-start w-full
+        {%- if section.settings.form_container_light == section.settings.color_scheme_light %} gap-y-4 md:gap-x-8{% else %} gap-y-2 md:gap-x-4{% endif -%}
+        {%- if is_rtl %} ltr{% endif -%}
+        {%- unless check_content %}{% if section.settings.image_position == "right" %} pb-7 lg:pb-0{% else %} pt-7 lg:pt-0{% endif %}{% endunless -%}
+        {%- if section.settings.image == blank %} md:gap-x-[4%]{% endif -%}
+        {%- if section.settings.section_width != "full-width" and settings.edges_type == 'rounded_corners' %} rounded-[10px]{% endif -%}
+      "
+    >
+      <div class="{% if is_rtl %}rtl {% endif %}contact-form-container justify-center md:sticky sticky-top flex {{ class_form }} {% if settings.edges_type == 'rounded_corners' %} rounded-corners{% endif %} {% if section.settings.image %} flex-col gap-y-7 md:gap-y-0{% if section.settings.image_position == "left" %} md:items-end rtl:md:items-start{% else %} md:items-start rtl:md:items-end{% endif %}{% endif %} color-{{ section.settings.form_container_light }} dark-color-{{ section.settings.form_container_dark }}">
+        <div
+          class="contact-form w-full {% if settings.section_width == 'page-width' %} max-w-[{{ settings.page_width | divided_by: 2 }}px]{% endif %}"
+          x-data="xContactForm('{{ form_id }}')"
+          @input.debounce.300ms="validateForm()"
+          @change="validateForm()"
+        >
+          {% if is_customer_b2b %}
+            <div
+              class="flex items-center pl-4 pr-4 pt-3.5 pb-3.5 mb-3 message-success selection:color-bg-[rgba(var(--success-message-color),0.4)] focus:outline-none rounded-corners-md"
+              tabindex="-1"
+              autofocus
+            >
+              {{ 'sections.b2b_registration.approved_message' | t }}
+            </div>
+            <div class="flex justify-{{ section.settings.form_content_alignment }}">
+              <custom-button>
+                <a
+                  href="{{ routes.all_products_collection_url }}"
+                  class="button button-primary relative cursor-pointer"
+                >
+                  {{ 'general.continue_shopping' | t }}
+                </a>
+              </custom-button>
+            </div>
+          {% else %}
+            {%- form 'contact', id: form_id, class: 'maximize' -%}
+              {%- if form.posted_successfully? -%}
+                <div
+                  class="flex items-center pl-4 pr-4 pt-3.5 pb-3.5 mb-3 message-success selection:color-bg-[rgba(var(--success-message-color),0.4)] focus:outline-none {% if settings.edges_type == 'rounded_corners' %}rounded-[4px]{% endif %}"
+                  tabindex="-1"
+                  autofocus
+                >
+                  {%- if section.settings.success_message != blank -%}
+                    <p class="leading-tight flex-1">{{ section.settings.success_message }}</p>
+                  {%- else -%}
+                    {{ 'templates.contact.form.post_success' | t }}
+                  {%- endif -%}
+                </div>
+                <div class="flex justify-{{ section.settings.form_content_alignment }}">
+                  <custom-button>
+                    <a
+                      href="{{ routes.all_products_collection_url }}"
+                      class="button button-primary relative cursor-pointer"
+                    >
+                      {{ 'general.continue_shopping' | t }}
+                    </a>
+                  </custom-button>
+                </div>
+              {%- elsif form.errors -%}
+                <p
+                  class="flex items-center pl-4 pr-4 pt-3 pb-3 mb-3 color-bg-[rgba(var(--error-message-color),0.2)] selection:color-bg-[rgba(var(--error-message-color),0.4)]"
+                  tabindex="-1"
+                  autofocus
+                >
+                  <span class="color-text-[rgba(var(--error-message-color))] inline-block w-5 mr-2">{% render 'icon-all', icon: 'icon-error' %} </span>
+                  {{ form.errors.translated_fields.email | capitalize }}
+                  {{ form.errors.messages.email }}
+                </p>
+              {%- endif -%}
+              {%- unless form.posted_successfully? -%}
+                <input
+                  type="hidden"
+                  name="contact[{{ 'templates.contact.form.form_type' | t }}]"
+                  value="{{ 'templates.contact.form.b2b_registration' | t }}"
+                >
+                <p class="leading-tight flex-1 pb-3 text-{{ section.settings.form_content_alignment }}">
+                  {% if customer != blank  %}
+                    {{ 'sections.b2b_registration.login_no_link' | t }}
+                  {% else %}
+                    <div class="flex items-center gap-1">
+                      {% assign button_label = 'bulk_order.gate.login' | t %}
+                      <span>{{ 'sections.b2b_registration.login_no_link' | t }}</span>
+                      {% render 'button',
+                        button_style: "text-link",
+                        button_label: button_label,
+                        button_link: routes.account_login_url,
+                        class: 'md:min-h-5'
+                      %}
+                    </div>  
+                  {% endif %}
+                </p>
+                <div class="contact__fields flex flex-wrap gap-2">
+                  {% if has_block_email %}
+                    <div
+                      id="RegistrationFormEmail-{{ section.id }}__validation"
+                      class="contact-form__email-error-{{ form_id }} hidden flash-message error-message mb-1"
+                    ></div>
+                  {% endif %}
+                  {%- for block in section.blocks -%}
+                    {%- case block.type -%}
+                      {%- when 'company_name' -%}
+                        <div
+                          class="text-field__wrapper {%- if block.settings.width_block == 'w-1/2' %} w-full md:w-[calc(50%-0.25rem)]{%- else %} {{ block.settings.width_block }}{% endif -%}"
+                          {{ block.shopify_attributes }}
+                        >
+                          <input
+                            type="text"
+                            id="RegistrationFormCompanyName-{{ section.id }}"
+                            class="text-field__input"
+                            name="contact[{%- if block.settings.label != blank -%}{{ block.settings.label }}{%- else -%}company_name{% endif %}]"
+                            value="{% if form.company_name %}{{ form.company_name }}{% endif %}"
+                            autocapitalize="words"
+                            placeholder="{{ 'customer.enter_text' | t }}"
+                            {% if block.settings.mark_as_required %}
+                              required
+                            {% endif %}
+                          >
+                          <label
+                            class="text-field__label"
+                            for="RegistrationFormCompanyName-{{ section.id }}"
+                          >
+                            {{- block.settings.label }}
+                            {% if block.settings.mark_as_required %}
+                              <span aria-hidden="true">*</span>
+                            {%- endif %}
+                          </label>
+                        </div>
+                      {%- when 'company_tax_id' -%}
+                        <div
+                          class="text-field__wrapper {%- if block.settings.width_block == 'w-1/2' %} w-full md:w-[calc(50%-0.25rem)]{%- else %} {{ block.settings.width_block }}{% endif -%}"
+                          {{ block.shopify_attributes }}
+                        >
+                          <input
+                            type="text"
+                            id="RegistrationFormCompanyTaxId-{{ section.id }}"
+                            class="text-field__input"
+                            name="contact[{%- if block.settings.label != blank -%}{{ block.settings.label }}{%- else -%}company_tax_id{% endif %}]"
+                            value="{% if form.company_tax_id %}{{ form.company_tax_id }}{% endif %}"
+                            autocapitalize="words"
+                            placeholder="{{ 'customer.enter_text' | t }}"
+                            {% if block.settings.mark_as_required %}
+                              required
+                            {% endif %}
+                          >
+                          <label
+                            class="text-field__label"
+                            for="RegistrationFormCompanyTaxId-{{ section.id }}"
+                          >
+                            {{- block.settings.label }}
+                            {% if block.settings.mark_as_required %}
+                              <span aria-hidden="true">*</span>
+                            {%- endif %}
+                          </label>
+                        </div>
+                      {%- when 'email' -%}
+                        <div
+                          class="text-field__wrapper {%- if block.settings.width_block == 'w-1/2' %} w-full md:w-[calc(50%-0.25rem)]{%- else %} {{ block.settings.width_block }}{% endif -%}"
+                          {{ block.shopify_attributes }}
+                        >
+                          <input
+                            type="email"
+                            id="RegistrationFormEmail-{{ section.id }}"
+                            class="text-field__input"
+                            name="contact[email]"
+                            autocomplete="email"
+                            autocapitalize="off"
+                            autocorrect="off"
+                            value="{% if form.email %}{{ form.email }}{% elsif customer %}{{ customer.email }}{% endif %}"
+                            placeholder="{{ 'customer.email' | t }}"
+                            required
+                          >
+                          <label
+                            class="text-field__label"
+                            for="RegistrationFormEmail-{{ section.id }}"
+                          >
+                            {{- block.settings.label }}
+                            <span aria-hidden="true">*</span>
+                          </label>
+                        </div>
+                      {%- when 'company_phone_number' -%}
+                        <div
+                          class="text-field__wrapper {%- if block.settings.width_block == 'w-1/2' %} w-full md:w-[calc(50%-0.25rem)]{%- else %} {{ block.settings.width_block }}{% endif -%}"
+                          {{ block.shopify_attributes }}
+                        >
+                          <input
+                            type="text"
+                            id="RegistrationFormPhoneNumber-{{ section.id }}"
+                            class="text-field__input"
+                            name="contact[{%- if block.settings.label != blank -%}{{ block.settings.label }}{%- else -%}company_phone_number{% endif %}]"
+                            value="{% if form.company_phone_number %}{{ form.company_phone_number }}{% endif %}"
+                            autocapitalize="words"
+                            placeholder="{{ 'customer.enter_text' | t }}"
+                            {% if block.settings.mark_as_required %}
+                              required
+                            {% endif %}
+                          >
+                          <label
+                            class="text-field__label"
+                            for="RegistrationFormPhoneNumber-{{ section.id }}"
+                          >
+                            {{- block.settings.label }}
+                            {% if block.settings.mark_as_required %}
+                              <span aria-hidden="true">*</span>
+                            {%- endif %}
+                          </label>
+                        </div>
+                      {%- when 'business_type' -%}
+                        {% liquid
+                          assign options = null
+                          unless block.settings.type_field == 'text'
+                            assign options = block.settings.options | append: '' | split: ';'
+                          endunless
+                          assign form_item = 'business_type'
+                          assign contact_form = 'RegistrationBusinessType'
+                        %}
+                        <div
+                          class="relative {%- if block.settings.width_block == 'w-1/2' %} w-full md:w-[calc(50%-0.25rem)]{%- else %} {{ block.settings.width_block }}{% endif -%}"
+                          {{ block.shopify_attributes }}
+                        >
+                          {%- if block.settings.heading != blank or block.settings.mark_as_required -%}
+                            {%- if block.settings.type_field != 'dropdown' and block.settings.type_field != 'text' %}
+                              <div class="pb-3">
+                                {{- block.settings.heading }}
+                                {% if block.settings.mark_as_required %}
+                                  <span aria-hidden="true">*</span>
+                                {%- endif %}
+                              </div>
+                            {%- endif -%}
+                          {%- endif -%}
+                          {%- if block.settings.type_field == 'text' -%}
+                            <div class="text-field__wrapper">
+                              <input
+                                type="text"
+                                id="{{ contact_form }}"
+                                class="text-field__input"
+                                name="contact[{%- if block.settings.heading != blank -%}{{ block.settings.heading }}{%- else -%}{{ form_item }}{% endif %}]"
+                                value=""
+                                placeholder="{{ 'customer.enter_text' | t }}"
+                                {% if block.settings.mark_as_required %}
+                                  required
+                                {% endif %}
+                              >
+                              <label
+                                class="text-field__label"
+                                for="{{ contact_form }}"
+                              >
+                                {{- block.settings.heading }}
+                                {% if block.settings.mark_as_required %}
+                                  <span aria-hidden="true">*</span>
+                                {%- endif %}
+                              </label>
+                            </div>
+                          {%- elsif options.size > 0 -%}
+                            {%- if block.settings.type_field == 'dropdown' -%}
+                              <div class="relative">
+                                <select-element
+                                  id="{{ contact_form }}__wrapper"
+                                  class="contact-form-item dropdown-large"
+                                  data-picker-type="dropdown"
+                                  data-no-require="true"
+                                >
+                                  <div class="select relative">
+                                    <div
+                                      class="select-button flex relative w-full items-center justify-between gap-x-2 rounded-corners py-3.5"
+                                      role="button"
+                                      tabindex="0"
+                                      aria-pressed="false"
+                                      aria-expanded="false"
+                                      aria-describedby="FormItem"
+                                    >
+                                      <span class="select-button__label select-text color-text-[rgba(var(--color-text))] text-medium">
+                                        {{- block.settings.heading -}}
+                                        {%- if block.settings.mark_as_required -%}
+                                          <span aria-hidden="true">*</span>
+                                        {%- endif %}
+                                      </span>
+                                      <span class="select-arrow transition-transform w-2.5 h-2.5 flex min-w-[10px]">{% render 'icon-all', icon: 'icon-caret' %}</span>
+                                    </div>
+                                  </div>
+                                  <div class="select-options-wrapper scrollbar-visible scrollbar-body">
+                                    <ul
+                                      role="listbox"
+                                      class="select-options"
+                                      aria-label="{{ block.settings.heading | strip }}"
+                                    >
+                                      {%- for option in options -%}
+                                        <li
+                                          class="select-option rounded-corners"
+                                          data-option-name="{{ option }}"
+                                          data-value="{{ option }}"
+                                          data-select-value="{{ option }}"
+                                          data-type="dropdown"
+                                          role="option"
+                                          aria-selected="false"
+                                          tabindex="-1"
+                                          data-no-instant
+                                        >
+                                          {{- option -}}
+                                        </li>
+                                      {%- endfor -%}
+                                    </ul>
+                                  </div>
+                                  <label
+                                    class="hidden"
+                                    for="{{ contact_form }}"
+                                  >
+                                    <input
+                                      id="{{ contact_form }}"
+                                      name="contact[{%- if block.settings.heading != blank -%}{{ block.settings.heading }}{%- else -%}{{ form_item }}{%- endif -%}]"
+                                      class="select-option-selected"
+                                      value=""
+                                      {% if block.settings.mark_as_required %}
+                                        required
+                                      {% endif %}
+                                      data-disclosure-input
+                                    >
+                                  </label>
+                                </select-element>
+                              </div>
+                            {%- elsif block.settings.type_field == 'radio' -%}
+                              <div class="flex flex-{{ block.settings.direction }} flex-wrap gap-x-3 md:gap-x-6 gap-y-2 md:gap-y-2.5">
+                                {%- for option in options -%}
+                                  <div class="flex items-center cursor-pointer md:gap-2 gap-1.5">
+                                    <input
+                                      type="radio"
+                                      id="{{ contact_form }}-{{ forloop.index }}"
+                                      name="contact[{%- if block.settings.heading != blank -%}{{ block.settings.heading }}{%- else -%}{{ form_item }}{% endif %}]"
+                                      value="{{ option }}"
+                                      class="input-radio w-5.5 h-5.5 h-w-5.5 min-w-5.5"
+                                      {% if block.settings.mark_as_required -%}
+                                        required
+                                      {%- endif %}
+                                      {% if forloop.index == 1 %}
+                                        checked
+                                      {% endif -%}
+                                    >
+                                    <label
+                                      for="{{ contact_form }}-{{ forloop.index }}"
+                                      class="flex-1 cursor-pointer bg-transparent"
+                                    >
+                                      {{ option }}
+                                    </label>
+                                    <br>
+                                  </div>
+                                {%- endfor -%}
+                              </div>
+                            {%- elsif block.settings.type_field == 'checkbox' -%}
+                              <div
+                                x-data="{ data: [] }"
+                                class="multi-select flex flex-wrap gap-x-3 md:gap-x-6 gap-y-2 md:gap-y-2.5"
+                              >
+                                {%- for option in options -%}
+                                  <div class="flex items-center lg:w-[calc(50%-0.75rem)]">
+                                    <input
+                                      type="checkbox"
+                                      id="{{ contact_form }}-{{ forloop.index }}"
+                                      class="input-checkbox mr-2 rtl:mr-0 rtl:ml-2 h-5.5 w-5.5 min-h-5.5 min-w-5.5 border checked:color-bg-[rgba(var(--color-button))] relative cursor-pointer{% if settings.edges_type == 'rounded_corners' %} rounded{% else %} rounded-none{% endif %}"
+                                      value="{{ option }}"
+                                      x-model="data"
+                                    >
+                                    <label
+                                      for="{{ contact_form }}-{{ forloop.index }}"
+                                      class="flex-1 cursor-pointer"
+                                    >
+                                      {{- option -}}</label
+                                    ><br>
+                                  </div>
+                                {%- endfor -%}
+                                <input
+                                  type="text"
+                                  class="content hidden"
+                                  id="ContactForm__Content__{{ section.id }}"
+                                  value=""
+                                  name="contact[{%- if block.settings.heading != blank -%}{{ block.settings.heading }}{%- else -%}{{ form_item }}{% endif %}]"
+                                  x-model="data.join('; ')"
+                                  {% if block.settings.mark_as_required %}
+                                    required
+                                  {% endif %}
+                                >
+                                <label
+                                  for="ContactForm__Content__{{ section.id }}"
+                                  class="hidden"
+                                  >Contact Form Content</label
+                                >
+                              </div>
+                            {%- endif -%}
+                          {%- endif -%}
+                        </div>
+                      {%- when 'company_address' -%}
+                        <div
+                          class="text-field__wrapper {%- if block.settings.width_block == 'w-1/2' %} w-full md:w-[calc(50%-0.25rem)]{%- else %} {{ block.settings.width_block }}{% endif -%}"
+                          {{ block.shopify_attributes }}
+                        >
+                          <input
+                            type="text"
+                            id="RegistrationFormCompanyAddress-{{ section.id }}"
+                            class="text-field__input"
+                            name="contact[{%- if block.settings.label != blank -%}{{ block.settings.label }}{%- else -%}company_address{% endif %}]"
+                            value="{% if form.company_address %}{{ form.company_address }}{% endif %}"
+                            autocapitalize="words"
+                            placeholder="{{ 'customer.enter_text' | t }}"
+                            {% if block.settings.mark_as_required %}
+                              required
+                            {% endif %}
+                          >
+                          <label
+                            class="text-field__label"
+                            for="RegistrationFormCompanyAddress-{{ section.id }}"
+                          >
+                            {{- block.settings.label }}
+                            {% if block.settings.mark_as_required %}
+                              <span aria-hidden="true">*</span>
+                            {%- endif %}
+                          </label>
+                        </div>
+                      {%- when 'contact_name' -%}
+                        <div
+                          class="text-field__wrapper {%- if block.settings.width_block == 'w-1/2' %} w-full md:w-[calc(50%-0.25rem)]{%- else %} {{ block.settings.width_block }}{% endif -%}"
+                          {{ block.shopify_attributes }}
+                        >
+                          <input
+                            type="text"
+                            id="RegistrationFormContactName-{{ section.id }}"
+                            class="text-field__input"
+                            name="contact[{%- if block.settings.label != blank -%}{{ block.settings.label }}{%- else -%}contact_name{% endif %}]"
+                            value="{% if form.contact_name %}{{ form.contact_name }}{% endif %}"
+                            autocapitalize="words"
+                            placeholder="{{ 'customer.enter_text' | t }}"
+                            {% if block.settings.mark_as_required %}
+                              required
+                            {% endif %}
+                          >
+                          <label
+                            class="text-field__label"
+                            for="RegistrationFormContactName-{{ section.id }}"
+                          >
+                            {{- block.settings.label }}
+                            {% if block.settings.mark_as_required %}
+                              <span aria-hidden="true">*</span>
+                            {%- endif %}
+                          </label>
+                        </div>
+                      {%- when 'phone_number' -%}
+                        <div
+                          class="text-field__wrapper {%- if block.settings.width_block == 'w-1/2' %} w-full md:w-[calc(50%-0.25rem)]{%- else %} {{ block.settings.width_block }}{% endif -%}"
+                          {{ block.shopify_attributes }}
+                        >
+                          <input
+                            type="text"
+                            id="RegistrationFormPhoneNumber-{{ section.id }}"
+                            class="text-field__input"
+                            name="contact[{%- if block.settings.label != blank -%}{{ block.settings.label }}{%- else -%}phone_number{% endif %}]"
+                            value="{% if form.phone_number %}{{ form.phone_number }}{% endif %}"
+                            autocapitalize="words"
+                            placeholder="{{ 'customer.enter_text' | t }}"
+                            {% if block.settings.mark_as_required %}
+                              required
+                            {% endif %}
+                          >
+                          <label
+                            class="text-field__label"
+                            for="RegistrationFormPhoneNumber-{{ section.id }}"
+                          >
+                            {{- block.settings.label }}
+                            {% if block.settings.mark_as_required %}
+                              <span aria-hidden="true">*</span>
+                            {%- endif %}
+                          </label>
+                        </div>
+                      {%- when 'role' -%}
+                        <div
+                          class="text-field__wrapper {%- if block.settings.width_block == 'w-1/2' %} w-full md:w-[calc(50%-0.25rem)]{%- else %} {{ block.settings.width_block }}{% endif -%}"
+                          {{ block.shopify_attributes }}
+                        >
+                          <input
+                            type="text"
+                            id="RegistrationFormRole-{{ section.id }}"
+                            class="text-field__input"
+                            name="contact[{%- if block.settings.label != blank -%}{{ block.settings.label }}{%- else -%}role{% endif %}]"
+                            value="{% if form.role %}{{ form.role }}{% endif %}"
+                            autocapitalize="words"
+                            placeholder="{{ 'customer.enter_text' | t }}"
+                            {% if block.settings.mark_as_required %}
+                              required
+                            {% endif %}
+                          >
+                          <label
+                            class="text-field__label"
+                            for="RegistrationFormRole-{{ section.id }}"
+                          >
+                            {{- block.settings.label }}
+                            {% if block.settings.mark_as_required %}
+                              <span aria-hidden="true">*</span>
+                            {%- endif %}
+                          </label>
+                        </div>
+                      {%- when 'additional_information' -%}
+                        <div
+                          class="text-area__wrapper field-container w-full"
+                          {{ block.shopify_attributes }}
+                        >
+                          <label
+                            class="text-area__label field-label--static"
+                            for="RegistrationFormAdditionalInformation-{{ section.id }}"
+                          >
+                            {{- block.settings.label -}}
+                            {% if block.settings.mark_as_required %}
+                              <span aria-hidden="true">*</span>
+                            {%- endif -%}
+                          </label>
+
+                          <textarea
+                            id="RegistrationFormAdditionalInformation-{{ section.id }}"
+                            class="text-field__input description-form__block field-textarea--borderless"
+                            rows="4"
+                            name="contact[{%- if block.settings.label != blank -%}{{ block.settings.label }}{%- else -%}additional_information{% endif %}]"
+                            placeholder="{{ 'templates.withdrawal_request_form.blocks.description.paragraph' | t }}"
+                            {% if block.settings.mark_as_required %}
+                              required
+                            {% endif -%}
+                          >{{- form.additional_information -}}</textarea>
+
+                          {% if has_block_additional_information %}
+                            <span
+                              class="additional-information-helper-text text-xs color-text-[rgba(var(--color-text),0.6)] absolute bottom-2 left-3 rtl:right-3 w-fit p-break-words italic pointer-events-none"
+                            >
+                              {{ block.settings.helper_text }}
+                            </span>
+                          {% endif %}
+                        </div>
+                      {%- when 'form' -%}
+                        {% liquid
+                          assign options = null
+                          unless block.settings.type_field == 'text'
+                            assign options = block.settings.options | append: '' | split: ';'
+                          endunless
+                          assign form_item = 'FormItem-' | append: forloop.index
+                          assign contact_form = 'ContactForm-' | append: section.id | append: '-' | append: forloop.index
+                        %}
+                        <div
+                          class="relative {%- if block.settings.width_block == 'w-1/2' %} w-full md:w-[calc(50%-0.25rem)]{%- else %} {{ block.settings.width_block }}{% endif -%}"
+                          {{ block.shopify_attributes }}
+                        >
+                          {%- if block.settings.heading != blank or block.settings.mark_as_required -%}
+                            {%- if block.settings.type_field != 'dropdown' and block.settings.type_field != 'text' %}
+                              <div class="pb-3">
+                                {{- block.settings.heading }}
+                                {% if block.settings.mark_as_required %}
+                                  <span aria-hidden="true">*</span>
+                                {%- endif %}
+                              </div>
+                            {%- endif -%}
+                          {%- endif -%}
+                          {%- if block.settings.type_field == 'text' -%}
+                            <div class="text-field__wrapper">
+                              <input
+                                type="text"
+                                id="{{ contact_form }}"
+                                class="text-field__input"
+                                name="contact[{%- if block.settings.heading != blank -%}{{ block.settings.heading }}{%- else -%}{{ form_item }}{% endif %}]"
+                                value=""
+                                placeholder="{{ 'customer.enter_text' | t }}"
+                                {% if block.settings.mark_as_required %}
+                                  required
+                                {% endif %}
+                              >
+                              <label
+                                class="text-field__label"
+                                for="{{ contact_form }}"
+                              >
+                                {{- block.settings.heading }}
+                                {% if block.settings.mark_as_required %}
+                                  <span aria-hidden="true">*</span>
+                                {%- endif %}
+                              </label>
+                            </div>
+                          {%- elsif options.size > 0 -%}
+                            {%- if block.settings.type_field == 'dropdown' -%}
+                              <div class="relative">
+                                <select-element
+                                  id="{{ contact_form }}__wrapper"
+                                  class="contact-form-item dropdown-large"
+                                  data-picker-type="dropdown"
+                                  data-no-require="true"
+                                >
+                                  <div class="select relative">
+                                    <div
+                                      class="select-button flex relative w-full items-center justify-between gap-x-2 rounded-corners py-3.5"
+                                      role="button"
+                                      tabindex="0"
+                                      aria-pressed="false"
+                                      aria-expanded="false"
+                                      aria-describedby="FormItem"
+                                    >
+                                      <span class="select-button__label select-text color-text-[rgba(var(--color-text))] text-medium">
+                                        {{- block.settings.heading -}}
+                                        {%- if block.settings.mark_as_required -%}
+                                          <span aria-hidden="true">*</span>
+                                        {%- endif %}
+                                      </span>
+                                      <span class="select-arrow transition-transform w-2.5 h-2.5 flex min-w-[10px]">{% render 'icon-all', icon: 'icon-caret' %}</span>
+                                    </div>
+                                  </div>
+                                  <div class="select-options-wrapper scrollbar-visible scrollbar-body">
+                                    <ul
+                                      role="listbox"
+                                      class="select-options"
+                                      aria-label="{{ block.settings.heading | strip }}"
+                                    >
+                                      {%- for option in options -%}
+                                        <li
+                                          class="select-option rounded-corners"
+                                          data-option-name="{{ option }}"
+                                          data-value="{{ option }}"
+                                          data-select-value="{{ option }}"
+                                          data-type="dropdown"
+                                          role="option"
+                                          aria-selected="false"
+                                          tabindex="-1"
+                                          data-no-instant
+                                        >
+                                          {{- option -}}
+                                        </li>
+                                      {%- endfor -%}
+                                    </ul>
+                                  </div>
+                                  <label
+                                    class="hidden"
+                                    for="{{ contact_form }}"
+                                  >
+                                    <input
+                                      id="{{ contact_form }}"
+                                      name="contact[{%- if block.settings.heading != blank -%}{{ block.settings.heading }}{%- else -%}{{ form_item }}{%- endif -%}]"
+                                      class="select-option-selected"
+                                      value=""
+                                      {% if block.settings.mark_as_required %}
+                                        required
+                                      {% endif %}
+                                      data-disclosure-input
+                                    >
+                                  </label>
+                                </select-element>
+                              </div>
+                            {%- elsif block.settings.type_field == 'radio' -%}
+                              <div class="flex flex-{{ block.settings.direction }} flex-wrap gap-x-3 gap-y-2 md:gap-y-2.5">
+                                {%- for option in options -%}
+                                  <div class="flex cursor-pointer md:gap-2 gap-1.5 {% if block.settings.direction == 'row' %} w-full lg:w-[calc(50%-0.75rem)]{% endif %}">
+                                    <input
+                                      type="radio"
+                                      id="{{ contact_form }}-{{ forloop.index }}"
+                                      name="contact[{%- if block.settings.heading != blank -%}{{ block.settings.heading }}{%- else -%}{{ form_item }}{% endif %}]"
+                                      value="{{ option }}"
+                                      class="input-radio w-5.5 h-5.5 h-w-5.5 min-w-5.5"
+                                      {% if block.settings.mark_as_required -%}
+                                        required
+                                      {%- endif %}
+                                      {% if forloop.index == 1 %}
+                                        checked
+                                      {% endif -%}
+                                    >
+                                    <label
+                                      for="{{ contact_form }}-{{ forloop.index }}"
+                                      class="flex-1 cursor-pointer bg-transparent"
+                                    >
+                                      {{ option }}
+                                    </label>
+                                    <br>
+                                  </div>
+                                {%- endfor -%}
+                              </div>
+                            {%- elsif block.settings.type_field == 'checkbox' -%}
+                              <div
+                                x-data="{ data: [] }"
+                                class="multi-select flex flex-{{ block.settings.direction }} flex-wrap gap-x-3 gap-y-2 md:gap-y-2.5"
+                              >
+                                {%- for option in options -%}
+                                  <div class="flex {% if block.settings.direction == 'row' %} w-full lg:w-[calc(50%-0.75rem)]{% endif %}">
+                                    <input
+                                      type="checkbox"
+                                      id="{{ contact_form }}-{{ forloop.index }}"
+                                      class="input-checkbox mr-2 rtl:mr-0 rtl:ml-2 h-5.5 w-5.5 min-h-5.5 min-w-5.5 border checked:color-bg-[rgba(var(--color-button))] relative cursor-pointer{% if settings.edges_type == 'rounded_corners' %} rounded{% else %} rounded-none{% endif %}"
+                                      value="{{ option }}"
+                                      x-model="data"
+                                    >
+                                    <label
+                                      for="{{ contact_form }}-{{ forloop.index }}"
+                                      class="flex-1 cursor-pointer"
+                                    >
+                                      {{- option -}}</label
+                                    ><br>
+                                  </div>
+                                {%- endfor -%}
+                                <input
+                                  type="text"
+                                  class="content hidden"
+                                  id="ContactForm__Content__{{ section.id }}"
+                                  value=""
+                                  name="contact[{%- if block.settings.heading != blank -%}{{ block.settings.heading }}{%- else -%}{{ form_item }}{% endif %}]"
+                                  x-model="data.join('; ')"
+                                  {% if block.settings.mark_as_required %}
+                                    required
+                                  {% endif %}
+                                >
+                                <label
+                                  for="ContactForm__Content__{{ section.id }}"
+                                  class="hidden"
+                                  >Contact Form Content</label
+                                >
+                              </div>
+                            {%- endif -%}
+                          {%- endif -%}
+                        </div>
+                        {%- when 'heading' -%}
+                          {%  assign heading = block.settings.heading %}
+                          {% if heading != blank %}
+                            {% style %}
+                              .block-heading-{{ block.id }} {
+                                --pad-top: {{ block.settings.desktop_padding_top }}px;
+                                --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+                                --pad-left: {{ block.settings.desktop_padding_left }}px;
+                                --pad-right: {{ block.settings.desktop_padding_right }}px;
+                                --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+                                --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+                                --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+                                --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+                              }
+                            {% endstyle %}
+                            <p class="registration-form__heading block-heading-{{ block.id }} block-padding h5 empty:hidden p-break-words w-full heading-{{ block.settings.heading_size }} block-title-size text-{{ block.settings.heading_alignment }}"
+                            >
+                              {% render 'text-highlight',
+                                id: block.id,
+                                text: heading,
+                                highlight_effect: block.settings.highlight_effect,
+                                text_transform: block.settings.text_transform
+                              %}
+                            </p>
+                          {% endif %}
+                      {%- endcase -%}
+                  {%- endfor -%}
+                </div>
+                <div class="button-submit__contact-form md:mt-4 mt-3">
+                  <custom-button>
+                    <button
+                      type="submit"
+                      class="button button-{{ section.settings.button_style }} w-full cursor-pointer empty:hidden pointer-events-auto {{ section.settings.button_size }}"
+                      {% if has_required %}
+                        disabled
+                      {% endif %}
+                      :disabled="!isFormValid"
+                    >
+                      {%- if section.settings.button_label != blank -%}
+                        {% assign button_label = section.settings.button_label | remove: '<' | remove: '>' | escape %}
+                      {%- else -%}
+                        {% assign button_label = 'templates.contact.form.send' | t %}
+                      {%- endif -%}
+                      {% render 'button-label', button_label: button_label, show_button_style: section.settings.button_style %}
+                    </button>
+                  </custom-button>
+                </div>
+              {%- endunless -%}
+            {%- endform -%}
+          {% endif %}
+        </div>
+      </div>
+      {% if section.settings.image != blank %}
+        {%- style -%}
+          .mobile-{{ section.id }}-natural {
+            padding-bottom: {{ 1 | divided_by: section.settings.image.aspect_ratio | times: 100 }}%;
+          }
+          @media screen and (min-width: 768px) {
+            .desktop-{{ section.id }}-natural {
+              padding-bottom: {{ 1 | divided_by: section.settings.image.aspect_ratio | times: 100 }}%;
+              height: 100%;
+            }
+          }
+        {%- endstyle -%}
+        {% if section.index == 1 and section.location == 'template' %}
+          <div class="hidden">
+            {{ section.settings.image | image_url: width: 3840 | image_tag: widths: '450, 750, 900, 1100, 1500, 1780, 2000, 3000, 3840', preload: true, loading: 'lazy' }}
+          </div>
+        {% endif %}
+        {% assign default_image_alt = 'accessibility.default_alt' | t %}
+        <div class="w-full lg:w-1/2 contact-image md:sticky sticky-top {% if section.settings.form_content_alignment == 'left' %}align-right{% else %}order-1 align-left{% endif %}">
+          <div class="relative md:h-full overflow-hidden{% if section.settings.image %} promotion relative{% if section.settings.mobile_height != 'natural' %} h-[{{ section.settings.mobile_height }}] md:h-auto{% else %} mobile-{{ section.id }}-natural{% endif %}{% if section.settings.desktop_height != 'natural' %} md:promotion:h-[{{ section.settings.desktop_height }}] md:promotion:pb-0{% else %} desktop-{{ section.id }}-natural{% endif %}{% endif %} {% if section.settings.section_width != "full-width" and settings.edges_type == 'rounded_corners' %}rounded-[10px]{% endif %}">
+            <div class="overflow-hidden h-full w-full absolute top-0 left-0">
+              <parallax-image class="h-full w-full">
+                <parallax-movement>
+                  <img
+                    class="md:h-full h-full w-full lg:absolute top-0 left-0 object-cover"
+                    srcset="
+                      {{ section.settings.image | image_url: width: 450 }} 450w,
+                      {{ section.settings.image | image_url: width: 750 }} 750w,
+                      {{ section.settings.image | image_url: width: 900 }} 900w,
+                      {{ section.settings.image | image_url: width: 1100 }} 1100w,
+                      {{ section.settings.image | image_url: width: 1500 }} 1500w,
+                      {{ section.settings.image | image_url }} {{ section.settings.image.width }}w
+                    "
+                    src="{{ section.settings.image | image_url: width: 1500 }}"
+                    alt="{{ section.settings.image.alt | default: default_image_alt | escape }}"
+                    {% if section.index == 1 and section.location == 'template' %}
+                      loading="eager"
+                      fetchpriority="high"
+                      decoding="sync"
+                    {% else %}
+                      loading="lazy"
+                    {% endif %}
+                    sizes="(min-width: 1024px){% if section.settings.section_width == "full-width" %} 35vw{% else %} {{ settings.page_width | divided_by: 2 }}px{% endif %}, (min-width: 768px) 50vw, 100vw"
+                    width="{{ section.settings.image.width }}"
+                    height="{{ section.settings.image.height }}"
+                    style="object-position: {{ section.settings.image.presentation.focal_point }}"
+                  >
+                </parallax-movement>
+              </parallax-image>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% schema %}
+{
+  "name": "t:b2b_registration_form.name",
+  "tag": "section",
+  "class": "maximize-section registration-request-form",
+  "disabled_on": {
+    "groups": ["header", "footer", "aside"]
+  },
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:withdrawal_request_form.settings.form"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "default": "Wholesale account registration",
+      "label": "t:global.text.heading"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "t:global.text.heading_size",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:global.size.small"
+        },
+        {
+          "value": "medium",
+          "label": "t:global.size.medium"
+        },
+        {
+          "value": "large",
+          "label": "t:global.size.large"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "default": "h2",
+      "label": "t:global.text.heading_tag",
+      "options": [
+        {
+          "value": "h1",
+          "label": "H1"
+        },
+        {
+          "value": "h2",
+          "label": "H2"
+        },
+        {
+          "value": "h3",
+          "label": "H3"
+        },
+        {
+          "value": "h4",
+          "label": "H4"
+        },
+        {
+          "value": "h5",
+          "label": "H5"
+        },
+        {
+          "value": "h6",
+          "label": "H6"
+        },
+        {
+          "value": "p",
+          "label": "p"
+        }
+      ]
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "t:global.form.form_input_type.text",
+      "default": "<p>Fill in your business information to get wholesale pricing. We'll respond as soon as possible.</p>"
+    },
+    {
+      "type": "select",
+      "id": "form_content_alignment",
+      "default": "center",
+      "label": "t:withdrawal_request_form.settings.form_content_alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:global.position.left"
+        },
+        {
+          "value": "center",
+          "label": "t:global.position.center"
+        },
+        {
+          "value": "right",
+          "label": "t:global.position.right"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "default": "Send",
+      "label": "t:global.button.button_label"
+    },
+    {
+      "type": "select",
+      "id": "button_size",
+      "default": "button-medium",
+      "label": "t:global.button.button_size",
+      "options": [
+        {
+          "value": "button-small",
+          "label": "t:global.size.small"
+        },
+        {
+          "value": "button-medium",
+          "label": "t:global.size.medium"
+        },
+        {
+          "value": "button-large",
+          "label": "t:global.size.large"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "button_style",
+      "options": [
+        {
+          "value": "primary",
+          "label": "t:global.button.style.primary"
+        },
+        {
+          "value": "secondary",
+          "label": "t:global.button.style.secondary"
+        }
+      ],
+      "label": "t:global.button.style.label",
+      "default": "primary"
+    },
+    {
+      "type": "text",
+      "id": "success_message",
+      "default": "Thank you! We will review your business information and get back to you soon. Once approved, log in to view wholesale pricing and place orders.",
+      "label": "t:contact_form.settings.success_message"
+    },
+    {
+      "type": "header",
+      "content": "t:global.image.image"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:global.image.image"
+    },
+    {
+      "type": "select",
+      "id": "image_position",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:global.position.left"
+        },
+        {
+          "value": "right",
+          "label": "t:global.position.right"
+        }
+      ],
+      "default": "right",
+      "label": "t:product_components.settings.section_layout.image_position",
+      "visible_if": "{{ section.settings.image != blank }}"
+    },
+    {
+      "type": "select",
+      "id": "desktop_height",
+      "options": [
+        {
+          "value": "450px",
+          "label": "450px"
+        },
+        {
+          "value": "550px",
+          "label": "550px"
+        },
+        {
+          "value": "650px",
+          "label": "650px"
+        },
+        {
+          "value": "750px",
+          "label": "750px"
+        },
+        {
+          "value": "natural",
+          "label": "t:global.image.natural"
+        },
+        {
+          "value": "100vh",
+          "label": "t:global.image.fullscreen"
+        }
+      ],
+      "default": "550px",
+      "label": "t:global.image.desktop_image_height",
+      "visible_if": "{{ section.settings.image != blank }}"
+    },
+    {
+      "type": "select",
+      "id": "mobile_height",
+      "options": [
+        {
+          "value": "250px",
+          "label": "250px"
+        },
+        {
+          "value": "300px",
+          "label": "300px"
+        },
+        {
+          "value": "400px",
+          "label": "400px"
+        },
+        {
+          "value": "500px",
+          "label": "500px"
+        },
+        {
+          "value": "natural",
+          "label": "t:global.ratio.natural"
+        },
+        {
+          "value": "100vh",
+          "label": "t:global.image.fullscreen"
+        }
+      ],
+      "default": "400px",
+      "label": "t:global.image.mobile_image_height",
+      "visible_if": "{{ section.settings.image != blank }}"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "select",
+      "label": "t:global.section.section_width.label",
+      "id": "section_width",
+      "options": [
+        {
+          "label": "t:global.section.section_width.option_1",
+          "value": "page-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_2",
+          "value": "full-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_3",
+          "value": "full-width-padded"
+        }
+      ],
+      "default": "page-width"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.top_padding",
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.bottom_padding",
+      "default": 28
+    },
+    {
+      "type": "checkbox",
+      "id": "show_section_divider",
+      "label": "t:global.section.show_section_divider",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.colors"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "form_container_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.form_container_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    },
+     {
+      "type": "color_scheme",
+      "id": "form_container_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.form_container_dark"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "company_name",
+      "name": "t:b2b_registration_form.blocks.company_name.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "default": "Company name",
+          "label": "t:global.text.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "mark_as_required",
+          "default": true,
+          "label": "t:global.form.mark_as_req"
+        },
+        {
+          "type": "select",
+          "id": "width_block",
+          "options": [
+            {
+              "value": "w-1/2",
+              "label": "t:global.section.width_option.option_1"
+            },
+            {
+              "value": "w-full",
+              "label": "t:global.section.width_option.option_2"
+            }
+          ],
+          "default": "w-full",
+          "label": "t:product_showcase.media_gallery.desktop_width"
+        }
+      ]
+    },
+    {
+      "type": "company_tax_id",
+      "name": "t:b2b_registration_form.blocks.company_tax_id.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "default": "Company tax ID",
+          "label": "t:global.text.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "mark_as_required",
+          "default": true,
+          "label": "t:global.form.mark_as_req"
+        },
+        {
+          "type": "select",
+          "id": "width_block",
+          "options": [
+            {
+              "value": "w-1/2",
+              "label": "t:global.section.width_option.option_1"
+            },
+            {
+              "value": "w-full",
+              "label": "t:global.section.width_option.option_2"
+            }
+          ],
+          "default": "w-1/2",
+          "label": "t:product_showcase.media_gallery.desktop_width"
+        }
+      ]
+    },
+    {
+      "type": "email",
+      "name": "t:global.form.email",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "default": "Email",
+          "label": "t:global.text.label",
+          "info": "t:contact_form.blocks.email.settings.email_info"
+        },
+        {
+          "type": "select",
+          "id": "width_block",
+          "options": [
+            {
+              "value": "w-1/2",
+              "label": "t:global.section.width_option.option_1"
+            },
+            {
+              "value": "w-full",
+              "label": "t:global.section.width_option.option_2"
+            }
+          ],
+          "default": "w-1/2",
+          "label": "t:product_showcase.media_gallery.desktop_width"
+        }
+      ]
+    },
+    {
+      "type": "company_phone_number",
+      "name": "t:b2b_registration_form.blocks.company_phone_number.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "default": "Company phone number",
+          "label": "t:global.text.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "mark_as_required",
+          "default": true,
+          "label": "t:global.form.mark_as_req"
+        },
+        {
+          "type": "select",
+          "id": "width_block",
+          "options": [
+            {
+              "value": "w-1/2",
+              "label": "t:global.section.width_option.option_1"
+            },
+            {
+              "value": "w-full",
+              "label": "t:global.section.width_option.option_2"
+            }
+          ],
+          "default": "w-1/2",
+          "label": "t:product_showcase.media_gallery.desktop_width"
+        }
+      ]
+    },
+    {
+      "type": "business_type",
+      "name": "t:b2b_registration_form.blocks.business_type.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "heading",
+          "default": "Business type",
+          "label": "t:global.text.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "mark_as_required",
+          "default": true,
+          "label": "t:global.form.mark_as_req"
+        },
+        {
+          "type": "select",
+          "id": "type_field",
+          "default": "dropdown",
+          "label": "t:contact_form.blocks.form.form_input_type",
+          "options": [
+            {
+              "value": "text",
+              "label": "t:global.form.form_input_type.text"
+            },
+            {
+              "value": "dropdown",
+              "label": "t:global.form.form_input_type.dropdown"
+            },
+            {
+              "value": "radio",
+              "label": "t:global.form.form_input_type.radio"
+            },
+            {
+              "value": "checkbox",
+              "label": "t:global.form.form_input_type.checkbox"
+            }
+          ]
+        },
+        {
+          "type": "select",
+          "label": "t:contact_form.blocks.form.option_direction",
+          "id": "direction",
+          "options": [
+            {
+              "label": "t:global.direction.vertical",
+              "value": "col"
+            },
+            {
+              "label": "t:global.direction.horizontal",
+              "value": "row"
+            }
+          ],
+          "default": "col",
+          "visible_if": "{{ block.settings.type_field == 'checkbox' or block.settings.type_field == 'radio' }}"
+        },
+        {
+          "type": "text",
+          "id": "options",
+          "label": "t:contact_form.blocks.form.options",
+          "info": "t:b2b_registration_form.blocks.business_type.options_info",
+          "default": "Manufacturer; Distributor; Wholesaler; Retailer",
+          "visible_if": "{{ block.settings.type_field != 'text' }}"
+        },
+        {
+          "type": "select",
+          "id": "width_block",
+          "options": [
+            {
+              "value": "w-1/2",
+              "label": "t:global.section.width_option.option_1"
+            },
+            {
+              "value": "w-full",
+              "label": "t:global.section.width_option.option_2"
+            }
+          ],
+          "default": "w-1/2",
+          "label": "t:product_showcase.media_gallery.desktop_width"
+        }
+      ]
+    },
+    {
+      "type": "company_address",
+      "name": "t:b2b_registration_form.blocks.company_address.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "default": "Company address",
+          "label": "t:global.text.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "mark_as_required",
+          "default": true,
+          "label": "t:global.form.mark_as_req"
+        },
+        {
+          "type": "select",
+          "id": "width_block",
+          "options": [
+            {
+              "value": "w-1/2",
+              "label": "t:global.section.width_option.option_1"
+            },
+            {
+              "value": "w-full",
+              "label": "t:global.section.width_option.option_2"
+            }
+          ],
+          "default": "w-full",
+          "label": "t:product_showcase.media_gallery.desktop_width"
+        }
+      ]
+    },
+    {
+      "type": "contact_name",
+      "name": "t:b2b_registration_form.blocks.contact_name.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "default": "Contact name",
+          "label": "t:global.text.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "mark_as_required",
+          "default": false,
+          "label": "t:global.form.mark_as_req"
+        },
+        {
+          "type": "select",
+          "id": "width_block",
+          "options": [
+            {
+              "value": "w-1/2",
+              "label": "t:global.section.width_option.option_1"
+            },
+            {
+              "value": "w-full",
+              "label": "t:global.section.width_option.option_2"
+            }
+          ],
+          "default": "w-1/2",
+          "label": "t:product_showcase.media_gallery.desktop_width"
+        }
+      ]
+    },
+    {
+      "type": "phone_number",
+      "name": "t:b2b_registration_form.blocks.phone_number.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "default": "Phone number",
+          "label": "t:global.text.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "mark_as_required",
+          "default": false,
+          "label": "t:global.form.mark_as_req"
+        },
+        {
+          "type": "select",
+          "id": "width_block",
+          "options": [
+            {
+              "value": "w-1/2",
+              "label": "t:global.section.width_option.option_1"
+            },
+            {
+              "value": "w-full",
+              "label": "t:global.section.width_option.option_2"
+            }
+          ],
+          "default": "w-1/2",
+          "label": "t:product_showcase.media_gallery.desktop_width"
+        }
+      ]
+    },
+    {
+      "type": "role",
+      "name": "t:b2b_registration_form.blocks.role.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "default": "Role",
+          "label": "t:global.text.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "mark_as_required",
+          "default": false,
+          "label": "t:global.form.mark_as_req"
+        },
+        {
+          "type": "select",
+          "id": "width_block",
+          "options": [
+            {
+              "value": "w-1/2",
+              "label": "t:global.section.width_option.option_1"
+            },
+            {
+              "value": "w-full",
+              "label": "t:global.section.width_option.option_2"
+            }
+          ],
+          "default": "w-full",
+          "label": "t:product_showcase.media_gallery.desktop_width"
+        }
+      ]
+    },
+    {
+      "type": "additional_information",
+      "name": "t:b2b_registration_form.blocks.additional_information.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "default": "Additional information",
+          "label": "t:global.text.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "mark_as_required",
+          "default": false,
+          "label": "t:global.form.mark_as_req"
+        },
+        {
+          "type": "text",
+          "id": "helper_text",
+          "default": "Please share your estimated quantity, or link to business license (Drive/Dropbox),...",
+          "label": "t:b2b_registration_form.blocks.helper_text.name"
+        }
+      ]
+    },
+    {
+      "type": "form",
+      "name": "t:contact_form.blocks.form.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "heading",
+          "default": "Form item",
+          "label": "t:global.text.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "mark_as_required",
+          "default": false,
+          "label": "t:global.form.mark_as_req"
+        },
+        {
+          "type": "select",
+          "id": "type_field",
+          "default": "text",
+          "label": "t:contact_form.blocks.form.form_input_type",
+          "options": [
+            {
+              "value": "text",
+              "label": "t:global.form.form_input_type.text"
+            },
+            {
+              "value": "dropdown",
+              "label": "t:global.form.form_input_type.dropdown"
+            },
+            {
+              "value": "radio",
+              "label": "t:global.form.form_input_type.radio"
+            },
+            {
+              "value": "checkbox",
+              "label": "t:global.form.form_input_type.checkbox"
+            }
+          ]
+        },
+        {
+          "type": "select",
+          "label": "t:contact_form.blocks.form.option_direction",
+          "id": "direction",
+          "options": [
+            {
+              "label": "t:global.direction.vertical",
+              "value": "col"
+            },
+            {
+              "label": "t:global.direction.horizontal",
+              "value": "row"
+            }
+          ],
+          "default": "col",
+          "visible_if": "{{ block.settings.type_field == 'checkbox' or block.settings.type_field == 'radio' }}"
+        },
+        {
+          "type": "text",
+          "id": "options",
+          "label": "t:contact_form.blocks.form.options",
+          "info": "t:contact_form.blocks.form.options_info",
+          "visible_if": "{{ block.settings.type_field != 'text' }}"
+        },
+        {
+          "type": "select",
+          "id": "width_block",
+          "options": [
+            {
+              "value": "w-1/2",
+              "label": "t:global.section.width_option.option_1"
+            },
+            {
+              "value": "w-full",
+              "label": "t:global.section.width_option.option_2"
+            }
+          ],
+          "default": "w-full",
+          "label": "t:product_showcase.media_gallery.desktop_width"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "name": "t:global.text.heading",
+      "settings": [
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "t:global.text.heading",
+          "info": "t:global.text.highlight_info"
+        },
+        {
+          "type": "select",
+          "id": "heading_size",
+          "label": "t:global.text.heading_size",
+          "options": [
+            {
+              "value": "small",
+              "label": "t:global.size.small"
+            },
+            {
+              "value": "medium",
+              "label": "t:global.size.medium"
+            },
+            {
+              "value": "large",
+              "label": "t:global.size.large"
+            }
+          ],
+          "default": "medium"
+        },
+        {
+          "type": "select",
+          "id": "heading_alignment",
+          "options": [
+            {
+              "value": "left",
+              "label": "t:global.position.left"
+            },
+            {
+              "value": "center",
+              "label": "t:global.position.center"
+            },
+            {
+              "value": "right",
+              "label": "t:global.position.right"
+            }
+          ],
+          "default": "left",
+          "label": "t:global.alignment.heading"
+        },
+        {
+          "type": "select",
+          "id": "highlight_effect",
+          "label": "t:global.text.highlight_effect.label",
+          "options": [
+            {
+              "value": "underline",
+              "label": "t:global.text.highlight_effect.option_1"
+            },
+            {
+              "value": "marker",
+              "label": "t:global.text.highlight_effect.option_2"
+            },
+            {
+              "value": "text-color-change",
+              "label": "t:global.text.highlight_effect.option_3"
+            },
+            {
+              "value": "shadow",
+              "label": "t:global.text.highlight_effect.option_4"
+            }
+          ],
+          "default": "underline"
+        },
+        {
+          "type": "select",
+          "id": "text_transform",
+          "label": "t:global.text.transform.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:global.text.transform.none"
+            },
+            {
+              "value": "italic",
+              "label": "t:global.text.transform.italic"
+            },
+            {
+              "value": "uppercase",
+              "label": "t:global.text.transform.uppercase"
+            },
+            {
+              "value": "both",
+              "label": "t:global.text.transform.italic_and_uppercase"
+            }
+          ],
+          "default": "none"
+        },
+        {
+          "type": "header",
+          "content": "t:global.section.padding"
+        },
+        {
+          "type": "select",
+          "id": "spacing_choose_device",
+          "label": "t:global.header.choose_device",
+          "options": [
+            {
+              "value": "desktop",
+              "label": "t:global.section.desktop"
+            },
+            {
+              "value": "mobile",
+              "label": "t:global.section.mobile"
+            }
+          ],
+          "default": "desktop",
+          "info": "t:global.section.padding_paragraph"
+        },
+        {
+          "type": "range",
+          "id": "desktop_padding_top",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "px",
+          "label": "t:global.position.top",
+          "default": 0,
+          "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+        },
+        {
+          "type": "range",
+          "id": "desktop_padding_bottom",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "px",
+          "label": "t:global.position.bottom",
+          "default": 0,
+          "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+        },
+        {
+          "type": "range",
+          "id": "desktop_padding_left",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "px",
+          "label": "t:global.position.left",
+          "default": 0,
+          "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+        },
+        {
+          "type": "range",
+          "id": "desktop_padding_right",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "px",
+          "label": "t:global.position.right",
+          "default": 0,
+          "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+        },
+        {
+          "type": "range",
+          "id": "mobile_padding_top",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "px",
+          "label": "t:global.position.top",
+          "default": 0,
+          "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+        },
+        {
+          "type": "range",
+          "id": "mobile_padding_bottom",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "px",
+          "label": "t:global.position.bottom",
+          "default": 0,
+          "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+        },
+        {
+          "type": "range",
+          "id": "mobile_padding_left",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "px",
+          "label": "t:global.position.left",
+          "default": 0,
+          "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+        },
+        {
+          "type": "range",
+          "id": "mobile_padding_right",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "px",
+          "label": "t:global.position.right",
+          "default": 0,
+          "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+        }
+      ]
+    },
+  ],
+  "presets": [
+    {
+      "name": "t:b2b_registration_form.name",
+      "category": "t:global.category.forms",
+      "blocks": [
+        {
+          "type": "heading",
+          "settings": {
+            "heading": "Company information",
+            "desktop_padding_top": 4,
+            "desktop_padding_bottom": 4
+          }
+        },
+        {
+          "type": "company_name"
+        },
+        {
+          "type": "company_tax_id"
+        },
+        {
+          "type": "email"
+        },
+        {
+          "type": "company_phone_number"
+        },
+        {
+          "type": "business_type"
+        },
+        {
+          "type": "company_address"
+        },
+        {
+          "type": "heading",
+          "settings": {
+            "heading": "Contact information",
+            "desktop_padding_top": 8,
+            "desktop_padding_bottom": 4,
+            "mobile_padding_top": 8
+          }
+        },
+        {
+          "type": "contact_name"
+        },
+        {
+          "type": "phone_number"
+        },
+        {
+          "type": "role"
+        },
+        {
+          "type": "heading",
+          "settings": {
+            "heading": "Other information",
+            "desktop_padding_top": 8,
+            "desktop_padding_bottom": 4,
+            "mobile_padding_top": 8
+          }
+        },
+        {
+          "type": "additional_information"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,62 @@
+<div class="featured-icon__item relative justify-center w-full text-{{ block.settings.content_alignment }} color-bg-[rgba(var(--color-background))] {% if block.settings.border_column == 'column' %} border border-solid color-border-[rgba(var(--color-text),0.2)]{% endif %} {% if settings.edges_type == 'rounded_corners' %} rounded-[10px]{% endif %} color-{{ block.settings.color_scheme_light.id }} dark-color-{{ block.settings.color_scheme_dark.id }}">
+  <div class="pl-2.5 pr-2.5 pt-2.5 pb-2.5">
+    {% unless icon == 'none' or custom_icon_image == blank and icon == 'another' and another_icon == blank %}
+      <div 
+        class="flex justify-{{- block.settings.content_alignment -}}
+          {%- if block.settings.content_alignment == 'start' %} rtl:justify-end{%- elsif block.settings.content_alignment == 'end' %} rtl:justify-start{% endif -%}
+        "
+      >
+        <span class="inline-block relative size-icon-{{ blockId }} color-icon--{{ blockId }}">
+          {% if custom_icon_image != blank %}
+            {% assign default_image_alt = 'accessibility.default_alt' | t %}
+            <img
+              src="{{ custom_icon_image | image_url: width: icon_size }}"
+              alt="{{ custom_icon_image.alt | default: default_image_alt | escape }}"
+              loading="lazy"
+              width="{{ custom_icon_image.width }}"
+              height="{{ custom_icon_image.height }}"
+              style="object-position: {{ custom_icon_image.presentation.focal_point }}"
+              class="object-cover absolute top-0 left-0 w-full h-full rounded-corners custom-icon-image_rounded-corners"
+            >
+          {% else %}
+            <div class="color-text-[rgba(var(--color-heading))] size-icon-{{ blockId }}">
+              {% if icon == 'another' %}
+                {% render 'icon-another', icon: another_icon %}  
+              {% else %}
+                {% render 'icon-labels-bags', icon: icon %}
+              {% endif %}
+            </div>
+          {% endif %}
+        </span>
+      </div>
+    {% endunless %}
+    <div 
+      class="mt-2.5 text-{{- block.settings.content_alignment -}}
+        {%- if block.settings.content_alignment == 'start' %} rtl:text-end{%- elsif block.settings.content_alignment == 'end' %} rtl:text-start{% endif -%}
+      "
+    >
+      {% if title != blank %}
+        <div class="featured-icon__title h6 md:h7 empty:hidden p-break-words heading-{{ block.id }} anm-fade-element" data-fade-on-intersect>
+          {% if link %}
+            <a
+              class="title-link"
+              href="{{ link }}"
+              {% if open_new_window %}
+                target="_blank"
+              {% endif %}
+            >
+              {{- title | escape -}}
+            </a>
+          {% else %}
+            {{ title | escape }}
+          {% endif %}
+        </div>
+      {% endif %}
+      {% if text != blank %}
+        <div class="feature-icon__text rte p-break-words text-small color-text-[rgba(var(--color-text))] anm-fade-element" data-fade-on-intersect>
+          {{ text }}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>

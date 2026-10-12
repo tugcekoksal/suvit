@@ -1,0 +1,226 @@
+<script
+    src="{{ 'gift-card-recipient.js' | asset_url }}"
+    defer
+></script>
+
+<gift-card-recipient
+  id="GiftCardRecipient__{{ section.id }}"
+  class="gift-card-recipient__wrapper"
+  x-data="xGiftCardRecipient('{{ section.id }}')"
+  :data-validated="isShowForm && (validateEmail.show || (validateDate.show && validateDate.message.length > 0)) ? 'false' : 'true'"
+>
+  {%- assign gift_card_recipient_control_flag = 'properties[__shopify_send_gift_card_to_recipient]' -%}
+  <div
+    id="RecipientForm__{{ section.id }}"
+    class="recipient-form maximize mb-5 pt-2.5 pb-2.5 pl-2.5 pr-2.5 border border-dashed color-border-[rgba(var(--color-text),0.2)] {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+    data-section-id="{{ section.id }}"
+    data-product-variant-id="{{ product.selected_or_first_available_variant.id }}"
+    data-disabled="true"
+  >
+    <div class="flex gap-2 items-center cursor-pointer {% if show_content_center %} justify-center{% endif %}">
+      <input
+        id="RecipientCheckbox__{{ section.id }}"
+        x-ref="recipient_checkbox"
+        class="recipient-checkbox__input input-checkbox w-6 h-6"
+        type="checkbox"
+        x-intersect.once="$el.checked = false"
+        name="{{ gift_card_recipient_control_flag }}"
+        value="{{ form.recipient_checkbox }}"
+        @change="handleChangeCheckbox()"
+      >
+      <label
+        class="recipient-checkbox__label flex gap-1 items-center cursor-pointer"
+        for="RecipientCheckbox__{{ section.id }}"
+      >
+        <span class="w-[18px] h-[18px]">{% render 'icon-all', icon: 'icon-gift-wrapping' %}</span>
+        <span>{{ 'products.product.recipient.checkbox' | t }}</span>
+      </label>
+    </div>
+    <div
+      id="RecipientErrorMessage__{{ section.id }}"
+      class="recipient-error-message mt-1.5 hidden"
+      x-ref="recipient_error_message"
+      x-show="validateEmail.show"
+      role="alert"
+    >
+      <span
+        class="flash-message error-message"
+        tabindex="-1"
+        autofocus
+      >
+        {{- 'templates.contact.form.error_heading' | t -}}
+      </span>
+      <ul class="list-disc list-inside pl-5 mt-4 mb-4">
+        {% comment %}<template{% endcomment %}
+          {% comment %}x-for="([key, value]) in Object.entries(error_message_wrapper)"{% endcomment %}
+          {% comment %}:key="index"{% endcomment %}
+        {% comment %}>{% endcomment %}
+          {% comment %}<li>{% endcomment %}
+            {% comment %}<a{% endcomment %}
+              {% comment %}:href="`#Recipient-${key}-{{ section.id }}`"{% endcomment %}
+              {% comment %}class="relative inline-block text-link"{% endcomment %}
+              {% comment %}x-text="value[0]"{% endcomment %}
+            {% comment %}></a>{% endcomment %}
+          {% comment %}</li>{% endcomment %}
+        {% comment %}</template>{% endcomment %}
+      </ul>
+    </div>
+    <div
+      id="GiftCardForm__{{ section.id }}"
+      class="recipient-fields flex-col gap-2 mt-4"
+      x-cloak
+      :class="isShowForm ? 'flex': 'hidden'"
+    >
+      <div class="flex flex-col md:flex-row w-full gap-2">
+        <div class="recipient-field__email__wrapper recipient-field w-full md:w-1/2">
+          <div class="recipient-field__email text-field__wrapper">
+            <input
+                id="RecipientEmail__{{ section.id }}"
+                x-ref="recipient_email"
+                type="email"
+                name="properties[Recipient email]"
+                form="{{ product_form_id }}"
+                value="{{ form.email }}"
+                class="recipient-input text-field__input"
+                placeholder="{{ 'products.product.recipient.email_label' | t }}*"
+                @input.debounce.500ms="handleChangeRecipientInput()"
+                :disabled="!isShowForm"
+            >
+            <label
+                class="text-field__label"
+                for="RecipientEmail__{{ section.id }}"
+            >
+              {{ 'products.product.recipient.email_label' | t }}
+            </label>
+          </div>
+
+          <div
+              id="RecipientForm__ErrorMail__{{ section.id }}"
+              class="recipient-field__email__error-message recipient-error-message flash-message error-message mt-1"
+              x-cloak
+              x-ref="error_email_field"
+              data-required-error-message="{{ 'products.product.recipient.message_email_required' | t }}"
+              data-invalid-error-message="{{ 'products.product.recipient.message_email_invalid' | t }}"
+              x-show="validateEmail.show && validateEmail.message.length > 0"
+          >
+            <span x-text="validateEmail.message"></span>
+          </div>
+        </div>
+
+        <div class="recipient-field__name__wrapper recipient-field w-full md:w-1/2">
+          <div class="recipient-field__name text-field__wrapper">
+            <input
+                class="recipient-input text-field__input"
+                autocomplete="name"
+                type="text"
+                id="RecipientName__{{ section.id }}"
+                name="properties[Recipient name]"
+                form="{{ product_form_id }}"
+                placeholder="{{ 'products.product.recipient.name' | t }}"
+                value="{{ form.name }}"
+                :disabled="!isShowForm"
+            >
+            <label
+                class="text-field__label"
+                for="RecipientName__{{ section.id }}"
+            >
+              {{- 'products.product.recipient.name_label' | t -}}
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="recipient-field__message__wrapper recipient-field">
+        {%- assign max_chars_message = 200 -%}
+        {%- assign max_chars_message_rendered = 'products.product.recipient.max_characters' | t: max_chars: max_chars_message -%}
+        {%- assign message_label_rendered = 'products.product.recipient.message_label' | t -%}
+        <div class="recipient-field__message text-field__wrapper">
+          <textarea
+            rows="5"
+            id="RecipientMessage__{{ section.id }}"
+            class="recipient-input text-field__input"
+            name="properties[Message]"
+            form="{{ product_form_id }}"
+            maxlength="{{ max_chars_message }}"
+            placeholder="{{ 'products.product.recipient.message' | t }}"
+            aria-label="{{ message_label_rendered }} {{ max_chars_message_rendered }}"
+            :disabled="!isShowForm"
+            x-ref="recipient_message"
+          ></textarea>
+          <label
+            class="text-field__label"
+            for="RecipientMessage__{{ section.id }}"
+          >
+            {{ 'products.product.recipient.message' | t }}
+          </label>
+          <p class="absolute px-4 ltr:left-0 rtl:right-0 bottom-5 italic opacity-75">{{ max_chars_message_rendered }}</p>
+        </div>
+      </div>
+
+      <div class="recipient-field__send-on__wrapper recipient-field">
+        <div class="recipient-field__send-on relative" >
+          <input
+            x-ref="recipient_send_on"
+            class="recipient-input no-calendar w-full pl-5 pr-5 pt-[14px] pb-[14px] outline outline-1 color-outline-[rgba(var(--color-text),0.2)] focus:border-none focus:color-outline-[rgba(var(--color-text),0.6)] input bg-transparent{% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %} placeholder:text-pink-900"
+            type="date"
+            id="RecipientSendOn__{{ section.id }}"
+            name="properties[Send on]"
+            form="{{ product_form_id }}"
+            placeholder="{{ 'products.product.recipient.send_on' | t }}"
+            pattern="\d{4}-\d{2}-\d{2}"
+            @input.debounce.500ms="handleChangeRecipientInput()"
+            :disabled="!isShowForm"
+          >
+          <label
+            class="hidden"
+            for="RecipientSendOn__{{ section.id }}"
+          >
+            {{ 'products.product.recipient.send_on_label' | t }}
+          </label>
+          <span
+            class="absolute inline-block w-8 h-8 pointer-events-none top-1/2 right-4 rtl:right-auto rtl:left-4 pr-2 pl-2 pt-2 pb-2 -translate-y-1/2"
+          >
+            {%- render 'icon-all', icon: 'icon-calendar-tick' -%}
+          </span>
+        </div>
+
+        <div
+          id="RecipientForm__SendOn__Error-{{ section.id }}"
+          class="recipient-error-message flash-message error-message mt-1"
+          x-ref="error_send_on_field"
+          x-cloak
+          x-show="validateDate.show"
+          data-error-message="{{ 'products.product.recipient.message_send_on' | t }}"
+        >
+          <span
+            x-text="validateDate.message"
+          >
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="recipient-field__time-zone__wrapper recipient-field">
+      <div class="recipient-field__time-zone relative">
+        <input
+            x-ref="timezone_offset"
+            type="hidden"
+            name="properties[__shopify_offset]"
+            form="{{ product_form_id }}"
+            id="RecipientTimezoneOffset__{{ section.id }}"
+            :disabled="!isShowForm"
+        >
+        <label class="hidden" for="RecipientTimezoneOffset__{{ section.id }}">Timezone offset</label>
+      </div>
+    </div>
+
+    <input
+        type="hidden"
+        name="properties[__shopify_send_gift_card_to_recipient]"
+        x-model="recipientControl"
+        form="{{ product_form_id }}"
+        id="RecipientControl__{{ section.id }}"
+        :disabled="!isShowForm"
+    >
+  </div>
+</gift-card-recipient>

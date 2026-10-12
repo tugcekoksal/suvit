@@ -1,0 +1,57 @@
+<div
+  class="language-selector relative"
+  @keyup.escape="openLanguage = false"
+>
+  <span class="inline-block mb-1.5">{{ 'general.global.language' | t }}</span>
+  <select-custom class="select relative">
+    <div
+      @click.prevent="openLanguage = ! openLanguage;"
+      @keyup.enter="openLanguage = ! openLanguage;"
+      class="flex w-full items-center justify-between"
+      tabindex="0"
+      role="button"
+      aria-pressed="false"
+      aria-expanded="false"
+      aria-controls="LanguageList"
+      aria-describedby="LanguageHeading"
+    >
+      <span class="select-text h4 text-small" x-text="languageSelector">
+        {{ form.current_locale.endonym_name }}
+      </span>
+      <span
+        class="icon-caret w-2.5 h-2.5 flex right-0"
+        :class="openLanguage && ' -rotate-180'"
+      >
+        {%- render 'icon-all', icon: 'icon-caret' -%}
+      </span>
+    </div>
+    <div x-show="openLanguage" @click.away="openLanguage = false" x-cloak>
+      <ul
+        role="list"
+        class="select-listbox w-full align-start py-3 px-5 absolute top-full z-50 shadow-medium max-h-64 overflow-y-auto"
+      >
+        {% for locale in form.available_locales %}
+          <li class="select-option cursor-pointer py-1 duration-200 transition">
+            <span
+              data-no-instant
+              tabindex="0"
+              role="button"
+              aria-pressed="false"
+              @keyup.enter="setSelectLanguage('{{ locale.endonym_name }}', '{{ locale.iso_code }}', 'locale_selector')"
+              @click="setSelectLanguage('{{ locale.endonym_name }}', '{{ locale.iso_code }}', 'locale_selector')"
+            >
+              {{ locale.endonym_name }}
+            </span>
+          </li>
+        {%- endfor -%}
+      </ul>
+    </div>
+  </select-custom>
+  <input
+    type="hidden"
+    name="locale_code"
+    id="locale_selector"
+    value="{{ form.current_locale.iso_code }}"
+    data-disclosure-input
+  >
+</div>

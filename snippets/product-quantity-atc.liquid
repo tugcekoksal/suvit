@@ -1,0 +1,82 @@
+{%- if login_hide_price == null -%}
+  {%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+  {%- assign login_hide_price = login_hide_price | strip -%}
+{%- endif -%}
+{%- unless login_hide_price == 'true' -%}
+  <div
+    class="product-card__quantity-wrapper {% unless is_enabled %}opacity-40 pointer-events-none cursor-not-allowed{% endunless %} {{ content_center_class }}"
+  >
+    <div
+      class="flex flex-col gap-1.5 h-full relative"
+      x-data="xQuantitySelectorAtc({{ product.id }}, {{ index_param | default: 1 }}, {{ current_variant.quantity_rule.min | default: 1 }}, {{ current_variant.quantity_rule.max | default: 'null' }}, {{ current_variant.quantity_rule.increment | default: 1 }}, '{{ card_id }}')"
+      x-intersect.once.margin.200px="init()"
+    >
+      <div class="w-full h-full {% if block_choose_option %}lg:w-full{% else %}lg:w-[106px] lg:h-[44px]{% endif %} flex">
+        <div
+          class="
+            flex color-text-[rgba(var(--color-heading),0.8)] w-fit items-center border color-border-[rgba(var(--color-text),0.2)]
+            {%- if settings.edges_type == 'rounded_corners' %} rounded-md{% endif -%}
+             {% if block_choose_option %} w-full flex justify-between {% endif %}
+          "
+        >
+          <div
+            class="flex justify-center items-center cursor-pointer bg-transparent select-none px-3 py-[15px]"
+            :class="atMin ? 'cursor-not-allowed opacity-60 pointer-events-none' : 'cursor-pointer'"
+            :aria-disabled="atMin"
+            name="minus"
+            @click.prevent="minus(1)"
+            @mousedown.prevent
+            @keyup.enter="minus(1)"
+            tabindex="0"
+            role="button"
+            aria-label="{{ "accessibility.minus" | t }}"
+          >
+            <span class="w-3 h-3 flex color-text-[rgba(var(--color-text))]">{% render 'icon-all', icon: 'icon-minus' %}</span>
+          </div>
+          <input
+            class="outer-spin-button color-text-[rgba(var(--color-text))] focus:outline-none text-medium text-center bg-transparent rounded-corners py-2.5 md:py-2.5 w-8 quick-view:w-7"
+            type="number"
+            name="quantity"
+            id="Quantity-{{ block_id }}"
+            :min="min"
+            :max="max"
+            :step="increment"
+            form="{{ product_form_id }}"
+            x-model="qty"
+            x-on:blur="normalizeOnLeave($el)"
+            x-on:keydown.enter.prevent="validateNow($el)"
+            x-ref="quantity_input"
+            aria-label="{{ "products.product.quantity.label" | t }}"
+            {% unless is_enabled %}
+              disabled
+            {% endunless %}
+          >
+          <div
+            class="flex justify-center items-center cursor-pointer bg-transparent select-none px-3 py-[15px]"
+            :class="atMax ? 'cursor-not-allowed opacity-60 pointer-events-none' : 'cursor-pointer'"
+            :aria-disabled="atMax"
+            name="plus"
+            @click.prevent="plus(1)"
+            @mousedown.prevent
+            @keyup.enter="plus(1)"
+            tabindex="0"
+            role="button"
+            aria-label="{{ "accessibility.plus" | t }}"
+          >
+            <span class="flex h-3 w-3 color-text-[rgba(var(--color-text))]">{% render 'icon-all', icon: 'icon-plus' %}</span>
+          </div>
+        </div>
+      </div>
+      {%- if customer != blank and customer.b2b? -%}
+        {% comment %}
+          Centred over the quantity box per design. It used to sit at `right-1`, where it
+          covered part of the "+" button — and being a physical edge it stayed on the right
+          in RTL. A centred anchor is direction-neutral.
+        {% endcomment %}
+        <div class="quantity-rule-tooltip-anchor absolute -top-3 right-1 z-10" x-show="hasQuantityRuleInfo">
+          {%- render 'quantity-rule-tooltip', variant: current_variant, login_hide_price: login_hide_price, clamp_boundary: 'product-card__wrapper', product: product, rtl: rtl -%}
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+{%- endunless -%}

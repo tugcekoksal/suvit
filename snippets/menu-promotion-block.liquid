@@ -1,0 +1,144 @@
+{% comment %}
+  Renders a Promotion block
+
+  Usage:
+  {% render 'menu-promotion-block',
+    blockID: mega_nav.id,
+    desktop_image: mega_nav.settings.image_1,
+    mobile_image: mega_nav.settings.mobile_image_1,
+    heading: mega_nav.settings.heading_1,
+    content: mega_nav.settings.text_1,
+    block: mega_nav,
+    image_overlay_opacity: mega_nav.settings.overlay_opacity_1,
+    text_alignment: mega_nav.settings.text_alignment_1,
+    title_size: mega_nav.settings.text_size_1,
+    text_size: mega_nav.settings.text_size_1,
+    button_label: mega_nav.settings.button_label,
+    button_link: mega_nav.settings.button_link,
+    open_new_window: mega_nav.settings.open_new_window_button,
+    button_style: mega_nav.settings.button_style,
+    color_scheme_light: mega_nav.settings.color_scheme_light,
+    color_scheme_dark: mega_nav.settings.color_scheme_dark
+  %}
+{% endcomment %}
+{% liquid
+  assign corner_image = false
+  if settings.edges_type == 'rounded_corners'
+    assign corner_image = true
+  endif
+%}
+{% assign default_image_alt = 'accessibility.default_alt' | t %}
+{%- style -%}
+  .promotion-image-{{ blockID }} {
+    height: {{ mobile_image_height }}px;
+  }
+  .text-{{ blockID }}-{{ index }} {
+    font-size: calc(var(--body-font-size) * {{ text_size | times: 0.01 }});
+  }
+  .heading-{{ blockID }}-{{ index }} {
+    font-size: calc(var(--h4-font-size) * {{ title_size | times: 0.01 }});
+  }
+  @media screen and (min-width: 768px) {
+    .promotion-image-{{ blockID }} {
+      height: {{ desktop_image_height }}px;
+    }
+  }
+{%- endstyle -%}
+<div class="menu-promotion-block relative w-full h-auto color-scheme-block color-{{ color_scheme_light }} dark-color-{{ color_scheme_dark }}{% if enable_text_overlay %}{% if image_link != blank %} media-hyperlink{% endif %}{% else %} flex flex-col{% endif %}">
+  {%- if desktop_image != blank or mobile_image != blank -%}
+    {% if sizes == blank %} 
+      {%- capture sizes -%}
+        (min-width: {{ settings.page_width }}px) calc((100vw - 10rem) / {{ columns_desktop | default: 2 }}), (min-width: 768px) calc((100vw - 5rem) / {{ columns_desktop | default: 2 }}), calc(80vw / {{ columns_mobile | default: 1 }})
+      {%- endcapture -%}
+    {% endif %}  
+    <div
+      class="block promotion-image-{{ blockID }} relative overflow-hidden w-full h-full
+        {%- if corner_image %} rounded-md md:rounded-[10px]{% endif -%}
+        {%- if image_link != blank and enable_text_overlay == false %} media-hyperlink{% endif -%}"
+    >
+      {%- if image_link != blank and enable_text_overlay == false -%}
+        <a href="{{ image_link }}" {% if open_new_window_image %} target="_blank" {% endif %} aria-label="image-link" class="menu-image-link absolute top-0 left-0 right-0 bottom-0 z-20 bg-transparent"></a>
+      {% endif %}
+      <div class="w-full h-full top-0 left-0 absolute duration-300 transition ease-out z-10">
+        {% if desktop_image != blank %}
+          <img
+            srcset="
+              {{ desktop_image | image_url: width: 225 }} 225w,
+              {{ desktop_image | image_url: width: 375 }} 375w,
+              {{ desktop_image | image_url: width: 450 }} 450w,
+              {{ desktop_image | image_url: width: 750 }} 750w,
+              {{ desktop_image | image_url: width: 900 }} 900w,
+              {{ desktop_image | image_url: width: 1100 }} 1100w,
+              {{ desktop_image | image_url: width: 1500 }} 1500w,
+              {{ desktop_image | image_url: width: 1780 }} 1780w
+            "
+            src="{{ desktop_image | image_url: width: 1780 }}"
+            sizes="{{ sizes }}"
+            loading="lazy"
+            alt="{{ desktop_image.alt | default: default_image_alt | escape }}"
+            width="{{ desktop_image.width }}"
+            height="{{ desktop_image.width | divided_by: desktop_image.aspect_ratio }}"
+            style="object-position: {{ desktop_image.presentation.focal_point }};"
+            class="md:block image-hover anm-image-hover w-full h-full object-cover{% unless mobile_image == blank %} hidden{% endunless %}"
+          >
+        {% else %}
+          <div class="hidden md:block w-full h-full object-cover" >
+            {% render 'placeholder-image', image_type: 'image' %}
+          </div>
+        {% endif %}
+        {% if mobile_image != blank %}
+          <img
+            srcset="
+              {{ mobile_image | image_url: width: 225 }} 225w,
+              {{ mobile_image | image_url: width: 375 }} 375w,
+              {{ mobile_image | image_url: width: 450 }} 450w,
+              {{ mobile_image | image_url: width: 750 }} 750w,
+              {{ mobile_image | image_url: width: 900 }} 900w,
+              {{ mobile_image | image_url: width: 1100 }} 1100w,
+              {{ mobile_image | image_url: width: 1500 }} 1500w,
+              {{ mobile_image | image_url: width: 1780 }} 1780w
+            "
+            src="{{ mobile_image | image_url: width: 1780 }}"
+            sizes="{{ sizes }}"
+            loading="lazy"
+            alt="{{ mobile_image.alt | default: default_image_alt | escape }}"
+            width="{{ mobile_image.width }}"
+            height="{{ mobile_image.width | divided_by: mobile_image.aspect_ratio }}"
+            style="object-position: {{ mobile_image.presentation.focal_point }};"
+            class="image-hover anm-image-hover md:hidden w-full h-full object-cover"
+          >
+        {% endif %}
+      </div>
+      {% if enable_text_overlay %}
+        <span class="absolute top-0 left-0 bottom-0 right-0 z-10 scheme-image-overlay opacity-{{ image_overlay_opacity }}"></span>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="promotion-content flex {{ text_alignment }} h-full w-full overflow-hidden z-10{% if enable_text_overlay %} absolute top-0 p-5 md:p-7.5 lg:p-3 xl:p-7.5{% endif %}">
+    {% if image_link != blank and enable_text_overlay %}
+      <a href="{{ image_link }}" {% if open_new_window_image %} target="_blank" {% endif %} aria-label="image-link" class="menu-image-link absolute top-0 left-0 right-0 bottom-0 z-20 bg-transparent"></a>
+    {% endif %}
+    <div class="relative z-20 empty:hidden{% unless enable_text_overlay %} pt-2.5{% endunless %}">
+      {%- if heading != blank -%}
+        <p class="heading-{{ blockID }}-{{ index }} h3 p-break-words color-text-[rgba(var(--color-heading))]{% if content == blank and button_label != blank %} mb-3 lg:mb-5{% endif %}">
+          {{- heading -}}
+        </p>
+      {%- endif -%}
+      {%- if content != blank -%}
+        <div class="text-{{ blockID }}-{{ index }} mt-0.5 rte color-text-[rgba(var(--color-text))] truncate whitespace-normal p-break-words{% if button_label != blank %} mb-3 lg:mb-5{% endif %}">
+          {{- content -}}
+        </div>
+      {%- endif -%}
+      {%- if button_label != blank -%}
+        {%- render 'button',
+          button_style: button_style,
+          button_label: button_label,
+          button_link: button_link,
+          open_new_window_button: open_new_window,
+          button_size: "button-small"
+        -%}
+      {%- endif -%}
+    </div>
+  </div>
+</div>

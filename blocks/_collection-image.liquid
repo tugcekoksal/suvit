@@ -1,0 +1,451 @@
+{% assign block_settings = block.settings %}
+{% assign collection = closest.collection %}
+{% assign columns_desktop = collection_list_settings.column_layout_desktop | default: 4 %}
+{% assign columns_tablet = collection_list_settings.column_layout_tablet | default: 4 %}
+{% assign columns_mobile = collection_list_settings.column_layout_mobile | default: 2 %}
+{% assign spacing = collection_list_settings.gap | default: 2 %}
+{% assign section_width = section.settings.section_width | default: 'page-width' %}
+{%- assign page_w = settings.page_width | default: 1400 -%}
+{% liquid
+  # Primary Image
+  assign primary_image = collection.image
+  if block_settings.image_metafield != blank
+    assign mf_value = blank
+    assign mf_parts = block_settings.image_metafield | split: '.'
+    if mf_parts.size == 2
+      assign mf_value = collection.metafields[mf_parts[0]][mf_parts[1]]
+    else
+      assign mf_value = collection.metafields.custom[block_settings.image_metafield]
+    endif
+    
+    if mf_value != blank and mf_value.value.media_type == 'image'
+      assign primary_image = mf_value.value
+    endif
+  endif
+%}
+
+{% liquid
+  # Secondary Image
+  assign secondary_image = blank
+  if block_settings.show_secondary_image
+    if block_settings.secondary_image_source == 'first_product_image' and collection.products.first
+      assign secondary_image = collection.products.first.featured_media | default: collection.products.first.featured_image
+    elsif block_settings.secondary_image_source == 'collection_image_metafield' and block_settings.secondary_image_metafield != blank
+      assign mf_parts = block_settings.secondary_image_metafield | split: '.'
+      if mf_parts.size == 2
+        assign secondary_image = collection.metafields[mf_parts[0]][mf_parts[1]]
+      else
+        assign secondary_image = collection.metafields.custom[block_settings.secondary_image_metafield]
+      endif
+
+      if secondary_image.value.media_type != 'image'
+        assign secondary_image = blank
+      else 
+        assign secondary_image  = secondary_image.value  
+      endif
+    endif
+  endif
+%}
+
+{% liquid
+  assign image_ratio = block_settings.image_ratio
+  if image_ratio == 'auto'
+    if primary_image != blank
+      assign image_ratio = primary_image.aspect_ratio
+    else
+      assign image_ratio = '1/1'
+    endif
+  endif
+
+  if block_settings.show_secondary_image == true 
+    assign columns_desktop = columns_desktop | times: 2
+    assign columns_tablet = columns_tablet | times: 2
+    assign columns_mobile = columns_mobile | times: 2
+  endif
+  if collection_card_settings.desktop_layout == 'separate' and collection_card_settings.desktop_content_position == 'side_by_side'
+    assign columns_desktop = columns_desktop | times: 2
+    assign columns_tablet = columns_tablet | times: 2
+  endif
+  if collection_card_settings.mobile_layout == 'separate' and collection_card_settings.mobile_content_position == 'side_by_side'
+    assign columns_mobile = columns_mobile | times: 2
+  endif
+
+  assign border_radius_class = ''
+  if settings.edges_type == 'rounded_corners'
+    assign border_radius_class = 'rounded-corners'
+  endif
+  assign image_class = 'block-image__img w-full object-cover anm-image-hover ' | append: border_radius_class | append: ' block-image__img-' | append: block.id
+%}
+
+{% liquid
+  if section.index == 1 and section.location == 'template'
+    assign image_loading = 'eager'
+  else
+    assign image_loading = 'lazy'
+  endif
+%}
+
+{% liquid
+  assign url_secondary_image = blank
+  if block_settings.enable_link_secondary == true
+    if block_settings.secondary_image_source == 'first_product_image' and collection.products.first.url
+      assign url_secondary_image = collection.products.first.url
+    elsif block_settings.secondary_image_link != blank 
+      assign url_secondary_image = block_settings.secondary_image_link
+    else
+      assign url_secondary_image = collection.url   
+    endif 
+  endif
+%}
+
+{% liquid
+  assign index = index | default: 1
+  assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+  assign placeholder_collection_name = 'collection_' | append: index
+  assign placeholder_product_name = 'product_' | append: index
+%}
+{%- capture sizes -%}
+  {%- if section_width == 'full-width' or section_width == 'full-width-padded' -%}
+    (min-width: 1024px) calc({{ 100 | divided_by: columns_desktop  }}vw + {{ spacing }}px),
+    (min-width: 768px) calc({{ 100 | divided_by: columns_tablet  }}vw + {{ spacing }}px),
+    calc({{ 100 | divided_by: columns_mobile  }}vw + {{ spacing }}px)
+  {%- else -%}
+    (min-width: {{ page_w }}px) calc({{ page_w | divided_by: columns_desktop }}px + {{ spacing }}px),
+    (min-width: 768px) calc({{ 100 | divided_by: columns_tablet }}vw + {{ spacing }}px),
+    calc({{ 100 | divided_by: columns_mobile }}vw + {{ spacing }}px)
+  {%- endif -%}
+{%- endcapture -%}
+
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block_settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block_settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block_settings.desktop_padding_left }}px;
+    --pad-right: {{ block_settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block_settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block_settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block_settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block_settings.mobile_padding_right }}px;
+  }
+  .block-{{ block.id }} .block-image__img {
+    aspect-ratio: {{ image_ratio }};
+  }
+  .block-{{ block.id }} .collection-card__images {
+    gap: {{ block_settings.gap | divided_by: 2 }}px;
+  }
+  @media (min-width: 768px) {
+    .block-{{ block.id }} .collection-card__images {
+      gap: {{ block_settings.gap }}px;
+    }
+  }
+
+  .block-{{ parent_block_id }} .card-collection__content {
+    --desktop-padding-image-top: {{ block_settings.desktop_padding_top }}px;
+    --desktop-padding-image-bottom: {{ block_settings.desktop_padding_bottom }}px;
+    --desktop-padding-image-right: {{ block_settings.desktop_padding_right }}px;
+    --desktop-padding-image-left: {{ block_settings.desktop_padding_left }}px;
+    --mobile-padding-image-top: {{ block_settings.mobile_padding_top }}px;
+    --mobile-padding-image-bottom: {{ block_settings.mobile_padding_bottom }}px;
+    --mobile-padding-image-right: {{ block_settings.mobile_padding_right }}px;
+    --mobile-padding-image-left: {{ block_settings.mobile_padding_left }}px;
+  }
+{% endstyle %}
+
+<div
+  class="block-collection-image block-{{ block.id }} block-padding maximize-block relative {{ border_radius_class }} z-10"
+  data-block-id="{{ block.id }}"
+  {{ block.shopify_attributes }}
+>
+  <div class="collection-card__images flex">
+    {% comment %} Primary Image {% endcomment %}
+    <div class="collection-card__img-wrapper img-1 flex-1 relative overflow-hidden {{ border_radius_class }} {% if block_settings.enable_link and primary_image != blank %}media-hyperlink{% endif %}">
+      {% if block_settings.enable_link  %}
+        <a
+          href="{{ collection.url }}"
+          class="absolute inset-0 z-10 min-w-6 min-h-6 overflow-hidden rounded-2xl"
+          {% if block_settings.open_new_window %}
+            target="_blank" rel="noopener noreferrer"
+          {% endif %}
+          aria-label="{{ primary_image.alt | escape }}"
+        >
+          <span class="sr-only">{{ primary_image.alt }}</span>
+        </a>
+      {% endif %}
+      {% if primary_image != blank  %}
+        {% render 'image-new', image: primary_image, sizes: sizes, loading: image_loading, image_class: image_class, columns_desktop: 1, columns_mobile: 1, max_columns_desktop: columns_desktop, max_columns_mobile: columns_mobile %}
+      {% else %}
+        <div
+          class="block-image__placeholder {{ border_radius_class }}"
+          style="aspect-ratio: {{ image_ratio }};"
+        >
+          {% render 'placeholder-image', image_type: placeholder_collection_name %}
+        </div>
+      {% endif %}
+      <div class="overlay-image absolute scheme-image-overlay transition-opacity top-0 left-0 right-0 bottom-0 opacity-{{ block_settings.overlay_opacity }} pointer-events-none {{ border_radius_class }}"></div>
+    </div>
+
+    {% comment %} Secondary Image {% endcomment %}
+    {% if block_settings.show_secondary_image == true %}
+      <div class="collection-card__img-wrapper flex-1 relative overflow-hidden {{ border_radius_class }} {% if block_settings.enable_link_secondary and url_secondary_image != blank  %} media-hyperlink{% endif %}">
+        {% if block_settings.enable_link_secondary and url_secondary_image != blank  %}
+        <a
+          href="{{ url_secondary_image }}"
+          class="absolute inset-0 z-10 min-w-6 min-h-6 overflow-hidden rounded-2xl"
+          {% if block_settings.open_new_window %}
+            target="_blank" rel="noopener noreferrer"
+          {% endif %}
+          aria-label="{{ secondary_image.alt | escape }}"
+        >
+          <span class="sr-only">{{ secondary_image.alt }}</span>
+        </a>
+      {% endif %}
+        {% if secondary_image != blank  %}
+          {% render 'image-new', image: secondary_image, sizes: sizes, loading: image_loading, image_class: image_class, columns_desktop: 1, columns_mobile: 1, max_columns_desktop: columns_desktop, max_columns_mobile: columns_mobile %}
+        {% else %}
+          <div
+          class="block-image__placeholder flex-1 {{ border_radius_class }} relative"
+          style="aspect-ratio: {{ image_ratio }};"
+          >
+            {% render 'placeholder-image', image_type: placeholder_product_name %}
+          </div>
+        {% endif %}
+          <div class="overlay-image absolute scheme-image-overlay transition-opacity top-0 left-0 right-0 bottom-0 opacity-{{ block_settings.overlay_opacity }} pointer-events-none rounded-corners"></div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Collection image",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Image"
+    },
+    {
+      "id": "enable_link",
+      "type": "checkbox",
+      "label": "Enable image link"
+    },
+    {
+      "id": "image_metafield",
+      "type": "text",
+      "label": "Metafield override",
+      "info": "Fill in the key of that metafield here (e.g. custom.collection_image)"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "options": [
+        {
+          "value": "1/1",
+          "label": "t:global.ratio.square"
+        },
+        {
+          "value": "4/3",
+          "label": "t:global.ratio.landscape"
+        },
+        {
+          "value": "16/9",
+          "label": "t:global.ratio.wide"
+        },
+        {
+          "value": "2/3",
+          "label": "t:global.ratio.portrait"
+        },
+        {
+          "value": "3/4",
+          "label": "t:global.ratio.standard"
+        }
+      ],
+      "default": "1/1",
+      "label": "Image ratio"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "%",
+      "label": "t:global.overlay.overlay_opacity",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Secondary image"
+    },
+    {
+      "id": "show_secondary_image",
+      "type": "checkbox",
+      "label": "Show secondary image"
+    },
+    {
+      "id": "secondary_image_source",
+      "type": "select",
+      "label": "Secondary image source",
+      "options": [
+        {
+          "value": "first_product_image",
+          "label": "First product image"
+        },
+        {
+          "value": "collection_image_metafield",
+          "label": "Collection image metafield"
+        }
+      ],
+      "default": "first_product_image",
+      "visible_if": "{{ block.settings.show_secondary_image == true }}"
+    },
+    {
+      "type": "text",
+      "id": "secondary_image_metafield",
+      "label": "Secondary image metafield",
+      "info": "E.g: custom.secondary_image. Used when source is set to Metafield override.",
+      "visible_if": "{{ block.settings.show_secondary_image == true and block.settings.secondary_image_source == 'collection_image_metafield' }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_link_secondary",
+      "label": "Enable image link",
+      "default": true,
+      "visible_if": "{{ block.settings.show_secondary_image == true }}"
+    },
+    {
+      "type": "url",
+      "id": "secondary_image_link",
+      "label": "Secondary image link",
+      "visible_if": "{{ block.settings.secondary_image_source == 'collection_image_metafield' and block.settings.enable_link_secondary == true  and block.settings.show_secondary_image == true }}"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Gap",
+      "default": 4,
+      "info": "Spacing between child blocks inside the card."
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "select",
+      "id": "spacing_choose_device",
+      "label": "Choose device",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "Desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "Mobile"
+        }
+      ],
+      "default": "desktop",
+      "info": "Desktop and Mobile settings are configured separately."
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    }
+  ]
+}
+{% endschema %}

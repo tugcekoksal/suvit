@@ -1,0 +1,348 @@
+{% liquid 
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  else
+    assign is_rtl = false
+  endif
+%}
+<div
+  id="EventCalendarDrawer__{{ section.id }}"
+  x-show="$store.xEventCalendarDetail.show && $store.xEventCalendarDetail.sectionID == '{{ section.id }}'"
+  x-cloak
+  tabindex="0"
+  class="event-calendar-drawer drawer__wrapper z-[60]"
+  {% if request.design_mode %}
+    x-init="$store.xEventCalendarDetail.handleEventSelect()"
+  {% endif %}
+  @click.away="document.getElementById('CartDrawer')?.handleClose()"
+  @keydown.escape="$store.xFocusElement.removeTrapFocus(); $store.xEventCalendarDetail.close();"
+>
+  <div
+    id="EventCalendarDrawer__Overlay"
+    x-show="$store.xEventCalendarDetail.show && $store.xEventCalendarDetail.sectionID == '{{ section.id }}'"
+    class="drawer__overlay event-calendar-drawer__overlay"
+    @click.prevent="$store.xFocusElement.removeTrapFocus(); $store.xEventCalendarDetail.close();"
+  ></div>
+  <div
+    x-show="$store.xEventCalendarDetail.show"
+    id="EventCalendarDrawer__Content__{{ section.id }}"
+    class="drawer__container transform px-0 color-{{ section.settings.color_scheme_light.id }} dark-color-{{ section.settings.color_scheme_dark.id }}"
+    x-transition:enter-start="opacity-0 translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+    x-transition:enter-end="opacity-100 translate-y-0 md:translate-x-0"
+    x-transition:leave-end="opacity-0 translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+    x-intersect.full="$store.xFocusElement.trapFocus('EventCalendarDrawer__{{ section.id }}', 'ClosePickupDrawer__{{ section.id }}')"
+    @keydown.escape="$store.xFocusElement.removeTrapFocus(); $store.xEventCalendarDetail.close();"
+  >
+    <button
+      id="ClosePickupDrawer__{{ section.id }}"
+      class="modal__button-close"
+      @click.prevent="$store.xFocusElement.removeTrapFocus(); $store.xEventCalendarDetail.close(); $store.xMaximizeDrawer.handleClose();"
+      @keyup.enter="$store.xFocusElement.removeTrapFocus(); $store.xEventCalendarDetail.close(); $store.xMaximizeDrawer.handleClose();"
+      @keydown.enter.prevent
+      aria-label="{{ 'accessibility.close' | t }}"
+    >
+      <span class="button__close icon-close-large-desktop icon-close-large-mobile">{% render 'icon-all', icon: 'icon-close' %}</span>
+    </button>
+
+    <div class="drawer__content scrollbar-body scrollbar-visible relative">
+      <div
+        x-data='
+          {
+            item: JSON.parse(JSON.stringify(Alpine.store("xEventCalendarDetail").eventDetail)),
+            setItem() {
+              this.item = JSON.parse(JSON.stringify(Alpine.store("xEventCalendarDetail").eventDetail))
+            }
+          }
+        '
+        x-effect="setItem()"
+      >
+        <div class="relative">
+          <h2
+            class="color-text-[rgba(var(--color-heading))] text-center p-break-words font-bold anm-fade-element" data-fade-on-intersect
+            x-text="item.title"
+          ></h2>
+
+          <div
+            class="relative text-center mt-3.5 flex gap-1.5 flex-wrap grow justify-center"
+            x-data="xEventCalendar(false)"
+          >
+            <template
+              x-cloak
+              x-if="item.offer_tickets && item.ticket_link"
+            >
+              <custom-button>
+                <a
+                  :href="item.ticket_link"
+                  class="button button--{{ section.id }} flex flex-row items-center empty:hidden pl-5 pr-5 md:pl-6 md:pr-6 pt-2.5 pb-2.5 md:pt-3 md:pb-3"
+                  @click="open = !open"
+                  :class="(item.ticket_button_label_style == 'primary') ? 'button-primary': 'button-secondary'"
+                  x-text="item.ticket_button_label"
+                >
+                  {{ ticket_button_label }}
+                </a>
+              </custom-button>
+            </template>
+            <template
+              x-cloak
+              x-if="item.offer_tickets && !item.ticket_link"
+            >
+              <custom-button>
+                <button
+                  class="button border button--{{ section.id }} flex flex-row items-center empty:hidden pl-5 pr-5 md:pl-6 md:pr-6 pt-2.5 pb-2.5 md:pt-3 md:pb-3 opacity-60 cursor-not-allowed"
+                  @click="open = !open"
+                  :class="(item.ticket_button_label_style == 'primary') ? 'button-primary': 'button-secondary'"
+                  x-text="item.ticket_button_label"
+                ></button>
+              </custom-button>
+            </template>
+            <select-element
+              class="event-calendar__info__action dropdown-large"
+              data-picker-type="dropdown"
+            >
+              <div class="select relative">
+                <custom-button>
+                  <button
+                    class="select-button button button--{{ section.id }} flex flex-row items-center relative empty:hidden pl-6 pr-6 pt-2.5 pb-2.5 md:pt-3 md:pb-3 gap-2.5"
+                    @click="open = !open"
+                    :class="(item.show_button_style == 'primary') ? 'button-primary': 'button-secondary'"
+                  >
+                    <span x-text="item.button_label_add_calendar"></span>
+                    <span class="select-arrow transition-transform w-2.5 h-2.5 flex">{% render 'icon-all', icon: 'icon-caret' %}</span>
+                  </button>
+                </custom-button>
+                <div class="select-options-wrapper scrollbar-visible scrollbar-body color-bg-gradient-[var(--gradient-background)] shadow-medium">
+                  <ul 
+                    role="listbox"
+                    class="select-options text-start"
+                    aria-label="CalendarListDrawer"
+                  >
+                    <li 
+                      class="select-option rounded-corners font-normal"
+                      data-value="{{ 'sections.event-calendar.apple' | t }}"
+                      data-select-value="{{ 'sections.event-calendar.apple' | t }}"
+                      aria-selected="false"
+                      data-type="dropdown"
+                      role="option"
+                      tabindex="-1"
+                      data-no-instant
+                      data-option-number="1"
+                      id="atcb-btn-1-apple"
+                      aria-label="{{ 'sections.event-calendar.apple' | t }}"
+                      @click="addToCal('apple')"
+                      @keydown.enter="addToCal('apple')"
+                      @keydown.space="addToCal('apple')"
+                    >
+                      {{ 'sections.event-calendar.apple' | t }}
+                    </li>
+                    <li 
+                      class="select-option rounded-corners font-normal"
+                      data-value="{{ 'sections.event-calendar.google' | t }}"
+                      data-select-value="{{ 'sections.event-calendar.google' | t }}"
+                      aria-selected="false"
+                      data-type="dropdown"
+                      role="option"
+                      tabindex="-1"
+                      data-no-instant
+                      data-option-number="2"
+                      id="atcb-btn-1-google"
+                      aria-label="{{ 'sections.event-calendar.google' | t }}"
+                      @click="addToCal('google')"
+                      @keydown.enter="addToCal('google')"
+                      @keydown.space="addToCal('google')"
+                    >
+                      {{ 'sections.event-calendar.google' | t }}
+                    </li>
+                    <li 
+                      class="select-option rounded-corners font-normal"
+                      data-value="{{ 'sections.event-calendar.outlook' | t }}"
+                      data-select-value="{{ 'sections.event-calendar.outlook' | t }}"
+                      aria-selected="false"
+                      data-type="dropdown"
+                      role="option"
+                      tabindex="-1"
+                      data-no-instant
+                      data-option-number="3"
+                      id="atcb-btn-1-outlook"
+                      aria-label="{{ 'sections.event-calendar.outlook' | t }}"
+                      @click="addToCal('outlook')"
+                      @keydown.enter="addToCal('outlook')"
+                      @keydown.space="addToCal('outlook')"
+                    >
+                      {{ 'sections.event-calendar.outlook' | t }}
+                    </li>
+                    <li 
+                      class="select-option rounded-corners font-normal"
+                      data-value="{{ 'sections.event-calendar.yahoo' | t }}"
+                      data-select-value="{{ 'sections.event-calendar.yahoo' | t }}"
+                      aria-selected="false"
+                      data-type="dropdown"
+                      role="option"
+                      tabindex="-1"
+                      data-no-instant
+                      data-option-number="4"
+                      id="atcb-btn-1-yahoo"
+                      aria-label="{{ 'sections.event-calendar.yahoo' | t }}"
+                      @click="addToCal('yahoo')"
+                      @keydown.enter="addToCal('yahoo')"
+                      @keydown.space="addToCal('yahoo')"
+                    >
+                      {{ 'sections.event-calendar.yahoo' | t }}
+                    </li>
+                    <li 
+                      class="select-option rounded-corners font-normal"
+                      data-value="{{ 'sections.event-calendar.ical' | t }}"
+                      data-select-value="{{ 'sections.event-calendar.ical' | t }}"
+                      aria-selected="false"
+                      data-type="dropdown"
+                      role="option"
+                      tabindex="-1"
+                      data-no-instant
+                      data-option-number="5"
+                      id="atcb-btn-1-ical"
+                      aria-label="{{ 'sections.event-calendar.ical' | t }}"
+                      @click="addToCal('ical')"
+                      @keydown.enter="addToCal('ical')"
+                      @keydown.space="addToCal('ical')"
+                    >
+                      {{ 'sections.event-calendar.ical' | t }}
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </select-element>
+          </div>
+          <div
+            class="flex flex-col gap-y-2 border-t pt-2.5 mt-5 mb-4 text-small"
+            :class="item.show_end_date ? 'lg:flex-col' : 'lg:flex-row'"
+          >
+            <div
+              x-show="item.date"
+              x-cloak
+              class="flex flex-wrap pl-5 rtl:pl-0 rtl:pr-5 relative anm-fade-element" data-fade-on-intersect
+            >
+              <span class="w-4 inline-block absolute left-0 rtl:left-auto rtl:right-0">{% render 'icon-all', icon: 'icon-clock' %}</span>
+              <span x-text="`${item.date}`"></span>
+              <span
+                class="ml-2"
+                x-text="` @ ${item.time_start}`"
+              ></span>
+              <span
+                x-show="item.show_end_date"
+                class="ml-1"
+              >
+                -
+              </span>
+              <template x-if="item.show_end_time">
+                <span class="ml-1">
+                  <span> - </span>
+                  <span
+                    class="ml-1"
+                    x-text="` ${item.time_end}`"
+                  ></span>
+                </span>
+              </template>
+              <template x-if="item.show_end_date">
+                <span class="ml-1">
+                  <span x-text="`${item.end_date}`"></span
+                  ><span
+                    class="ml-1"
+                    x-text="` @ ${item.time_end}`"
+                  ></span>
+                </span>
+              </template>
+            </div>
+
+            <div
+              x-show="item.location"
+              x-cloak
+              class="flex-1 grow flex pl-5 rtl:pl-0 rtl:pr-5 relative anm-fade-element" data-fade-on-intersect
+              :class="item.show_end_date ? 'lg:flex-col' : 'lg:ml-14'"
+            >
+              <span class="w-4 inline-block absolute left-0 rtl:left-auto rtl:right-0">{%- render 'icon-all', icon: 'icon-location-1' -%}</span>
+              <span x-text="item.location"></span>
+            </div>
+          </div>
+          <div class="relative">
+            <div
+              id="ImageBanner"
+              class="overflow-hidden{% if settings.edges_type == 'rounded_corners' %} rounded-[10px]{% endif %}"
+            >
+              <template x-if="item.location">
+                <div
+                  x-data="xMap(item.location)"
+                  class="relative h-80"
+                  x-intersect="loadMap(item.location);"
+                  x-effect="$store.xEventCalendarDetail.show == false && removeMap()"
+                >
+                  <iframe
+                    src=""
+                    class="w-full h-full"
+                    title="Map"
+                  ></iframe>
+                </div>
+              </template>
+              <div
+                class="relative w-full overflow-hidden h-80{% if settings.edges_type == 'rounded_corners' %} rounded-[10px]{% endif %}"
+                x-show="item.location == '' && item.image"
+              >
+                <img
+                  x-show="item.image"
+                  :src="`${ item.image }`"
+                  :alt="`${ item.image_alt }`"
+                  class="top-0 right-0 left-0 bottom-0 object-cover h-full w-full image-hover"
+                  loading="lazy"
+                  width="150"
+                  height="150"
+                >
+                <div
+                  class="absolute top-0 left-0 w-full h-full"
+                  x-show="!item.image"
+                >
+                  {% liquid
+                    assign index = 1
+                    assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+                    assign placeholder_product_name = 'product_' | append: index
+                  %}
+                  {% render 'placeholder-image', image_type: placeholder_product_name %}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            id="EventDescription-{{ section.id }}"
+            class="mt-4 rte p-break-words"
+          ></div>
+          <div
+            x-show="item.location && item.image"
+            class="relative w-full mt-4 overflow-hidden h-80{% if settings.edges_type == 'rounded_corners' %} rounded-[10px]{% endif %}"
+          >
+            <img
+              x-show="item.image"
+              :src="`${ item.image }`"
+              :alt="`${ item.image_alt }`"
+              class="top-0 right-0 left-0 bottom-0 object-cover h-full w-full image-hover"
+              loading="lazy"
+              width="150"
+              height="150"
+            >
+            <div
+              class="absolute top-0 left-0 w-full h-full"
+              x-show="!item.image"
+            >
+              {% liquid
+                assign index = 1
+                assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+                assign placeholder_product_name = 'product_' | append: index
+              %}
+              {% render 'placeholder-image', image_type: placeholder_product_name %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="element-end-modal h-0 w-0 absolute pointer-events-none"
+      tabindex="0"
+      @focus="document.getElementById('ClosePickupDrawer__{{ section.id }}')?.focus()"></div>
+  </div>
+</div>

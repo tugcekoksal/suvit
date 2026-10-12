@@ -1,0 +1,233 @@
+{%- comment -%}
+  Renders a estimate delivery time block.
+
+  Accepts:
+  - product (required): the product for which to calculate the estimated delivery time.
+  - estimate_message (required): the message to display in the block.
+  - enable_tooltip (optional): whether to enable the tooltip or not.
+  - tooltip_content (optional): the content of the tooltip. It can contain HTML.
+  - container_id (optional): the id of the container element.
+  - current_variant (optional): the current variant of the product. Default is the selected or first available variant of the product.
+  - show_background (optional): whether to show the background or not. Default is false.
+  - background_color_light (optional): the background color in light mode.
+  - message_color_light (optional): the message color in light mode.
+  - background_color_dark (optional): the background color in dark mode.
+  - message_color_dark (optional): the message color in dark mode.
+  - is_product_page (optional): whether the block is rendered on a product page or not. Default is true.
+
+  Usage:
+  {% render 'estimate-delivery-product-template',
+    product: product,
+    estimate_message: block.settings.message,
+    enable_tooltip: block.settings.enable_tooltip,
+    tooltip_content: block.settings.tooltip_content,
+    container_id: container_id,
+    current_variant: product.selected_or_first_available_variant,
+    show_background: block.settings.show_background,
+    background_color_light: block.settings.background_color_light,
+    background_color_dark: block.settings.background_color_dark,
+    message_color_light: block.settings.message_color_light,
+    message_color_dark: block.settings.message_color_dark,
+    is_product_page: true
+  %}
+{%- endcomment -%}
+{% if current_variant != blank and current_variant.requires_shipping == true %}
+  {%- liquid
+    assign market = localization.country.iso_code
+    assign data_min = settings.estimate_delivery_min
+    if current_variant.metafields.custom.delivery_date_min != blank
+      assign data_min = current_variant.metafields.custom.delivery_date_min
+    else
+      if product.metafields.custom.delivery_date_min != blank
+        assign data_min = product.metafields.custom.delivery_date_min
+      else
+        assign data_min = settings.estimate_delivery_min
+      endif
+    endif
+
+    if data_min contains ';'
+      assign estimate_mins = data_min | split: ';'
+      for estimate_min in estimate_mins
+        assign code_market_min = estimate_min | split: ':' | first | remove: ' '
+        assign min_value_market = estimate_min | split: ':' | last
+
+        if code_market_min == market
+          assign delivery_date_min = min_value_market | plus: 0
+        endif
+      endfor
+    else
+      if data_min contains ':'
+        assign code_market_min = data_min | split: ':' | first | remove: ' '
+        assign min_value_market = data_min | split: ':' | last
+
+        if code_market_min == market
+          assign delivery_date_min = min_value_market | plus: 0
+        endif
+      else
+        assign delivery_date_min = data_min | plus: 0
+      endif
+    endif
+
+    assign data_max = settings.estimate_delivery_max
+    if current_variant.metafields.custom.delivery_date_max != blank
+      assign data_max = current_variant.metafields.custom.delivery_date_max
+    else
+      if product.metafields.custom.delivery_date_max != blank
+        assign data_max = product.metafields.custom.delivery_date_max
+      else
+        assign data_max = settings.estimate_delivery_max
+      endif
+    endif
+
+    if data_max contains ';'
+      assign estimate_maxs = data_max | split: ';'
+      for estimate_max in estimate_maxs
+        assign code_market_max = estimate_max | split: ':' | first | remove: ' '
+        assign max_value_market = estimate_max | split: ':' | last
+
+        if code_market_max == market
+          assign delivery_date_max = max_value_market | plus: 0
+        endif
+      endfor
+    else
+      if data_max contains ':'
+        assign code_market_max = data_max | split: ':' | first | remove: ' '
+        assign max_value_market = data_max | split: ':' | last
+
+        if code_market_max == market
+          assign delivery_date_max = max_value_market | plus: 0
+        endif
+      else
+        assign delivery_date_max = data_max | plus: 0
+      endif
+    endif
+  %}
+
+  {% if delivery_date_min != 0 or delivery_date_max != 0 %}
+    {%- style -%}
+      {%- if show_background -%}
+        {{ container_id }} .x-estimate-delivery {
+        {% if background_color_light.alpha != 0.0 %}
+          background-color: rgba({{ background_color_light.red }} {{ background_color_light.green }} {{ background_color_light.blue }} / {{ background_color_light.alpha }});
+        {% else %}
+          background-color: rgba(var(--color-in-stock-no-alpha) / 0.1);
+        {% endif %}
+        }
+
+        .dark {{ container_id }} .x-estimate-delivery {
+        {% if background_color_dark.alpha != 0.0 %}
+          background-color: rgba({{ background_color_dark.red }} {{ background_color_dark.green }} {{ background_color_dark.blue }} / {{ background_color_dark.alpha }});
+        {% else %}
+          background-color: rgba(var(--color-in-stock-no-alpha) / 0.1);
+        {% endif %}
+        }
+      {% endif %}
+
+      {{ container_id }} {
+        --color-text: var(--color-in-stock);
+        --color-text-no-alpha: var(--color-in-stock-no-alpha);
+      }
+
+      .maximize-theme:not(.dark) {{ container_id }} {
+        --color-text: var(--color-in-stock);
+        --color-text-no-alpha: var(--color-in-stock-no-alpha);
+        {%- if message_color_light.alpha != 0.0 -%}
+          --color-text: {{ message_color_light.red }} {{ message_color_light.green }} {{ message_color_light.blue }} / {{ message_color_light.alpha }};
+          --color-text-no-alpha: {{ message_color_light.red }} {{ message_color_light.green }} {{ message_color_light.blue }};
+        {%- endif -%}
+      }
+
+      {% if message_color_dark.alpha != 0.0 %}
+        .dark {{ container_id }} {
+        {%- if message_color_dark != 'rgba(0,0,0,0)' -%}
+          --color-text: {{ message_color_dark.red }} {{ message_color_dark.green }} {{ message_color_dark.blue }} / {{ message_color_dark.alpha }};
+          --color-text-no-alpha: {{ message_color_dark.red }} {{ message_color_dark.green }} {{ message_color_dark.blue }};
+        {%- endif -%}
+        }
+      {% endif %}
+    {%- endstyle -%}
+    {% liquid
+      assign variant_mtf_msg = current_variant.metafields.custom.delivery_date_message | metafield_text | strip
+      if variant_mtf_msg != ''
+        assign mtf_message = current_variant.metafields.custom.delivery_date_message | metafield_text | strip
+        if mtf_message != ''
+          assign estimate_message = current_variant.metafields.custom.delivery_date_message | metafield_tag
+        endif
+      else
+        assign mtf_message = product.metafields.custom.delivery_date_message | metafield_text | strip
+        if mtf_message != ''
+          assign estimate_message = product.metafields.custom.delivery_date_message | metafield_tag
+        endif
+      endif
+
+      assign current_minute = 'now' | date: '%M'
+      assign current_time_of_day = 'now' | date: '%H' | append: current_minute | plus: 0
+      assign cutoff_time = settings.estimate_delivery_cutoff_hour | append: settings.estimate_delivery_cutoff_minute | plus: 0
+
+      if current_time_of_day > cutoff_time
+        assign delivery_date_min = delivery_date_min | plus: 1
+        assign delivery_date_max = delivery_date_max | plus: 1
+      endif
+
+      assign to_min_date_seconds = delivery_date_min | times: 24 | times: 60 | times: 60
+      assign to_max_date_seconds = delivery_date_max | times: 24 | times: 60 | times: 60
+
+      assign min_date_month = 'now' | date: '%s' | plus: to_min_date_seconds | date: '%B'
+      assign min_date_day = 'now' | date: '%s' | plus: to_min_date_seconds | date: '%d'
+      assign max_date_month = 'now' | date: '%s' | plus: to_max_date_seconds | date: '%B'
+      assign max_date_day = 'now' | date: '%s' | plus: to_max_date_seconds | date: '%d'
+
+      assign min_date_month_format = 'date_time.month.' | append: min_date_month | t
+      assign max_date_month_format = 'date_time.month.' | append: max_date_month | t
+
+      assign min_date_string = min_date_month_format | append: ' ' | append: min_date_day
+      assign max_date_string = max_date_month_format | append: ' ' | append: max_date_day
+      if settings.date_format_estimate_cart == 'dd-mm'
+        assign min_date_string = min_date_day | append: ' ' | append: min_date_month_format
+        assign max_date_string = max_date_day | append: ' ' | append: max_date_month_format
+      endif
+    -%}
+
+    {% capture tooltip %}
+      {% if enable_tooltip and tooltip_content != blank %}
+        <div
+          class="mx-1 z-10 w-4 h-4 min-w-4 color-bg-[rgba(var(--color-text),0.12)] cursor-pointer pointer-events-auto rounded-full inline-flex justify-center items-center tooltip-icon-estimate"
+        >
+          <span class="text-xx-small">!</span>
+          <custom-tooltip data-tooltip-align="center" data-enable-mobile="true">
+            <div class="tooltip-popup-wrapper absolute left-2.5 right-2.5 w-[calc(100%-20px)] invisible z-10 pointer-events-none flex my-0.5 drop-shadow-small" data-tooltip-position="top">
+              <div class="tooltip-arrow-up triangle-tooltip relative z-10 mx-auto hidden">
+                <span class="triangle-up border-transparent block"></span>
+                <span class="triangle-up tooltip-arrow-estimate-delivery absolute top-0 left-0 -z-10"></span>
+              </div>
+              <div class="rounded-[var(--border-radius-flash-message)] flex bg-white">
+                <span class="flash-message color-bg-[rgba(var(--color-text),0.06)] relative">
+                  <span class="text-xx-small p-break-words">{{ tooltip_content }}</span>
+                </span>
+              </div>
+              <div class="tooltip-arrow-down triangle-tooltip relative z-10 w-fit mx-auto">
+                <span class="triangle-down border-transparent block"></span>
+                <span class="triangle-down tooltip-arrow-estimate-delivery absolute top-0 left-0 -z-10"></span>
+              </div>
+            </div>
+          </custom-tooltip>
+        </div>
+      {% endif %}
+    {% endcapture %}
+
+    <div class="x-estimate-delivery text-small color-text-[rgba(var(--color-text))]
+      {%- if is_product_page %} mb-[var(--padding-bottom-product-template-block)]{% endif -%}
+      {%- if show_background %} pt-2 pb-2 pl-2.5 pr-2.5 md:pt-2.5 md:pb-2.5 md:pl-3.5 md:pr-3.5{%- else %} pt-0.5 pb-0.5{% endif -%}
+      {%- if settings.edges_type == 'rounded_corners' %} rounded-md{% endif -%}"
+    >
+      <div class="flex gap-x-1.5 items-center{% if show_content_center %} justify-center{% endif %}">
+        <div class="relative flex flex-row gap-1.5">
+          <div class="w-4.5 h-4.5 md:w-5 md:h-5 self-center shrink-0">{% render 'icon-all', icon: 'icon-delivery' %}</div>
+          <div class="estimate-content{% if show_content_center %} text-center{% endif %} hover:pointer-events-auto pointer-events-none p-break-words rte flex">
+            {{ estimate_message | replace: 'earliest_delivery_date', min_date_string | replace: 'latest_delivery_date', max_date_string | remove_last: '</p>' | append: tooltip | append: '</p>' }}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endif %}

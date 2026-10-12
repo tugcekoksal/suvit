@@ -1,0 +1,346 @@
+{% doc %} 
+  Documentation: Media of media gallery
+
+  Renders a single media item (image, video, model, etc.) within the product's media gallery.
+
+  @param product - {Product} Product Liquid object
+  @param media - {Media} The individual media object to render (image, video, external_video, model)
+  @param sizes - {String} The 'sizes' attribute for responsive images
+  @param [sizes_in_2_columns] - {String} Optional sizes attribute when layout uses 2 columns
+  @param [desktop_layout] - {String} Media gallery layout on desktop ('1_column', '2_columns', 'grid_2_columns')
+  @param [zoom_effect] - {String} Zoom effect when clicking the media ('enlarge', 'none', 'magnifier')
+  @param video_autoplay - {Boolean} Whether to autoplay videos
+  @param index0 - {Number} Zero-based index of the media in the gallery
+  @param is_zoom_media - {Boolean} True if this is a zoomed version of the media
+  @param show_sound_control - {Boolean} Show volume/mute controls for videos
+  @param [desktop_carousel_option] - {String} Carousel thumbnail option on desktop ('thumbnail', 'dot', 'none')
+  @param [desktop_carousel_position] - {String} Position of carousel navigation on desktop ('left', 'right', 'bottom')
+  @param [is_active_media] - {Boolean} True if this media is the currently active
+  @param [number_media_show] - {Number} Number of media items to show (product info only)
+  @param [is_show_media_with_variant_selected] - {Boolean} True if showing media based on selected variant
+
+  @example
+  {%- render 'media-of-media-gallery',
+    product: product,
+    media: media,
+    sizes: '100vw',
+    sizes_in_2_columns: '100vw, (min-width: 750px) 50vw, 100vw',
+    desktop_layout: '1_column',
+    zoom_effect: 'none',
+    video_autoplay: true,
+    index0: 0,
+    is_zoom_media: false,
+    show_sound_control: true,
+    desktop_carousel_option: 'thumbnail',
+    desktop_carousel_position: 'left',
+    is_active_media: true,
+    number_media_show: 4
+    is_show_media_with_variant_selected: true
+  -%}
+{% enddoc %}
+
+{%- liquid
+  assign loading = 'loading="lazy"'
+  assign media_alt = media.alt | default: product.title
+  assign show_controls = show_sound_control
+
+  assign buttons_position = 'bottom-0 justify-end'
+
+  if is_zoom_media == false or is_zoom_media == blank
+    assign show_controls = false
+    if desktop_carousel_option == 'dot' or desktop_carousel_option == 'thumbnail' and desktop_carousel_position == 'bottom'
+      assign buttons_position = buttons_position | append: ' md-lg:top-0 md-lg:bottom-auto'
+    endif
+  endif
+-%}
+{%- if media.media_type == 'video' or media.media_type == 'external_video' -%}
+  {%- capture buttons_video -%}
+    {% liquid
+      assign video_type = media.host
+      if media.media_type == 'video'
+        assign video_type = 'video_select'
+      endif
+    %}
+    <div 
+      class="buttons-video__wrapper {{ buttons_position }}{% if show_controls %} show-controls{% endif %}"
+      x-cloak
+    >
+      {% comment %} Button sound control {% endcomment %}
+      {% if show_controls == false and show_sound_control == true %}
+        <button
+          class="button-sound-control video__button pointer-events-auto is-muted anm-hover-button"
+          @click.prevent.stop="$store.xVideo.toggleMute($el)"
+          @keyup.enter.stop="$store.xVideo.toggleMute($el)"
+          @keydown.enter.prevent
+          aria-label="button sound control"
+        >
+          <span class="icon-unmute video__button-icon">
+            {% render 'icon-media', icon: 'icon-unmute' %}
+          </span>
+          <span class="icon-mute video__button-icon">
+            {% render 'icon-media', icon: 'icon-mute' %}
+          </span>
+        </button>
+      {% endif %}
+      
+      {% comment %} Button play / pause {% endcomment %}
+      <button
+        class="button-play video__button pointer-events-auto anm-hover-button {% if video_autoplay %} is-playing started-video{% endif %}"
+        @click.prevent.stop="$store.xVideo.handleClickButtonPlay($el, '{{ video_type }}', '{{ media.external_id }}', 'video-product', {{ show_controls }})"
+        @keyup.enter.stop="$store.xVideo.handleClickButtonPlay($el, '{{ video_type }}', '{{ media.external_id }}', 'video-product', {{ show_controls }})"
+        @keydown.enter.prevent
+        aria-label="button play"
+      >
+        <span class="icon-play video__button-icon">
+          {% render 'icon-media', icon: 'icon-play' %}
+        </span>
+        <span class="icon-pause video__button-icon">
+          {% render 'icon-media', icon: 'icon-pause' %}
+        </span>
+      </button>
+    </div>
+  {%- endcapture -%}
+{%- endif -%}
+  {% if is_zoom_media %}
+    {%- style -%}
+      {% if media.media_type == 'video' %}
+        .zoom-media {
+          --aspect-ratio-zoom-media: {{ media.aspect_ratio }};
+        }
+        @media (max-aspect-ratio: {{ media.aspect_ratio }}/1) {
+          .zoom-media {
+            max-width: 100%;
+            max-height: calc(100dvw / var(--aspect-ratio-zoom-media));
+          }
+        }
+      {% else media.media_type == 'external_video' %}
+        .zoom-media {
+          --aspect-ratio-zoom-media: calc(16/9);
+        }
+        @media (max-aspect-ratio: 16/9) {
+          .zoom-media {
+            max-width: 100%;
+            max-height: calc(100dvw / var(--aspect-ratio-zoom-media));
+          }
+        }
+      {% endif %}
+    {%- endstyle -%}
+  {% endif %}
+{% case media.media_type %}
+  {% when 'image' %}
+    {%- capture srcset -%}
+      {{ media.preview_image | image_url: width: 375 }} 375w,
+      {{ media.preview_image | image_url: width: 450 }} 450w,
+      {{ media.preview_image | image_url: width: 750 }} 750w,
+      {{ media.preview_image | image_url: width: 800 }} 800w,
+      {{ media.preview_image | image_url: width: 900 }} 900w,
+      {{ media.preview_image | image_url: width: 1000 }} 1000w,
+      {{ media.preview_image | image_url: width: 1100 }} 1100w,
+      {{ media.preview_image | image_url: width: 1500 }} 1500w,
+      {{ media.preview_image | image_url: width: 1780 }} 1780w,
+      {{ media.preview_image | image_url }} {{ media.preview_image.width }}w
+    {%- endcapture -%}
+
+    {%- capture srcset_in_2_columns -%}
+      {{ media.preview_image | image_url: width: 375 }} 375w,
+      {{ media.preview_image | image_url: width: 450 }} 450w,
+      {{ media.preview_image | image_url: width: 750 }} 750w,
+      {{ media.preview_image | image_url: width: 800 }} 800w,
+      {{ media.preview_image | image_url: width: 900 }} 900w,
+      {{ media.preview_image | image_url: width: 1000 }} 1000w,
+      {{ media.preview_image | image_url: width: 1100 }} 1100w,
+      {{ media.preview_image | image_url: width: 1200 }} 1200w,
+    {%- endcapture -%}
+    <img
+      src="{{ media.preview_image | image_url: width: 1780 }}"
+      {% if number_media_show and desktop_layout != '1_column' and number_media_show > 1  %}
+        srcset="{{ srcset_in_2_columns }}"
+        sizes="{{ sizes_in_2_columns }}"
+      {% else %}
+        srcset="{{ srcset }}"
+        sizes="{{ sizes }}"
+      {% endif %}
+      {% if desktop_layout != '1_column' and is_show_media_with_variant_selected %}
+        data-srcset="{{ srcset }}"
+        data-srcset-in-two-columns="{{ srcset_in_2_columns }}"
+      {% endif %}
+      alt="{{ media_alt | default: product.title | escape }}"
+      {{ loading }}
+      width="{{ media.preview_image.width }}"
+      height="{{ media.preview_image.width | divided_by: media.preview_image.aspect_ratio }}"
+      class="media-gallery-item__media media-gallery__item__image focus-visible:-outline-offset-1 {% if is_zoom_media %} object-contain h-full w-fit {% else %} object-cover w-full h-full{% endif %} absolute rounded-corners"
+      data-index="{{ index0 }}"
+      {% if zoom_effect == 'enlarge' %}
+        tabindex="0"
+        @keyup.enter="handleZoom()"
+      {% endif %}
+    >
+  {% when 'video' %}
+    <div class="media-gallery__item__video external-video {% if is_zoom_media %} zoom-media{% else %} w-full h-full{% if desktop_layout != '1_column' %} absolute inset-0{% endif %}{% endif %}"
+         data-media-host="{{ media.host }}"
+         data-video-auto-play="{{ video_autoplay }}"
+         data-video-status="{% if video_autoplay %}play{% else %}pause{% endif %}"
+         data-paused-by-leave="false"
+         data-is-active="{% if desktop_layout and desktop_layout != 'grid_2_columns' %}false{% else %}true{% endif %}"
+         x-intersect:leave="$store.xVideo.pause($el, true)"
+         {%- if video_autoplay -%}
+           x-intersect="$store.xVideo.updateStatusVideo($el, true)"
+           x-intersect.once="$store.xVideo.firtLoadMp4AutoPlay($el);"
+         {%- else -%}
+           x-intersect.once="$store.xVideo.mp4Listen($el);"
+         {% endif %}
+    >
+      {{ buttons_video }}
+      <div class="video-container">
+        {%- unless video_autoplay -%}
+          {%- capture srcset -%}
+            {{ media.preview_image | image_url: width: 375 }} 375w,
+            {{ media.preview_image | image_url: width: 450 }} 450w,
+            {{ media.preview_image | image_url: width: 750 }} 750w,
+            {{ media.preview_image | image_url: width: 800 }} 800w,
+            {{ media.preview_image | image_url: width: 900 }} 900w,
+            {{ media.preview_image | image_url: width: 1000 }} 1000w,
+            {{ media.preview_image | image_url: width: 1100 }} 1100w,
+            {{ media.preview_image | image_url: width: 1500 }} 1500w,
+            {{ media.preview_image | image_url: width: 1780 }} 1780w,
+            {{ media.preview_image | image_url }} {{ media.preview_image.width }}w
+          {%- endcapture -%}
+
+          {%- capture srcset_in_2_columns -%}
+            {{ media.preview_image | image_url: width: 375 }} 375w,
+            {{ media.preview_image | image_url: width: 450 }} 450w,
+            {{ media.preview_image | image_url: width: 750 }} 750w,
+            {{ media.preview_image | image_url: width: 800 }} 800w,
+            {{ media.preview_image | image_url: width: 900 }} 900w,
+            {{ media.preview_image | image_url: width: 1000 }} 1000w,
+            {{ media.preview_image | image_url: width: 1100 }} 1100w,
+            {{ media.preview_image | image_url: width: 1200 }} 1200w,
+          {%- endcapture -%}
+          
+          <img
+            src="{{ media.preview_image | image_url: width: 1780 }}"
+            alt="{{ media.preview_image.alt | default: product.title | escape }}"
+            {% if number_media_show and desktop_layout != '1_column' and number_media_show > 1  %}
+              srcset="{{ srcset_in_2_columns }}"
+              sizes="{{ sizes_in_2_columns }}"
+            {% else %}
+              srcset="{{ srcset }}"
+              sizes="{{ sizes }}"
+            {% endif %}
+            {% if desktop_layout != '1_column' and is_show_media_with_variant_selected %}
+              data-srcset="{{ srcset }}"
+              data-srcset-in-two-columns="{{ srcset_in_2_columns }}"
+            {% endif %}
+            {{ loading }}
+            width="{{ media.preview_image.width }}"
+            height="{{ media.preview_image.height }}"
+            @click.prevent.stop="$store.xVideo.mp4Thumbnail($el, {{ show_controls }})"
+            class="media-gallery-item__img-thumbnail img-thumbnail duration-300 absolute w-full h-full object-cover cursor-pointer z-10"
+          >
+        {% endunless %}
+        {% liquid
+          assign tabindex = '-1'
+          if video_autoplay and show_controls
+            assign tabindex = '0'
+          endif
+        %}
+        {{ media | media_tag: image_size: '1024x',
+          autoplay: video_autoplay,
+          muted: true,
+          loop: video_autoplay,
+          controls: show_controls,
+          loading: 'lazy',
+          tabindex: tabindex,
+          alt: media.alt,
+          class: 'video-mp4 video w-full h-full absolute video top-1/2 -translate-y-1/2 focus-visible:-outline-offset-1',
+          is: "custom-video"
+        }}
+      </div>
+    </div>
+    <script
+        src="{{ 'video.js' | asset_url }}"
+        defer
+    ></script>
+  {% when 'external_video' %}
+    <div class="media-gallery__item__external-video external-video {% if is_zoom_media %} zoom-media{% else %} w-full h-full{% if desktop_layout != '1_column' %} absolute inset-0{% endif %}{% endif %}"
+         data-media-host="{{ media.host }}"
+         data-video-auto-play="{{ video_autoplay }}"
+         data-video-status="{% if video_autoplay %}play{% else %}pause{% endif %}"
+         data-paused-by-leave="false"
+         data-is-active="{% if desktop_layout and desktop_layout != 'grid_2_columns' and is_active_media == false or is_active_media == blank %}false{% else %}true{% endif %}"
+         x-intersect:leave="$store.xVideo.pause($el, true)"
+         {%- if video_autoplay -%}
+            x-intersect="$store.xVideo.updateStatusVideo($el, true);"
+            x-intersect.once="$store.xVideo.play($el)"
+            tabindex="0"
+         {% else %}
+            tabindex="-1"
+         {% endif %}
+         @keyup.enter="$store.xVideo.togglePlay($el)"
+         @keyup.space="$store.xVideo.togglePlay($el)"
+         @keydown.space.prevent
+    >
+      {{ buttons_video }}
+      <div class="video-container">
+        {%- if media.host == 'youtube' -%}
+          {%- if video_autoplay -%}
+            <div
+                class="w-full h-full absolute"
+                x-intersect="$store.xVideo.externalLoad($el, '{{ media.host }}', '{{ media.external_id }}', {{ video_autoplay | default: false }}, 'video-product', {{ show_controls }})"
+            ></div>
+          {%- else -%}
+            {% comment %}theme-check-disable RemoteAsset{% endcomment %}
+            <picture 
+              class="media-gallery-item__img-thumbnail w-full h-full absolute cursor-pointer"
+              @click.prevent.stop="$store.xVideo.externalLoad($el, '{{ media.host }}', '{{ media.external_id }}', {{ video_autoplay | default: false }}, 'video-product', {{ show_controls }})"
+            >
+              <source type="image/webp" srcset="{{ media.external_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/sddefault.webp' }}">
+              <source type="image/jpeg" srcset="{{ media.external_id | prepend: 'https://i.ytimg.com/vi/' | append: '/sddefault.jpg' }}">
+              <img src="{{ media.external_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/sddefault.webp' }}" loading="lazy" class="w-full h-full object-cover" alt="{{ media.alt | default: product.title | escape }}" width="640" height="480"/>
+            </picture>
+            {% comment %}theme-check-enable RemoteAsset{% endcomment %}
+          {%- endif -%}
+        {%- else -%}
+          {%- if video_autoplay -%}
+            <div
+                class="w-full h-full absolute"
+                x-intersect="$store.xVideo.externalLoad($el, '{{ media.host }}', '{{ media.external_id }}', {{ video_autoplay | default: false }}, 'video-product', {{ show_controls }})"
+            ></div>
+          {%- else -%}
+            {%- capture options -%}
+              {
+              'alt': '{{ media.preview_image | default: product.title | escape }}',
+              'width': 640
+              }
+            {%- endcapture -%}
+            <div class="media-gallery-item__img-thumbnail absolute w-full h-full cursor-pointer"
+                 x-init="$store.xVideo.renderVimeoFacade($el, '{{ media.external_id }}', {{ options }})"
+                 x-intersect:leave="$store.xVideo.pause($el, true)"
+                 @click.prevent.stop="$store.xVideo.externalLoad($el, '{{ media.host }}', '{{ media.external_id }}', {{ video_autoplay | default: false }}, 'video-product', {{ show_controls }})"
+            >
+              <div class="vimeo-thumbnail-skeleton w-full h-full bg-skeleton"></div>
+            </div>
+          {%- endif -%}
+        {%- endif -%}
+      </div>
+    </div>
+    <script
+        src="{{ 'video.js' | asset_url }}"
+        defer
+    ></script>
+  {% when 'model' %}
+    <div class="media-gallery__item__model relative w-full h-full rounded-corners"
+        data-media-id="{{ media.id }}"
+        x-data="xMediaModel()"
+        {% if desktop_layout == '2_columns' %}
+          x-intersect.once.margin.200px="initModelInSlideEffect()"
+        {% else %}
+          x-intersect.once.margin.200px="handleInit(); handleLoadModel();"
+        {% endif %}
+        x-intersect:leave="handlePauseViewer();"
+    >
+      <template>
+        {{ media | media_tag: image_size: '2048x', toggleable: true }}
+      </template>
+    </div>
+{% endcase %}

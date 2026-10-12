@@ -1,0 +1,532 @@
+{% comment %}theme-check-disable ImgLazyLoading{% endcomment %}
+{%- if predictive_search.performed -%}
+  {%- liquid
+    if settings.lang_direction contains request.locale.iso_code
+      assign is_rtl = true
+    else
+      assign is_rtl = false
+    endif
+
+    assign compact_search =  false
+    if settings.search_bar_desktop_layout == 'compact'
+      assign compact_search =  true
+    endif 
+    assign resources_collections = predictive_search.resources.collections
+    assign collections_list_size = resources_collections.size
+    
+    assign exclude_collections_list = false
+    if settings.exclude_collections != blank
+      assign exclude_collections_list = settings.exclude_collections | map: "id"
+      for collection in resources_collections
+        if exclude_collections_list contains collection.id 
+          assign collections_list_size = collections_list_size | minus: 1
+        endif
+      endfor
+    endif
+
+    assign results_size = predictive_search.resources.products.size | plus: collections_list_size | plus: predictive_search.resources.pages.size | plus: predictive_search.resources.articles.size
+    assign prs_contents_size = predictive_search.resources.products.size | plus: collections_list_size | plus: predictive_search.resources.articles.size
+  -%}
+  <div
+    class="header-search__compact-max-height search-page:bg-gradient search-page:color-bg-gradient-[var(--gradient-background)] search-page:pt-4 md:search-page:pt-5 search-page:px-0 px-4 search-page:border-t-0 pt-6 flex flex-col h-full search-page:border search-modal-shadow
+      {%- if settings.edges_type == 'rounded_corners'%} search-page:rounded-[20px]{% endif -%}
+      {%- unless settings.search_show_view_more and results_size > 0 %} pb-7{% endunless -%}"
+  >
+    <div
+      id="predictive-search-results"
+      class="overflow-auto search-page:max-h-[45vh] search-page:px-4 search-page:md:px-0 scrollbar-body scrollbar-visible flex-auto"
+    >
+      {% if results_size > 0 %}
+        {%- capture sizes -%}
+          (min-width: 1024px) calc((100vw) / 4), (min-width: 768px) calc((100vw) / 2), 100vw
+        {%- endcapture -%}
+        <div class="psr__wrapper flex flex-col lg:flex-row gap-5 md:gap-7.5 md:px-5 search-page:md:flex-col">
+          {%- if predictive_search.resources.queries.size > 0 or predictive_search.resources.pages.size > 0 -%}
+            <div class="psr-suggestions__wrapper search-page:hidden{% if prs_contents_size > 0 %} lg:max-w-[310px] w-fit{% endif %}">
+              {%- if predictive_search.resources.queries.size > 0 -%}
+                <div class="psr-queries-page flex-1">
+                  <p
+                    id="predictive-search-queries"
+                    class="predictive-search-heading font-semibold pb-2.5 md:pb-4 h5 md:search-page:pb-3"
+                  >
+                    {{- 'templates.search.suggestions' | t -}}
+                  </p>
+                  <ul
+                    id="predictive-search-results-queries-list"
+                    class="flex flex-wrap gap-1.5"
+                    role="group"
+                    aria-labelledby="predictive-search-queries"
+                  >
+                    {%- for query in predictive_search.resources.queries -%}
+                      <custom-button>
+                        <li
+                          id="predictive-search-option-query-{{ forloop.index }}"
+                          class="predictive-search__list-item search-page:color-bg-[rgba(var(--color-text),0.06)] color-bg-[rgba(var(--color-text),0.06)] color-text-[rgba(var(--color-text))] rounded-corners-md w-fit anm-button-secondary"
+                          role="option"
+                          aria-selected="false"
+                        >
+                          <a
+                            href="{{ query.url }}"
+                            class="search_heading predictive-search-item py-1.5 md:py-2 px-2.5 md:px-3.5 text-medium relative p-break-words inline-block text-start"
+                          >
+                            {{ query.styled_text | strip_html }}
+                          </a>
+                        </li>
+                      </custom-button>
+                    {%- endfor -%}
+                  </ul>
+                </div>
+              {%- endif -%}
+              {%- if predictive_search.resources.pages.size > 0 and settings.predictive_search_show_pages -%}
+                <div class="psr-queries-page flex-1 {%- if predictive_search.resources.queries.size > 0 %} pt-5 md:pt-8{% endif %}">
+                  <p
+                    id="predictive-search-pages"
+                    class="predictive-search-heading pb-2.5 md:pb-4 font-semibold h5 md:search-page:pb-3"
+                  >
+                    {{ 'templates.search.pages' | t }}
+                  </p>
+                  <div class="predictive-result-item flex flex-wrap gap-1.5">
+                    {%- for page in predictive_search.resources.pages -%}
+                      <custom-button>
+                        <div class="block search-page:color-bg-[rgba(var(--color-text),0.06)] color-bg-[rgba(var(--color-text),0.06)] color-text-[rgba(var(--color-text))] rounded-corners-md w-fit cursor-pointer anm-button-secondary {% if is_rtl %} text-right {% else %} text-left {% endif %}">
+                          <a
+                            href="{{ page.url }}"
+                            class="search_heading predictive-search-item py-1.5 md:py-2 px-2.5 md:px-3.5 inline-block text-medium relative p-break-words"
+                          >
+                            {{ page.title | escape }}
+                          </a>
+                        </div>
+                      </custom-button>
+                    {%- endfor -%}
+                  </div>
+                </div>
+              {%- endif -%}
+            </div>
+          {% endif %}
+
+          {% if prs_contents_size > 0 %}
+            <div class="psr-contents__wrapper w-full flex flex-col min-w-0 search-page:max-w-full {% if compact_search %} md:flex-row {% endif %} gap-y-5 gap-x-7.5 md:search-page:gap-y-7.5 search-page:flex-col">
+              {%- if predictive_search.resources.products.size > 0 and settings.predictive_search_show_products -%}
+                <div 
+                  class="flex-1 min-w-0"
+                >
+                  <p
+                    id="predictive-search-products"
+                    class="predictive-search-heading pb-2.5 md:pb-4 font-semibold h5 md:search-page:pb-3"
+                  >
+                    {{ 'templates.search.products' | t }}
+                  </p>
+                  <div
+                    class="swiffy-slider overflow-hidden slider-item-snapstart enable-effect-hover"
+                    {% if predictive_search.resources.products.size > 1 %}
+                      x-data="{}"
+                      x-intersect.once="$store.xSwiffy.load($el, {
+                        'isLoop': false,
+                        'mediaQuery': 'min',
+                        'breakPoints': {
+                          '0': { 'slidesPerView': 2},
+                          '768': { 'slidesPerView': 1 }
+                        }
+                      });"
+                    {% endif %}
+                  >
+                    {% if predictive_search.resources.products.size > 2 %}
+                      {% capture class_nav_button %}
+                        {% if predictive_search.resources.products.size <= 4 %} md:!hidden md:search-page:!flex {% if predictive_search.resources.products.size == 3 %} lg:search-page:!hidden {% endif %}{% endif %} {% if compact_search %} lg:!hidden lg:search-page:!flex {% else %} {% if predictive_search.resources.products.size > 4 %} md:!flex{% endif %}{% endif %}
+                      {% endcapture %}
+                      {% render 'slider-navigation-button', class_nav_button: class_nav_button %}
+                    {% endif %}
+                    <ul
+                      role="listbox"
+                      aria-labelledby="predictive-search-products"
+                      class="predictive-result-list search-page:slider-container hide-scrollbar search-page:slider-item-show1 search-page:md:slider-item-show2 search-page:lg:slider-item-show3
+                        {%- if compact_search %}flex flex-col gap-1.5{% else %} slider-container slider-item-show2 md:slider-item-show4{% endif -%}"
+                    >
+                      {%- for product in predictive_search.resources.products -%}
+                        <li
+                          id="predictive-search-option-product-{{ forloop.index }}"
+                          role="option"
+                          aria-selected="false"
+                          class="slide-item p-0.5"
+                        >
+                          <div
+                            class="flex relative h-full gap-x-2.5 search-page:flex-row {% unless compact_search %} flex-col {% endunless %}"
+                          >
+                            <a href="{{ product.url }}" class="{% if compact_search %}w-24 {% else %}w-full{% endif %} relative mb-1.5 shrink-0 search-page:w-[92px] {%- if product.url != blank %} media-hyperlink{% endif -%}">
+                              <div
+                                class="relative overflow-hidden w-full float-left before:h-0 before:block rounded-corners {% unless settings.pc_media_ratio == "auto" %} before:pb-[{{ settings.pc_media_ratio }}%]{% else %}{% if product.featured_media.media_type == "model" %} pb-[100%]{% endif %}{% endunless %}"
+                                {% if settings.pc_media_ratio == 'auto' and product.featured_media and product.featured_media.media_type != 'model' %}
+                                  style="padding-bottom: {{ 1 | divided_by: product.featured_media.aspect_ratio | times: 100 }}%;"
+                                {% endif %}
+                              >
+                                {%- if product.featured_media != blank -%}
+                                  {% liquid
+                                    assign img_product = product.featured_media
+                                    assign alt_product = product.featured_media.alt | split: "#" | first | escape
+                                  %}
+                                  {% render 'image', 
+                                    img_class: "h-full w-full object-cover absolute top-0 left-0 image-hover rounded-corners anm-image-hover", 
+                                    img: img_product, 
+                                    alt: alt_product, 
+                                    img_width: 1024, 
+                                    sizes: sizes, 
+                                    eager_loading: false 
+                                  %}
+                                {%- else -%}
+                                  <div
+                                    class="{% unless settings.pc_media_ratio == "auto" %} absolute{% endunless %} top-0 left-0 w-full h-full rounded-corners"
+                                  >
+                                    {% liquid
+                                      assign index = 1
+                                      assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+                                      assign placeholder_product_name = 'product_' | append: index
+                                    %}
+                                    {% render 'placeholder-image', image_type: placeholder_product_name %}
+                                  </div>
+                                {%- endif -%}
+                              </div>
+                            </a>
+                            <div
+                              class="flex-1"
+                            >
+                              {%- if settings.search_bar_product_card_show_vendor -%}
+                                <div
+                                  class="mb-1 p-break-words tracking-widest {% if compact_search %} text-x-small {% else %} text-small{% endif %} color-text-[rgba(var(--color-text),0.6)] search-page:color-text-[rgba(var(--color-text),0.6)]"
+                                >
+                                  {{ product.vendor }}
+                                </div>
+                              {%- endif -%}
+                              <a href="{{ product.url }}" class="mb-1 title-link">
+                                <h7 class="h7 p-break-words">{{ product.title | escape }}</h7>
+                              </a>
+                              {%- if settings.search_bar_product_card_show_ratings -%}
+                                <div class="">
+                                  {% render 'review-product', product: product, is_comparison: true %}
+                                </div>
+                              {%- endif -%}
+                              {%- if settings.search_bar_product_card_show_price -%}
+                                {%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+                                {%- assign login_hide_price = login_hide_price | strip -%}
+                                {% if login_hide_price == 'true' %}
+                                  {%liquid
+                                    assign direction_label= 'row'
+                                    if compact_search
+                                      assign direction_label = 'col'
+                                    endif
+                                  %}
+                                  {% render 'guest-price-message', disabled_border: true, direction_label: direction_label %}
+                                {% else %}
+                                  {% render 'price',
+                                    product: product,
+                                    use_variant: true,
+                                    show_badges: false,
+                                    price_wrapper: 'h6',
+                                    show_b2b_price_label: true
+                                  %}
+                                {% endif %}
+                              {%- endif -%}
+                            </div>
+                          </div>
+                        </li>
+                      {%- endfor -%}
+                    </ul>
+                    {% if predictive_search.resources.products.size > 1 %}
+                      {% liquid
+                        assign container_class = 'md:!hidden'
+                        if compact_search or predictive_search.resources.products.size == 2
+                          assign container_class = container_class | append: ' hidden search-page:flex'
+                        endif
+                      %}
+                      {% render 'progress-bar',
+                        container_class: container_class
+                      %}
+                    {% endif %}
+                  </div>
+                </div>
+              {% endif %}
+
+              {%- if collections_list_size > 0 and settings.predictive_search_show_collections -%}
+                <div 
+                  class="flex-1 min-w-0"
+                >
+                  <p
+                    id="predictive-search-collections"
+                    class="predictive-search-heading font-semibold pb-2.5 md:pb-4 h5 md:search-page:pb-3"
+                  >
+                    {{ 'templates.search.collections' | t }}
+                  </p>
+                  <div
+                    class="swiffy-slider overflow-hidden slider-item-snapstart enable-effect-hover"
+                    {% if collections_list_size > 1 %}
+                      x-data="{}"
+                      x-intersect.once="$store.xSwiffy.load($el, {
+                        'isLoop': false,
+                        'mediaQuery': 'min',
+                        'breakPoints': {
+                          '0': { slidesPerView: 1},
+                          '768': { 'slidesPerView': 1 }
+                        }
+                      });"
+                    {% endif %}
+                  >
+                    {% capture class_nav_button %}
+                      {% if collections_list_size <= 4 %} md:!hidden md:search-page:!flex {% if collections_list_size == 3 %} lg:search-page:!hidden {% endif %}{% endif %} {% if compact_search %} lg:!hidden lg:search-page:!flex {% else %} {% if collections_list_size > 4 %} md:!flex{% endif %}{% endif %}
+                    {% endcapture %}
+                    {% if collections_list_size > 2 %}
+                      {% render 'slider-navigation-button', class_nav_button: class_nav_button %}
+                    {% endif %}
+                    <div class="predictive-result-item {% if compact_search %}flex flex-col gap-1.5{% else %} slider-container slider-item-show2 md:slider-item-show4 gap-3.5{% endif %} search-page:slider-container hide-scrollbar search-page:slider-item-show1 search-page:md:slider-item-show2 search-page:lg:slider-item-show3">
+                      {%- for collection in resources_collections -%}
+                        {% unless exclude_collections_list contains collection.id %}
+                          <div class="block slide-item collection-item p-0.5">
+                            <div
+                              class="flex relative h-full  gap-x-2.5 {% unless compact_search %} flex-col {% endunless %} search-page:flex-row"
+                            >
+                              <a href="{{ collection.url }}" class="{% if compact_search %}w-24 {% else %}w-full{% endif %} relative mb-1.5 shrink-0 search-page:w-[92px] {%- if collection.url != blank %} media-hyperlink{% endif -%}">
+                                <div
+                                  class="relative overflow-hidden w-full float-left before:h-0 before:block before:pb-[100%] rounded-corners"
+                                >
+                                  {%- if collection.featured_image != blank -%}
+                                    {% liquid
+                                      assign img_collection = collection.featured_image
+                                      assign alt_collection = collection.featured_image.alt | split: "#" | first | escape
+                                    %}
+                                    {% render 'image', 
+                                      img_class: "h-full w-full object-cover absolute top-0 left-0 image-hover rounded-corners anm-image-hover", 
+                                      img: img_collection, 
+                                      alt: alt_collection, 
+                                      img_width: 1024, 
+                                      sizes: sizes, 
+                                      eager_loading: false 
+                                    %}
+                                  {%- else -%}
+                                    <div
+                                      class="absolute top-0 left-0 w-full h-full rounded-corners"
+                                    >
+                                      {% liquid
+                                        assign index = 1
+                                        assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+                                        assign placeholder_collection_name = 'collection_' | append: index
+                                      %}
+                                      {% render 'placeholder-image', image_type: placeholder_collection_name %}
+                                    </div>
+                                  {%- endif -%}
+                                </div>
+                              </a>
+                              <a
+                                href="{{ collection.url }}"
+                                class="flex-1 h-fit link-reveal"
+                              >
+                                <h7 class="h7 search_heading p-break-words">{{ collection.title | escape }}</h7>
+                              </a>
+                            </div>
+                          </div>
+                        {% endunless %}
+                      {%- endfor -%}
+                    </div>
+                    {% if collections_list_size > 1 %}
+                      {% liquid
+                        assign container_class = 'md:!hidden'
+                        if compact_search or collections_list_size == 2
+                          assign container_class = container_class | append: ' hidden search-page:flex'
+                        endif
+                      %}
+                      {% render 'progress-bar',
+                        container_class: container_class
+                      %}
+                    {% endif %}
+                  </div>
+                </div>
+              {%- endif -%}
+
+              {%- if predictive_search.resources.articles.size > 0 and settings.predictive_search_show_articles -%}
+                <div 
+                  class="flex-1 min-w-0"
+                >
+                  <p
+                    id="predictive-search-articles"
+                    class="predictive-search-heading font-semibold pb-2.5 md:pb-4 h5 md:search-page:pb-3"
+                  >
+                    {{ 'templates.search.articles' | t }}
+                  </p>
+                  <div
+                    class="swiffy-slider overflow-hidden slider-item-snapstart enable-effect-hover"
+                    {% if predictive_search.resources.articles.size > 1 %}
+                      x-data="{}"
+                      x-intersect.once="$store.xSwiffy.load($el, {
+                        'isLoop': false,
+                        'mediaQuery': 'min',
+                        'breakPoints': {
+                          '0': { slidesPerView: 1},
+                          '768': { 'slidesPerView': 1 }
+                        }
+                      });"
+                    {% endif %}
+                  >
+                    {% capture class_nav_button %}
+                      {% if predictive_search.resources.articles.size <= 4 %} md:!hidden md:search-page:!flex {% if predictive_search.resources.articles.size == 3 %} lg:search-page:!hidden {% endif %}{% endif %} {% if compact_search %} lg:!hidden lg:search-page:!flex {% else %} {% if predictive_search.resources.articles.size > 4 %} md:!flex{% endif %}{% endif %}
+                    {% endcapture %}
+                    {% if predictive_search.resources.articles.size > 2 %}
+                      {% render 'slider-navigation-button', class_nav_button: class_nav_button %}
+                    {% endif %}
+                    <div class="predictive-result-item {% if compact_search %}flex flex-col gap-1.5{% else %} slider-container slider-item-show2 md:slider-item-show4 gap-3.5{% endif %} search-page:slider-container hide-scrollbar search-page:slider-item-show1 search-page:md:slider-item-show2 search-page:lg:slider-item-show3">
+                      {%- for article in predictive_search.resources.articles -%}
+                        <div class="block slide-item p-0.5">
+                          <div
+                            class="flex relative h-full  gap-x-2.5 {% unless compact_search %} flex-col {% endunless %} search-page:flex-row"
+                          >
+                            <a href="{{ article.url }}" class="{% if compact_search %}w-24 {% else %}w-full{% endif %} relative mb-2 shrink-0 search-page:w-[92px] {%- if article.url != blank %} media-hyperlink{% endif -%}">
+                              <div
+                                class="relative overflow-hidden w-full float-left before:h-0 before:block before:pb-[100%] rounded-corners"
+                              >
+                                {%- if article.image != blank -%}
+                                  <img
+                                    src="{{ article.image.src | image_url: width: 300 }}"
+                                    alt="{{ article.image.alt }}"
+                                    width="{{ article.image.width }}"
+                                    loading="lazy"
+                                    height="{{ article.image.height }}"
+                                    class="h-full w-full object-cover absolute top-0 left-0 image-hover rounded-corners anm-image-hover"
+                                  >
+                                  {% liquid
+                                    assign img_article = article.image
+                                    assign alt_article = article.image.alt | split: "#" | first | escape
+                                  %}
+                                  {% render 'image', 
+                                    img_class: "h-full w-full object-cover absolute top-0 left-0 image-hover rounded-corners anm-image-hover", 
+                                    img: img_article, 
+                                    alt: alt_article, 
+                                    img_width: 1024, 
+                                    sizes: sizes, 
+                                    eager_loading: false 
+                                  %}
+                                {%- else -%}
+                                  <div
+                                    class="absolute top-0 left-0 w-full h-full rounded-corners"
+                                  >
+                                    {% render 'placeholder-image', image_type: 'image' %}
+                                  </div>
+                                {%- endif -%}
+                              </div>
+                            </a>
+                            <div
+                              class="flex-1 h-fit"
+                            >
+                              <a href="{{ article.url }}" class="inline-block title-link">
+                                <h7 class="h7 search_heading line-clamp-2 p-break-words">
+                                  {{ article.title | escape }}
+                                </h7>
+                              </a>
+                              <p class="search-result__aritcle-content line-clamp-2 p-break-words text-x-small color-text-[rgba(var(--color-heading),0.4)]">
+                                {{ article.content | strip_html }}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      {%- endfor -%}
+                    </div>
+                    {% if predictive_search.resources.articles.size > 1  %}
+                      {% liquid
+                        assign container_class = 'md:!hidden'
+                        if compact_search or predictive_search.resources.articles.size == 2
+                          assign container_class = container_class | append: ' hidden search-page:flex'
+                        endif
+                      %}
+                      {% render 'progress-bar',
+                        container_class: container_class
+                      %}
+                    {% endif %}
+                  </div>
+                </div>
+              {%- endif -%}
+            </div>
+          {% endif %}
+
+          {%- if predictive_search.resources.queries.size > 0 or predictive_search.resources.pages.size > 0 -%}
+            <div class="psr-suggestions__wrapper hidden search-page:block search-page:md:max-w-full{% if prs_contents_size > 0 %} lg:max-w-[310px] w-fit{% endif %}">
+              {%- if predictive_search.resources.queries.size > 0 -%}
+                <div class="psr-queries-page flex-1">
+                  <p
+                    id="predictive-search-queries"
+                    class="predictive-search-heading font-semibold pb-2.5 md:pb-4 h5 md:search-page:pb-3"
+                  >
+                    {{- 'templates.search.suggestions' | t -}}
+                  </p>
+                  <ul
+                    id="predictive-search-results-queries-list"
+                    class="flex flex-wrap gap-1.5 py-0.5"
+                    role="group"
+                    aria-labelledby="predictive-search-queries"
+                  >
+                    {%- for query in predictive_search.resources.queries -%}
+                      <custom-button>
+                        <li
+                          id="predictive-search-option-query-{{ forloop.index }}"
+                          class="predictive-search__list-item search-page:color-bg-[rgba(var(--color-text),0.06)] color-bg-[rgba(var(--color-text),0.06)] color-text-[rgba(var(--color-text))] rounded-corners-md w-fit anm-button-secondary"
+                          role="option"
+                          aria-selected="false"
+                        >
+                          <a
+                            href="{{ query.url }}"
+                            class="search_heading predictive-search-item py-1.5 md:py-2 px-2.5 md:px-3.5 text-medium relative p-break-words inline-block text-start"
+                          >
+                            {{ query.styled_text | strip_html }}
+                          </a>
+                        </li>
+                      </custom-button>
+                    {%- endfor -%}
+                  </ul>
+                </div>
+              {%- endif -%}
+              {%- if predictive_search.resources.pages.size > 0 and settings.predictive_search_show_pages -%}
+                <div class="psr-queries-page flex-1 {%- if predictive_search.resources.queries.size > 0 %} pt-5 md:pt-8{% endif %}">
+                  <p
+                    id="predictive-search-pages"
+                    class="predictive-search-heading pb-2.5 md:pb-4 font-semibold h5 md:search-page:pb-3"
+                  >
+                    {{ 'templates.search.pages' | t }}
+                  </p>
+                  <div class="predictive-result-item flex flex-wrap gap-1.5">
+                    {%- for page in predictive_search.resources.pages -%}
+                      <custom-button>
+                        <div class="block search-page:color-bg-[rgba(var(--color-text),0.06)] color-bg-[rgba(var(--color-text),0.06)] color-text-[rgba(var(--color-text))] rounded-corners-md w-fit cursor-pointer anm-button-secondary {% if is_rtl %} text-right {% else %} text-left {% endif %}">
+                          <a
+                            href="{{ page.url }}"
+                            class="search_heading predictive-search-item py-1.5 md:py-2 px-2.5 md:px-3.5 inline-block text-medium relative p-break-words"
+                          >
+                            {{ page.title | escape }}
+                          </a>
+                        </div>
+                      </custom-button>
+                    {%- endfor -%}
+                  </div>
+                </div>
+              {%- endif -%}
+            </div>
+          {% endif %}
+        </div>
+      {%- else -%} 
+        <div class="text-center pt-5 pb-5 pl-5 pr-5" data-predictive-search-live-region-count-value>
+          {{ 'templates.search.no_results' | t: terms: predictive_search.terms }}  
+        </div>
+      {% endif %}
+    </div>
+    {% if settings.search_show_view_more and results_size > 0 %}
+      <div class="pt-7.5 search-page:px-5 search-page:pb-5">
+        <div
+          class="view-all-button border-solid {% if settings.edges_type == 'rounded_corners' %} rounded-md md:rounded-[10px]{% endif %} text-center w-full text-current search-page:p-0"
+        >
+          <custom-button>
+            {%- assign view_all_button_label = 'templates.search.view_all' | t -%}
+            <button class="button button-secondary mt-3 anm-button-secondary w-full cursor-pointer pt-2 pb-2 md:pt-3 md:pb-3 md:search-page:py-3.5">
+              <span class="search-page:pointer-events-none search-page:block">
+                <span>{{ view_all_button_label }}</span>
+                <span class="inline-block h-2 w-2 rtl:rotate-180">{% render 'icon-all', icon: 'icon-double-arrow' %}</span>
+              </span>
+            </button>
+          </custom-button>
+        </div>
+      </div>
+    {%- endif -%}
+  </div>
+{%- endif -%}

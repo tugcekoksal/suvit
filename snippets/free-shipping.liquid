@@ -1,0 +1,133 @@
+{% comment %}
+  Renders free_shipping bar
+
+  Accepts:
+    - default_message: {String} Default message when cart is empty.
+    - show_custom_message: {Boolean} Show message custom (true/false).
+    - progress_message: {String} Progress message, display when cart subtotal is less than free shipping goal..
+    - success_message: {String} Success message, display when cart subtotal is equal or greater than free shipping goal..
+    - disable_progress: {Boolean} Index of filter in all filters.
+    - class: {String} Class css in html.
+  Usage:
+  {% render 'free-shipping' %}
+{% endcomment %}
+{%- if settings.enable_free_shipping -%}
+  {% liquid
+    assign cart_total = cart.total_price | divided_by: 100.00
+
+    assign free_shipping_thresholds = settings.order_amount_free_shipping | newline_to_br | strip_newlines | split: '<br />'
+    if settings.order_amount_free_shipping contains ';'
+      assign free_shipping_thresholds = settings.order_amount_free_shipping | remove: ' ' | split: ';'
+    endif
+    
+    for threshold in free_shipping_thresholds
+      unless threshold contains ':'
+        if threshold != blank
+          assign check_currency = threshold | remove: '0' | remove: '1' | remove: '2' | remove: '3' | remove: '4' | remove: '5' | remove: '6' | remove: '7' | remove: '8' | remove: '9' | remove: ':' | remove: ' '
+          if check_currency == '' or check_currency == '.'
+            assign free_shipping_threshold_all = threshold | strip | plus: 0
+          endif
+        endif
+      else
+        assign check_currency_first = threshold | split: ':' | first
+        assign check_currency_last = threshold | split: ':' | last
+        assign check_currency = threshold | remove_first: check_currency_first | remove: check_currency_last
+        if check_currency == ':'
+          if check_currency_first == cart.currency.iso_code
+            assign free_shipping_threshold_currency = check_currency_last | strip | plus: 0
+          endif
+        else
+          assign check_currency_country = check_currency | remove: ':'
+          if check_currency_first == localization.country.iso_code and check_currency_country == cart.currency.iso_code
+            assign free_shipping_threshold_country = check_currency_last | strip | plus: 0
+          endif
+        endif
+      endunless
+    endfor
+    if free_shipping_threshold_all
+      assign free_shipping_threshold = free_shipping_threshold_all
+    endif
+    if free_shipping_threshold_currency
+      assign free_shipping_threshold = free_shipping_threshold_currency
+    endif
+    if free_shipping_threshold_country
+      assign free_shipping_threshold = free_shipping_threshold_country
+    endif
+  %}
+
+  {% if cart.item_count > 0 and free_shipping_threshold %}
+    {% liquid
+      assign amount_to_free_shipping = free_shipping_threshold | minus: cart_total
+
+      assign under_line_width = 0
+      assign free_shipping_percent = cart_total | divided_by: free_shipping_threshold
+      if free_shipping_percent < 1
+        assign under_line_width = free_shipping_percent | times: 100
+      endif
+    %}
+    {% style %}
+      .free-shipping__message:after {
+        background: var(--color-button);
+        width: {{ under_line_width }}%;
+      }
+    {% endstyle %}
+    <div class="free-shipping__wrapper">
+      {% if amount_to_free_shipping > 0 %}
+        {% liquid
+          assign amount_to_free_shipping = amount_to_free_shipping | times: 100
+          assign money_amount_to_free_shipping = amount_to_free_shipping | money
+          
+          if settings.currency_code_enable
+            assign money_amount_to_free_shipping = amount_to_free_shipping | money_with_currency
+          endif
+        %}
+        {% if enable_progress %}
+          <div class="free-shipping__progress h-1 w-full color-bg-[rgba(var(--color-button),0.12)] {% if settings.edges_type == 'rounded_corners' %} rounded-[100px]{% endif %}">
+            <div class="h-full color-bg-[rgba(var(--color-button))]{% if settings.edges_type == 'rounded_corners' %} rounded-[100px]{% endif %}" 
+              style="width: {{ cart_total | divided_by: free_shipping_threshold | times: 100 }}%"
+            >
+            </div>
+          </div>
+        {% endif %}
+        <p class="free-shipping__message relative overflow-hidden whitespace-nowrap{% if is_cart_drawer and enable_progress %} pt-1{% endif %}">
+          {% if show_custom_message %}
+            {% assign money_amount_to_free_shipping_html = "<span class='highlight-color text-medium font-medium'>" | append: money_amount_to_free_shipping | append: "</span>" %}
+            {% assign progress_message = progress_message | replace: "{amount_to_fs}", money_amount_to_free_shipping_html %}
+            {{ progress_message }}
+          {% else %}
+            {{-
+              'general.cart.enable_amount_free_shipping_html'
+              | t: amount_to_free_shipping: money_amount_to_free_shipping
+            -}}
+          {% endif %}
+        </p>
+      {% else %}
+        <p class="free-shipping__message-success {{ success_message_class }}">
+          {% if show_custom_message %}
+            {{ success_message }}
+          {% else %}
+            {{ 'general.cart.free_shipping' | t }}
+          {% endif %}
+        </p>
+      {% endif %}
+    </div>
+  {% elsif default_message != blank %}
+    {% if free_shipping_threshold %}
+      {% liquid
+        assign free_shipping_threshold = free_shipping_threshold | times: 100
+
+        if settings.currency_code_enable
+          assign free_shipping_threshold = free_shipping_threshold | money_with_currency
+        else
+          assign free_shipping_threshold = free_shipping_threshold | money
+        endif
+
+        assign amount_free_shipping_html = "<span class='highlight-color text-medium font-medium'>" | append: free_shipping_threshold | append: "</span>"
+      %}
+      {% assign default_message = default_message | replace: "{fs_amount}", amount_free_shipping_html %}
+    {% else %}
+      {% assign default_message = default_message | replace: "{fs_amount}", '' %}
+    {% endif %}
+    {{ default_message }}
+  {% endif %}
+{%- endif -%}

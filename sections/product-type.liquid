@@ -1,0 +1,44 @@
+<div
+  class="select-options-wrapper scrollbar-visible scrollbar-body color-bg-gradient-[var(--gradient-background)]"
+  data-adjust-position="false"
+>
+  <ul
+    role="listbox"
+    class="select-options"
+    aria-label="CategoriesList"
+  >
+    <li
+      tabindex="-1"
+      class="select-option rounded-corners font-normal p-break-words selected"
+      data-type="dropdown"
+      aria-selected="true"
+      role="option"
+      data-no-instant
+      data-value="{{ 'templates.search.product_type_default' | t }}"
+      data-select-value="{{ 'templates.search.product_type_default' | t }}"
+      @click="setProductType($el, true)"
+      @keydown.enter="setProductType($el, true)"
+      @keydown.space="setProductType($el, true)"
+    >
+      {{ 'templates.search.product_type_default' | t }}
+    </li>
+    {% for product_type in shop.types %}
+      {% if product_type != blank %}
+        <li
+          tabindex="-1"
+          data-type="dropdown"
+          role="option"
+          class="select-option rounded-corners font-normal p-break-words"
+          data-no-instant
+          data-value="{{ product_type | escape }}"
+          data-select-value="{{ product_type | escape }}"
+          @keydown.enter="setProductType($el)"
+          @keydown.space="setProductType($el)"
+          @click="setProductType($el)"
+        >
+          {{ product_type | escape }}
+        </li>
+      {% endif %}
+    {%- endfor -%}
+  </ul>
+</div>

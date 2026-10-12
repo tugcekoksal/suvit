@@ -1,0 +1,429 @@
+{%- capture login_hide_price -%}{%- render 'can-hide-price', product: closest.product -%}{%- endcapture -%}
+{%- assign login_hide_price = login_hide_price | strip -%}
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block.settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block.settings.desktop_padding_left }}px;
+    --pad-right: {{ block.settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+  }
+  {% if block.settings.show_compare_at_price %}
+    .block-{{ block.id }} .compare-at-price {
+      font-size: {{ block.settings.compare_at_price_size }}%;
+    }
+  {% endif %}
+  {% if block.settings.price_size == 'custom' %}
+    .block-{{ block.id }} .price-wrapper {
+      font-size: {{ block.settings.mobile_price_size }}px;
+      line-height: {{ block.settings.line_height }}%;
+    }
+    @media (min-width: 768px) {
+      .block-{{ block.id }} .price-wrapper {
+        font-size: {{ block.settings.desktop_price_size }}px;
+        line-height: {{ block.settings.line_height }}%;
+      }
+    }
+  {% endif %}
+{% endstyle %}
+{%- if login_hide_price == 'true' -%}
+  <div class="block-price block-{{ block.id }} block-padding w-full">
+    {%- render 'guest-price-message' -%}
+  </div>
+{% else %}
+  <div
+    class="block-price block-{{ block.id }} block-padding maximize-block product-info__price-wrapper anm-fade-element"
+    data-fade-on-intersect
+    {{ block.shopify_attributes }}
+    data-block-id="{{ block.id }}"
+  >
+    <div id="price__{{ block.id }}">
+      {% liquid
+        assign price_id = block.id | append: '-' | append: closest.product.id
+        assign show_compare_at_price = block.settings.show_compare_at_price
+
+        assign price_class = 'heading-' | append: block.settings.price_size
+      %}
+      {%- render 'price',
+        product: closest.product,
+        price_id: price_id,
+        show_content_center: false,
+        use_variant: true,
+        container: 'product-template__price',
+        is_show_sale_label: block.settings.show_sale_label,
+        alignment: '',
+        price_content: class_alignment,
+        price_wrapper: price_class,
+        unit_price_class: unit_price_alignment,
+        product_card: true,
+        enable_volume_pricing: true,
+        price_group: section.id,
+        class_sale_label: 'h7 pt-1 pb-1 pl-2 pr-2',
+        show_compare_at_price: show_compare_at_price,
+        compare_at_price_size: true,
+        sale_label_content: block.settings.sale_label_content,
+        sale_label_light: block.settings.sale_label_light,
+        sale_label_dark: block.settings.sale_label_dark,
+        sale_label_text_light: block.settings.sale_label_text_light,
+        sale_label_text_dark: block.settings.sale_label_text_dark,
+        show_b2b_price_label: block.settings.show_b2b_price_label
+      -%}
+      {% if closest.product != blank %}
+        {%- form 'product', closest.product %}
+          {{ form | payment_terms }}
+        {% endform %}
+      {% endif %}
+    </div>
+    {%- if closest.product.selected_or_first_available_variant.quantity_price_breaks.size > 0 -%}
+      <div class="block-price__volume-pricing-message product-info__volume-pricing-message text-medium color-text-[rgba(var(--color-heading),0.6)] pt-0.5">
+        {{ 'products.product.volume_pricing_available' | t }}
+      </div>
+    {%- endif -%}
+    {% if block.settings.show_tax_and_shipping %}
+      {%- if cart.taxes_included or cart.duties_included or shop.shipping_policy.body != blank -%}
+        <div class="block-price__shipping-tax product-info__shipping-and-tax product-info__shipping-and-tax__{{ block.id }} flex gap-1 flex-wrap">
+          {%- if cart.duties_included and cart.taxes_included -%}
+            <span>{{ 'products.product.duties_and_taxes_included' | t }}</span>
+          {%- elsif cart.taxes_included -%}
+            <span>{{ 'products.product.include_taxes' | t }}</span>
+          {%- elsif cart.duties_included -%}
+            <span>{{ 'products.product.duties_included' | t }}</span>
+          {%- endif -%}
+
+          {%- if shop.shipping_policy.body != blank -%}
+            <script
+              src="{{ 'shipping-policy.js' | asset_url }}"
+              defer
+            ></script>
+
+            <div x-data="xShippingPolicy($el, '{{ block.id }}', '{{ shop.shipping_policy.url }}', 'false', '{{ closest.product.url }}')">
+              <a
+                id="ShippingPolicy__{{ section.id }}__{{ block.id }}"
+                href="{{ shop.shipping_policy.url }}"
+                class="block-price__shipping-link product-info__shipping-and-tax__text-link relative cursor-pointer"
+                x-ref="text_link"
+                @click.prevent="handleLoadShipping()"
+              >
+                <span class="text-link">{{ 'products.product.shipping' | t }}</span>
+                <span class="block-price__shipping-loading product-info__shipping-and-tax__loading w-[calc(var(--body-font-size)*1.4)] h-[calc(var(--body-font-size)*1.4)] animate-spin absolute top-[calc(50%-10px)] left-[calc(50%-10px)] color-text-[rgba(var(--color-text))]">
+                  {% render 'icon-all', icon: 'icon-loading' %}
+                </span>
+              </a>
+              {{ 'products.product.calculated' | t }}
+              <template x-teleport="body">
+                <div
+                  id="ShippingPolicyDrawer__Container__{{ block.id }}"
+                  x-show="isOpenShippingPolicy"
+                  x-cloak
+                  class="shipping-policy-popup__wrapper drawer__wrapper color-{{ section.settings.color_scheme_light.id }} dark-color-{{ section.settings.color_scheme_dark.id }}"
+                  tabindex="0"
+                  style="background: transparent;"
+                >
+                  <div
+                    id="ShippingPolicyDrawer__Overlay__{{ block.id }}"
+                    class="drawer__overlay"
+                    x-show="isOpenShippingPolicy"
+                    @click.prevent="closeShippingPopup(true)"
+                  ></div>
+                  <div
+                    x-show="isOpenShippingPolicy"
+                    class="shipping-policy-popup__container drawer__container outline-none"
+                    tabindex="0"
+                    x-cloak
+                    x-transition:enter-start="opacity-0 transform translate-y-full md:translate-y-0 rtl:md:-translate-x-1/3 ltr:md:translate-x-1/3"
+                    x-transition:enter-end="opacity-100 transform translate-y-0 md:translate-x-0"
+                    x-transition:leave-end="opacity-0 transform translate-y-full md:translate-y-0 rtl:md:-translate-x-1/3 ltr:md:translate-x-1/3"
+                    x-intersect.full="$store.xFocusElement.trapFocus('ShippingPolicyDrawer__Container__{{ block.id }}', 'CloseShippingPolicyDrawer__{{ block.id }}')"
+                    @keyup.escape="closeShippingPopup();"
+                  >
+                    <div class="modal-title-container modal-title-padding-x pb-1 md:pb-2">
+                      <div class="modal-title-wrapper">
+                        <div
+                          class="grow flex items-center"
+                          x-html="pageTitle"
+                        ></div>
+                        <button
+                          id="CloseShippingPolicyDrawer__{{ block.id }}"
+                          @click.prevent="closeShippingPopup();"
+                          class="modal-title__button-close"
+                        >
+                          <span class="button__close icon-close-large-desktop icon-close-large-mobile">{%- render 'icon-all', icon: 'icon-close' -%}</span>
+                        </button>
+                      </div>
+                    </div>
+                    <div
+                      id="ShippingPolicyPopup__Detail__{{ block.id }}"
+                      class="shipping-policy-drawer__content scrollbar-visible drawer__content scrollbar-body rte"
+                      x-html="htmlInner"
+                    ></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+    {%- endif -%}
+  </div>
+{% endif %}
+{% schema %}
+{
+  "name": "t:global.colors.price",
+  "tag": null,
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_compare_at_price",
+      "label": "t:main_product.blocks.price.show_compare_at_price",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_tax_and_shipping",
+      "label": "t:main_product.blocks.price.settings.show_tax_and_shipping",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_b2b_price_label",
+      "default": true,
+      "label": "t:settings.products.settings.login_to_view_price.show_b2b_price_label"
+    },
+    {
+      "type": "header",
+      "content": "t:settings.typography.name"
+    },
+    {
+      "type": "select",
+      "id": "price_size",
+      "label": "t:main_product.blocks.price.price_size",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:global.size.small"
+        },
+        {
+          "value": "medium",
+          "label": "t:global.size.medium"
+        },
+        {
+          "value": "large",
+          "label": "t:global.size.large"
+        },
+        {
+          "value": "custom",
+          "label": "t:global.position.custom"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "range",
+      "id": "desktop_price_size",
+      "min": 1,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:main_product.blocks.price.desktop_price_size",
+      "default": 32,
+      "visible_if": "{{ block.settings.price_size == 'custom' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_price_size",
+      "min": 1,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:main_product.blocks.price.mobile_price_size",
+      "default": 32,
+      "visible_if": "{{ block.settings.price_size == 'custom' }}"
+    },
+    {
+      "type": "range",
+      "id": "line_height",
+      "min": 100,
+      "max": 300,
+      "step": 5,
+      "unit": "%",
+      "label": "t:settings.typography.line_height",
+      "default": 140,
+      "visible_if": "{{ block.settings.price_size == 'custom' }}"
+    },
+    {
+      "type": "range",
+      "id": "compare_at_price_size",
+      "min": 50,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "label": "t:main_product.blocks.price.compare_at_price_size",
+      "default": 80,
+      "info": "Scaled relative to the price font size.",
+      "visible_if": "{{ block.settings.show_compare_at_price == true }}"
+    },
+    {
+      "type": "header",
+      "content": "t:product_labels_badges.blocks.sale_label.name"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_sale_label",
+      "default": false,
+      "label": "t:settings.product_cards.settings.sale_labels.show"
+    },
+    {
+      "type": "text",
+      "id": "sale_label_content",
+      "default": "{sale}",
+      "label": "t:settings.product_cards.settings.sale_labels.content"
+    },
+    {
+      "type": "paragraph",
+      "content": "t:settings.product_cards.settings.sale_labels.sale_label_color"
+    },
+    {
+      "type": "color",
+      "id": "sale_label_light",
+      "label": "t:global.colors.sale_label_light",
+      "default": "rgba(0,0,0,0)"
+    },
+    {
+      "type": "color",
+      "id": "sale_label_text_light",
+      "label": "t:global.colors.sale_label_text_light",
+      "default": "rgba(0,0,0,0)"
+    },
+    {
+      "type": "color",
+      "id": "sale_label_dark",
+      "label": "t:global.colors.sale_label_dark",
+      "default": "rgba(0,0,0,0)"
+    },
+    {
+      "type": "color",
+      "id": "sale_label_text_dark",
+      "label": "t:global.colors.sale_label_text_dark",
+      "default": "rgba(0,0,0,0)"
+    },
+    {
+      "type": "header",
+      "content": "t:global.section.padding"
+    },
+    {
+      "type": "select",
+      "id": "device_padding",
+      "label": "t:global.header.choose_device",
+      "info": "Desktop and Mobile settings are configured separately.",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "t:global.section.desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "t:global.section.mobile"
+        }
+      ],
+      "default": "desktop"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.top",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.left",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "t:global.position.right",
+      "default": 0,
+      "visible_if": "{{ block.settings.device_padding == 'mobile' }}"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:global.colors.price",
+      "category": "t:global.product.product"
+    }
+  ]
+}
+{% endschema %}

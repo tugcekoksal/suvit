@@ -1,0 +1,58 @@
+{% comment %}
+  Renders a product card slideshow
+  Accepts:
+  product: {Object} Product Liquid object (optional),
+  show_rating: {Boolean} whether to show product rating (optional),
+  info_alignment: {String} alignment of info text (optional),
+  info_position: {String} position of info text (optional),
+  color_scheme_light: {String} light color scheme (optional),
+  color_scheme_dark: {String} dark color scheme (optional)
+{% endcomment %}
+
+<div
+  class="card-product-slideshow z-10 flex gap-x-2.5 h-full md:gap-x-4"
+>
+  <a href="{{ product.url | within: collection }}" class="w-[45%] shrink-0 min-w-[30%] media-hyperlink">
+    <div class="h-0 w-full relative pb-[100%] overflow-hidden rounded-corners">
+      {%- if product.featured_media -%}
+        <img
+          class="absolute top-0 left-0 w-full h-full object-cover anm-image-hover"
+          src="{{ product.featured_media | image_url: width: 200 }}"
+          width="{{ product.featured_media.width }}"
+          height="{{ product.featured_media.height }}"
+          alt="{{ product.featured_media.alt | default: product.title | escape }}"
+        >
+      {%- else -%}
+        <div class="flex justify-center absolute top-0 left-0 w-full h-full items-center">
+          {% liquid
+            assign index = 1
+            assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+            assign placeholder_product_name = 'product_' | append: index
+          %}
+          {% render 'placeholder-image', image_type: placeholder_product_name %}  
+        </div>
+      {%- endif -%}
+    </div>
+  </a>
+  <div class="card-product-slideshow__info ltr w-full text-{{ info_alignment }} flex flex-col justify-{{ info_position }}">
+    <div class="card-product-slideshow__title">
+      <a href="{{ product.url | within: collection }}" class="h5 md:h6 p-break-words title-link inline-block">{{ product.title | escape }}</a>
+    </div>
+    {%- if show_rating -%}
+      <div class="card-product-slideshow__rating mt-1">
+        {% render 'review-product', product: product, product_card: true, alignment: info_alignment %}
+      </div>
+    {%- endif -%}
+    {% assign price_class = 'justify-' | append: info_alignment %}
+    {% assign price_wrapper = price_class | append: ' h4 md:h5'%}
+    <div class="card-product-slideshow__price mt-0.5">
+      {%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+      {%- assign login_hide_price = login_hide_price | strip -%}
+      {% if login_hide_price == 'true' %}
+        {% render 'guest-price-message', disabled_border: true %}
+      {% else %}
+        {% render 'price', product: product, price_wrapper: price_wrapper, price_class: 'price_class', alignment: info_alignment, container: "inline-flex flex-col", show_b2b_price_label: true %}
+      {% endif %}
+    </div>
+  </div>
+</div>

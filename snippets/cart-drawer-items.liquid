@@ -1,0 +1,514 @@
+{% liquid
+  assign image_ratio = 'auto'
+  case settings.cart_media_ratio
+    when 'square'
+      assign image_ratio = '1/1'
+    when 'landscape'
+      assign image_ratio = '4/3'
+    when 'portrait'
+      assign image_ratio = '2/3'
+    when 'wide'
+      assign image_ratio = '16/9'
+    when '3/4'
+      assign image_ratio = '3/4'
+  endcase
+
+  assign name_edt = settings.name_edt
+  if settings.name_edt == blank
+    assign name_edt = 'general.estimate_delivery' | t
+  endif
+
+  comment
+    Quote requests copy the WHOLE cart out — they never modify it, and there is no per-line
+    selection: the button in the summary quotes everything currently in the cart.
+  endcomment
+  capture drawer_can_request_quote
+    render 'can-request-quote'
+  endcapture
+  assign drawer_can_request_quote = drawer_can_request_quote | strip
+%}
+
+<div class="cart-items__container flex flex-col">
+  {%- for item in cart.items -%}
+    {% assign item_line_property = forloop.index %}
+
+    {% liquid
+      assign is_update_shipping_delivery = false
+      assign is_include_property_delivery = false
+
+      assign additional_fee_property = '_item_id'
+      assign is_additional_fee_product = false
+      assign additional_fee_property_value = blank
+
+      assign variant_id_has_additional_fee = blank
+
+      for property in item.properties
+        if property.first == additional_fee_property
+          assign additional_fee_property_value = property.last
+          assign variant_id_has_additional_fee = property.last | split: '_' | first | plus: 0.0
+          break
+        endif
+      endfor
+
+      if additional_fee_property_value != blank and variant_id_has_additional_fee != item.variant_id
+        assign is_additional_fee_product = true
+      endif
+    %}
+
+    {% capture estimate_shipping_message %}
+      {% render 'estimate-shipping-message', product: item.product, variant: item.variant, default_message: settings.message_estimate_cart %}
+    {% endcapture %}
+    {% assign estimate_shipping_message = estimate_shipping_message | strip %}
+
+    {% if settings.estimate_show_in_cart == 'show_item' %}
+      {% liquid
+        for property in item.properties
+          if property.first == name_edt
+            assign is_include_property_delivery = true
+            break
+          endif
+        endfor
+
+        if is_include_property_delivery == blank
+          assign is_update_shipping_delivery = true
+        else
+          for property in item.properties
+            if is_update_shipping_delivery == false
+              if property.first == name_edt
+                if property.last != estimate_shipping_message
+                  assign is_update_shipping_delivery = true
+                endif
+              endif
+            endif
+          endfor
+        endif
+      %}
+
+      {% if is_include_property_delivery != false %}
+        {% if is_update_shipping_delivery %}
+          {%- capture item_properties_update -%}
+            {
+            {%- for property in item.properties -%}
+              {% if property.first != name_edt %}
+                "{{ property.first }}": "{{ property.last }}",
+              {% else %}
+                "{{ name_edt }}": "{{ estimate_shipping_message }}",
+              {% endif %}
+            {%- endfor -%}
+            {% if estimate_shipping_message.size > 0 %}
+              "{{ name_edt }}": "{{ estimate_shipping_message }}",
+            {% endif %}
+            }
+          {% endcapture %}
+        {% endif %}
+      {% else %}
+        {%- capture item_properties_update -%}
+          {
+          {%- for property in item.properties -%}
+            "{{ property.first }}": "{{ property.last }}",
+          {%- endfor -%}
+          {% if estimate_shipping_message.size > 0 %}
+            "{{ name_edt }}": "{{ estimate_shipping_message }}",
+          {% endif %}
+          }
+        {% endcapture %}
+      {% endif %}
+    {% else %}
+      {% liquid
+        for property in item.properties
+          if property.first == name_edt
+            assign is_update_shipping_delivery = true
+          endif
+        endfor
+      %}
+
+      {%- capture item_properties_update -%}
+        {
+        {%- for property in item.properties -%}
+          {% if property.first != name_edt %}
+            "{{ property.first }}": "{{ property.last }}",
+          {% endif %}
+        {%- endfor -%}
+        }
+      {% endcapture %}
+    {% endif %}
+    {% liquid
+      assign item_properties_update = item_properties_update | replace_last: ',', ''
+    %}
+
+    {%- comment -%}
+      Price breaks as `[[minimumQuantity, price], ...]` tuples — the same shape variant-order-row
+      and order-view-row emit, so quote-request.js keeps ONE parser for every surface.
+    {%- endcomment -%}
+    {%- if drawer_can_request_quote == 'true' and is_additional_fee_product == false -%}
+      {%- liquid
+        assign drawer_item_price_breaks = ''
+        for pb in item.variant.quantity_price_breaks
+          assign drawer_item_price_breaks = drawer_item_price_breaks | append: '[' | append: pb.minimum_quantity | append: ',' | append: pb.price | append: ']'
+          unless forloop.last
+            assign drawer_item_price_breaks = drawer_item_price_breaks | append: ','
+          endunless
+        endfor
+      -%}
+    {%- endif -%}
+    <div
+      class="{% if is_additional_fee_product %}hidden{% endif %} cart-item__wrapper py-4 relative {% unless forloop.last %} border-b border-solid color-border-[rgba(var(--color-line-and-border))]{% endunless %}"
+      data-cart-item-line="{{ item_line_property }}"
+      data-cart-item-key="{{ item.key }}"
+      {% if drawer_can_request_quote == 'true' and is_additional_fee_product == false %}
+        data-quote-variant-id="{{ item.variant_id }}"
+        data-quote-product-id="{{ item.product.id }}"
+        data-quote-sku="{{ item.sku | escape }}"
+        data-quote-product-title="{{ item.product.title | escape }}"
+        data-quote-variant-title="{% unless item.variant.title == 'Default Title' %}{{ item.variant.title | escape }}{% endunless %}"
+        data-quote-url="{{ item.url }}"
+        data-quote-image="{%- if item.image -%}{{ item.image | image_url: width: 240 }}{%- endif -%}"
+        data-quote-product-image="{%- if item.product.featured_media -%}{{ item.product.featured_media | image_url: width: 240 }}{%- endif -%}"
+        data-quote-price="{{ item.variant.price }}"
+        data-quote-compare-at-price="{{ item.variant.compare_at_price | default: 0 }}"
+        data-quote-default-variant="{{ item.product.has_only_default_variant }}"
+        data-quote-price-breaks="[{{ drawer_item_price_breaks }}]"
+      {% endif %}
+      {% if additional_fee_property_value %}
+        data-additional-fee-property="{{ additional_fee_property_value }}"
+        data-variant-id="{{ item.variant_id }}"
+      {% endif %}
+      {% if is_update_shipping_delivery %}
+        data-estimate-shipping-line="{{ item_line_property }}"
+        data-estimate-shipping-key="{{ item.key }}"
+        data-properties="{{ item_properties_update | escape }}"
+      {% endif %}
+    >
+      {% unless is_additional_fee_product %}
+        {% assign overlay_id = 'CartItem__Loading__' | append: item_line_property %}
+        {% render 'cart-overlay-loading', id: overlay_id %}
+
+        <div
+          id="LineItemError-{{ item_line_property }}"
+          class="hidden cart-item__error flash-message error-message mb-4"
+          role="alert"
+        >
+          <span class="cart-item__error-text"></span>
+        </div>
+
+        <div class="cart-drawer-item__container flex flex-row gap-4">
+          <div class="cart-drawer-item__image w-[92px] md:w-[90px] relative shrink-0">
+            <a
+              href="{{ item.url }}"
+              class="block overflow-hidden w-full aspect-{{ image_ratio }} {%- if item.url != blank %} media-hyperlink rounded-corners{% endif -%}"
+              aria-label="{{ 'accessibility.image_link' | t }}"
+            >
+              {%- if item.image -%}
+                <img
+                  class="object-cover anm-image-hover image-hover h-full w-full top-0 left-0 rounded-corners"
+                  src="{{ item.image | image_url: width: 300 }}"
+                  alt="{{ item.image.alt | default: item.title | escape }}"
+                  loading="lazy"
+                  width="150"
+                  height="150"
+                >
+              {%- else -%}
+                <div class="top-0 left-0 w-full h-full rounded-corners">
+                  {% liquid
+                    assign placeholder_product_name = 'product_' | append: forloop.index
+                  %}
+                  {% render 'placeholder-image', image_type: placeholder_product_name %}
+                </div>
+              {%- endif -%}
+            </a>
+          </div>
+          <div class="cart-drawer-item__info flex-auto flex md:flex-row flex-col flex-wrap">
+            <div class="pb-0 flex-auto {% if is_rtl %} md:pl-4{% else %} md:pr-4{% endif %}">
+              {%- if settings.cart_show_vendor -%}
+                <p class="cart-drawer-item__vendor mb-0.5 text-x-small p-break-words color-text-[rgba(var(--color-text),0.6)]">
+                  {{ item.product.vendor }}
+                </p>
+              {%- endif -%}
+              <div class="cart-drawer-item__title pb-0.5">
+                <a
+                  href="{{ item.url }}"
+                  class="h6 md:h7 mr-0 duration-200 transition title-link p-break-words"
+                >
+                  {{ item.product.title | escape }}
+                </a>
+              </div>
+
+              <div class="cart-drawer-item__price-wrapper flex flex-col pb-1.5">
+                {% liquid
+                  assign item_final_price = item.final_price
+                  assign item_original_price = item.original_price
+                  assign item_unit_price = item.unit_price
+
+                  assign money_item_final_price = item_final_price | money
+                  assign money_item_original_price = item_original_price | money
+                  assign money_item_unit_price = item_unit_price | money
+
+                  if settings.currency_code_enable
+                    assign money_item_final_price = item_final_price | money_with_currency
+                    assign money_item_original_price = item_original_price | money_with_currency
+                    assign money_item_unit_price = item_unit_price | money_with_currency
+                  endif
+                %}
+
+                <div class="cart-drawer-item__price__wrapper flex flex-row gap-2 gap-y-0.5 flex-wrap h5 md:h6 items-center">
+                  <span
+                    class="cart-drawer-item__final-price {% if item_final_price != item_original_price %}color-text-[rgba(var(--color-sale-price))]{% else %}color-text-[rgba(var(--color-price))]{% endif %}"
+                    data-cart-item-key="{{ item_line_property }}"
+                  >
+                    {{ money_item_final_price }}
+                  </span>
+                  {% if item_original_price != item_final_price %}
+                    <span
+                      class="cart-drawer-item__original-price text-[80%] cap mr-1 rtl:ml-1 rtl:mr-0 inline-block color-text-[rgba(var(--color-price))] line-through"
+                      data-cart-item-line="{{ item_line_property }}"
+                    >
+                      {{- money_item_original_price -}}
+                    </span>
+                  {% endif %}
+                  {% if customer.b2b? and settings.b2b_price_label != blank and settings.show_b2b_price_label_cart_drawer %}
+                    <div
+                      class="price-b2b-label self-center text-x-small bg-[rgba(var(--color-button))] color-text-[rgba(var(--color-button-text))] py-0.5 px-1 -ml-0.5 rtl:-mr-0.5 font-semibold
+                      {%- if settings.edges_type == 'rounded_corners' %} rounded{% endif -%}"
+                    >
+                      {{ settings.b2b_price_label }}
+                    </div>
+                  {% endif %}  
+                </div>
+                {% if item.variant.available and item.unit_price_measurement %}
+                  <span
+                    class="cart-drawer-item__unit-price pt-2"
+                    data-cart-item-line="{{ item_line_property }}"
+                  >
+                    {{ money_item_unit_price | unit_price_with_measurement: item.unit_price_measurement }}
+                  </span>
+                {% endif %}
+              </div>
+
+              {%- if item.discounts.size > 0 -%}
+                <ul
+                  class="cart-drawer-item__discounts flex flex-col gap-2.5 pb-1.5"
+                  role="list"
+                  aria-label="{{ 'customer.order.discount' | t }}"
+                >
+                  {%- for discount in item.discounts -%}
+                    <li class="flex flex-row gap-0.5 relative flash-message discount-message">
+                      <div class="w-4">{%- render 'icon-all', icon: 'icon-discount' -%}</div>
+                      <div
+                        class="discount-title"
+                        data-discount-title="{{ discount.title }}"
+                      >
+                        {{ discount.title }}
+                      </div>
+                    </li>
+                  {%- endfor -%}
+                </ul>
+              {%- endif -%}
+              <div>
+                {%- if item.product.has_only_default_variant == false -%}
+                  {%- for option in item.options_with_values -%}
+                    <dl class="cart-drawer-item__property text-small p-break-words">
+                      <dt class="p-break-words inline color-text-[rgba(var(--color-text),0.6)]">{{ option.name | escape }}:</dt>
+                      <dd class="p-break-words inline">
+                        {{ option.value | escape }}
+                        {% unless forloop.last %}
+                        {% endunless %}
+                      </dd>
+                    </dl>
+                  {%- endfor -%}
+                {%- endif -%}
+
+                {%- for property in item.properties -%}
+                  {%- assign property_first_char = property.first | slice: 0 -%}
+                  {%- if property.last != blank and property_first_char != '_' -%}
+                    <dl class="cart-drawer-item__property text-small p-break-words">
+                      <dt class="p-break-words inline color-text-[rgba(var(--color-text),0.6)]">{{ property.first | escape }}:</dt>
+                      <dd class="p-break-words inline">
+                        {%- if property.last contains '/uploads/' -%}
+                          {%- style -%}
+                            .cart-drawer-item__property .text-link {
+                              --color-text: var(--color-heading-no-alpha) / 0.6;
+                            }
+                          {%- endstyle -%}
+                          <a
+                            href="{{ property.last }}"
+                            class="inline text-link"
+                          >
+                            {{ 'products.product.file' | t }}
+                          </a>
+                        {%- else -%}
+                          {% if property.first == name_edt and is_update_date %}
+                            {{ message_update }}
+                          {% else %}
+                            {{ property.last | escape }}
+                          {% endif %}
+                        {%- endif -%}
+                      </dd>
+                    </dl>
+                  {%- endif -%}
+                {%- endfor -%}
+
+                {% if estimate_shipping_message != blank and settings.estimate_show_in_cart == 'show_item' %}
+                  {% unless is_include_property_delivery %}
+                    {% if is_update_shipping_delivery %}
+                      <dl class="cart-drawer-item__property text-small p-break-words">
+                        <dt class="p-break-words inline color-text-[rgba(var(--color-text),0.6)]">{{ name_edt }}:</dt>
+                        <dd class="p-break-words inline">{{ estimate_shipping_message }}</dd>
+                      </dl>
+                    {% endif %}
+                  {% endunless %}
+                {% endif %}
+                <p class="cart-drawer__property text-small color-text-[rgba(var(--color-heading),0.6)]">{{ item.selling_plan_allocation.selling_plan.name }}</p>
+              </div>
+
+              {% if additional_fee_property_value != blank %}
+                <div class="cart-drawer__additional-fee__items flex flex-col gap-1 py-1.5">
+                  {% for cart_item in cart.items %}
+                    {% if cart_item.properties[additional_fee_property] == additional_fee_property_value and cart_item.variant_id != variant_id_has_additional_fee %}
+                      <div class="cart-item__additional-fee-item__{{ additional_fee_property_value }}__{{ cart_item.variant_id }} border flex p-1 gap-2 rounded-corners custom-icon-image_rounded-corners">
+                        <div class="rounded-corners rounded-corners-sm w-[34px] h-[34px] md:w-10 md:h-10 min-w-[34px] md:min-w-[40px]">
+                          {%- if cart_item.image -%}
+                            <img
+                              src="{{ cart_item.image | image_url: width: 168 }}"
+                              alt="{{ cart_item.image.alt | default: cart_item.title | escape }}"
+                              class="cart-item__additional-fee__image w-full h-full object-cover z-10 rounded-inherit"
+                              loading="lazy"
+                              width="80"
+                              height="80"
+                            >
+                          {%- else -%}
+                            <div class="relative overflow-hidden object-cover w-full h-full rounded-inherit">
+                              {% liquid
+                                assign index = 1
+                                assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+                                assign placeholder_product_name = 'product_' | append: index
+                              %}
+                              {% render 'placeholder-image', image_type: placeholder_product_name %}
+                            </div>
+                          {%- endif -%}
+                        </div>
+                        <div>
+                          <p class="text-small cart-item__additional-fee__title p-break-words">{{ cart_item.title }}</p>
+                          {% liquid
+                            assign item_final_price = cart_item.final_price
+                            assign item_original_price = cart_item.original_price
+
+                            assign money_item_final_price = item_final_price | money
+                            assign money_item_original_price = item_original_price | money
+
+                            if settings.currency_code_enable
+                              assign money_item_final_price = item_final_price | money_with_currency
+                              assign money_item_original_price = item_original_price | money_with_currency
+                            endif
+                          %}
+
+                          <div class="cart-item__additional-fee__price__wrapper items-center flex flex-row gap-1.5 gap-y-0.5 flex-wrap h5 md:h6">
+                            <span
+                              class="cart-item__additional-fee__final-price {% if item_final_price != item_original_price %}color-text-[rgba(var(--color-sale-price))]{% else %}color-text-[rgba(var(--color-price))]{% endif %}"
+                            >
+                              {{ money_item_final_price }}
+                            </span>
+                            {% if item_original_price != item_final_price %}
+                              <span
+                                class="cart-item__additional-fee__original-price text-[80%] cap mr-1 rtl:ml-1 rtl:mr-0 inline-block color-text-[rgba(var(--color-price))] line-through"
+                              >
+                                {{- money_item_original_price -}}
+                              </span>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              {% endif %}
+              {%  if settings.cart_show_disclosures and item.product.metafields.shopify.disclosure.value != blank %}
+                {% render 'cart-disclosures', product: item.product %}
+              {% endif %}
+
+              {%- comment -%}
+                B2B only — see the matching block in main-cart-items.liquid for why this is gated.
+                Without a B2B catalog there is no quantity rule to enforce, and normalizeRule ignores
+                this max for those customers anyway, so capping it here would only disable "+" at the
+                inventory count and make Liquid and JS disagree.
+              {%- endcomment -%}
+              {%- liquid
+                assign cart_item_qty_max = item.variant.quantity_rule.max
+                assign cart_item_at_max = false
+                if customer != blank and customer.b2b?
+                  if item.variant.inventory_management != blank and item.variant.inventory_policy != 'continue'
+                    assign cart_item_inventory = item.variant.inventory_quantity
+                    if cart_item_inventory > 0 and cart_item_qty_max == blank
+                      assign cart_item_qty_max = cart_item_inventory
+                    elsif cart_item_inventory > 0 and cart_item_inventory < cart_item_qty_max
+                      assign cart_item_qty_max = cart_item_inventory
+                    endif
+                  endif
+                  if cart_item_qty_max != blank and item.quantity >= cart_item_qty_max
+                    assign cart_item_at_max = true
+                  endif
+                endif
+              -%}
+              <div
+                class="cart-item__actions flex flex-row items-center w-fit pt-1"
+              >
+                <div class="cart-item__quantity relative flex w-28 h-10 color-bg-[var(--element-background)] border border-solid justify-between {% if is_rounded_conners %} rounded-md{% endif %}">
+                  <button
+                    class="items-center w-1/3 justify-center flex no-js-hidden opacity-70 cursor-pointer"
+                    data-action="minus-qty"
+                    aria-label="{{ 'accessibility.minus' | t }}"
+                  >
+                    {% render 'icon-all', icon: 'icon-minus', class: 'w-3' %}
+                  </button>
+                  <input
+                    id="CartItemQuantity--{{ item_line_property }}"
+                    class="cart-qty cart-item-qty-{{ item_line_property }} outer-spin-button w-1/3 bg-transparent text-center pt-2 pb-2 placeholder:opacity-60 focus-within:outline-none"
+                    aria-label="{{ 'products.product.quantity.input_label' | t: product: item.product.title | escape }}"
+                    type="number"
+                    value="{{ item.quantity }}"
+                    min="0"
+                    data-qty-min="{{ item.variant.quantity_rule.min | default: 1 }}"
+                    data-qty-max="{{ cart_item_qty_max }}"
+                    data-qty-increment="{{ item.variant.quantity_rule.increment | default: 1 }}"
+                    data-action="update-qty"
+                  >
+                  <button
+                    class="items-center w-1/3 justify-center flex cursor-pointer{% if cart_item_at_max %} opacity-40 cursor-not-allowed{% else %} opacity-70{% endif %}"
+                    data-action="plus-qty"
+                    aria-label="{{ 'accessibility.plus' | t }}"
+                    {% if cart_item_at_max %}disabled{% endif %}
+                  >
+                    {% render 'icon-all', icon: 'icon-plus', class: 'w-3' %}
+                  </button>
+                  {%- if customer != blank and customer.b2b? -%}
+                    {%- comment -%}
+                      Centred over the quantity box per design — at `right-1` the icon
+                      overlapped the "+" button, and a physical edge kept it on the right
+                      in RTL.
+                    {%- endcomment -%}
+                    <div class="quantity-rule-tooltip-anchor absolute -top-3 right-1 z-10">
+                      {%- capture item_login_hide_price -%}{%- render 'can-hide-price', product: item.product -%}{%- endcapture -%}
+                      {%- render 'quantity-rule-tooltip', variant: item.variant, product: item.product, login_hide_price: item_login_hide_price, rtl: is_rtl -%}
+                    </div>
+                    {%- assign qty_rule_error_id = 'QtyRuleError-' | append: item_line_property -%}
+                    {%- render 'bulk-order-qty-error', id: qty_rule_error_id, content_class: 'cart-item__qty-error-text' -%}
+                  {%- endif -%}
+                </div>
+                <button
+                  class="flex pt-2 pb-2 pl-2 pr-2 ml-2 rtl:ml-0 rtl:mr-2 cursor-pointer z-30 opacity-40"
+                  data-action="remove"
+                  aria-label="{{ 'accessibility.remove' | t }}"
+                >
+                  <span
+                    class="inline-block w-[18px] h-[18px]"
+                  >
+                    {% render 'icon-all', icon: 'icon-remove' %}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endunless %}
+    </div>
+  {% endfor %}
+</div>

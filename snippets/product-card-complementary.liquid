@@ -1,0 +1,209 @@
+{% liquid
+  assign product_form_id = 'product-form-' | append: section_id | append: '-' | append: block_id | append: '-' | append: product.id | append: '-' | append: index
+  assign current_variant = product.selected_or_first_available_variant
+  assign img = product.featured_image
+  assign is_rounded_corners = false
+  if settings.edges_type == 'rounded_corners'
+    assign is_rounded_corners = true
+  endif
+%}
+{%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+{%- assign login_hide_price = login_hide_price | strip -%}
+
+{% liquid
+  assign padding_bottom_image = '100'
+
+  case media_aspect_ratio
+    when 'natural'
+      if img != blank
+        assign padding_bottom_image = 1 | divided_by: img.aspect_ratio | times: 100
+      endif
+    when '1/1'
+      assign padding_bottom_image = '100'
+    when '4/3'
+      assign padding_bottom_image = '75'
+    when '2/3'
+      assign padding_bottom_image = '150'
+    when '16/9'
+      assign padding_bottom_image = '56'
+    when '3/4'
+      assign padding_bottom_image = '133'
+  endcase
+  assign padding_bottom_image = padding_bottom_image | append: '%'
+%}
+
+<div
+  class="product-card-complementary__wrapper"
+  data-index="{{ index }}"
+>
+  <div class="flex flex-row gap-4">
+    <div class="product-card-complementary__media-wrapper relative w-20 grow-0 shrink-0 basis-1/5 max-w-[80px]">
+      <a
+        href="{{ product.url }}"
+        aria-label="{{ product.title | escape }}"
+        class="link-product-variant media-hyperlink block w-full relative overflow-hidden {% if media_aspect_ratio != 'natural' %} {{ ratio }}{% endif %} {%- if is_rounded_corners %} rounded-[10px]{% endif -%} "
+        style="padding-bottom: {{ padding_bottom_image }};"
+      >
+        {% if img != blank %}
+          {% liquid
+            assign show_secondary_image_when_hover = false
+
+            if settings.pc_effect_to_mouse_hover != 'none'
+              assign show_secondary_image_when_hover = true
+            endif
+          %}
+
+          <img
+            srcset="
+              {{ img | image_url: width: 375 }} 375w,
+              {{ img | image_url: width: 450 }} 450w,
+              {{ img | image_url: width: 750 }} 750w,
+              {{ img | image_url: width: 900 }} 900w,
+              {{ img | image_url: width: 1100 }} 1100w,
+              {{ img | image_url: width: 1500 }} 1500w,
+              {{ img | image_url: width: 1780 }} 1780w,
+              {{ img | image_url }} {{ img.width }}w
+            "
+            src="{{ img | image_url: width: 450 }}"
+            alt="{{ img.alt | split: "#" | first | escape }}"
+            sizes="{{ sizes }}"
+            {{ loading }}
+            width="80"
+            height="80"
+            class="product-card-complementary__image__first anm-image-hover transition-opacity duration-300 object-cover absolute w-full h-full {% if show_secondary_image_when_hover and product.media.size > 1 %} hover:opacity-0{% endif %} {%- if is_rounded_corners %} rounded-[10px]{% endif -%}"
+          >
+
+          {% if show_secondary_image_when_hover %}
+            {% liquid
+              assign product_images = product.media
+              assign secondary_image = product_images[1]
+            %}
+            {% if secondary_image != blank %}
+              <img
+                srcset="
+                  {{ secondary_image | image_url: width: 375 }} 375w,
+                  {{ secondary_image | image_url: width: 450 }} 450w,
+                  {{ secondary_image | image_url: width: 750 }} 750w,
+                  {{ secondary_image | image_url: width: 900 }} 900w,
+                  {{ secondary_image | image_url: width: 1100 }} 1100w,
+                  {{ secondary_image | image_url: width: 1500 }} 1500w,
+                  {{ secondary_image | image_url: width: 1780 }} 1780w,
+                  {{ secondary_image | image_url }} {{ secondary_image.width }}w
+                "
+                src="{{ secondary_image | image_url: width: 450 }}"
+                alt="{{ secondary_image.alt | split: "#" | first | escape }}"
+                sizes="{{ sizes }}"
+                {{ loading }}
+                width="80"
+                height="80"
+                class="product-card-complementary__image__second anm-image-hover w-full h-full absolute object-cover opacity-0 transition-opacity duration-300 hover:opacity-100 {%- if is_rounded_corners %} rounded-[10px]{% endif -%}"
+              >
+            {% endif %}
+          {% endif %}
+        {% else %}
+          <div class="product-card__img-placeholder absolute overflow-hidden w-full h-full flex items-center justify-center rounded-corners">
+            {% liquid
+              assign index = index | default: 1
+              assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+              assign placeholder_product_name = 'product_' | append: index
+            %}
+            <div class="w-full h-full">
+              {% render 'placeholder-image', image_type: placeholder_product_name %}
+            </div>
+          </div>
+        {% endif %}
+      </a>
+    </div>
+    <div class="product-card-complementary__info flex flex-col grow">
+      {% if show_vendor -%}
+        <div class="pcc__vendor color-text-[rgba(var(--color-text),0.6)] text-x-small">{{ product.vendor }}</div>
+      {%- endif %}
+      <a
+        class="pcc__product-title h6 md:h7 title-link pb-1 p-break-words"
+        href="{{ product.url }}"
+      >
+        {{- product.title -}}
+      </a>
+      <div class="pcc_price">
+        {%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+        {%- assign login_hide_price = login_hide_price | strip -%}
+        {% if login_hide_price == 'true' %}
+          {% render 'guest-price-message', disabled_border: true %}
+        {% else %}
+          {% render 'price', product: product, price_wrapper: 'h5 md:h6', show_b2b_price_label: show_b2b_price_label %}
+        {% endif %}
+      </div>
+      {% if show_rating %}
+        <div class="pcc__rating">
+          {% render 'review-product', product: product, show_content_center: show_content_center %}
+        </div>
+      {% endif %}
+    </div>
+
+    {%- unless settings.hide_cart or login_hide_price == 'true' -%}
+      <div
+        class="product-card-complementary__action"
+        x-data="xProductForm('{{ product_form_id }}', '{{ current_variant.id }}', {{ current_variant.available | default: false }}, '', '{{ 'products.product.add_to_cart' | t }}', '{{ section.id }}')"
+        x-intersect.once.margin.200px="handleInitProductForm()"
+      >
+        {%- form 'product', product, id: product_form_id, class: 'form', novalidate: 'novalidate', data-type: 'add-to-cart-form', x-ref: 'product_form' -%}
+          <input
+            class="product-form__variant-id hidden"
+            name="id"
+            type="hidden"
+            form="{{ product_form_id }}"
+            value="{{ current_variant.id }}"
+            {% unless current_variant.available %}
+              disabled
+            {% endunless %}
+          >
+          <input
+            class="product-form__variant-id hidden"
+            name="quantity"
+            type="hidden"
+            form="{{ product_form_id }}"
+            value="{{ current_variant.quantity_rule.min | default: 1 }}"
+          >
+          <custom-button>
+            <button
+              class="{% if settings.edges_type == 'rounded_corners' %} rounded{% endif %} relative color-bg-[rgba(var(--color-secondary-button))] color-text-[rgba(var(--color-secondary-button-text))] anm-button-secondary p-2.5 w-fit h-fit {% unless current_variant.available %}pointer-events-none{% endunless %}"
+              type="submit"
+              name="add"
+              aria-haspopup="dialog"
+              aria-labelledby="{{ product_form_id }}-submit title-{{ section.id }}-{{ product.id }}"
+              aria-live="polite"
+              data-variant-id="{{ current_variant.id }}"
+              @click.prevent="
+                if ({{ product.has_only_default_variant }} || !$store.xQuickView) {
+                  handleAddToCart($event, false, '{{ current_variant.id }}');
+                } else {
+                  if ($store.xQuickView) {
+                    $store.xQuickView.load('{{ product.id }}', '{{ product.url }}', $el);
+                    $store.xQuickView.open();
+                  }
+                }
+              "
+            >
+              <span :class="isLoading ? 'invisible' : ''">
+                {% render 'icon-all', icon: 'icon-plus', class: 'w-2.5' %}
+              </span>
+              <div
+                class="lg:inline-block animate-spin w-4 h-4 md:w-5 md:h-5 absolute top-[calc(50%-8px)] left-[calc(50%-8px)] md:top-[calc(50%-10px)] md:left-[calc(50%-10px)]"
+                x-show="isLoading"
+                x-cloak
+              >
+                {% render 'icon-all', icon: 'icon-loading' %}
+              </div>
+            </button>
+          </custom-button>
+        {% endform %}
+        <script
+          type="application/json"
+          data-type="init-current-variant"
+        >
+          {{ current_variant | json }}
+        </script>
+      </div>
+    {%- endunless -%}
+  </div>
+</div>

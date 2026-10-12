@@ -1,0 +1,67 @@
+<div id="list-country">
+  {% if settings.stack_currency_enable %}
+    {% liquid
+      assign list_contains = ''
+      assign market_already_shown = ''
+      assign displayed_countries = '||'
+      for country in localization.available_countries 
+        assign market_currency = '||'| append: country.market.id | append: country.currency.iso_code | append:country.currency.symbol | append: "||"
+        if displayed_countries contains market_currency
+          assign list_contains = list_contains | append: market_currency 
+        endif
+        assign displayed_countries = displayed_countries | append: country.market.id | append: country.currency.iso_code | append:country.currency.symbol | append: "||"
+      endfor
+    %}
+    {% for country in localization.available_countries %}
+      {% assign market_currency_combo = '||'| append: country.market.id | append: country.currency.iso_code | append:country.currency.symbol | append: "||" %}
+      {% if list_contains contains market_currency_combo %}
+        {% unless market_already_shown contains market_currency_combo %}
+          <li 
+            class="select-option rounded-corners font-normal"
+            data-option-name="{{ country.market.handle }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})"
+            data-value="{{ country.iso_code }}"
+            data-select-value="{{ country.market.handle }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})"
+            data-country-title="{{ country.market.handle }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})"
+            data-country="{{ country.iso_code }}"
+            data-no-instant
+            tabindex="-1" role="button" aria-pressed="false"
+            :aria-selected="currentCountrySelector == '{{ country.market.handle }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})'.toLowerCase()"
+          >
+            {{ country.market.handle }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})
+          </li>
+          {% assign market_already_shown  = market_already_shown  | append: market_currency_combo%}
+        {% endunless %}
+      {% else %}
+        <li 
+          class="select-option rounded-corners font-normal"
+          data-option-name="{{ country.name }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})"
+          data-value="{{ country.iso_code }}"
+          data-select-value="{{ country.name }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})"
+          data-country-title="{{ country.name }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})"
+          data-country="{{ country.iso_code }}"
+          data-no-instant
+          tabindex="-1" role="button" aria-pressed="false"
+          :aria-selected="currentCountrySelector == '{{ country.name }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})'.toLowerCase()"
+        >
+          {{ country.name }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})
+        </li>
+      {% endif %}       
+    {%- endfor -%}
+  {% else %}
+    {% for country in localization.available_countries %}
+      <li 
+        class="select-option rounded-corners font-normal"
+        data-option-name="{{ country.name }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})"
+        data-value="{{ country.iso_code }}"
+        data-select-value="{{ country.name }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})"
+        data-country-title="{{ country.name }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})"
+        data-country="{{ country.iso_code }}"
+        data-no-instant
+        tabindex="-1" role="button" aria-pressed="false"
+        :aria-selected="currentCountrySelector == '{{ country.name }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})'.toLowerCase()"
+      >
+        {{ country.name }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})
+      </li>
+    {%- endfor -%}
+  {% endif %}
+</div>

@@ -1,0 +1,426 @@
+{% comment %}
+  Renders a block showing product price.
+
+  Accepts:
+  - product: {Object} Product Liquid object (optional)
+  - price_id: {String} Unique ID for the price label (optional)
+  - price_wrapper: {String} Additional class for price wrapper (optional)
+  - show_content_center: {Boolean} Show content center. Default: false
+  - use_variant: {Boolean} Use selected variant for price. Default: false
+  - container: {String} Additional class for price container (optional)
+  - is_show_sale_label: {Boolean} Show sale label. Default: false
+  - class_sale_label: {String} Additional class for sale label (optional)
+  - sale_label_content: {String} Sale label content (optional)
+  - sale_label_light: {Color} Sale label background color for light mode (optional)
+  - sale_label_dark: {Color} Sale label background color for dark mode (optional)
+  - sale_label_text_light: {Color} Sale label text color for light mode (optional
+  - sale_label_text_dark: {Color} Sale label text color for dark mode (optional)
+  - price_class: {String} Additional class for price (optional)
+  - compare_at_price_class: {String} Additional class for compare at price (optional)
+  - compare_at_price_size: {Boolean} Adjust compare at price size.(optional)
+  - disabled_default: {Boolean} Disable default price fallback. Default: false
+  - price_content: {String} Additional class for price content (optional)
+  - unit_price_class: {String} Additional class for unit price wrapper (optional)
+  - alignment: {String} Alignment for price content (optional)
+  - product_card: {Boolean} Is product card. Default: false
+  - show_compare_at_price: {Boolean} Show compare at price. Default: true
+  - price_group: {String} Ties this price to the quantity selector that drives its volume-pricing
+    tiers. Use the section id, or "<section id>-sticky" for the sticky bar (matching the selector's
+    error scope). Required for enable_volume_pricing to do anything. (optional)
+  - enable_volume_pricing: {Boolean} When the selected variant has quantity price breaks, render one
+    price reading per tier via price-tier.liquid instead of a single price. All tiers are rendered and
+    all but the active one hidden; the quantity selector reveals the matching one
+    (quantityRuleUtils.showPriceTier in theme.js). Only ever true for B2B customers — without a B2B
+    catalog quantity_price_breaks is empty, so every other customer keeps the single-price path below
+    completely untouched. Requires use_variant. Default: false
+
+  Usage:
+  {% render 'price',
+    product: product,
+    price_id: 'price-1',
+    price_wrapper: 'price-wrapper',
+    show_content_center: false,
+    use_variant: false,
+    container: 'container',
+    is_show_sale_label: false,
+    class_sale_label: 'sale-label',
+    sale_label_content: 'Sale',
+    sale_label_light: settings.sale_label_light,
+    sale_label_dark: settings.sale_label_dark,
+    sale_label_text_light: settings.sale_label_text_light,
+    sale_label_text_dark: settings.sale_label_text_dark,
+    price_class: 'price',
+    compare_at_price_class: 'compare-at-price',
+    compare_at_price_size: false,
+    disabled_default: false,
+    price_content: 'price-content',
+    unit_price_class: 'unit-price-wrapper',
+    alignment: 'center',
+    product_card: false,
+    show_compare_at_price: true,
+    show_b2b_price_label: true
+  %}
+{% endcomment %}
+{%- liquid
+  if use_variant
+    assign target = product.selected_or_first_available_variant
+  else
+    assign target = product
+  endif
+
+  assign compare_at_price = target.compare_at_price
+  if disabled_default
+    assign price = target.price
+  else
+    assign price = target.price | default: 1999
+  endif
+  if settings.currency_code_enable
+    assign money_price = price | money_with_currency
+    assign money_compare_at_price = compare_at_price | money_with_currency
+  else
+    assign money_price = price | money
+    assign money_compare_at_price = compare_at_price | money
+  endif
+
+  if target == product and product.price_varies
+    assign money_price = 'products.product.price.from_price_html' | t: price: money_price
+  endif
+
+  if customer.b2b?
+    assign net_price = price | times: 100 | divided_by: 119 | round
+    if settings.currency_code_enable
+      assign money_price = net_price | money_with_currency
+    else
+      assign money_price = net_price | money
+    endif
+    if target == product and product.price_varies
+      assign net_price_min = product.price_min | times: 100 | divided_by: 119 | round
+      assign money_price = 'products.product.price.from_price_html' | t: price: net_price_min | money
+    endif
+  endif
+
+  if show_compare_at_price != null
+    assign show_compare_at_price = show_compare_at_price
+  else
+    assign show_compare_at_price = true
+  endif
+
+  assign has_volume_pricing = false
+  if enable_volume_pricing and target.quantity_price_breaks.size > 0
+    assign has_volume_pricing = true
+  endif
+-%}
+{%liquid
+  assign show_compare_b2b = true
+  if customer.b2b? 
+    assign show_compare_b2b = settings.show_compare_at_price
+  else
+    assign show_compare_b2b = show_compare_at_price
+  endif
+%}
+{%- comment -%}
+  price_group ties this price to one quantity selector. The sticky bar renders its own price INSIDE
+  the main product section and keeps its own quantity, so a section-wide lookup would let each one
+  retarget the other's tiers. The key is the same one the selector already uses for its error
+  channel: the section id, or "<section id>-sticky" for the sticky bar.
+{%- endcomment -%}
+<div class="price__container price{% if container != blank %} {{ container }}{% endif %}"{% if price_group != blank %} data-price-group="{{ price_group }}"{% endif %}>
+  <div
+    class="
+      price__content flex flex-row flex-wrap md:list-layout:justify-start
+      {%- if alignment != blank %} justify-{{ alignment }}{% else %}{% if show_content_center %} justify-center{% else %} justify-start{% endif %}{% endif -%} {{ price_content }}
+    "
+  >
+    {%- comment -%}
+      B2B volume pricing only. Renders EVERY tier and hides all but the active one, so Liquid keeps
+      ownership of money formatting, discount maths and label styling while the quantity selector just
+      reveals the matching tier. Replaces the old "lowest break - base price" range, which never
+      reflected the quantity on screen and carried no sale label.
+
+      Everything below this branch is the original single-price markup, deliberately left as it was:
+      a customer without a B2B catalog has no quantity_price_breaks and must render byte-identically
+      to before. Keep the two paths in sync by hand if the price design ever changes.
+    {%- endcomment -%}
+    {%- if has_volume_pricing -%}
+      {%- liquid
+        assign base_qty = target.quantity_rule.min | default: 1
+        assign first_break_qty = target.quantity_price_breaks.first.minimum_quantity
+        assign show_base_tier = false
+        if first_break_qty > base_qty
+          assign show_base_tier = true
+        endif
+
+        # The label styles are one rule shared by every tier, so they are emitted once here rather
+        # than inside price-tier. Emit only when a tier can actually show a label — the cheapest tier
+        # is the last break, so that is the loosest test.
+        assign cheapest_tier_price = target.quantity_price_breaks.last.price
+        assign needs_label_styles = false
+        if is_show_sale_label and show_compare_at_price and compare_at_price > cheapest_tier_price
+          assign needs_label_styles = true
+        endif
+      -%}
+      {%- if needs_label_styles -%}
+        {% style %}
+          .maximize-theme:not(.dark) .price-label__{{ price_id }} {
+            {% if sale_label_light.alpha != 0.0 %}
+              --background-color-label: {{ sale_label_light.red }} {{ sale_label_light.green }} {{ sale_label_light.blue }} / {{ sale_label_light.alpha }};
+            {% else %}
+              --background-color-label: {{ settings.sale_price.red }} {{ settings.sale_price.green }} {{ settings.sale_price.blue }} / {{ settings.sale_price.alpha | times: 0.1 }};
+            {% endif %}
+            {% if sale_label_text_light.alpha != 0.0 %}
+              --color-text-label: {{ sale_label_text_light.red }} {{ sale_label_text_light.green }} {{ sale_label_text_light.blue }} / {{ sale_label_text_light.alpha }};
+            {% else %}
+              --color-text-label: var(--color-sale-price);
+            {% endif %}
+          }
+
+          .maximize-theme.dark .price-label__{{ price_id }} {
+            {% if sale_label_dark.alpha != 0.0 %}
+              --background-color-label: {{ sale_label_dark.red }} {{ sale_label_dark.green }} {{ sale_label_dark.blue }} / {{ sale_label_dark.alpha }};
+            {% else %}
+              --background-color-label: {{ settings.sale_price_dark.red }} {{ settings.sale_price_dark.green }} {{ settings.sale_price_dark.blue }} / {{ settings.sale_price_dark.alpha | times: 0.1 }};
+            {% endif %}
+            {% if sale_label_text_dark.alpha != 0.0 %}
+              --color-text-label: {{ sale_label_text_dark.red }} {{ sale_label_text_dark.green }} {{ sale_label_text_dark.blue }} / {{ sale_label_text_dark.alpha }};
+            {% else %}
+              --color-text-label: var(--color-sale-price);
+            {% endif %}
+          }
+        {% endstyle %}
+      {%- endif -%}
+      {%- if show_base_tier -%}
+        <div class="price__tier" data-price-tier="{{ base_qty }}">
+          {%- render 'price-tier',
+            price: target.price,
+            compare_at_price: compare_at_price,
+            product: product,
+            use_variant: use_variant,
+            price_id: price_id,
+            price_wrapper: price_wrapper,
+            price_class: price_class,
+            compare_at_price_class: compare_at_price_class,
+            compare_at_price_size: compare_at_price_size,
+            show_compare_at_price: show_compare_at_price,
+            is_show_sale_label: is_show_sale_label,
+            sale_label_content: sale_label_content,
+            class_sale_label: class_sale_label,
+            product_card: product_card,
+            show_b2b_price_label: show_b2b_price_label
+          -%}
+        </div>
+      {%- endif -%}
+      {%- for price_break in target.quantity_price_breaks -%}
+        {%- liquid
+          assign tier_hidden = true
+          if show_base_tier == false and forloop.first
+            assign tier_hidden = false
+          endif
+        -%}
+        <div class="price__tier" data-price-tier="{{ price_break.minimum_quantity }}"{% if tier_hidden %} hidden{% endif %}>
+          {%- render 'price-tier',
+            price: price_break.price,
+            compare_at_price: compare_at_price,
+            product: product,
+            use_variant: use_variant,
+            price_id: price_id,
+            price_wrapper: price_wrapper,
+            price_class: price_class,
+            compare_at_price_class: compare_at_price_class,
+            compare_at_price_size: compare_at_price_size,
+            show_compare_at_price: show_compare_at_price,
+            is_show_sale_label: is_show_sale_label,
+            sale_label_content: sale_label_content,
+            class_sale_label: class_sale_label,
+            product_card: product_card,
+            show_b2b_price_label: show_b2b_price_label
+          -%}
+        </div>
+      {%- endfor -%}
+    {%- elsif compare_at_price > price and show_compare_at_price and show_compare_b2b %}
+      <div
+        class="price flex flex-row gap-1 md:gap-x-2 h3 gap-y-0.5 items-center flex-wrap price-wrapper {{ price_wrapper }}"
+        data-product-id="{{ product.id }}"
+      >
+        <span class="price {{ price_class }}">
+          {{- money_price -}}
+        </span>
+        <span class="{% unless compare_at_price_size %}text-[80%] {% endunless %}compare-at-price line-through {{ compare_at_price_class }}">{{ money_compare_at_price }}</span>
+        {% liquid
+          assign is_show_label = false
+
+          if is_show_sale_label
+            if compare_at_price != blank and compare_at_price > price
+              assign is_show_label = true
+            endif
+          else
+            assign is_show_label = false
+          endif
+        %}
+
+        {% if is_show_label %}
+          {% style %}
+            .maximize-theme:not(.dark) .price-label__{{ price_id }} {
+              {% if sale_label_light.alpha != 0.0 %}
+                --background-color-label: {{ sale_label_light.red }} {{ sale_label_light.green }} {{ sale_label_light.blue }} / {{ sale_label_light.alpha }};
+              {% else %}
+                --background-color-label: {{ settings.sale_price.red }} {{ settings.sale_price.green }} {{ settings.sale_price.blue }} / {{ settings.sale_price.alpha | times: 0.1 }};
+              {% endif %}
+              {% if sale_label_text_light.alpha != 0.0 %}
+                --color-text-label: {{ sale_label_text_light.red }} {{ sale_label_text_light.green }} {{ sale_label_text_light.blue }} / {{ sale_label_text_light.alpha }};
+              {% else %}
+                --color-text-label: var(--color-sale-price);
+              {% endif %}
+            }
+
+            .maximize-theme.dark .price-label__{{ price_id }} {
+              {% if sale_label_dark.alpha != 0.0 %}
+                --background-color-label: {{ sale_label_dark.red }} {{ sale_label_dark.green }} {{ sale_label_dark.blue }} / {{ sale_label_dark.alpha }};
+              {% else %}
+                --background-color-label: {{ settings.sale_price_dark.red }} {{ settings.sale_price_dark.green }} {{ settings.sale_price_dark.blue }} / {{ settings.sale_price_dark.alpha | times: 0.1 }};
+              {% endif %}
+              {% if sale_label_text_dark.alpha != 0.0 %}
+                --color-text-label: {{ sale_label_text_dark.red }} {{ sale_label_text_dark.green }} {{ sale_label_text_dark.blue }} / {{ sale_label_text_dark.alpha }};
+              {% else %}
+                --color-text-label: var(--color-sale-price);
+              {% endif %}
+            }
+          {% endstyle %}
+
+          {% liquid
+            assign label_text = sale_label_content
+
+            if label_text contains '{sale}'
+              assign discount_percentage = ''
+              if compare_at_price > price
+                assign discount_percentage = compare_at_price | minus: price | times: 100
+                assign discount_percentage = compare_at_price | minus: price | times: 100.00 | divided_by: compare_at_price | round
+
+                assign discount_percentage = '-' | append: discount_percentage | append: '%'
+              endif
+              assign label_text = label_text | replace: '{sale}', discount_percentage
+            endif
+
+            if label_text contains '{sale_amount}'
+              assign discount_amount_text = ''
+              if compare_at_price > price
+                assign discount_amount = compare_at_price | minus: price
+                assign money_discount_amount = discount_amount | money
+
+                if settings.currency_code_enable
+                  assign money_discount_amount = discount_amount | money_with_currency
+                endif
+                assign discount_amount_text = '-' | append: money_discount_amount
+              endif
+              assign label_text = label_text | replace: '{sale_amount}', discount_amount_text
+            endif
+
+            if label_text contains '{qty}'
+              if use_variant
+                assign current_variant = product.selected_or_first_available_variant
+                assign inventory_quantity = current_variant.inventory_quantity
+                assign inventory_policy = current_variant.inventory_policy
+                if current_variant.inventory_management != blank
+                  if inventory_policy == 'continue'
+                    if inventory_quantity == 0
+                      assign quantity = ''
+                    else
+                      assign quantity = inventory_quantity
+                    endif
+                  else
+                    assign quantity = inventory_quantity
+                  endif
+                else
+                  assign quantity = ''
+                endif
+              else
+                assign inventory_quantity = 0
+                for variant in product.variants
+                  if variant.inventory_management == 'shopify'
+                    assign inventory_quantity = inventory_quantity | plus: variant.inventory_quantity
+                  endif
+                endfor
+                if inventory_quantity > 0
+                  assign quantity = inventory_quantity
+                endif
+              endif
+
+              assign label_text = label_text | replace: '{qty}', quantity
+            endif
+
+            if label_text contains '{price}'
+              assign label_text = label_text | replace: '{price}', money_price
+            endif
+            assign label_text_strip = label_text | strip
+          %}
+          {% if label_text_strip != '' %}
+            <div class="price-label__wrapper flex items-center{% unless product_card %} ml-1 rtl:mr-1 rtl:ml-0{% endunless %}">
+              <div
+                class="
+                  price-label price-label__{{ price_id }} h-fit inline-block color-bg-[rgba(var(--background-color-label))] color-text-[rgba(var(--color-text-label))] relative {{ class_sale_label -}}
+                  {%- if settings.edges_type == 'rounded_corners' %} rounded{% endif -%}
+                  {%- unless product_card %} before:content-[''] before:absolute before:left-0 rtl:before:right-0 rtl:before:left-auto before:top-1/2 before:-translate-y-1/2 before:border-solid before:-ml-3 rtl:before:ml-0 rtl:before:-mr-3 rtl:before:rotate-180 unicode-bidi-plaintext{% endunless -%}
+                "
+              >
+                {{ label_text }}
+              </div>
+            </div>
+          {% endif %}
+        {% endif %}
+        {% if customer.b2b? and settings.b2b_price_label != blank and show_b2b_price_label %}
+          <div
+            class="price-b2b-label self-center text-x-small bg-[rgba(var(--color-button))] color-text-[rgba(var(--color-button-text))] py-0.5 px-1 font-semibold
+            {%- if settings.edges_type == 'rounded_corners' %} rounded{% endif -%}"
+          >
+            {{ settings.b2b_price_label }}
+          </div>
+        {% endif %}  
+      </div>
+    {%- else -%}
+     
+      {% if customer.b2b? and settings.b2b_price_label != blank and show_b2b_price_label %}
+        <div class="flex gap-1.5 flex-wrap md:list-layout:justify-start
+        {%- if alignment != blank %} justify-{{ alignment }}{% else %}{% if show_content_center %} justify-center{% else %} justify-start{% endif %}{% endif -%}">
+          <p class="h3 price-wrapper {{ price_wrapper }}">
+            <span class="main-price {{ price_class }}">{{ money_price }}</span>
+          </p>
+          <div
+            class="price-b2b-label self-center text-x-small bg-[rgba(var(--color-button))] color-text-[rgba(var(--color-button-text))] py-0.5 px-1 font-semibold
+            {%- if settings.edges_type == 'rounded_corners' %} rounded{% endif -%}"
+          >
+            {{ settings.b2b_price_label }}
+          </div>
+        </div>
+      {% else %}
+        <p class="h3 price-wrapper {{ price_wrapper }}">
+          <span class="main-price {{ price_class }}">{{ money_price }}</span>
+        </p>  
+      {% endif %}  
+    {%- endif -%}
+  </div>
+  <div
+    class="hidden"
+    data-price="{{ target.price }}"
+  ></div>
+
+  <div
+    class="
+      unit-price__wrapper text-medium font-normal color-text-[rgba(var(--color-heading),0.6)] pt-0.5 {{ unit_price_class }}
+      {%- if product.selected_or_first_available_variant.unit_price_measurement == nil %} hidden{% endif -%}
+      {%- if show_content_center %} text-center{% endif -%}
+    "
+  >
+    <span class="hidden">{{ 'products.product.price.unit_price' | t }}</span>
+    <span class="price-item price-item--last">
+      <span class="unit-price">
+        {% liquid
+          if settings.currency_code_enable
+            assign unit_price = product.selected_or_first_available_variant.unit_price | money_with_currency
+          else
+            assign unit_price = product.selected_or_first_available_variant.unit_price | money
+          endif
+        %}
+        {{ unit_price | unit_price_with_measurement: product.selected_or_first_available_variant.unit_price_measurement }}
+      </span>
+    </span>
+  </div>
+</div>

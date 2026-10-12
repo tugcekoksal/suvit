@@ -1,0 +1,52 @@
+{% comment %}
+  Additional fee display snippet
+  Accepts:
+  - block: {Object} Block object from section schema (used for settings or ID)
+  - product: {Object} Product object to check price, tag, or other conditions
+  - current_variant: {Object} Current variant object (optional, if not provided, it will use the product's selected or first available variant)
+
+  Usage:
+  {% render 'additional-fee',
+    block: block,
+    product: product
+  %}
+{% endcomment %}
+
+
+{% liquid
+  assign current_variant = product.selected_or_first_available_variant
+%}
+
+<script type="application/json">{{ current_variant | json }}</script>
+
+<div class="additional-fee__price">
+  {% liquid
+    assign item_final_price = current_variant.price
+    assign item_original_price = current_variant.compare_at_price
+
+    assign money_item_final_price = item_final_price | money
+    assign money_item_original_price = item_original_price | money
+
+    if settings.currency_code_enable
+      assign money_item_final_price = item_final_price | money_with_currency
+      assign money_item_original_price = item_original_price | money_with_currency
+    endif
+  %}
+
+  <div
+      class="cart-item__additional-fee__price__wrapper items-center flex flex-row gap-1.5 gap-y-0.5 flex-wrap h5 md:h6">
+  <span
+      class="cart-item__additional-fee__final-price {% if item_original_price > item_final_price %}color-text-[rgba(var(--color-sale-price))]{% else %}color-text-[rgba(var(--color-price))]{% endif %}"
+  >
+    {{ money_item_final_price }}
+  </span>
+    {% if item_original_price > item_final_price %}
+      <span
+          class="cart-item__additional-fee__original-price text-[80%] cap mr-1 rtl:ml-1 rtl:mr-0 inline-block color-text-[rgba(var(--color-price))] line-through"
+      >
+      {{- money_item_original_price -}}
+    </span>
+    {% endif %}
+  </div>
+</div>
+

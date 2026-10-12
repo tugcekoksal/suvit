@@ -1,0 +1,132 @@
+.jdgm-rev-widg {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+  padding-left: 0px;
+  padding-right: 0px
+}
+.jdgm-review-widget--medium .jdgm-rev-widg__summary + .jdgm-write-rev-link,
+.jdgm-rev-widg__summary + .jdgm-write-rev-link {
+  margin-bottom: 1.5rem
+}
+.jdgm-rev-widg__body .jdgm-paginate + .jdgm-collected-link {
+  margin-top: 0px
+}
+.jdgm-histogram .jdgm-histogram__row {
+  height: auto
+}
+.jdgm-histogram__row .jdgm-histogram__bar {
+  height: 0.875rem
+}
+.jdgm-form__fieldset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.625rem
+}
+.jdgm-form__fieldset-actions .jdgm-cancel-rev {
+  margin: 0px !important
+}
+.jdgm-rev a, .jdgm-quest a {
+  word-break: break-all
+}
+.jdgm-widget.jdgm-revs-tab .jdgm-revs-tab__content-header .jdgm-row-stars {
+  padding-bottom: 1.5rem
+}
+@media only screen and (min-width: 768px) {
+  .jdgm-rev-widg__body .jdgm-paginate + .jdgm-collected-link {
+    position: relative
+  }
+  .jdgm-gallery-wrapper, .jdgm-medals-wrapper {
+    width: 50%;
+    min-width: 0px
+  }
+  .jdgm-medals-wrapper {
+    padding-left: 1.5rem !important;
+    padding-right: 0px !important
+  }
+  .jdgm-gallery:not(.jm-mfp-carousel *) {
+    display: flex !important;
+    width: calc(100% + 8px) !important;
+    flex-wrap: wrap
+  }
+  .jdgm-row-media .jdgm-gallery .jdgm-gallery__thumbnail-link {
+    display: block;
+    width: 50% !important
+  }
+  .jdgm-widget:not(.jdgm-medals-wrapper) .jdgm-medals .jdgm-medals__container {
+    display: flex !important;
+    flex-wrap: wrap;
+    overflow: visible !important
+  }
+  .jdgm-widget:not(.jdgm-medals-wrapper) .jdgm-all-reviews__header .jdgm-medal-wrapper {
+    margin: 0px !important;
+    width: 50%;
+    padding: 0.25rem
+  }
+  .jdgm-widget:not(.jdgm-medals-wrapper) .jdgm-medals .jdgm-medal {
+    aspect-ratio: 1 / 1;
+    height: auto !important;
+    width: 100% !important
+  }
+  .jdgm-widget:not(.jdgm-medals-wrapper) .jdgm-medals .jdgm-medals__container .jdgm-medal[data-type="mon_rec"] .jdgm-medal__value,
+  .jdgm-widget:not(.jdgm-medals-wrapper) .jdgm-medals .jdgm-medal__value {
+    top: 50% !important;
+    width: 100% !important
+  }
+  .jdgm-medals-wrapper--small .jdgm-medals {
+    width: 100%;
+    max-width: 100% !important
+  }
+  .jdgm-medals-wrapper .jdgm-medals__container {
+    width: 100% !important
+  }
+  product-info[data-desktop-media-width="large"] .jdgm-row-stars {
+    flex-direction: column;
+    gap: 0.625rem
+  }
+  product-info[data-desktop-media-width="large"] .jdgm-row-stars > * {
+    width: 100% !important;
+    border-left-width: 0px !important
+  }
+  product-info[data-desktop-media-width="large"] .jdgm-histogram,
+  product-info[data-desktop-media-width="large"] .jdgm-widget-actions-wrapper {
+    border-top-width: 1px;
+    padding-top: 0.625rem
+  }
+  .jdgm-row-stars > * {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem
+  }
+  product-info[data-desktop-media-width="default"] .product-template__content-wrapper:has(.jdgm-videos-carousel),
+  product-info[data-desktop-media-width="default"] .product-template__content-wrapper:has(.jdgm-testimonials-carousel),
+  product-info[data-desktop-media-width="default"] .product-template__content-wrapper:has(.jdgm-cards-carousel) {
+    width: 50% !important
+  }
+  product-info[data-desktop-media-width="large"] .product-template__content-wrapper:has(.jdgm-videos-carousel),
+  product-info[data-desktop-media-width="large"] .product-template__content-wrapper:has(.jdgm-testimonials-carousel),
+  product-info[data-desktop-media-width="large"] .product-template__content-wrapper:has(.jdgm-cards-carousel) {
+    width: 33.33% !important
+  }
+  .jdgm-carousel-wrapper {
+    display: flex !important;
+    flex-direction: column
+  }
+  .jdgm-carousel-title-and-link {
+    height: -moz-fit-content !important;
+    height: fit-content !important;
+    width: 100% !important
+  }
+  .jdgm-carousel-wrapper .jdgm-carousel.jdgm-carousel--compact-theme {
+    width: calc(100% - 81px) !important
+  }
+  .jdgm-widget.jdgm-revs-tab .jdgm-revs-tab__content-header .jdgm-gallery-wrapper,
+  .jdgm-widget.jdgm-revs-tab .jdgm-revs-tab__content-header .jdgm-medals-wrapper {
+    width: 100% !important
+  }
+}
+@media only screen and (min-width: 992px) {
+  .jdgm-widget:not(.jdgm-review-widget--small,.jdgm-review-widget--medium) .jdgm-rev-widg[data-number-of-reviews="0"] .jdgm-widget-actions-wrapper {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem
+  }
+}

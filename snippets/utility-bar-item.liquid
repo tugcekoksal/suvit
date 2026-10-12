@@ -1,0 +1,99 @@
+{%- comment -%}
+  Parameters:
+  - block_type {String} - Type of block.
+  - block {Object} - Block object.
+
+  Usage:
+  {% render 'social-media',
+    block_type: 'link',
+    block: block
+  %}
+{%- endcomment -%}
+
+{%- case block_type -%}
+  {%- when 'phone_number' -%}
+    {%- if block.settings.label != blank -%}
+      <li class="utility-block" {{ block.shopify_attributes }}>
+        <a 
+          aria-label="{{ 'accessibility.phone_number' | t }}"
+          href="tel:{{ block.settings.label }}" 
+          class="menu-link hover-text-link phone-number flex items-center relative pt-2.5 pb-2.5 lg:pt-0 lg:pb-0 lg:max-w-[200px] overflow-hidden"
+        >
+          <span class="me-2 icon relative inline-block icon-medium">
+            {% if block.settings.custom_icon_image != blank %}
+              <img
+                src="{{ block.settings.custom_icon_image | image_url: width: 30 }}"
+                alt="{{ block.settings.custom_icon_image.alt | default: block.settings.label | escape }}"
+                loading="lazy"
+                width="{{ block.settings.custom_icon_image.width }}"
+                height="{{ block.settings.custom_icon_image.height }}"
+                style="object-position: {{ block.settings.custom_icon_image.presentation.focal_point }}"
+                class="object-cover absolute top-0 left-0 w-full h-full rounded-corners custom-icon-image_rounded-corners"
+              >
+            {% else %}
+              {%- render 'icon-all', icon: 'icon-phone' -%}
+            {% endif %}
+          </span>
+          <span class="lg:max-w-[200px] overflow-hidden">
+            {{- block.settings.label | escape -}}
+          </span>
+        </a>
+      </li>
+    {%- endif -%}
+  {%- when 'email_address' -%}
+    {%- if block.settings.label != blank -%}
+      <li class="utility-block" {{ block.shopify_attributes }}>
+        <a 
+          aria-label="{{ 'accessibility.email' | t }}"
+          href="mailto:{{ block.settings.label }}" 
+          class="menu-link hover-text-link email-address relative flex items-center pt-2.5 pb-2.5 lg:pt-0 lg:pb-0"
+        >
+          <span class="me-2 icon relative inline-block icon-medium">
+            {% if block.settings.custom_icon_image != blank %}
+              <img
+                src="{{ block.settings.custom_icon_image | image_url: width: 30 }}"
+                alt="{{ block.settings.custom_icon_image.alt | default: block.settings.label | escape }}"
+                loading="lazy"
+                width="{{ block.settings.custom_icon_image.width }}"
+                height="{{ block.settings.custom_icon_image.height }}"
+                style="object-position: {{ block.settings.custom_icon_image.presentation.focal_point }}"
+                class="object-cover absolute top-0 left-0 w-full h-full rounded-corners custom-icon-image_rounded-corners"
+              >
+            {% else %}
+              {%- render 'icon-all', icon: 'icon-email' -%}
+            {% endif %}
+          </span>
+          <span class="email-link__text lg:max-w-[200px] overflow-hidden">
+            {{- block.settings.label | escape -}}
+          </span>
+        </a>
+      </li>
+    {%- endif -%}
+  {%- when 'localization_selectors' -%}
+    {% liquid
+      assign show_localization = false
+      if block.settings.enable_country_selector or block.settings.enable_language_selector
+        assign show_localization = true
+      endif
+    %}
+    {%- if show_localization -%}
+      <li class="utility-block" {{ block.shopify_attributes }}>
+        <div>
+          {% render 'localization-form', 
+            id: 'nav-localization', 
+            position: position, 
+            enable_country_selector: block.settings.enable_country_selector, 
+            enable_language_selector: block.settings.enable_language_selector
+          %}
+        </div>
+      </li>
+    {%- endif -%}
+  {%- when 'social_icons' -%}
+    {% if settings.social_facebook_link != blank or settings.social_twitter_link != blank or settings.social_pinterest_link != blank or settings.social_instagram_link != blank or settings.social_tiktok_link != blank or settings.social_tumblr_link != blank or settings.social_snapchat_link != blank or settings.social_youtube_link != blank or settings.social_vimeo_link != blank or settings.social_linkedin_link != blank or settings.email_address != blank or settings.phone_number != blank %}
+      <li class="utility-block" {{ block.shopify_attributes }}>
+        <div class="utility-social lg:max-w-[200px] xl:max-w-none overflow-hidden">
+          {% render 'social-media', icon_height: 24, class: " pt-1.5 pb-1.5 gap-1"  %}
+        </div>
+      </li>
+    {%- endif -%}
+{%- endcase -%}

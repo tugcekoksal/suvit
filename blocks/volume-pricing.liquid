@@ -1,0 +1,122 @@
+{% liquid
+  assign product = closest.product
+  assign settings = block.settings
+%}
+{%- if login_hide_price == null -%}
+  {%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+  {%- assign login_hide_price = login_hide_price | strip -%}
+{%- endif -%}
+
+{%- if product.quantity_price_breaks_configured? and login_hide_price != 'true' -%}
+  <div
+    id="volume-{{ block.id }}"
+    class="block-{{ block.id }} w-full maximize-block product-info__volume-pricing anm-fade-element"
+    data-block-id="{{ block.id }}"
+    data-fade-on-intersect
+    {{ block.shopify_attributes }}
+  >
+    {%- if product.selected_or_first_available_variant.quantity_price_breaks.size > 0 -%}
+      {% liquid
+        if settings.show_in_tab
+          assign open_by_default = false
+          if settings.open_by_default
+            assign open_by_default = true
+          endif
+        endif
+
+        assign heading_volume_pricing = 'products.product.volume_pricing' | t
+        if settings.heading != blank
+          assign heading_volume_pricing = settings.heading
+        endif
+      %}
+      <collapsible-tab
+        class="w-full rounded-corners-md mb-[var(--padding-bottom-product-template-block)]
+          {%- if settings.show_border or settings.show_background %} px-4{% endif -%}
+          {%- if settings.show_border %} border border-solid color-border-[rgba(var(--color-text),0.12)]{% endif -%}
+          {%- if settings.show_background %} color-bg-[rgba(var(--color-text),0.06)]{% endif -%}"
+        {% if settings.show_in_tab %}
+          data-open-by-default="{{ open_by_default }}"
+          data-show-in-tab="{{ settings.show_in_tab }}"
+          data-use-secondary-bg="{{ settings.show_background }}"
+          data-collapsible-tab-container
+        {% endif %}
+      >
+        <div
+          class="volume-pricing__heading-wrapper font-semibold py-3 h5 md:h6 flex gap-2.5 items-center w-full"
+          {% if settings.show_in_tab %}
+            data-collapsible-tab-header
+          {% endif %}
+        >
+          <div class="volume-pricing__heading grow">
+            {{ heading_volume_pricing }}
+          </div>
+          {%- if settings.show_in_tab -%}
+            <div
+              class="w-3 h-3 flex duration-500 transition-transform will-change-transform rotate-0"
+              data-collapsible-tab-caret
+            >
+              {% render 'icon-all', icon: 'icon-caret' %}
+            </div>
+          {%- endif -%}
+        </div>
+        <div
+          class="flex flex-col gap-0.5 w-full{%- if settings.show_in_tab %} h-0 overflow-hidden transition-[height] duration-300 ease-out{% endif %}"
+          {%- if settings.show_in_tab -%}
+            data-collapsible-tab-content
+          {% endif %}
+        >
+          {%- render 'volume-pricing-table',
+            variant: product.selected_or_first_available_variant,
+            section_id: section.id,
+            show_background: settings.show_background
+          -%}
+        </div>
+      </collapsible-tab>
+    {%- endif -%}
+  </div>
+{%- endif -%}
+{% schema %}
+{
+  "name": "t:main_product.blocks.volume_pricing.name",
+  "tag": null,
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_in_tab",
+      "label": "t:main_product.blocks.description.show_in_tab",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "open_by_default",
+      "default": false,
+      "label": "t:main_product.blocks.description.open_by_default",
+      "visible_if": "{{ block.settings.show_in_tab }}"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "default": "Volume pricing",
+      "label": "t:global.text.heading"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_border",
+      "label": "t:product_details.blocks.rich_text.show_border",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_background",
+      "label": "t:global.colors.show_background",
+      "default": false
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:main_product.blocks.volume_pricing.name",
+      "category": "t:global.product.product"
+    }
+  ]
+}
+{% endschema %}

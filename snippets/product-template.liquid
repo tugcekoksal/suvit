@@ -1,0 +1,2545 @@
+{% liquid
+  assign product_form_id = 'product-form-' | append: section.id | append: '-' | append: product.id
+%}
+
+{% liquid
+  assign current_variant = product.selected_or_first_available_variant
+  assign enable_sticky_content = section.settings.enable_sticky_content
+  assign enable_microdata = section.settings.enable_microdata
+  if section.settings.make_content_center
+    assign show_content_center = true
+    assign content_center_class = 'text-center'
+  else 
+    assign show_content_center = false
+    assign content_center_class = ''
+  endif
+
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  else
+    assign is_rtl = false
+  endif
+%}
+
+{% liquid
+  assign is_rounded_corners = false
+  if settings.edges_type == 'rounded_corners'
+    assign is_rounded_corners = true
+  endif
+%}
+
+{% liquid
+  assign is_show_preorder = false
+  assign is_apply_preorder = false
+  if settings.applied_products_preorder == blank and settings.applied_collections_preorder == blank
+    assign is_apply_preorder = true
+  else
+    assign list_product = ''
+    for prod in settings.applied_products_preorder
+      assign list_product = list_product | append: ';' | append: prod.id
+    endfor
+    for collec in settings.applied_collections_preorder
+      for prod in collec.products
+        assign list_product = list_product | append: ';' | append: prod.id
+      endfor
+    endfor
+    if list_product contains product.id
+      assign is_apply_preorder = true
+    endif
+  endif
+
+  if is_apply_preorder
+    if settings.preorder_show == 'yes'
+      if current_variant.inventory_management == null
+        assign is_show_preorder = true
+      else
+        if current_variant.inventory_quantity > 0
+          assign is_show_preorder = true
+        elsif current_variant.inventory_policy == 'continue' and current_variant.inventory_management != null
+          assign is_show_preorder = true
+        endif
+      endif
+    elsif settings.preorder_show == 'on_back_ordered'
+      if current_variant.inventory_policy == 'continue' and current_variant.inventory_quantity < 1 and current_variant.inventory_management != null
+        assign is_show_preorder = true
+      endif
+    endif
+  endif
+
+  assign message_preorder = 'general.preorder.message_preorder' | t
+  if settings.message_preorder_cart != blank
+    assign message_preorder = settings.message_preorder_cart
+  endif
+  assign has_customize_picker_required = false
+  assign last_block_has_qty_box = ''
+
+  for block in section.blocks
+    if block.type == 'labels_and_badges'
+      assign block_labels_and_badge = block
+    endif
+
+    if block.type == 'customizable_options'
+      if block.settings.required
+        case block.settings.picker_type
+          when 'single_text'
+            assign has_customize_picker_required = true
+          when 'multi_text'
+            assign has_customize_picker_required = true
+          when 'date'
+            assign has_customize_picker_required = true
+          when 'time'
+            assign has_customize_picker_required = true
+          when 'file_upload'
+            assign has_customize_picker_required = true
+        endcase
+      endif
+      if block.settings.picker_type == 'checkbox' and block.settings.minimum_select_value > 0 and block.settings.required
+        assign has_customize_picker_required = true
+      endif
+    endif
+
+    if block.type == 'quantity_selector' or block.settings.show_quantity_selector and block.type == 'qty_and_buy_buttons' or block.type == 'buy_buttons'
+      assign last_block_has_qty_box = block.id
+    endif
+  endfor
+
+  assign show_b2b_price_label = false
+%}
+{% style %}
+  :root {
+    --product-info-media-width: 100%;
+  }
+
+  @media (min-width: 768px) {
+    :root {
+      {% if section.settings.desktop_media_width == 'default' %}
+        --product-info-media-width: 50%;
+      {% else %}
+        --product-info-media-width: 66.67%;
+      {% endif %}
+    }
+  }
+  {% if is_product_page %}
+    .section--{{ section.id }} .section-padding {
+      padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+    }
+    @media (min-width: 768px) {
+    .section--{{ section.id }} .section-padding {
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+  {% endif %}
+{% endstyle %}
+
+{% liquid
+  assign is_show_compare_button = false
+%}
+{{ 'main-product.css' | asset_url | stylesheet_tag }}
+<product-info
+  class="product-template__wrapper{% unless is_product_page %} flex flex-col md:flex-row gap-10 quick-view:gap-x-0 quick-view:gap-y-3 quick-view:md:h-full{% endunless %}"
+  data-enabled-sticky-content="{{ enable_sticky_content }}"
+  data-section-id="{{ section.id }}"
+  data-desktop-media-width="{{ section.settings.desktop_media_width }}"
+>
+  {% liquid
+    assign class_media_wrapper = ''
+    unless is_product_page
+      if section.settings.desktop_media_width == 'default'
+        assign class_media_wrapper = class_media_wrapper | append: ' md:w-1/2'
+      else
+        assign class_media_wrapper = class_media_wrapper | append: ' md:w-2/3'
+      endif
+    endunless
+
+    if section.settings.section_width == 'full-width' and is_product_page
+      assign class_media_wrapper = class_media_wrapper | append: ' md:mr-0 md:ml-0 md:w-[calc(var(--product-info-media-width))]'
+    endif
+  %}
+  <div
+    class="h-fit {{ class_media_wrapper }}
+      {%- unless is_quick_view %} product-template__media-wrapper mb-[26px] md:mb-0{%- else %} w-full md:color-bg-[rgba(var(--color-text),0.06)] md:p-4 md:h-full md:w-[300px] lg:w-[360px] md:min-w-[300px] lg:min-w-[360px] md:relative{% endunless -%}
+    "
+    data-section-id="{{ section.id }}"
+  >
+    {% if is_quick_view %}
+      {%- render 'media-gallery-quick-view',
+        product: product,
+        section: section,
+        is_quick_view: is_quick_view,
+        show_first_image_avaiable: show_first_image_avaiable,
+        variant_images: variant_images,
+        zoom_effect: section.settings.zoom_effect,
+        block_labels_and_badge: block_labels_and_badge,
+        is_show_preorder: is_show_preorder
+      -%}
+    {% else %}
+      {%- render 'media-gallery',
+        product: product,
+        section: section,
+        zoom_effect: section.settings.zoom_effect,
+        block_labels_and_badge: block_labels_and_badge,
+        is_show_preorder: is_show_preorder,
+        desktop_layout: section.settings.desktop_layout,
+        desktop_carousel_option: section.settings.desktop_carousel_option,
+        desktop_carousel_position: section.settings.desktop_carousel_position,
+        show_navigation_arrows: section.settings.show_navigation_arrows,
+        mobile_carousel_option: section.settings.mobile_carousel_option,
+        media_ratio: section.settings.media_ratio,
+        show_sound_control: section.settings.show_sound_control,
+        video_autoplay: section.settings.enable_video_autoplay
+      -%}
+    {% endif %}
+  </div>
+  <div
+    class="md:pt-4 section-padding quick-view:w-full quick-view:pt-0 quick-view:md:pt-[68px] quick-view:md:h-full quick-view:md:pb-7.5
+      {%- unless is_quick_view %} product-template__content-wrapper{% endunless -%} 
+      {%- unless is_product_page %}{% if section.settings.desktop_media_width == 'default' %} md:w-1/2{% else %} md:w-1/3{% endif %}{% endunless -%}
+      {%- if enable_sticky_content and is_product_page != true %} md:sticky top-0 h-fit{% endif -%}
+    "
+    id="ProductTemplate__Content__{{ section.id }}"
+    data-section-id="{{ section.id }}"
+    data-padding-bottom="{{ section.settings.padding_bottom }}px"
+  >
+    <div 
+      class="product-template__content__container tooltip-boundary
+        {%- if is_quick_view %} md:px-7.5 md:overflow-y-auto scrollbar-visible scrollbar-body md:h-full{% endif -%}
+        {%- if is_product_page and enable_sticky_content %} md:sticky sticky-main-product-top{% endif -%}
+      "
+    >
+      {%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+      {%- assign login_hide_price = login_hide_price | strip -%}
+      {%- for block in section.blocks -%}
+        {% assign block_index = forloop.index0 %}
+        {%- case block.type -%}
+          {%- when '@app' -%}
+            {% render block %}
+          {%- when 'product_title' -%}
+            <{{ block.settings.heading_tag | default: "h2" }}
+              class="product-title break-words heading-{{ block.settings.heading_size }} {{ content_center_class }}  anm-fade-element p-break-words"
+              data-fade-on-intersect
+              data-block-id="{{ block.id }}"
+              {{ block.shopify_attributes }}
+            >
+              {% if product != blank %}
+                {% if is_featured_product %}
+                  <a
+                    class="title-link"
+                    href="{{ product.url }}"
+                  >
+                    {{- product.title | escape -}}
+                  </a>
+                {% else %}
+                  {{ product.title | escape }}
+                {% endif %}
+              {% else %}
+                {{ 'products.product.title' | t }}
+              {% endif %}
+            </{{ block.settings.heading_tag | default: "h2" }}>
+          {%- when 'price' -%}
+            {% liquid
+              if block.settings.show_b2b_price_label
+                assign show_b2b_price_label = true
+              endif  
+            %}
+            <div
+              class="product-info__price-wrapper anm-fade-element mb-2 md:mb-2.5 {% if current_variant == blank %} is-unavailable{% endif %}"
+              data-fade-on-intersect
+              data-block-id="{{ block.id }}"
+              {{ block.shopify_attributes }}
+            >
+              {%- if login_hide_price == 'true' -%}
+                {%- render 'guest-price-message' -%}
+              {% else %}
+                {% liquid
+                  assign text_size_price_ratio = block.settings.text_size_price | times: 0.01
+                %}
+                {%- style -%}
+                  #Price__{{ section.id }} .price-wrapper {
+                    font-size: calc(var(--heading-base-size) * var(--heading-font-scale) * 0.85 * {{ text_size_price_ratio }});
+                  }
+
+                  .product-info__shipping-and-tax__{{ block.id }} {
+                    font-size: calc(var(--body-base-size)*{{ block.settings.text_size_price }}*0.009)
+                  }
+
+                  #Price__{{ section.id }} .price-label {
+                    font-size: calc(var(--h6-font-size) * {{ text_size_price_ratio }});
+                  }
+
+                  @media (min-width: 768px) {
+                    #Price__{{ section.id }} .price-wrapper {
+                      font-size: calc(var(--heading-base-size) * var(--heading-font-scale) * {{ text_size_price_ratio }});
+                    }
+
+                    .product-info__shipping-and-tax__{{ block.id }} {
+                      font-size: calc(var(--body-base-size)*{{ block.settings.text_size_price }}*0.01)
+                    }
+
+                    #Price__{{ section.id }} .price-label {
+                      font-size: calc(var(--h7-font-size) * {{ text_size_price_ratio }});
+                    }
+                  }
+                {%- endstyle -%}
+
+                <div
+                  id="Price__{{ section.id }}"
+                  class="{% if product != blank %}quick-view:mt-0{% endif %}"
+                >
+                  <div>
+                    {% assign price_id = section.id | append: '-' | append: product.id %}
+                    {%- render 'price',
+                      product: product,
+                      price_id: price_id,
+                      price_wrapper: 'h2',
+                      show_content_center: show_content_center,
+                      use_variant: true,
+                      container: 'product-template__price',
+                      is_show_sale_label: block.settings.show_sale_label,
+                      class_sale_label: 'h7 pt-1 pb-1 pl-2 pr-2',
+                      sale_label_content: block.settings.sale_label_content,
+                      sale_label_light: block.settings.sale_label_light,
+                      sale_label_dark: block.settings.sale_label_dark,
+                      sale_label_text_light: block.settings.sale_label_text_light,
+                      sale_label_text_dark: block.settings.sale_label_text_dark,
+                      is_product_page: true,
+                      enable_volume_pricing: true,
+                      price_group: section.id,
+                      show_b2b_price_label: block.settings.show_b2b_price_label
+                    -%}
+                  </div>
+                  {% if product != blank %}
+                    {%- form 'product', product %}
+                      {{ form | payment_terms }}
+                    {% endform %}
+                  {% endif %}
+                </div>
+                {%- if product.selected_or_first_available_variant.quantity_price_breaks.size > 0 -%}
+                  <div class="block-price__volume-pricing-message product-info__volume-pricing-message text-medium color-text-[rgba(var(--color-heading),0.6)] pt-0.5">
+                    {{ 'products.product.volume_pricing_available' | t }}
+                  </div>
+                {%- endif -%}
+                {% if block.settings.show_tax_and_shipping %}
+                  {%- if cart.taxes_included or cart.duties_included or shop.shipping_policy.body != blank -%}
+                    <div class="product-info__shipping-and-tax product-info__shipping-and-tax__{{ block.id }} flex gap-1 flex-wrap{% if show_content_center %} justify-center{% endif %}">
+                      {%- if customer.b2b? -%}
+                        <span>zzgl. 19% MwSt. Versand an der Kasse berechnet.</span>
+                      {%- elsif cart.duties_included and cart.taxes_included -%}
+                        <span>{{ 'products.product.duties_and_taxes_included' | t }}</span>
+                      {%- elsif cart.taxes_included -%}
+                        <span>{{ 'products.product.include_taxes' | t }}</span>
+                      {%- elsif cart.duties_included -%}
+                        <span>{{ 'products.product.duties_included' | t }}</span>
+                      {%- endif -%}
+
+                      {%- if shop.shipping_policy.body != blank -%}
+                        <script src="{{ 'shipping-policy.js' | asset_url }}" defer></script>
+                        
+                        <div x-data="xShippingPolicy($el, '{{ block.id }}', '{{ shop.shipping_policy.url }}', '{{ is_quick_view }}', '{{ product.url }}')">
+                          <a
+                            id="ShippingPolicy__{{ section.id }}__{{ block.id }}"
+                            href="{{ shop.shipping_policy.url }}"
+                            class="product-info__shipping-and-tax__text-link relative cursor-pointer"
+                            x-ref="text_link"
+                            @click.prevent="handleLoadShipping()"
+                          >
+                            <span class="text-link">{{ 'products.product.shipping' | t }}</span>
+                            <span class="product-info__shipping-and-tax__loading w-[calc(var(--body-font-size)*1.4)] h-[calc(var(--body-font-size)*1.4)] animate-spin absolute top-[calc(50%-10px)] left-[calc(50%-10px)] color-text-[rgba(var(--color-text))]">
+                              {% render 'icon-all', icon: 'icon-loading' %}
+                            </span>
+                          </a>
+                          {{ 'products.product.calculated' | t }}
+                          <template x-teleport="body">
+                            <div
+                              id="ShippingPolicyDrawer__Container__{{ block.id }}"
+                              x-show="isOpenShippingPolicy"
+                              x-cloak
+                              class="shipping-policy-popup__wrapper drawer__wrapper color-{{ section.settings.color_scheme_light.id }} dark-color-{{ section.settings.color_scheme_dark.id }}"
+                              tabindex="0"
+                              style="background: transparent;"
+                            >
+                              <div
+                                id="ShippingPolicyDrawer__Overlay__{{ block.id }}"
+                                class="drawer__overlay"
+                                x-show="isOpenShippingPolicy"
+                                @click.prevent="closeShippingPopup(true)"
+                              ></div>
+                              <div
+                                x-show="isOpenShippingPolicy"
+                                class="shipping-policy-popup__container drawer__container outline-none"
+                                tabindex="0"
+                                x-cloak
+                                x-transition:enter-start="opacity-0 transform translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+                                x-transition:enter-end="opacity-100 transform translate-y-0 md:translate-x-0"
+                                x-transition:leave-end="opacity-0 transform translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+                                x-intersect.full="$store.xFocusElement.trapFocus('ShippingPolicyDrawer__Container__{{ block.id }}', 'CloseShippingPolicyDrawer__{{ block.id }}')"
+                                @keyup.escape="closeShippingPopup();"
+                              >
+                                <div class="modal-title-container modal-title-padding-x pb-1 md:pb-2">
+                                  <div class="modal-title-wrapper">
+                                    <div class="grow flex items-center" x-html="pageTitle"></div>
+                                    
+                                    <button
+                                      id="CloseShippingPolicyDrawer__{{ block.id }}"
+                                      @click.prevent="closeShippingPopup();"
+                                      class="modal-title__button-close"
+                                    >
+                                      <span class="button__close icon-close-large-desktop icon-close-large-mobile">{%- render 'icon-all', icon: 'icon-close' -%}</span>
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div
+                                  id="ShippingPolicyPopup__Detail__{{ block.id }}"
+                                  class="shipping-policy-drawer__content drawer__content scrollbar-body scrollbar-visible rte"
+                                  x-html="htmlInner"
+                                ></div>
+                              </div>
+                            </div>
+                          </template>
+                        </div>
+                      {%- endif -%}
+                    </div>
+                  {%- endif -%}
+                {%- endif -%}
+              {% endif %}
+            </div>
+          {%- when 'vendor' -%}
+            {% liquid
+              assign link_vendor = block.settings.link_vendor
+              assign vendor_handle = product.vendor | handleize
+            %}
+
+            <div
+              class="product-info__vendor mb w-full p-break-words inline-block color-text-[rgba(var(--color-text),0.6)] text-medium"
+              data-block-id="{{ block.id }}"
+              {{ block.shopify_attributes }}
+            >
+              <div class="flex {% if show_content_center %} justify-center{% endif %}">
+                {% if link_vendor %}
+                  {% if collections[vendor_handle] != empty %}
+                    <p
+                      class="title-link anm-fade-element"
+                      data-fade-on-intersect
+                    >
+                      <a
+                        href="{{ routes.collections_url }}/{{ collections[vendor_handle].handle }}"
+                        {% if block.settings.open_new_window %}
+                          target="_blank"
+                        {% endif %}
+                      >
+                        {{ collections[vendor_handle].title }}
+                      </a>
+                    </p>
+                  {% else %}
+                    <p
+                      id="link-vendor"
+                      class="title-link anm-fade-element"
+                      data-fade-on-intersect
+                    >
+                      {% if block.settings.open_new_window %}
+                        {{ product.vendor | link_to_vendor | replace: '<a', '<a target="_blank"' }}
+                      {% else %}
+                        {{ product.vendor | link_to_vendor }}
+                      {% endif %}
+                    </p>
+                  {% endif %}
+                {% elsif product.metafields.custom.vendor_detail_page != blank or block.settings.select_page != blank %}
+                  <div
+                    x-data="xProductDrawer"
+                  >
+                    <a
+                      id="VendorDetail__OpenButton"
+                      class="title-link relative cursor-pointer w-fit anm-fade-element"
+                      data-fade-on-intersect
+                      @click.prevent="openDrawer('#VendorDrawer__Wrapper__{{ block.id }}')"
+                      tabindex="0"
+                      href="#"
+                    >
+                      {{ product.vendor | escape }}
+                    </a>
+
+                    <template x-teleport="body">
+                      <div
+                        id="VendorDrawer__Wrapper__{{ block.id }}"
+                        x-show="isShowDrawer"
+                        x-cloak
+                        class="drawer__wrapper vendor-drawer__wrapper color-{{ section.settings.color_scheme_light.id }} dark-color-{{ section.settings.color_scheme_dark.id }}"
+                        tabindex="0"
+                        style="background: transparent;"
+                      >
+                        <div
+                          id="VendorDrawer__Overlay__{{ block.id }}"
+                          class="drawer__overlay"
+                          x-show="isShowDrawer"
+                          @click.prevent="closeDrawer(true)"
+                        ></div>
+                        <div
+                          x-show="isShowDrawer"
+                          class="drawer__container vendor-drawer__container outline-none"
+                          tabindex="0"
+                          x-cloak
+                          x-transition:enter-start="opacity-0 transform translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+                          x-transition:enter-end="opacity-100 transform translate-y-0 md:translate-x-0"
+                          x-transition:leave-end="opacity-0 transform translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+                          x-intersect.full="$store.xFocusElement.trapFocus('VendorDrawer__Wrapper__{{ block.id }}', 'CloseVendorDrawer__{{ block.id }}')"
+                          @keyup.escape="closeDrawer()"
+                        >
+
+                          <div class="modal-title-container modal-title-padding-x pb-1 md:pb-2">
+                            <div class="modal-title-wrapper">
+                              <div class="grow flex items-center">
+                                {%- if product.metafields.custom.vendor_detail_page.value.title != blank -%}
+                                  <p class="h3" >
+                                    {{ product.metafields.custom.vendor_detail_page.value.title | escape }}
+                                  </p>
+                                {%- else -%}
+                                  <p class="h3">
+                                    {{ block.settings.select_page.title | escape }}
+                                  </p>
+                                {%- endif -%}
+                              </div>
+
+                              <button
+                                id="CloseVendorDrawer__{{ block.id }}"
+                                @click="closeDrawer()"
+                                class="modal-title__button-close"
+                              >
+                                <span class="button__close icon-close-large-desktop icon-close-large-mobile">{%- render 'icon-all', icon: 'icon-close' -%}</span>
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div class="vendor-drawer__content drawer__content scrollbar-body scrollbar-visible">
+                            {% if product.metafields.custom.vendor_detail_page.value != blank %}
+                              <div class="rte">{{ product.metafields.custom.vendor_detail_page.value.content }}</div>
+                            {% else %}
+                              {% if block.settings.select_page.content != blank %}
+                                <div class="rte">{{ block.settings.select_page.content | replace: '<meta charset="UTF-8">' }}</div>
+                              {% endif %}
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                {% else %}
+                  {% if block.settings.link != blank %}
+                    <a
+                      class="title-link anm-fade-element"
+                      data-fade-on-intersect
+                      href="{{ block.settings.link }}"
+                      {% if block.settings.open_new_window %}
+                        target="_blank"
+                      {% endif %}
+                    >
+                      {{- product.vendor | escape -}}
+                    </a>
+                  {% else %}
+                    <p
+                      class="anm-fade-element"
+                      data-fade-on-intersect
+                    >
+                      {{ product.vendor | escape }}
+                    </p>
+                  {% endif %}
+                {% endif %}
+
+                {% if is_product_page == false and product == blank %}
+                  <span>{{ 'products.product.vendor' | t }}</span>
+                {% endif %}
+              </div>
+            </div>
+          {%- when 'rating' -%}
+            <div
+              class="product-info__rating {% if show_content_center %} flex{% endif %}"
+              data-block-id="{{ block.id }}"
+              {{ block.shopify_attributes }}
+            >
+              {% render 'review-product', product: product, show_content_center: show_content_center, is_product_page: true %}
+            </div>
+          {%- when 'inventory_status' -%}
+            <div
+              class="product-info__inventory-status-wrapper anm-fade-element {% if current_variant == blank %} is-unavailable{% endif %}"
+              data-fade-on-intersect
+              data-block-id="{{ block.id }}"
+              {{ block.shopify_attributes }}
+            >
+              <div class="{% if product != blank %} mb-2 md:mb-2.5{% endif %} ">
+                {% render 'inventory-status', variant: current_variant, is_show_preorder: is_show_preorder, show_stock_indicator_bar: true, show_content_center: show_content_center %}
+              </div>
+            </div>
+          {%- when 'identifier' -%}
+            <div
+              class="product-info__identifier-wrapper anm-fade-element {% if current_variant == blank %} is-unavailable{% endif %}"
+              data-block-id="{{ block.id }}"
+              data-fade-on-intersect
+              {{ block.shopify_attributes }}
+            >
+              <div class="flex{% if current_variant.sku != blank or current_variant.barcode != blank %} mb-2 md:mb-2.5{% endif %}{% if current_variant.sku != blank and current_variant.barcode != blank %} gap-2.5{% endif %}{% if show_content_center %} justify-center{% endif %}">
+                {% if current_variant.sku != blank %}
+                  <div class="product-info__sku">{{ 'products.product.sku' | t }}: {{ current_variant.sku }}</div>
+                {% endif %}
+                {% if current_variant.sku != blank and current_variant.barcode != blank %}
+                  <div class="product-info__identifier-divide w-px my-0.5 color-bg-[rgba(var(--color-line-and-border))]"></div>
+                {% endif %}
+                {% if current_variant.barcode != blank %}
+                  <div class="product-info__barcode">{{ 'products.product.barcode' | t }}: {{ current_variant.barcode }}</div>
+                {% endif %}
+              </div>
+            </div>
+          {% when 'labels_and_badges' %}
+            {% if block.settings.label_position == 'content_inline' %}
+              <div
+                class="product-info__content-inline"
+                {{ block.shopify_attributes }}
+                  data-block-id="{{ block.id }}"
+              >
+                <div
+                  class="product-info__label-wrapper {% if current_variant == blank %} is-unavailable{% endif %}"
+                  {{ block.shopify_attributes }}
+                >
+                  {% liquid
+                    if product.selected_or_first_available_variant.inventory_quantity <= 0
+                      assign label_quantity = ''
+                    else
+                      assign label_quantity = product.selected_or_first_available_variant.inventory_quantity
+                    endif
+                    assign sale_amount = product.selected_or_first_available_variant.compare_at_price | minus: product.selected_or_first_available_variant.price
+                    if sale_amount <= 0
+                      assign sale_amount = -1
+                    endif
+                  %}
+                  {% liquid
+                    assign label_position = block.settings.label_position | default: 'content_inline' 
+                  %}
+                  {% capture data_for_label %}
+                    {%
+                      render "data-for-label",
+                      product: product,
+                      current_variant: current_variant,
+                      target: product.selected_or_first_available_variant,
+                      sale_amount: sale_amount,
+                      label_quantity: label_quantity,
+                      container: "product-info",
+                      make_content_center: show_content_center,
+                      is_show_preorder: is_show_preorder,
+                      label_position: label_position,
+                      login_hide_price: login_hide_price
+                    %}
+                  {% endcapture %}
+                  <div
+                    class="w-full"
+                    id="x-badges-{{ section.id }}"
+                  >
+                    <div
+                      class="x-badges-container overflow-hidden text-sm x-badges-product-detail empty:h-0 empty:min-h-0 empty:mb-0 min-h-[45px] flex items-center flex-wrap gap-x-1 gap-y-2 md:gap-y-3 mb-[var(--padding-bottom-product-template-block)]{% if show_content_center %} justify-center{% endif %}"
+                      x-init='
+                        () => {
+                          if ($store.xLabelsAndBadges) {
+                            const container = document.querySelector("#x-badges-{{ section.id }}");
+                            $store.xLabelsAndBadges.load($el, (el) => {
+                              el.removeAttribute("x-init");
+                              container.innerHTML = el.outerHTML;
+                            }, container)
+                          }
+                        }
+                      '
+                      {% if product != blank %}
+                        x-labels-data="{{ data_for_label | escape }}"
+                      {% endif %}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+          {%- when 'quantity_selector' -%}
+            <div {{ block.shopify_attributes }}>
+              {% unless settings.hide_cart %}
+                {% render 'product-quantity',
+                  section: section,
+                  current_variant: current_variant,
+                  product: product,
+                  content_center_class: content_center_class,
+                  show_content_center: show_content_center,
+                  product_form_id: product_form_id,
+                  block_id: block.id,
+                  last_block_has_qty_box: last_block_has_qty_box,
+                  login_hide_price: login_hide_price
+                %}
+              {% endunless %}
+            </div>
+          {%- when 'gift_wrapping' -%}
+            <div
+              class="product-info__gift-wrapping--wrapper"
+              data-block-id="{{ block.id }}"
+              {{ block.shopify_attributes }}
+            >
+              {% render 'gift-wrapping', product: product, product_form_id: product_form_id, color_icon_light: block.settings.color_icon_light, color_icon_dark: block.settings.color_icon_dark, gift_label: block.settings.text_gift, show_content_center: show_content_center %}
+            </div>
+          {%- when 'variant_picker' -%}
+            <div
+              class="product-info__variant-picker{% unless product == blank or product.has_only_default_variant %} mb-[var(--padding-bottom-product-template-block)]{% endunless %}"
+              data-block-id="{{ block.id }}"
+              {{ block.shopify_attributes }}
+            >
+              {% if product != blank %}
+                {% unless product.has_only_default_variant %}
+                  {% render 'variant-picker',
+                    product: product,
+                    variant: current_variant,
+                    section: section,
+                    block: block,
+                    product_form_id: product_form_id,
+                    is_product_page: is_product_page,
+                    enable_size_chart: block.settings.enable_size_chart,
+                    size_chart_label: block.settings.size_chart_label,
+                    associated_option_name: block.settings.associated_option_name,
+                    size_chart_page: block.settings.size_chart_page,
+                    show_content_center: show_content_center,
+                    is_enable_sticky_atc: is_enable_sticky_atc,
+                    is_rtl: is_rtl,
+                    swatch_size: block.settings.swatch_size
+                  %}
+                {% endunless %}
+              {% endif %}
+            </div>
+          {%- when 'qty_and_buy_buttons' -%}
+            <div
+              class="product-info__qty-and-buy-buttons"
+              {{ block.shopify_attributes }}
+            >
+              <div 
+                class="product-info__buy-buttons-wrapper mb-[var(--padding-bottom-product-template-block)] empty:hidden
+                  {%- if settings.hide_cart %} is-hide-cart{% unless block.settings.show_add_to_compare_button %} no-compare-button{% endunless %}{% endif -%}
+                "
+              >
+                {%- render 'buy-buttons',
+                  section: section,
+                  block: block,
+                  product: product,
+                  variant: current_variant,
+                  product_form_id: product_form_id,
+                  show_dynamic_checkout_buttons: block.settings.show_dynamic_checkout_buttons,
+                  show_gift_card: show_gift_card,
+                  is_apply_preorder: is_apply_preorder,
+                  is_show_preorder: is_show_preorder,
+                  has_customize_picker_required: has_customize_picker_required,
+                  show_quantity_selector: block.settings.show_quantity_selector,
+                  is_quick_view: is_quick_view,
+                  last_block_has_qty_box: last_block_has_qty_box,
+                  login_hide_price: login_hide_price
+                -%}
+              </div>
+            </div>
+            {% liquid
+              assign show_content_center = false
+              assign content_center_class = ''
+            %}
+          {%- when 'buy_buttons' -%}
+            {% liquid
+              if block.settings.show_add_to_compare_button
+                assign is_show_compare_button = true
+              endif
+            %}
+            <div
+              class="product-info__buy-buttons-wrapper mb-[var(--padding-bottom-product-template-block)] empty:hidden
+                {%- if settings.hide_cart %} is-hide-cart{% unless block.settings.show_add_to_compare_button %} no-compare-button{% endunless %}{% endif -%}
+              "
+              {{ block.shopify_attributes }}
+            >
+              {%- render 'buy-buttons',
+                section: section,
+                block: block,
+                product: product,
+                variant: current_variant,
+                product_form_id: product_form_id,
+                show_dynamic_checkout_buttons: block.settings.show_dynamic_checkout_buttons,
+                show_gift_card: show_gift_card,
+                is_apply_preorder: is_apply_preorder,
+                is_show_preorder: is_show_preorder,
+                has_customize_picker_required: has_customize_picker_required,
+                show_quantity_selector: block.settings.show_quantity_selector,
+                last_block_has_qty_box: last_block_has_qty_box,
+                login_hide_price: login_hide_price
+              -%}
+            </div>
+            {% liquid
+              assign show_content_center = false
+              assign content_center_class = ''
+            %}
+          {%- when 'product_sibling' -%}
+            {% render 'product-sibling', product: product, block: block, product_form_id: product_form_id, show_content_center: show_content_center, is_product_page: is_product_page, swatch_size: block.settings.swatch_size, featured_product: featured_product %}
+          {%- when 'description' -%}
+            {% liquid
+              assign content_description = product.description
+              if product == blank
+                assign content_description = 'products.product.description_default' | t
+              endif
+            %}
+
+            {% liquid
+              assign is_open_content = false
+              if block.settings.show_in_tab
+                if block.settings.open_by_default
+                  assign is_open_content = true
+                endif
+              else
+                assign is_open_content = true
+              endif
+            %}
+            <collapsible-tab
+              class="product-info__description p-break-words w-full relative mb-[var(--padding-bottom-product-template-block)]{% if block.settings.show_in_tab %} cursor-pointer accordion{% elsif content_description == blank or content_description == '<p></p>' %} hidden{% endif %} "
+              data-open-by-default="{{ is_open_content }}"
+              data-show-in-tab="{{ block.settings.show_in_tab }}"
+              data-block-id="{{ block.id }}"
+              {{ block.shopify_attributes }}
+            >
+              {% if content_description != blank %}
+                <div class="collapsible-tab__container {% if block.settings.show_in_tab %} outline outline-1 color-outline-[rgba(var(--color-text),0.12)] {% endif %}{% if is_rounded_corners %} rounded-md{% endif %}" 
+                  data-collapsible-tab-container 
+                >
+                  {%- if block.settings.show_in_tab -%}
+                    <div
+                      class="px-4{% if block.settings.make_content_center %} justify-center{% endif %}"
+                    >
+                      <div
+                        class="product-info__description-header collapsible-tab__header flex relative gap-2.5 items-center w-full h5 md:h6 py-3"
+                        data-collapsible-tab-header
+                      >
+                        <div class="flex-auto w-fit flex gap-2.5 items-center min-h-[1.5rem]{% if block.settings.make_content_center %} justify-center{% endif %}">
+                          {% unless block.settings.icon == 'none' or block.settings.custom_icon_image == blank and block.settings.icon == 'another' and block.settings.another_icon == blank %}
+                            <span class="inline-block relative w-5 h-5 md:w-6 md:h-6 md:min-w-6 shrink-0">
+                              {% if block.settings.custom_icon_image != blank %}
+                                <img
+                                  src="{{ block.settings.custom_icon_image | image_url: width: 30 }}"
+                                  alt="{{ block.settings.custom_icon_image.alt | default: product.title | escape }}"
+                                  loading="lazy"
+                                  width="{{ block.settings.custom_icon_image.width }}"
+                                  height="{{ block.settings.custom_icon_image.height }}"
+                                  style="object-position: {{ block.settings.custom_icon_image.presentation.focal_point }}"
+                                  class="object-cover absolute top-0 left-0 w-full h-full product-info__description-header__image rounded-corners custom-icon-image_rounded-corners"
+                                >
+                              {% else %}
+                                {% if block.settings.icon == 'another' %}
+                                  {% render 'icon-another', icon: block.settings.another_icon %}
+                                {% else %}
+                                  {% render 'icon-labels-bags', icon: block.settings.icon %}
+                                {% endif %}
+                              {% endif %}
+                            </span>
+                          {% endunless %}
+                          <div class="product-info__description__heading p-break-words {% if block.settings.make_content_center %} text-center{% endif %}">{{ block.settings.heading | escape | strip }}</div>
+                        </div>
+                        <div
+                          class="w-3 h-3 flex duration-500 transition-transform will-change-transform rotate-0"
+                          data-collapsible-tab-caret
+                        >
+                          {% render 'icon-all', icon: 'icon-caret' %}
+                        </div>
+                      </div>
+                    </div>
+                  {%- endif -%}
+                  <div
+                    class="collapsible-tab__content {%- if block.settings.show_in_tab %} h-0 overflow-hidden transition-[height] duration-300 ease-out px-4{% endif %}"
+                    data-collapsible-tab-content
+                  >
+                    <div class="rte -mb-0.5{% if block.settings.make_content_center %} text-center{% endif %}{% unless block.settings.show_in_tab %} quick-view:pt-0 {% else %} pb-3{% endunless %}">
+                      {% liquid
+                        assign text_alignment_truncate = ''
+                        if block.settings.make_content_center
+                          assign text_alignment_truncate = 'center'
+                        endif
+                      %}
+                      {%- render 'truncate-text',
+                        number_of_lines_shown: block.settings.number_of_lines_shown,
+                        blockID: block.id,
+                        content: content_description,
+                        read_more_label: block.settings.read_more_label,
+                        see_less_label: block.settings.see_less_label,
+                        text_alignment: text_alignment_truncate,
+                        quick_view: is_quick_view
+                      -%}
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+            </collapsible-tab>
+          {%- when 'complementary' -%}
+            <div
+              x-intersect.once.margin.200px="$store.xProductRecommendations.load($el, '{{ section.id }}', '{{ product.id }}', '{{ block.settings.max_product_show }}', 'complementary')"
+              class="product-recommendations recommendation__main-product w-full"
+              {{ block.shopify_attributes }}
+            >
+              {% render 'complementary-product',
+                product: product,
+                section: section,
+                block: block,
+                product_per_page: block.settings.number_product_per_page,
+                enable_carousel_mobile: block.settings.enable_carousel_mobile,
+                enable_carousel_desktop: block.settings.enable_carousel_desktop,
+                is_rtl: is_rtl,
+                is_rounded_corners: is_rounded_corners
+              %}
+            </div>
+          {%- when 'collapsible_tab' -%}
+            {%- if block.settings.heading != blank or block.settings.tab_content != blank -%}
+              <collapsible-tab 
+                class="product-info__collapsible-tab--wrapper w-full mb-[var(--padding-bottom-product-template-block)]"
+                data-open-by-default="{{ block.settings.open_by_default }}"
+                data-use-secondary-bg="{{ block.settings.use_secondary_background }}"
+                data-show-in-tab="{{ true }}"
+                {{ block.shopify_attributes }}
+              >
+                <div
+                  class="collapsible-tab__container outline outline-1 color-outline-[rgba(var(--color-text),0.12)]{% if is_rounded_corners %} rounded-md{% endif %}" 
+                  data-collapsible-tab-container
+                >
+                  <div
+                    class="collapsible-tab__header flex flex-row px-4 relative items-center gap-2.5 w-full cursor-pointer h5 md:h6 py-3{% if show_content_center %} justify-center{% endif %}"
+                    tabindex="0"
+                    data-collapsible-tab-header
+                  >
+                    <div class="flex-auto flex flex-row items-center gap-2.5 min-h-[1.5rem]{% if show_content_center %} justify-center{% endif %}">
+                      {% unless block.settings.icon == 'none' or block.settings.custom_icon_image == blank and block.settings.icon == 'another' and block.settings.another_icon == blank %}
+                        <div class="inline-block relative w-5 h-5 md:w-6 md:h-6 md:min-w-6 shrink-0">
+                          {% if block.settings.custom_icon_image != blank %}
+                            <img
+                              src="{{ block.settings.custom_icon_image | image_url: width: 30 }}"
+                              alt="{{ block.settings.custom_icon_image.alt | default: product.title | escape }}"
+                              loading="lazy"
+                              width="{{ block.settings.custom_icon_image.width }}"
+                              height="{{ block.settings.custom_icon_image.height }}"
+                              style="object-position: {{ block.settings.custom_icon_image.presentation.focal_point }}"
+                              class="collapsible-tab__image object-cover absolute top-0 left-0 w-full h-full rounded-corners custom-icon-image_rounded-corners"
+                            >
+                          {% else %}
+                            {% if block.settings.icon == 'another' %}
+                              {% render 'icon-another', icon: block.settings.another_icon %}
+                            {% else %}
+                              {% render 'icon-labels-bags', icon: block.settings.icon %}
+                            {% endif %}
+                          {% endif %}
+                        </div>
+                      {% endunless %}
+                      <p
+                        class="text-medium anm-fade-element"
+                        data-fade-on-intersect
+                      >
+                        {{ block.settings.heading | strip | escape }}
+                      </p>
+                    </div>
+                    <div class="collapsible-header__header__caret shrink-0 w-3 h-3 flex duration-500 transition-transform will-change-transform rotate-0"
+                        data-collapsible-tab-caret
+                    >
+                      {% render 'icon-all', icon: 'icon-caret' %}
+                    </div>
+                  </div>
+                  {%- if block.settings.tab_content != blank -%}
+                     <div
+                      class="collapsible-tab__content px-4{% if show_content_center %} text-center{% endif %} h-0 overflow-hidden transition-[height] duration-300 ease-out {% unless block.settings.open_by_default %}hidden{% endunless %}"
+                      data-collapsible-tab-content
+                    >
+                      <div
+                        class="rte -mt-0.5 pb-2"
+                      >
+                        {% render 'text-highlight',
+                          id: block.id,
+                          text: block.settings.tab_content,
+                          highlight_effect: block.settings.highlight_effect,
+                          text_transform: block.settings.text_transform,
+                          allow_html: true
+                        %}
+                      </div>
+                    </div>
+                  {%- endif -%}
+                </div>
+              </collapsible-tab>
+            {%- endif -%}
+          {%- when 'social_sharing' -%}
+            {%- if settings.share_facebook or settings.share_twitter or settings.share_twitter or settings.share_email or settings.share_pinterest or settings.share_whatsapp or settings.share_sms -%}
+              <div
+                class="product-info__social-sharing-wrapper flex anm-fade-element{% if show_content_center %} justify-center{% endif %} w-full items-center mb-[var(--padding-bottom-product-template-block)]"
+                data-fade-on-intersect
+                {{ block.shopify_attributes }}
+              >
+                <p class="mr-1">{{ 'products.product.share_social' | t }}</p>
+                {% render 'social-sharing', share_title: product.title, share_permalink: product.url, share_image: product %}
+              </div>
+            {% endif %}
+          {%- when 'text' -%}
+            {%- if block.settings.text != blank -%}
+              <div
+                class="mb-[var(--padding-bottom-product-template-block)] w-full rte{% if show_content_center %} text-center{% endif %}"
+                {{ block.shopify_attributes }}
+              >
+                {% liquid
+                  assign text_alignment_truncate = ''
+                  if show_content_center
+                    assign text_alignment_truncate = 'center'
+                  endif
+                %}
+                {%- render 'truncate-text',
+                  number_of_lines_shown: block.settings.number_of_lines_shown,
+                  currentId: block.id,
+                  content: block.settings.text,
+                  read_more_label: block.settings.read_more_label,
+                  see_less_label: block.settings.see_less_label,
+                  text_alignment: text_alignment_truncate,
+                  quick_view: is_quick_view,
+                  highlight_effect: block.settings.highlight_effect,
+                  text_transform: block.settings.text_transform
+                -%}
+              </div>
+            {%- endif -%}
+          {% when 'popup_link' %}
+            {% if block.settings.link_text != blank %}
+              {% if block.settings.content != blank or block.settings.select_page != blank %}
+                <div
+                  class="mb-[var(--padding-bottom-product-template-block)] w-full{% if show_content_center %} text-center{% endif %}"
+                  x-data="
+                    {
+                      isOpenPopupLink: false ,
+                      sizeChartFocus() {
+                        Alpine.store('xFocusElement').trapFocus('SizeChart','CloseSizeChart');
+                      }
+                    }
+                  "
+                  {{ block.shopify_attributes }}
+                >
+                  {% liquid
+                    assign is_show_content = false
+                    if block.settings.content != blank or block.settings.select_page != blank
+                      assign is_show_content = true
+                    endif
+                    assign show_button_style = block.settings.link_style
+                    if block.settings.link_style == 'link'
+                      assign show_button_style = 'text-link'
+                    endif
+                  %}
+
+                  <custom-button>
+                    <a
+                      id="PopupLink__OpenButton"
+                      class="button{% if block.settings.link_style != 'link' %} inline-flex items-center{% else %} button-no-padding anm-button-{{ settings.button_link_hover_animation -}}{% endif %} {% if block.settings.link_style == 'direction_link' %} direction_link button-no-padding anm-button-arrow_push{% endif %} button-{{ block.settings.link_style }} relative cursor-pointer {% unless is_show_content %} pointer-events-none{% endunless %}"
+                      role="button"
+                      {% if is_show_content %}
+                        @click.prevent="isOpenPopupLink = true; $store.xMaximizeDrawer.handleOpen('#PopupLink__Container__{{ block.id }}');"
+                        tabindex="0"
+                        @keyup.enter="$el.click()"
+                      {% endif %}
+                    >
+                      {% render 'button-label', button_label: block.settings.link_text, show_button_style: show_button_style %}
+                    </a>
+                  </custom-button>
+
+                  {% if is_show_content %}
+                    <template x-teleport="body">
+                      <div
+                        id="PopupLink__Container__{{ block.id }}"
+                        class="pop-up-link__wrapper drawer__wrapper color-{{ section.settings.color_scheme_light.id }} dark-color-{{ section.settings.color_scheme_dark.id }}"
+                        x-show="isOpenPopupLink"
+                        tabindex="0"
+                        x-cloak
+                        style="background: transparent;"
+                      >
+                        <div
+                          id="PopupLink__Overlay__{{ block.id }}"
+                          class="drawer__overlay"
+                          x-show="isOpenPopupLink"
+                          @click.prevent="isOpenPopupLink = false; $store.xMaximizeDrawer.handleClose();"
+                        ></div>
+                        <div
+                          x-show="isOpenPopupLink"
+                          class="popup-link__drawer__container drawer__container outline-none"
+                          tabindex="0"
+                          x-cloak
+                          x-transition:enter-start="opacity-0 transform translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+                          x-transition:enter-end="opacity-100 transform translate-y-0 md:translate-x-0"
+                          x-transition:leave-end="opacity-0 transform translate-y-full md:translate-y-0 {% if is_rtl %} md:-translate-x-1/3{% else %} md:translate-x-1/3{% endif %}"
+                          x-intersect.full="$store.xFocusElement.trapFocus('PopupLink__Container__{{ block.id }}', 'ClosePopUpLink__{{ block.id }}')"
+                          @keyup.escape="isOpenPopupLink = false; $store.xMaximizeDrawer.handleClose()"
+                        >
+                          <div class="modal-title-container modal-title-padding-x pb-1 md:pb-2">
+                            <div class="modal-title-wrapper">
+                              <div class="grow flex items-center">
+                                <p class="h3">
+                                  {{ block.settings.select_page.title | escape }}
+                                </p>
+                              </div>
+
+                              <button
+                                id="ClosePopUpLink__{{ block.id }}"
+                                @click="isOpenPopupLink = false; $store.xMaximizeDrawer.handleClose(); $store.xFocusElement.removeTrapFocus();"
+                                @keyup.enter.prevent="isOpenPopupLink = false; $store.xMaximizeDrawer.handleClose(); $store.xFocusElement.removeTrapFocus();"
+                                @keydown.enter.prevent
+                                class="modal-title__button-close"
+                              >
+                                <span class="button__close icon-close-large-desktop icon-close-large-mobile">{%- render 'icon-all', icon: 'icon-close' -%}</span>
+                              </button>
+                            </div>
+                          </div>
+                          <div class="popup-link__content drawer__content scrollbar-body scrollbar-visible">
+                            <div class="rte">
+                              {% if block.settings.content != blank -%}
+                                <div class="mb-5 pt-2 pb-2 ">{{ block.settings.content }}</div>
+                              {%- endif %}
+                              {%- if block.settings.select_page.content != blank -%}
+                                {{ block.settings.select_page.content }}
+                              {% endif %}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </template>
+                  {% endif %}
+                </div>
+              {% endif %}
+            {% endif %}
+          {%- when 'separator' -%}
+            <div
+              class="product-info__separator-wrapper border-t border-solid color-border-[rgba(var(--color-line-and-border))] w-full mb-[var(--padding-bottom-product-template-block)]"
+              {{ block.shopify_attributes }}
+            ></div>
+          {%- when 'html' -%}
+            <div
+              class="product-info__custom-html {% if block.settings.custom_html != blank %}mb-[var(--padding-bottom-product-template-block)]{% endif %} w-full anm-fade-element rte"
+              data-fade-on-intersect
+              {{ block.shopify_attributes }}
+            >
+              {{ block.settings.custom_html }}
+            </div>
+          {%- when 'image' -%}
+            <div
+              class="product-info__image-wrapper flex flex-col gap-2.5 mb-[var(--padding-bottom-product-template-block)]"
+              {{ block.shopify_attributes }}
+            >
+              {% liquid
+                assign image = block.settings.image
+                assign link = block.settings.link
+              %}
+              {% if block.settings.heading != blank -%}
+                <p class="h5 md:h6 {{ content_center_class }}">{{ block.settings.heading }}</p>
+              {%- endif %}
+
+              <div
+                class="overflow-hidden w-full flex relative {% if show_content_center %} justify-center{% endif %} {% if settings.edges_type == 'rounded_corners' %} rounded-[10px]{% endif %} {%- if link != blank %} media-hyperlink{% endif -%}"
+                {{ block.shopify_attributes }}
+              >
+                {% capture image %}
+                  {% if image != blank %}
+                    <img
+                      srcset="
+                        {{ image | image_url: width: 320 }} 320w,
+                        {{ image | image_url: width: 375 }} 375w,
+                        {{ image | image_url: width: 450 }} 450w,
+                        {{ image | image_url: width: 550 }} 550w,
+                        {{ image | image_url: width: 750 }} 750w,
+                        {{ image | image_url: width: 600 }} 900w,
+                        {{ image | image_url: width: 800 }} 1100w,
+                        {{ image | image_url: width: 900 }} 1500w,
+                        {{ image | image_url: width: 1500 }} 2000w,
+                        {{ image | image_url: width: 2000 }} 3000w,
+                        {{ image | image_url: width: 2500 }} 3840w
+                      "
+                      src="{{ image | image_url: width: 3840 }}"
+                      alt="{{ image.alt | default: product.title | escape }}"
+                      sizes="(min-width: 1982px) 1500px, 50vw"
+                      loading="lazy"
+                      class="product-info__image-{{ section.id }}-{{ block.id }} w-full h-full object-fit max-w-full anm-image-hover"
+                      width="{{ image.width }}"
+                      height="{{ image.width | divided_by: image.aspect_ratio }}"
+                    >
+                  {% else %}
+                    <div class="relative w-full pb-[56%]">
+                      <div class="absolute w-full h-full overflow-hidden flex justify-center items-center">
+                        {% render 'placeholder-image', image_type: 'image' %}
+                      </div>
+                    </div>
+                  {% endif %}
+                {% endcapture %}
+
+                {% if link != blank %}
+                  <a
+                    href="{{ link }}"
+                    target="_blank"
+                    class="w-full section-image-link"
+                  >
+                    {{ image }}
+                  </a>
+                {% else %}
+                  {{ image }}
+                {% endif %}
+              </div>
+            </div>
+          {%- when 'back_in_stock_alert' -%}
+            {%- liquid
+              assign stock_alert_form_id = 'StockAlert' | append: section.id
+              assign text_success = block.settings.text_success
+              assign message = 'products.product.back_in_stock_alert' | t
+              assign contact_form_class = 'maximize-contact-form back-in-stock__form'
+            -%}
+            <div
+              class="product-info__back-in-stock-alert-wrapper w-full anm-fade-element"
+              data-block-id="{{ block.id }}"
+              data-fade-on-intersect
+              {{ block.shopify_attributes }}
+              x-data="xContactForm('{{ stock_alert_form_id }}')"
+              @input.debounce.300ms="validateForm()"
+              @change="validateForm()"
+            >
+              {% liquid
+                assign is_show_block = true
+                if block.settings.show_when_product_unavailable
+                  if current_variant != blank and current_variant.available
+                    assign is_show_block = false
+                  else
+                    assign is_show_block = false
+                  endif
+                endif
+              %}
+              <div class="w-full mb-[var(--padding-bottom-product-template-block)] flex flex-col gap-y-2.5 {% unless is_show_block %} hidden{% endunless %}">
+                {%- if block.settings.heading != blank or block.settings.text_info != blank -%}
+                  <div class="flex flex-col gap-y-0.5">
+                    {%- if block.settings.heading != blank -%}
+                      <p class="{{ content_center_class }} back-in-stock__heading h5 md:h6">
+                        {{ block.settings.heading | escape }}
+                      </p>
+                    {%- endif -%}
+                    {%- if block.settings.text_info != blank -%}
+                      <div class="back-in-stock__info text-small rte {{ content_center_class }}">
+                        {{ block.settings.text_info }}
+                      </div>
+                    {%- endif -%}
+                  </div>
+                {% endif %}
+
+                {%- form 'contact', id: stock_alert_form_id, class: contact_form_class -%}
+                  {%- if form.posted_successfully? -%}
+                    <div class="back-in-stock__success-message mb-2.5 flex{% if show_content_center %} justify-center{% endif %}">
+                      <div
+                        class="flash-message success-message"
+                        tabindex="-1"
+                        autofocus
+                      >
+                        {{ text_success }}
+                      </div>
+                    </div>
+                  {%- elsif form.errors -%}
+                    <div class="back-in-stock__error-message mb-2.5 flex{% if show_content_center %} justify-center{% endif %}">
+                      <div
+                        class="flash-message error-message"
+                        tabindex="-1"
+                        autofocus
+                      >
+                        {{ form.errors.translated_fields.email | capitalize }}
+                        {{ form.errors.messages.email }}
+                      </div>
+                    </div>
+                  {%- endif -%}
+                  {%- unless form.posted_successfully? -%}
+                    <input
+                      type="hidden"
+                      name="contact[Message]"
+                      value="{{ message }}"
+                      form="{{ stock_alert_form_id }}"
+                    >
+                    <input
+                      type="hidden"
+                      name="contact[Product ID]"
+                      value="{{ product.id }}"
+                      form="{{ stock_alert_form_id }}"
+                    >
+                    <input
+                      type="hidden"
+                      name="contact[Product Title]"
+                      value="{{ product.title }}"
+                      form="{{ stock_alert_form_id }}"
+                    >
+                    <input
+                      type="hidden"
+                      name="contact[Product URL]"
+                      value="{{ shop.url }}{{ product.url }}"
+                      form="{{ stock_alert_form_id }}"
+                    >
+                    {% unless product.has_only_default_variant %}
+                      <input
+                        type="hidden"
+                        name="contact[Product Variant]"
+                        value="{{ current_variant.title }}"
+                        form="{{ stock_alert_form_id }}"
+                      >
+                    {% endunless %}
+                    <div class="stock-alert__fields text-field__wrapper text-field__has-button">
+                      <div class="text-field__content">
+                        <input
+                          type="email"
+                          id="ContactFormEmail-{{ section.id }}"
+                          class="text-field__input"
+                          name="contact[email]"
+                          autocomplete="email"
+                          autocapitalize="off"
+                          autocorrect="off"
+                          placeholder="{{ 'customer.email' | t }}"
+                          required
+                          form="{{ stock_alert_form_id }}"
+                        >
+                        <label
+                          class="text-field__label"
+                          for="ContactFormEmail-{{ section.id }}"
+                        >
+                          {{ 'customer.email' | t }}
+                        </label>
+                      </div>
+                      <custom-button>
+                        <button
+                          type="submit"
+                          class="button button-secondary py-2.5 px-3.5 cursor-pointer empty:hidden {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+                          name="btnSubmit"
+                          disabled
+                          :disabled="!isFormValid"
+                        >
+                          {%- if block.settings.button_label != blank -%}
+                            {% assign button_label = block.settings.button_label %}
+                          {%- else -%}
+                            {% assign button_label = 'newsletter.button_label' | t %}
+                          {%- endif -%}
+                          {% render 'button-label', button_label: button_label, show_button_style: 'primary' %}
+                        </button>
+                      </custom-button>
+                    </div>
+                    <div 
+                      id="BackInStockAlert-{{ section.id }}__validation"
+                      class="contact-form__email-error-{{ stock_alert_form_id }} hidden flash-message error-message mt-1"
+                    >
+                    </div>
+                  {%- endunless -%}
+                {%- endform -%}
+              </div>
+            </div>
+          {%- when 'customizable_options' -%}
+            {% liquid
+              assign start_group_customizable_options_blocks = false
+              assign end_group_customizable_options_blocks = false
+              assign next_block_index = forloop.index | minus: 1 | plus: 1
+              assign prev_block_index = forloop.index | minus: 1 | minus: 1
+
+              if forloop.first
+                if section.blocks[next_block_index].type == 'customizable_options'
+                  assign start_group_customizable_options_blocks = true
+                endif
+              else
+                if section.blocks[next_block_index].type == 'customizable_options' and section.blocks[prev_block_index].type != 'customizable_options'
+                  assign start_group_customizable_options_blocks = true
+                endif
+              endif
+
+              if forloop.last
+                if section.blocks[prev_block_index].type == 'customizable_options'
+                  assign end_group_customizable_options_blocks = true
+                endif
+              else
+                if section.blocks[prev_block_index].type == 'customizable_options' and section.blocks[next_block_index].type != 'customizable_options'
+                  assign end_group_customizable_options_blocks = true
+                endif
+              endif
+            %}
+            {% if start_group_customizable_options_blocks %}
+              <div class="flex flex-wrap gap-x-2.5">
+            {% endif %}
+            <div
+              class="mb-[var(--padding-bottom-product-template-block)] {{ content_center_class }} product-info__customize-picker-wrapper block-{{ block.id -}}
+                    {%- if block.settings.width_block == 'w-1/2' %} w-[calc(50%-0.3125rem)]{%- else %} {{ block.settings.width_block }}{% endif -%}
+              "
+              {{ block.shopify_attributes }}
+            >
+              {% assign max_text_length_variable = block.settings.max_text_length | plus: 0 %}
+              {% render 'customizable-options',
+                block_id: block.id,
+                option_name: block.settings.option_name,
+                required: block.settings.required,
+                picker_type: block.settings.picker_type,
+                product_form_id: product_form_id,
+                option_list: block.settings.option_list,
+                max_text_length: max_text_length_variable,
+                option_text_note: block.settings.option_text_note,
+                option_select_note: block.settings.option_select_note,
+                minimum_select_value: block.settings.minimum_select_value,
+                maximum_select_value: block.settings.maximum_select_value,
+                option_file_note: block.settings.option_file_note,
+                swatch_value: block.settings.swatch_value,
+                swatch_style: block.settings.swatch_style,
+                min_date: block.settings.min_date,
+                max_date: block.settings.max_date,
+                show_content_center: show_content_center,
+                is_rtl: is_rtl,
+                swatch_size: block.settings.swatch_size
+              %}
+            </div>
+            {% if end_group_customizable_options_blocks %}
+              </div>
+            {% endif %}
+          {% when 'featured_icon' %}
+            {%- liquid
+              assign applied_collection_ids = block.settings.applied_collections | map: 'id' | join: ', '
+              assign is_show_block = false
+              if applied_collection_ids != blank
+                for collection in product.collections
+                  assign id = collection.id
+                  if applied_collection_ids contains id
+                    assign is_show_block = true
+                    break
+                  endif
+                endfor
+              endif
+            -%}
+            <div
+              class="product-info__featured-icons__wrapper featured-icons__{{ block.id }} w-full mb-[var(--padding-bottom-product-template-block)]"
+              {{ block.shopify_attributes }}
+            >
+              {% if is_show_block %}
+                {% liquid
+                  assign is_grid_on_desktop = true
+                  assign is_grid_on_mobile = true
+                  if block.settings.desktop_layout == 'rotating'
+                    assign is_grid_on_desktop = false
+                  endif
+
+                  if block.settings.mobile_layout == 'rotating'
+                    assign is_grid_on_mobile = false
+                  endif
+
+                  assign max_columns_per_row_desktop = 4
+                  assign max_columns_per_row_mobile = 3
+                  if section.settings.desktop_media_width == 'large'
+                    assign max_columns_per_row_desktop = 3
+                  endif
+                  
+                  assign number_of_item = 0
+                  assign has_icon_in_list = false
+                  assign has_title_in_list = false
+                  assign has_text_in_list = false
+                  
+                  for i in (1..6)
+                    assign icon = 'icon_' | append: i
+                    assign another_icon = 'another_icon_' | append: i
+                    assign custom_icon_image = 'custom_icon_image_' | append: i
+                    assign title = 'title_' | append: i
+                    assign text = 'text_' | append: i
+
+                    assign is_has_icon = false
+                    unless block.settings[icon] == 'none' or block.settings[custom_icon_image] == blank and block.settings[icon] == 'another' and block.settings[another_icon] == blank
+                      assign is_has_icon = true
+                      assign has_icon_in_list = true
+                    endunless
+
+                    if block.settings[title]
+                      assign has_title_in_list = true
+                    endif
+                    if block.settings[text]
+                      assign has_text_in_list = true
+                    endif
+
+                    unless is_has_icon == false and block.settings[title] == blank and block.settings[text] == blank
+                      assign number_of_item = number_of_item | plus: 1
+                    endunless
+                  endfor
+
+                  assign custom_class = 'h-full'
+                  assign wrapper_class = 'p-3'
+                  assign wrapper_scheme = 'color-scheme-block color-' | append: block.settings.color_scheme_light | append: ' dark-color-' | append: block.settings.color_scheme_dark
+                  assign wrapper_background = 'rgba(var(--color-background))'
+                  assign wrapper_rounded_class = 'rounded-corners'
+                  assign content_class = 'gap-2'
+
+                  assign show_border = false
+                  if block.settings.border_column == 'column'
+                    assign show_border = true
+                  endif
+
+                  
+                  assign content_position = block.settings.content_alignment
+                  if content_position == 'start'
+                    assign content_position = 'left'
+                  elsif content_position == 'end'
+                    assign content_position = 'right'
+                  endif
+                  assign text_class = 'rte p-break-words after:hidden'
+                  assign heading_class = 'h6 md:h7 p-break-words'
+
+                  if is_grid_on_mobile
+                    assign custom_class = custom_class | append: ' relative'
+
+                    assign content_class = content_class | append: ' flex-col text-' | append: content_position
+                    unless is_rtl
+                      assign content_class = content_class | append: ' items-' | append: content_position
+                    else
+                      if content_position == 'left'
+                        assign content_class = content_class | append: ' items-right'
+                      elsif content_position == 'right'
+                        assign content_class = content_class | append: ' items-left'
+                      else
+                        assign content_class = content_class | append: ' items-center'
+                      endif
+                    endunless
+                  else
+                    assign content_class = content_class | append: ' flex-row items-center text-align-unset'
+                  endif
+
+                  if is_grid_on_desktop
+                    assign custom_class = custom_class | append: ' md:relative'
+
+                    assign content_class = content_class | append: ' md:flex-col md:text-' | append: content_position
+                    unless is_rtl
+                      assign content_class = content_class | append: ' md:items-' | append: content_position
+                    else
+                      if content_position == 'left'
+                        assign content_class = content_class | append: ' md:items-right'
+                      elsif content_position == 'right'
+                        assign content_class = content_class | append: ' md:items-left'
+                      else
+                        assign content_class = content_class | append: ' md:items-center'
+                      endif
+                    endunless
+
+                  else
+                    assign content_class = content_class | append: ' md:flex-row md:items-center md:text-align-unset'
+                  endif
+                %}
+
+                {% if number_of_item > 0 %}
+                  {% style %}
+                    .heading-{{ block.id }} {
+                      font-size: calc(var(--h5-font-size)*{{ block.settings.heading_size }});
+                    }
+
+                    .icon-{{ block.id }} {
+                      --icon-size: {{ block.settings.icon_size }}px;
+                    }
+  
+                    @media (min-width: 768px) {
+                      .heading-{{ block.id }} {
+                        font-size: calc(var(--h6-font-size)*{{ block.settings.heading_size }});
+                      }
+                    }
+                  {% endstyle %}
+
+                  {% if number_of_item > 0 and is_grid_on_mobile == false or is_grid_on_desktop == false %}
+                  {% endif %}
+  
+                  <custom-tooltip-container class="w-full flex">
+                    {% if number_of_item > 0 and is_grid_on_mobile == false or is_grid_on_desktop == false %}
+                        {% capture slide_element_config %}
+                          {
+                            "timeToNext": {{ block.settings.auto_rotate_every }}
+                          }
+                        {% endcapture %}
+                        <slide-element 
+                          class="featured-icons__wrapper slide-element icon-{{ block.id }}  w-full relative has-[.icon-with-text-content-visible:hover]:z-30"
+                          data-config='{{ slide_element_config }}'
+                          data-animation="{{ block.settings.animation }}"
+                          data-is-grid-on-desktop="{% if is_grid_on_desktop %}true{% else %}false{% endif %}"
+                          data-is-grid-on-mobile="{% if is_grid_on_mobile %}true{% else %}false{% endif %}"
+                        >
+                    {% else %}
+                      <div class="featured-icons__wrapper icon-{{ block.id }} w-full relative">
+                    {% endif %}
+                      <div 
+                        class="slide-element__list-items w-full grid
+                          {%- if is_grid_on_mobile %} grid-cols-{{ max_columns_per_row_mobile }} gap-2.5{%- else %} grid-cols-1{% endif -%}
+                          {%- if is_grid_on_desktop %} md:grid-cols-{{ max_columns_per_row_desktop }} md:gap-2.5{% else %} md:grid-cols-1{% endif -%}
+                        "
+                      >
+                        {%- for i in (1..6) -%}
+                          {%- liquid
+                            assign icon = 'icon_' | append: i
+                            assign another_icon = 'another_icon_' | append: i
+                            assign custom_icon_image = 'custom_icon_image_' | append: i
+                            assign title = 'title_' | append: i
+                            assign text = 'text_' | append: i
+                            assign link = 'link_' | append: i
+                            assign open_new_window = 'open_new_window_' | append: i
+                          -%}
+      
+                          {% liquid
+                            assign is_has_icon = false
+                            unless block.settings[icon] == 'none' or block.settings[custom_icon_image] == blank and block.settings[icon] == 'another' and block.settings[another_icon] == blank
+                              assign is_has_icon = true
+                            endunless
+      
+                            if block.settings[custom_icon_image] != blank
+                              assign icon_type = 'custom_icon_image'
+                            else
+                              if block.settings[icon] == 'another'
+                                assign icon_type = 'icon_another'
+                              elsif block.settings[icon] == 'none'
+                                assign icon_type = 'none'
+                              else
+                                assign icon_type = 'icon_labels_bags'
+                              endif
+                            endif
+                          %}
+                          {% unless is_has_icon == false and block.settings[title] == blank and block.settings[text] == blank %}
+                            <div class="slide-element__item {% if forloop.first %} is-active{% endif %}">
+                              {%- render 'icon-with-text',
+                                icon_type: icon_type,
+                                icon: block.settings[icon],
+                                another_icon: block.settings[another_icon],
+                                custom_icon_image: block.settings[custom_icon_image],
+                                icon_size: block.settings.icon_size,
+                                heading: block.settings[title],
+                                link: block.settings[link],
+                                open_new_window: block.settings[open_new_window],
+                                text: block.settings[text],
+                                custom_class: custom_class,
+                                wrapper_class: wrapper_class,
+                                wrapper_scheme: wrapper_scheme,
+                                wrapper_background: wrapper_background,
+                                wrapper_rounded_class: wrapper_rounded_class,
+                                content_class: content_class,
+                                heading_class: heading_class,
+                                text_class: text_class,
+                                currentId: block.id,
+                                is_grid_on_desktop: is_grid_on_desktop,
+                                is_grid_on_mobile: is_grid_on_mobile,
+                                show_border: show_border
+                              -%}
+                            </div>
+                          {% endunless %}
+                        {%- endfor -%}
+                      </div>
+
+                      {% if has_title_in_list or has_text_in_list %}
+                        {% if number_of_item > 0 and is_grid_on_mobile == false or is_grid_on_desktop == false %}
+                          {% liquid
+                            assign tooltip_class = 'icon-with-text__tooltip__wrapper max-w-[calc(100%*2/3)] z-10 mx-1'
+                            if is_grid_on_mobile
+                              assign tooltip_class = tooltip_class | append: ' hidden'
+                            endif
+
+                            if is_grid_on_desktop
+                              assign tooltip_class = tooltip_class | append: ' md:hidden'
+                            else
+                              assign tooltip_class = tooltip_class | append: ' md:flex'
+                            endif
+                          %}
+                          {% render 'tooltip',
+                            tooltip_class: tooltip_class,
+                            content_class: 'icon-with-text__tooltip-message',
+                            content: '',
+                            tooltip_position: 'top'
+                          %}
+                        {% endif %}
+                      {% endif %}
+                    {% if number_of_item > 0 and is_grid_on_mobile == false or is_grid_on_desktop == false %}
+                      </slide-element> 
+                      {% else %}
+                      </div>
+                    {% endif %}
+                  </custom-tooltip-container>
+                {% endif %}
+              {% endif %}
+            </div>
+          {% when 'text_with_icon' %}
+            <div
+              class="product-info__text-with-icon__wrapper"
+              {{ block.shopify_attributes }}
+            >
+              {% liquid
+                assign next_block_index = block_index | plus: 1
+                assign next_section_is_text_with_icon = false
+                assign icon_size = block.settings.icon_size | times: 2
+
+                if section.blocks[next_block_index].type == 'text_with_icon'
+                  assign next_section_is_text_with_icon = true
+                endif
+              %}
+              {% style %}
+                {%- if next_section_is_text_with_icon -%}
+                  .text-with-icon__{{ block.id }} {
+                    --padding-bottom-product-template-block: 6px;
+                  }
+                  @media (min-width: 768px) {
+                    .text-with-icon__{{ block.id }} {
+                      --padding-bottom-product-template-block: 10px;
+                    }
+                  }
+                {% endif %}
+                .product-info__text-with-icon__text.rte p:last-child {
+                  margin-bottom: 0;
+                }
+                .product-info__text-with-icon__text.rte p {
+                  margin-top: 0;
+                }
+
+                .size-icon-{{ block.id }} {
+                  width: {{ block.settings.icon_size }}px;
+                  height: {{ block.settings.icon_size }}px;
+                  flex: 0 0 {{ block.settings.icon_size }}px;
+                }
+                .maximize-theme:not(.dark) .text-with-icon__{{ block.id }} {
+                  {% if block.settings.background_color_light.alpha != 0.0 %}
+                    margin-top: 4px;
+                    background-color: rgba({{ block.settings.background_color_light.red }} {{ block.settings.background_color_light.green }} {{ block.settings.background_color_light.blue }} / {{ block.settings.background_color_light.alpha }});
+                    padding: 10px 14px;
+                  {% else %}
+                    background-color: transparent;
+                  {% endif %}
+                  {% if block.settings.text_light.alpha != 0.0 %}
+                    --color-text: {{ block.settings.text_light.red }} {{ block.settings.text_light.green }} {{ block.settings.text_light.blue }} / {{ block.settings.text_light.alpha }};
+                  {% endif %}
+                }
+                .maximize-theme.dark .text-with-icon__{{ block.id }} {
+                  {% if block.settings.background_color_dark.alpha != 0.0 %}
+                    margin-top: 4px;
+                    background-color: rgba({{ block.settings.background_color_dark.red }} {{ block.settings.background_color_dark.green }} {{ block.settings.background_color_dark.blue }} / {{ block.settings.background_color_dark.alpha }});
+                    padding: 10px 14px;
+                  {% else %}
+                    background-color: transparent;
+                  {% endif %}
+                  {% if block.settings.text_dark.alpha != 0.0 %}
+                    --color-text: {{ block.settings.text_dark.red }} {{ block.settings.text_dark.green }} {{ block.settings.text_dark.blue }} / {{ block.settings.text_dark.alpha }};
+                  {% endif %}
+                }
+              {% endstyle %}
+              <div
+                class="text-with-icon__{{ block.id }} anm-fade-element flex flex-row items-center gap-3 color-text-[rgba(var(--color-text)) mb-[var(--padding-bottom-product-template-block)] {% if show_content_center %} justify-center{% endif %} {% if is_rounded_corners %} rounded-md{% endif %}"
+                {% if block.settings.icon != 'none' or block.settings.text != blank %}
+                  data-fade-on-intersect
+                {% endif %}
+              >
+                {% unless block.settings.text == blank or block.settings.icon == 'none' or block.settings.custom_icon_image == blank and block.settings.icon == 'another' and block.settings.another_icon == blank %}
+                  {% if block.settings.icon != 'none' %}
+                    <div class="size-icon-{{ block.id }} inline-block relative ">
+                      {% if block.settings.custom_icon_image != blank %}
+                        <img
+                          src="{{ block.settings.custom_icon_image | image_url: width: icon_size }}"
+                          alt="{{ block.settings.custom_icon_image.alt | default: product.title | escape }}"
+                          loading="lazy"
+                          width="{{ block.settings.custom_icon_image.width }}"
+                          height="{{ block.settings.custom_icon_image.height }}"
+                          style="object-position: {{ block.settings.custom_icon_image.presentation.focal_point }}"
+                          class="object-cover absolute top-0 left-0 w-full h-full rounded-corners"
+                        >
+                      {% else %}
+                        <div class="color-text-[rgba(var(--color-text))]">
+                          {% if block.settings.icon == 'another' %}
+                            {% render 'icon-another', icon: block.settings.another_icon %}
+                          {% else %}
+                            {% render 'icon-labels-bags', icon: block.settings.icon %}
+                          {% endif %}
+                        </div>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                {% endunless %}
+                {% if block.settings.text != blank %}
+                  <div class="product-info__text-with-icon__text rte p-break-words color-text-[rgba(var(--color-text))]">
+                    {% render 'text-highlight',
+                      id: block.id,
+                      text: block.settings.text,
+                      highlight_effect: block.settings.highlight_effect,
+                      text_transform: block.settings.text_transform,
+                      allow_html: true
+                    %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% when 'collection_link' %}
+            {% if block.settings.text != blank and block.settings.text contains 'collection_name' %}
+              {%- liquid
+                if collection
+                  assign collection_title = collection.title | escape
+                  assign collection_url = collection.url | escape
+                elsif product.collections[0].url
+                  assign collection_title = product.collections[0].title | escape
+                  assign collection_url = product.collections[0].url | escape
+                endif
+
+                assign button_style = block.settings.button_style
+              -%}
+              {% if collection_title %}
+                <div
+                  class="product-info__collection-link-wrapper product-info__collection-link-wrapper-{{ block.id }} mb-[var(--padding-bottom-product-template-block)] w-full"
+                  {{ block.shopify_attributes }}
+                >
+                  {% capture collection_link %}
+                    <custom-button>
+                      <a
+                        class="collection-link__button collection-link--{{ block.id }} overflow-hidden relative ltr:ml-0.5 rtl:mr-0.5
+                        {%- if button_style == 'primary' %} button pt-2 pb-2 pl-3 pr-3 inline-flex button-primary rounded-corners-md
+                        {%- elsif button_style == 'secondary' %} button pt-2 pb-2 pl-3 pr-3 inline-flex button-secondary rounded-corners-md
+                        {%- elsif button_style == 'direction_link' %} direction_link button-no-padding anm-button-arrow_push shrink-0
+                        {%- else %} button-link button-no-padding anm-button-{{ settings.button_link_hover_animation -}}{% endif -%}"
+                        href="{{ collection_url }}"
+                      >
+                        {% render 'button-label', button_label: collection_title, show_button_style: button_style %}
+                      </a>
+                    </custom-button>
+                    <span class="inline-block w-1"></span>
+                  {% endcapture %}
+                  <div class="flex flex-row gap-2 flex-wrap{% if show_content_center %} justify-center{% endif %}">
+                    <div
+                      class="anm-fade-element collection-link__content"
+                      data-fade-on-intersect
+                    >
+                      {{ block.settings.text | replace: 'collection_name', collection_link }}
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+            {% endif %}
+          {% when 'space' %}
+            <div
+              class="product-info__space-{{ block.settings.gap }}"
+              {{ block.shopify_attributes }}
+            ></div>
+          {% when 'newsletter_signup' %}
+            <div
+              class="product-info__newsletter-signup flex flex-col mb-[var(--padding-bottom-product-template-block)] gap-y-2.5"
+              {{ block.shopify_attributes }}
+              x-data="{ email: '', error: validateEmail('') }"
+            >
+              {% if block.settings.heading != blank or block.settings.text != blank -%}
+                <div class="flex flex-col gap-y-0.5">
+                  {% if block.settings.heading != blank -%}
+                    <p
+                      class="h5 md:h6 {{ content_center_class }} anm-fade-element"
+                      data-fade-on-intersect
+                    >
+                      {{ block.settings.heading }}
+                    </p>
+                  {%- endif %}
+                  {% if block.settings.text != blank -%}
+                    <div
+                      class="color-text-[rgba(var(--color-text))] text-small rte {{ content_center_class }} anm-fade-element"
+                      data-fade-on-intersect
+                    >
+                      {{ block.settings.text }}
+                    </div>
+                  {%- endif %}
+                </div>
+              {% endif %}
+              
+              {%- assign newsletter_form_id = 'ProductInfoNewsletter-' | append: section.id -%}
+              {%- form 'customer', id: newsletter_form_id -%}
+                {%- unless form.posted_successfully? -%}
+                  <input
+                    type="hidden"
+                    name="contact[tags]"
+                    value="newsletter"
+                  >
+                  <div class="text-field__wrapper text-field__has-button">
+                    <div class="text-field__content">
+                      <input
+                        id="Email--{{ section.id }}"
+                        type="email"
+                        name="contact[email]"
+                        class="text-field__input"
+                        value="{% if customer %}{{ customer.email }}{% endif %}"
+                        aria-required="true"
+                        autocorrect="off"
+                        autocapitalize="off"
+                        autocomplete="email"
+                        placeholder="{{ 'newsletter.label' | t }}"
+                        x-model="email"
+                        @input.debounce.500ms="error = validateEmail(email)"
+                        required
+                      >
+                      <label
+                        for="Email--{{ section.id }}"
+                        class="text-field__label"
+                      >
+                        {{ 'newsletter.label' | t }}
+                      </label>
+                    </div>
+                    <custom-button>
+                      <button
+                        type="submit"
+                        class="button button-secondary py-2.5 px-3.5 cursor-pointer empty:hidden {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+                        name="btnSubmit"
+                        :disabled="error.isError === true"
+                      >
+                        {{ 'newsletter.button_label' | t }}
+                      </button>
+                    </custom-button>
+                  </div>
+                  <div 
+                    id="NewsletterSignup-{{ section.id }}__validation"
+                    class="flash-message error-message mt-1"
+                    x-show="error.isError === true && error.isInvalid === true"
+                    x-cloak
+                  >
+                    <p>{{ 'products.product.recipient.message_email_invalid' | t }}</p>
+                  </div>
+                {%- else -%}
+                  <div
+                    id="Newsletter__Success--{{ section.id }}"
+                    class="newsletter-message newsletter-message__success flex {% if show_content_center %} justify-center{% endif %}"
+                  >
+                    <div
+                      class="flash-message success-message"
+                      tabindex="-1"
+                      autofocus
+                    >
+                      {{ 'newsletter.success' | t }}
+                    </div>
+                  </div>
+                {%- endunless -%}
+                {%- if form.errors -%}
+                  <div
+                    id="Newsletter__Error--{{ section.id }}"
+                    class="newsletter-message newsletter-message__error flex {% if show_content_center %} justify-center{% endif %}"
+                  >
+                    <div
+                      class="flash-message error-message"
+                      tabindex="-1"
+                      autofocus
+                    >
+                      {{ form.errors.translated_fields.email | capitalize }}
+                      {{ form.errors.messages.email }}
+                    </div>
+                  </div>
+                {%- endif -%}
+              {%- endform -%}
+            </div>
+          {%- when 'payment_methods' -%}
+            <div
+              class="product-info__payment-methods mb-[var(--padding-bottom-product-template-block)] "
+              {{ block.shopify_attributes }}
+            >
+              {%- render 'payment-methods',
+                blockId: block.id,
+                heading: block.settings.heading,
+                heading_color_light: block.settings.heading_color_light,
+                heading_color_dark: block.settings.heading_color_dark,
+                text: block.settings.text,
+                text_color_light: block.settings.text_color_light,
+                text_color_dark: block.settings.text_color_dark,
+                background_color_light: block.settings.background_color_light,
+                background_color_dark: block.settings.background_color_dark,
+                show_background: block.settings.show_background,
+                custom_payment: block.settings.custom_payment,
+                show_content_center: show_content_center
+              -%}
+            </div>
+          {%- when 'table_of_information' -%}
+            {% liquid
+              assign is_open_content = false
+              if block.settings.show_in_tab
+                if block.settings.open_by_default
+                  assign is_open_content = true
+                endif
+              else
+                assign is_open_content = true
+              endif
+            %}
+            <collapsible-tab
+              class="table-of-information w-full mb-[var(--padding-bottom-product-template-block)]"
+              data-open-by-default="{{ is_open_content }}"
+              data-show-in-tab="{{ block.settings.show_in_tab }}"
+              {{ block.shopify_attributes }}
+            >
+              <div
+                class="table-of-information__container flex flex-col outline outline-1 color-outline-[rgba(var(--color-text),0.12)] pl-4 pr-4 {% if is_rounded_corners %} rounded-md{% endif %} {% if block.settings.use_secondary_background %} bg-secondary{% endif %}"
+                data-collapsible-tab-container
+              >
+                <div
+                  class="table-of-information__header flex relative items-center gap-2.5 w-full h5 md:h6 py-3{% if block.settings.show_in_tab %} cursor-pointer{% endif %}{% if show_content_center %} justify-center{% endif %}"
+                  data-collapsible-tab-header
+                >
+                  <div class="flex-auto flex flex-row items-center gap-2.5 min-h-[1.5rem] {% if show_content_center %} justify-center{% endif %}">
+                    {% unless block.settings.icon == 'none' or block.settings.custom_icon_image == blank and block.settings.icon == 'another' and block.settings.another_icon == blank %}
+                      <span class="inline-block relative w-6 h-6 min-w-6 shrink-0">
+                        {% if block.settings.custom_icon_image != blank %}
+                          <img
+                            src="{{ block.settings.custom_icon_image | image_url: width: 30 }}"
+                            alt="{{ block.settings.custom_icon_image.alt | default: product.title | escape }}"
+                            loading="lazy"
+                            width="{{ block.settings.custom_icon_image.width }}"
+                            height="{{ block.settings.custom_icon_image.height }}"
+                            style="object-position: {{ block.settings.custom_icon_image.presentation.focal_point }}"
+                            class="object-cover absolute top-0 left-0 w-full h-full rounded-corners custom-icon-image_rounded-corners"
+                          >
+                        {% else %}
+                          {% if block.settings.icon == 'another' %}
+                            {% render 'icon-another', icon: block.settings.another_icon %}
+                          {% else %}
+                            {% render 'icon-labels-bags', icon: block.settings.icon %}
+                          {% endif %}
+                        {% endif %}
+                      </span>
+                    {% endunless %}
+                    <div
+                      class="pr-6 rtl:pr-0 rtl:pl-6 anm-fade-element"
+                      data-fade-on-intersect
+                    >
+                      {{- block.settings.heading | escape -}}
+                    </div>
+                  </div>
+                  {% if block.settings.show_in_tab %}
+                    <div
+                      class="w-3 h-3 shrink-0 flex duration-500 transition-transform will-change-transform rotate-0"
+                      data-collapsible-tab-caret
+                    >
+                      {% render 'icon-all', icon: 'icon-caret' %}
+                    </div>
+                  {% endif %}
+                </div>
+
+                {%- if block.settings.left_label != blank or block.settings.right_label != blank or block.settings.details != blank or block.settings.extra_details != blank -%}
+                  <div
+                    class="table-of-information__content {% if block.settings.show_in_tab %} h-0 overflow-hidden transition-[height] duration-300 ease-out {% endif %}
+                      {%- if show_content_center %} text-center{% endif -%}"
+                    data-collapsible-tab-content
+                  >
+                    <div 
+                      class="mb-3.5
+                        {%- if block.settings.use_secondary_background %} p-4 color-bg-[var(--element-background)]{% endif -%}
+                        {%- if settings.edges_type == 'rounded_corners' %} rounded-[10px]{% endif -%}
+                      "
+                    >
+                      {% if block.settings.left_label != blank or block.settings.right_label != blank %}
+                        <div
+                          class="table-info-label flex justify-between pt-2 pb-2 font-semibold italic border-b border-solid color-border-[rgba(var(--color-text),0.12)] anm-fade-element"
+                          data-fade-on-intersect
+                        >
+                          <div>{{ block.settings.left_label }}</div>
+                          <div class="text-right rtl:text-left">{{ block.settings.right_label }}</div>
+                        </div>
+                      {% endif %}
+                      {% liquid
+                        if block.settings.details != blank
+                          assign details = block.settings.details | remove: '<li>'
+
+                          assign details = details | remove: '<ol>'
+                          assign details = details | remove: '<p>'
+                          assign details = details | remove: '<ul>'
+                          assign details = details | replace: '</li>', '<br>'
+                          assign details = details | replace: '</ul>', '<br>'
+                          assign details = details | replace: '</p>', '<br>'
+                          assign details = details | newline_to_br | split: '<br>'
+                        endif
+                      %}
+                      {% style %}
+                        .table-of-information__detail p:empty {
+                          display: none;
+                        }
+
+                        .table-of-information__detail ol {
+                          width: 100%;
+                          list-style: auto;
+                        }
+
+                        .table-of-information__details {
+                          list-style: auto;
+                        }
+                      {% endstyle %}
+
+                      {% for table in details %}
+                        {%  if request.design_mode %}
+                          {% if forloop.last and table contains '<!-- END setting: ' %}
+                            {% break %}
+                          {% endif %}
+                        {% endif %}
+                        <ul class="table-of-information__detail{% if block.settings.extra_details != blank %} pb-5{% endif %}">
+                          {% liquid
+                            assign rows = table | strip_newlines | newline_to_br | split: '<br/>'
+                          %}
+                          {% for row in rows %}
+                            {% if row != blank %}
+                              <li
+                                class="table-content__row flex w-full justify-between pt-2 pb-2 anm-fade-element gap-4
+                                  {% unless forloop.last %}border-b border-solid color-border-[rgba(var(--color-text),0.12)]{% endunless %}"
+                                data-fade-on-intersect
+                              >
+                                {%liquid  
+                                  assign row_split = row | split: ':' 
+                                  assign first_charactor = row_split | first | slice: 0, 1 
+                                  assign right_label_of_row  = row_split | last 
+                                  assign row_length = row_split | size 
+                                %}
+
+                                <div class="table-content__row__first rte{% if first_charactor == '-' %} pl-4 rtl:pl-0 rtl:pr-4{% endif %}">
+                                  {{ row | strip_html | split: ':' | first | remove_first: '-' }}
+                                </div>
+                                {% if row_length > 1 %}
+                                  <div class="table-content__row__last rte text-right rtl:text-left">
+                                    {% render 'product-metafield-table',
+                                      right_label_of_row: right_label_of_row,
+                                      product: product,
+                                      current_variant: current_variant,
+                                      text_empty: block.settings.text_empty_field,
+                                      is_bullet_list: true
+                                    %}
+                                  </div>
+                                {% endif %}
+                              </li>
+                            {% endif %}
+                          {% endfor %}
+                        </ul>
+                      {% endfor %}
+                      {% if block.settings.extra_details != blank %}
+                        <div class="table-content__row__last extra-details rte anm-fade-element text-left rtl:text-right" data-fade-on-intersect>
+                          {% render 'product-metafield-table',
+                            product: product,
+                            current_variant: current_variant,
+                            text_empty: block.settings.text_empty_field,
+                            is_bullet_list: false,
+                            right_label_of_row: block.settings.extra_details
+                          %}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                {%- endif -%}
+              </div>
+            </collapsible-tab>
+          {%- when 'estimate_delivery' -%}
+            {% liquid
+              assign is_out_of_stock = false
+              if current_variant.inventory_management == 'shopify'
+                if current_variant.inventory_quantity <= 0 and current_variant.inventory_policy != 'continue'
+                  assign is_out_of_stock = true
+                endif
+              endif
+              assign is_enable_cart_edt = true
+
+              if is_show_preorder and block.settings.hide_when_pre_order
+                assign is_enable_cart_edt = false
+              elsif is_out_of_stock 
+                assign is_enable_cart_edt = false      
+              endif
+            %}
+            {% if block.settings.message != blank %}
+              <div
+                id="x-estimate-delivery-{{ section.id }}"
+                class="product-info__estimate-delivery-wrapper w-full {% unless is_enable_cart_edt %} hidden disable-estimate{% endunless %} anm-fade-element"
+                data-block-id="{{ block.id }}"
+                data-fade-on-intersect
+                {{ block.shopify_attributes }}
+              >
+                <div class="{% unless is_enable_cart_edt %} hidden disable-estimate{% endunless %}">
+                  {%- assign container_id = '#x-estimate-delivery-' | append: section.id -%}
+                  {%- render 'estimate-delivery-product-template',
+                    product: product,
+                    estimate_message: block.settings.message,
+                    enable_tooltip: block.settings.enable_tooltip,
+                    tooltip_content: block.settings.tooltip_content,
+                    container_id: container_id,
+                    show_background: block.settings.show_background,
+                    background_color_light: block.settings.background_color_light,
+                    message_color_light: block.settings.message_color_light,
+                    background_color_dark: block.settings.background_color_dark,
+                    message_color_dark: block.settings.message_color_dark,
+                    show_content_center: show_content_center,
+                    current_variant: product.selected_or_first_available_variant,
+                    is_product_page: true
+                  -%}
+                </div>
+              </div>
+            {% endif %}
+          {%- when 'video' -%}
+            <div
+              class="product-info__video-wrapper w-full mb-[var(--padding-bottom-product-template-block)] {{ content_center_class }} flex flex-col gap-y-2.5"
+              {{ block.shopify_attributes }}
+              x-data="{isOpenPopup: false}"
+            >
+              {% liquid
+                assign video_type = false
+                assign video_alt = block.settings.video_alt_text
+                if block.settings.video_url.type == 'youtube'
+                  assign video_type = 'youtube'
+                  assign video_id = block.settings.video_url.id
+                endif
+                if block.settings.video_url.type == 'vimeo'
+                  assign video_type = 'vimeo'
+                  assign video_id = block.settings.video_url.id
+                endif
+
+                if block.settings.video != null
+                  assign video_type = 'video_select'
+                endif
+                assign video_wrapper_class = 'product-info__video-' | append: block.id
+                if show_content_center
+                  assign video_wrapper_class = video_wrapper_class | append: ' m-auto'
+                endif
+              %}
+
+              {% if video_type %}
+                {% if block.settings.heading != blank or block.settings.caption != blank %}
+                  <div class="flex flex-col gap-y-0.5">
+                    {% if block.settings.heading != blank %}
+                      <p
+                        class="product-info__video-heading h5 md:h6 anm-fade-element"
+                        data-fade-on-intersect
+                      >
+                        {{ block.settings.heading }}
+                      </p>
+                    {% endif %}
+                    {% if block.settings.caption != blank %}
+                      <div
+                        class="product-info__video-caption rte anm-fade-element"
+                        data-fade-on-intersect
+                      >
+                        {{ block.settings.caption }}
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endif %}
+
+                <div
+                  class="relative rounded-corners overflow-hidden"
+                  data-video-type="{{ video_type }}"
+                >
+                  {% liquid
+                    assign cover_image = blank
+                    if video_type == 'video_select' and block.settings.image == blank
+                      assign cover_image = block.settings.video.preview_image
+                    endif
+                  %}
+                  {% if video_type == 'vimeo' %}
+                    {%- capture options -%}
+                      { 'alt': '{{ video_alt }}', 'width': 1280 }
+                    {%- endcapture -%}
+                  {% endif %}
+
+                  <picture
+                    class="img-thumbnail"
+                    {% if cover_image == blank and video_type == 'vimeo' %}
+                      x-init="$store.xVideo.renderVimeoFacade($el, '{{ video_id }}', {{ options }})"
+                    {% endif %}
+                  >
+                    {% if cover_image != blank %}
+                      <source
+                        srcset="
+                          {{ cover_image | image_url: width: 375 }} 375w,
+                          {{ cover_image | image_url: width: 450 }} 450w,
+                          {{ cover_image | image_url: width: 750 }} 750w,
+                          {{ cover_image | image_url: width: 900 }} 900w,
+                          {{ cover_image | image_url: width: 1100 }} 1100w,
+                          {{ cover_image | image_url: width: 1500 }} 1500w
+                        "
+                        media="(min-width: 768px)"
+                        width="{{ cover_image.width }}"
+                        height="{{ cover_image.height }}"
+                      >
+                      <img
+                        srcset="
+                          {{ cover_image | image_url: width: 375 }} 375w,
+                          {{ cover_image | image_url: width: 450 }} 450w,
+                          {{ cover_image | image_url: width: 750 }} 750w,
+                          {{ cover_image | image_url: width: 900 }} 900w,
+                          {{ cover_image | image_url: width: 1100 }} 1100w,
+                          {{ cover_image | image_url: width: 1500 }} 1500w,
+                          {{ cover_image | image_url: width: 1780 }} 1780w,
+                          {{ cover_image | image_url: width: 2000 }} 2000w,
+                          {{ cover_image | image_url: width: 3000 }} 3000w,
+                          {{ cover_image | image_url: width: 3840 }} 3840w
+                        "
+                        sizes="{{ sizes }}"
+                        src="{{ cover_image | image_url: width: 3840 }}"
+                        alt="{{ cover_image.alt | default: product.title  | escape }}"
+                        class="object-cover h-full w-full image-hover {% if is_rounded_corners %} rounded-[10px]{% endif %}"
+                        loading="lazy"
+                        width="{{ cover_image.width }}"
+                        height="{{ cover_image.height }}"
+                        {% if cover_image.presentation.focal_point != blank %}
+                          style="object-position:{{ cover_image.presentation.focal_point }};"
+                        {% endif %}
+                      >
+                    {% elsif video_type == 'youtube' %}
+                      <source
+                        type="image/webp"
+                        srcset="{{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/maxresdefault.webp' }}"
+                      >
+                      <source
+                        type="image/jpeg"
+                        srcset="{{ video_id | prepend: 'https://i.ytimg.com/vi/' | append: '/maxresdefault.jpg' }}"
+                      >
+                      <img
+                        src="{{ video_id | prepend: 'https://i.ytimg.com/vi_webp/' | append: '/maxresdefault.webp' }}"
+                        loading="lazy"
+                        class="object-cover h-full w-full image-hover"
+                        alt="{{ video_alt }}"
+                        width="1280"
+                        height="890"
+                      >
+                    {% else %}
+                      <div class="vimeo-thumbnail-skeleton w-full ratio-16/9 h-0 bg-skeleton"></div>
+                    {% endif %}
+                  </picture>
+                  <button
+                    class="button-play absolute z-30 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60px] h-[60px] md:w-[80px] md:h-[80px] video__button rounded-full bg-opacity-30 disabled:cursor-not-allowed"
+                    aria-label="image-video"
+                    @click="isOpenPopup = true; $store.xMaximizePopup.handleOpen();"
+                  >
+                    <span class="pointer-events-none duration-200 bg-button-play absolute w-6.5 h-6.5 md:w-8 md:h-8 top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2">
+                      {% render 'icon-media', icon: 'icon-play', class: 'w-full h-full' %}
+                    </span>
+                  </button>
+                </div>
+
+                <template x-teleport="body">
+                  <div
+                    id="VideoPopup__Container__{{ section }}__{{ block.id }}"
+                    class="video-popup__container popup-container"
+                    x-show="isOpenPopup"
+                    tabindex="0"
+                    x-cloak
+                  >
+                    <div
+                      id="VideoPopup__Content__{{ section }}__{{ block.id }}"
+                      @click.away="isOpenPopup = false; $store.xMaximizePopup.handleClose();"
+                      class="popup-content{% unless settings.show_popup_overlay %} shadow-large{% endunless %} px-0 video-popup__content transform-gpu md:max-h-[calc(100vh-16px)] m-auto rounded-[var(--border-radius-popup)] pb-4 md:pb-7.5 will-change-transform"
+                      tabindex="0"
+                      x-transition:enter-start="opacity-0 translate-y-1/3"
+                      x-transition:enter-end="opacity-100 translate-y-0"
+                      x-transition:leave-end="opacity-0 translate-y-1/3"
+                      x-intersect.full="$store.xFocusElement.trapFocus('VideoPopup__Container__{{ section }}__{{ block.id }}', 'ClosePopUp')"
+                      x-show="isOpenPopup"
+                      @keyup.escape="$store.xMaximizePopup.handleClose(); isOpenPopup = false;"
+                    >
+                      <button
+                        id="ClosePopUp"
+                        @click="$store.xMaximizePopup.handleClose(); isOpenPopup = false;"
+                        class="modal__button-close mb-2 md:mb-4"
+                      >
+                        <span class="button__close icon-close-large-desktop icon-close-large-mobile">{%- render 'icon-all', icon: 'icon-close' -%}</span>
+                      </button>
+                      <div class="w-full popup-detail scrollbar-body scrollbar-visible px-4 md:px-7.5 mr-0">
+                        {% render 'media',
+                          enable_video_autoplay: block.settings.enable_video_autoplay,
+                          video_alt: video_alt,
+                          video: block.settings.video,
+                          video_url: block.settings.video_url,
+                          cover_image: block.settings.image,
+                          mobile_cover_image: block.settings.image,
+                          section: section,
+                          sizes: sizes,
+                          class: video_wrapper_class,
+                          show_sound_control: block.settings.show_sound_control,
+                          is_full_height: false,
+                          show_placeholder_image: true
+                        %}
+                      </div>
+                      <div
+                        class="element-end-modal h-0 w-0 absolute pointer-events-none"
+                        tabindex="0"
+                        @focus="document.getElementById('ClosePopUp')?.focus()">
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              {% endif %}
+            </div>
+          {% when 'button_view_product' %}
+            <div class="button-view-product-details flex mb-[var(--padding-bottom-product-template-block)]" {{ block.shopify_attributes }}>
+              {% liquid
+                assign button_label = 'products.product.view_full_details' | t
+                if block.settings.button_style != 'text-link'
+                  assign class_button = class_button | append: 'pt-2.5 pb-2.5 md:pt-3 md:pb-3 pl-7 pr-7 md:pl-9 md:pr-9'
+                endif
+              %}
+              {% render 'button', button_style: block.settings.button_style, button_label: button_label, button_link: product.url, open_new_window_button: section.settings.open_new_window, class: class_button %}
+            </div>
+          {%- when 'additional_fee' -%}
+            {% render 'additional-fee', block: block, product: product %}
+          {%- when 'volume_pricing_table' -%}
+            {%- if product.quantity_price_breaks_configured? and login_hide_price != 'true' -%}
+              <div
+                id="volume-{{ section.id }}"
+                class="product-info__volume-pricing anm-fade-element {% if current_variant == blank %} is-unavailable{% endif %}"
+                data-fade-on-intersect
+                {{ block.shopify_attributes }}
+              >
+                {%- if product.selected_or_first_available_variant.quantity_price_breaks.size > 0 -%}
+                  {% liquid
+                    if block.settings.show_in_tab
+                      assign open_by_default = false
+                      if block.settings.open_by_default
+                        assign open_by_default = true
+                      endif
+                    endif
+                  %}
+                  <collapsible-tab 
+                    class="w-full rounded-corners-md mb-[var(--padding-bottom-product-template-block)]
+                      {%- if block.settings.show_border or block.settings.show_background %} px-4{% endif -%}
+                      {%- if block.settings.show_border %} border border-solid color-border-[rgba(var(--color-text),0.12)]{% endif -%}
+                      {%- if block.settings.show_background %} color-bg-[rgba(var(--color-text),0.06)]{% endif -%}"
+                      {% if block.settings.show_in_tab %}
+                        data-open-by-default="{{ open_by_default }}"
+                        data-show-in-tab="{{ block.settings.show_in_tab }}"
+                        data-use-secondary-bg="{{ block.settings.show_background }}"
+                        data-collapsible-tab-container
+                      {% endif %}
+                  >
+                    {% liquid 
+                      assign heading_volume_pricing = 'products.product.volume_pricing' | t
+                      if block.settings.heading != blank
+                        assign heading_volume_pricing = block.settings.heading
+                      endif
+                    %}
+                    <div 
+                      class="volume-pricing__heading-wrapper font-semibold py-3 h5 md:h6 flex gap-2.5 items-center w-full"
+                      {% if block.settings.show_in_tab %} 
+                        data-collapsible-tab-header
+                      {% endif %}  
+                    >
+                      <div class="volume-pricing__heading grow {{ content_center_class }}">
+                        {{ heading_volume_pricing }}
+                      </div>
+                      {%- if block.settings.show_in_tab -%}
+                        <div
+                          class="w-3 h-3 flex duration-500 transition-transform will-change-transform rotate-0"
+                          data-collapsible-tab-caret
+                        >
+                          {% render 'icon-all', icon: 'icon-caret' %}
+                        </div>
+                      {%- endif -%}
+                    </div>
+                    <div 
+                      class="flex flex-col gap-0.5 w-full {%- if block.settings.show_in_tab %} h-0 overflow-hidden transition-[height] duration-300 ease-out{% endif %}" 
+                      {%- if block.settings.show_in_tab -%} 
+                        data-collapsible-tab-content
+                      {% endif %}  
+                    >
+                      {%- render 'volume-pricing-table',
+                        variant: product.selected_or_first_available_variant,
+                        section_id: section.id,
+                        show_background: block.settings.show_background
+                      -%}
+                    </div>
+                  </collapsible-tab>
+                {% endif %}
+              </div>
+            {%- endif -%}
+          {%- when 'disclosures' -%}
+            {% assign disclosures = product.metafields.shopify.disclosure.value %}
+            {% if disclosures != blank %}
+              <div 
+                class="disclosures-container mb-[var(--padding-bottom-product-template-block)] {% if show_content_center %} text-center{% endif %}"
+                {{ block.shopify_attributes }}
+              >
+                {% if block.settings.heading != blank %}
+                  <p class="h5 md:h6 mb-2.5 anm-fade-element"
+                    data-fade-on-intersect
+                  >
+                    {{ block.settings.heading }}
+                  </p>
+                {% endif %}
+                <div
+                  class="p-2 border border-solid color-border-[rgba(var(--color-text),0.12)] {% if settings.edges_type == 'rounded_corners' %}rounded-corners{% endif -%}"
+                >
+                  {% render 'disclosures', block: block, show_content_center: show_content_center, product: product %}
+                </div>
+              </div>
+            {% endif %}  
+        {% endcase %}
+      {% endfor %}
+    </div>
+
+    <div class="product-template__properties hidden">
+      <div
+        class="product-template__estimate-property__wrapper {% if is_enable_cart_edt %} enable-cart-edt{% endif %}"
+        data-enable-cart-edt="{{ is_enable_cart_edt }}"
+      >
+        {% capture estimate_shipping_message %}
+          {% render 'estimate-shipping-message', product: product, variant: current_variant %}
+        {% endcapture %}
+        {% assign message_update = estimate_shipping_message | strip %}
+        {% if message_update != blank and settings.estimate_show_in_cart == 'show_item' %}
+          {% liquid
+            assign name_edt = settings.name_edt
+            if settings.name_edt == blank
+              assign name_edt = 'general.estimate_delivery' | t
+            endif
+          %}
+          <input
+            name="properties[{{ name_edt }}]"
+            value="{{ message_update }}"
+            class="hidden"
+            {% if product_form_id != blank %}
+              form="{{ product_form_id }}"
+            {% endif %}
+          >
+          {% comment %}{% unless is_enable_cart_edt %}{% endcomment %}
+          {% comment %}<input{% endcomment %}
+          {% comment %}name="properties[_preorder]"{% endcomment %}
+          {% comment %}value="preorder"{% endcomment %}
+          {% comment %}class="hidden"{% endcomment %}
+          {% comment %}{% if product_form_id != blank %}{% endcomment %}
+          {% comment %}form="{{ product_form_id }}"{% endcomment %}
+          {% comment %}{% endif %}{% endcomment %}
+          {% comment %}>{% endcomment %}
+          {% comment %}{% endunless %}{% endcomment %}
+        {% endif %}
+      </div>
+      {% if is_show_preorder %}
+        <div
+          class="product-template__preorder-property__wrapper hidden"
+        >
+          <label>
+            <input
+              form="{{ product_form_id }}"
+              name="properties[{{ 'general.preorder.name' | t }}]"
+              value="{{ message_preorder }}"
+            >
+          </label>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</product-info>
+
+{% if is_enable_sticky_atc %}
+  {% render 'sticky-add-to-cart',
+    section: section,
+    product: product,
+    variant: current_variant,
+    sticky_add_to_cart_show_quantity: section.settings.sticky_add_to_cart_show_quantity,
+    is_apply_preorder: is_apply_preorder,
+    is_show_preorder: is_show_preorder,
+    is_show_compare_button: is_show_compare_button,
+    is_rtl: is_rtl,
+    show_b2b_price_label: show_b2b_price_label
+  %}
+{% endif %}
+
+<script type="application/json" id="CurrentVariantInfo__{{ section.id }}">
+  {{ current_variant | json }}
+</script>
+
+{%- liquid
+  if is_quick_view
+    assign _pt_view_context = "dialog"
+  else
+    assign _pt_view_context = "page"
+  endif
+-%}
+<product-view-trigger
+  view-event-payload='{{ product | standard_event_data: "view", context: _pt_view_context | escape }}'
+  hidden
+></product-view-trigger>
+
+{% comment %}{% if is_apply_preorder %}{% endcomment %}
+  <script
+    type="application/json"
+    id="AdditionalVariantInfo__{{ section.id }}"
+  >
+    {
+      "inventory_policy": "{{ current_variant.inventory_policy }}",
+      "inventory_quantity": {{ current_variant.inventory_quantity | default: false }},
+      "inventory_management": "{{ current_variant.inventory_management }}"
+    }
+  </script>
+{% comment %}{% endif %}{% endcomment %}
+
+{%- if is_product_page and enable_microdata -%}
+  <script
+    type="application/ld+json"
+    id="ProductSeo__{{ product.id }}"
+  >
+    {{ product | structured_data }}
+  </script>
+{%- endif -%}

@@ -1,0 +1,410 @@
+{% assign lang_direction = settings.lang_direction %}
+{% assign settings = block.settings %}
+{% liquid
+  assign enable_mobile_slider = false
+  assign column_layout_mobile = settings.column_layout_mobile | times: 1
+  if settings.display_type_mobile == 'carousel'
+    assign enable_mobile_slider = true
+    if block.blocks.size <= column_layout_mobile
+      assign enable_mobile_slider = false
+    endif
+  endif
+%}
+
+{% liquid
+  assign enable_desktop_slider = false
+  assign enable_tablet_slider = false
+  assign column_layout_desktop = settings.column_layout_desktop | times: 1
+  assign column_layout_tablet = settings.column_layout_tablet | times: 1
+
+  if settings.display_type_desktop == 'carousel'
+    assign enable_desktop_slider = true
+
+    if enable_desktop_slider and block.blocks.size > column_layout_tablet
+      assign enable_tablet_slider = true
+    endif
+  endif
+%}
+
+{% liquid
+  assign column_layout_tablet = settings.column_layout_tablet
+%}
+
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block.settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block.settings.desktop_padding_left }}px;
+    --pad-right: {{ block.settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+  }
+  .block-{{ block.id }} .slider-container {
+    --swiffy-slider-item-gap: {{ block.settings.gap | divided_by: 2 }}px;
+  }
+
+  @media (min-width: 768px) {
+    .block-{{ block.id }} .slider-container {
+      --swiffy-slider-item-gap: {{ block.settings.gap }}px;
+    }
+  }
+  @media (max-width: 1023px) {
+    .block-{{ block.id }}.block-collection-items-list__wrapper {
+      grid-template-rows: 1fr auto;
+    }
+  }
+{% endstyle %}
+
+<div class="block-items-list grid block-items-list__wrapper block-{{ block.id }} h-{{ block.settings.height }} block-padding maximize-block z-10 swiffy-slider overflow-hidden enable-effect-hover slider-item-snapstart slider-nav-animation-fadein rounded-corners color-{{ block.settings.color_scheme_light }} dark-color-{{ block.settings.color_scheme_dark }}
+  {%- if enable_desktop_slider %} md:cursor-grab{% else %} md:!swiffy-slider{% endif -%}
+  {%- unless enable_mobile_slider %} !swiffy-slider{% endunless -%}
+  {%- if lang_direction contains request.locale.iso_code %} rtl{% endif -%}"
+  {% if enable_mobile_slider or enable_desktop_slider %}
+    x-data="{}"
+    x-intersect.once="$store.xSwiffy.load($el, {
+      'effect': 'slide',
+      'isLoop': true,
+      {%- if settings.auto_play_time > 0 %}
+      'autoPlay': true,
+      'autoPause': true,
+      'speed': {{ settings.auto_play_time | times: 1000 | default: 5000 }},
+      {% endif -%}
+      'blockSlider': true,
+      'mediaQuery': 'min',
+      'breakPoints':{
+        '0': {
+          'slidesPerView': {{ column_layout_mobile }}
+        },
+        '768': {
+          'slidesPerView': {{ column_layout_tablet }}
+        },
+        '1024': {
+          'slidesPerView': {{ column_layout_desktop }}
+        }
+      }
+    })"
+  {% endif %}
+  data-block-id="{{ block.id }}"
+  {{ block.shopify_attributes }}
+>
+  {% if settings.show_navigation_arrows and enable_desktop_slider and block.blocks.size > column_layout_desktop %}
+    {% render 'slider-navigation-button' %}
+  {% endif %}
+  <div
+    class="block-items-list__container slider-container anm-reveal-container
+      {%- if enable_mobile_slider %} slider-item-show{{ column_layout_mobile }} w-full{%- else %} grid grid-cols-{{ column_layout_mobile }}{% if enable_desktop_slider %} md:grid-cols-none{% endif -%}{%- endif -%}
+      {%- if enable_desktop_slider == false -%}
+        {%- if enable_tablet_slider %} md:slider-item-show{{ column_layout_tablet }} md:grid-cols-none{%- else %} md:grid md:grid-cols-{{ column_layout_tablet }}{%- endif %} lg:grid lg:grid-cols-{{ column_layout_desktop -}}
+      {%- else %} md:cursor-grab md:grid md:slider-item-show{{ column_layout_tablet }} lg:slider-item-show{{ column_layout_desktop -}}
+      {%- endif -%}"
+    data-mobile-gap="{{ block.settings.gap | divided_by: 2 }}px"
+    data-desktop-gap="{{ block.settings.gap }}px"
+  >
+    {% content_for 'blocks' %}
+  </div>
+  {% render 'progress-bar',
+    show_on_mobile: enable_mobile_slider,
+    show_on_tablet: enable_tablet_slider,
+    show_on_desktop: false
+  %}
+</div>
+
+{% schema  %}
+{
+  "name": "Items list",
+  "tag": null,
+  "blocks": [
+    {
+      "type": "subheading"
+    },
+    {
+      "type": "heading"
+    },
+    {
+      "type": "text"
+    },
+    {
+      "type": "button"
+    },
+    {
+      "type": "icon"
+    },
+    {
+      "type": "image"
+    },
+    {
+      "type": "video"
+    },
+    {
+      "type": "_group"
+    },
+    {
+      "type": "counter"
+    }
+  ],
+  "settings": [
+    {
+      "type": "header",
+      "content": "Display"
+    },
+    {
+      "type": "select",
+      "label": "Display type (Desktop)",
+      "id": "display_type_desktop",
+      "options": [
+        {
+          "label": "Grid",
+          "value": "grid"
+        },
+        {
+          "label": "Carousel",
+          "value": "carousel"
+        }
+      ],
+      "default": "grid"
+    },
+    {
+      "type": "select",
+      "label": "Display type (Mobile)",
+      "id": "display_type_mobile",
+      "options": [
+        {
+          "label": "Grid",
+          "value": "grid"
+        },
+        {
+          "label": "Carousel",
+          "value": "carousel"
+        }
+      ],
+      "default": "grid"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "column_layout_desktop",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "label": "Items per row (Desktop)",
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "column_layout_tablet",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "label": "Items per row (Tablet)",
+      "default": 2
+    },
+    {
+      "type": "select",
+      "id": "column_layout_mobile",
+      "label": "Items per row (Mobile)",
+      "default": "2",
+      "options": [
+        {
+          "value": "1",
+          "label": "t:global.section.columns.1_column"
+        },
+        {
+          "value": "2",
+          "label": "t:global.section.columns.2_columns"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "Carousel behavior"
+    },
+    {
+      "type": "range",
+      "id": "auto_play_time",
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "unit": "s",
+      "label": "t:global.carousel.auto_play",
+      "default": 5,
+      "info": "t:global.carousel.auto_play_info"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_navigation_arrows",
+      "default": false,
+      "label": "t:global.carousel.show_navigation_arrows"
+    },
+    {
+      "type": "header",
+      "content": "Size"
+    },
+    {
+      "id": "height",
+      "type": "select",
+      "default": "fit",
+      "options": [
+        {
+          "value": "fit",
+          "label": "Fit"
+        },
+        {
+          "value": "full",
+          "label": "Full"
+        }
+      ],
+      "label": "Height"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Gap",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "select",
+      "id": "spacing_choose_device",
+      "label": "Choose device",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "Desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "Mobile"
+        }
+      ],
+      "default": "desktop",
+      "info": "Desktop and Mobile settings are configured separately."
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "header",
+      "content": "Style"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_light",
+      "default": "scheme-1",
+      "label": "t:global.colors.color_scheme_light"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme_dark",
+      "default": "scheme-2",
+      "label": "t:global.colors.color_scheme_dark"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Items list",
+      "category": "Layout"
+    }
+  ]
+}
+{% endschema %}

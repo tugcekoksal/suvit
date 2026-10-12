@@ -1,0 +1,961 @@
+{%- comment -%}
+  Renders a product card inside the Product Bundle section.
+
+  The difference between this snippet and the regular 'product-card.liquid' is that 
+  this file is used specifically for add-to-bundle logic and include bundle-related constraints.
+
+  Accepts:
+  - product: {Object} Product Liquid object
+  - show_vendor: {Boolean} Show the product vendor. Default: false
+  - show_rating: {Boolean} Show the product rating. Default: false
+  - show_quickview: {Boolean} Show quick view button. Default: true
+  - section_id: {String} ID of the section that contains this card
+  - block_id: {String} ID of the block that contains this card
+  - index: {Number} Position of the product card inside the forloop
+  - choose_option_button_label: {String} 'Choose option' button label (optional)
+  - each_product_can_added_to_bundle_once: {Boolean} If true, prevents the same product from being added to the bundle more than once
+  - columns_desktop: {Number} Number of columns on desktop (optional)
+  - columns_mobile: {Number} Number of columns on mobile (optional)
+  - disable_badges: {Boolean} Don't show labels and badges on product card
+
+  Usage:
+  {% render 'product-card-bundle',
+    product: product,
+    show_vendor: block.settings.show_vendor,
+    show_rating: block.settings.show_rating,
+    show_quickview: block.settings.show_quickview,
+    section_id: section_id,
+    block_id: block.id,
+    index: forloop.index,
+    choose_option_button_label: "Choose option",
+    each_product_can_added_to_bundle_once: block.settings.each_product_can_added_to_bundle_once,
+    columns_desktop: columns_desktop,
+    columns_mobile: columns_mobile,
+    disable_badges: disable_badges
+  %}
+{%- endcomment -%}
+
+{% liquid
+  if settings.lang_direction contains request.locale.iso_code
+    assign rtl = true
+  endif
+  if column_mobile == blank
+    assign column_mobile = 1
+  endif
+  unless index_param
+    assign index_param = section.index | append: index | plus: 0 
+  endunless
+  assign current_variant = product.selected_or_first_available_variant
+  assign media_aspect_ratio = media_aspect_ratio | default: settings.pc_media_ratio
+  assign content_alignment = info_alignment | default: settings.pc_content_alignment
+
+  assign button_style = settings.pc_button_style
+
+  capture login_hide_price
+    render 'can-hide-price', product: product
+  endcapture
+  assign login_hide_price = login_hide_price | strip
+
+  assign is_show_preorder = false
+  assign is_apply_preorder = false
+  if settings.applied_products_preorder == blank and settings.applied_collections_preorder == blank
+    assign is_apply_preorder = true
+  else
+    assign list_product = ''
+    for prod in settings.applied_products_preorder
+      assign list_product = list_product | append: ';' | append: prod.id
+    endfor
+    for collec in settings.applied_collections_preorder
+      for prod in collec.products
+        assign list_product = list_product | append: ';' | append: prod.id
+      endfor
+    endfor
+    if list_product contains product.id
+      assign is_apply_preorder = true
+    endif
+  endif
+
+  if is_apply_preorder
+    if settings.preorder_show == 'yes'
+      if current_variant.inventory_management == null
+        assign is_show_preorder = true
+      else
+        if current_variant.inventory_quantity > 0
+          assign is_show_preorder = true
+        elsif current_variant.inventory_policy == 'continue' and current_variant.inventory_management != null
+          assign is_show_preorder = true
+        endif
+      endif
+    elsif settings.preorder_show == 'on_back_ordered'
+      if current_variant.inventory_policy == 'continue' and current_variant.inventory_quantity < 1 and current_variant.inventory_management != null
+        assign is_show_preorder = true
+      endif
+    endif
+  endif
+
+  assign is_out_of_stock = false
+  if current_variant.inventory_management == 'shopify'
+    if current_variant.inventory_quantity <= 0 and current_variant.inventory_policy != 'continue'
+      assign is_out_of_stock = true
+    endif
+  endif
+
+  assign message_preorder = 'general.preorder.message_preorder' | t
+  if settings.message_preorder_cart != blank
+    assign message_preorder = settings.message_preorder_cart
+  endif
+  assign enable_cart_edt = true
+  if is_show_preorder and settings.pc_hide_when_pre_order
+    assign enable_cart_edt = false
+  elsif is_out_of_stock 
+    assign enable_cart_edt = false   
+  endif
+  assign show_edt = false
+  unless disable_estimate_delivery
+    if settings.pc_show_shipping_information
+      assign show_edt = true
+    endif
+  endunless
+
+  assign inventory_quantity = 0
+  for variant in product.variants
+    if variant.inventory_management == 'shopify'
+      assign inventory_quantity = inventory_quantity | plus: variant.inventory_quantity
+      assign track_inventory_status = true
+    endif
+  endfor
+  if inventory_quantity > 0
+    assign label_quantity = inventory_quantity
+  endif
+  assign sale_amount = product.compare_at_price | minus: product.price
+  if sale_amount <= 0
+    assign sale_amount = ""
+  endif
+
+  assign options_string = ""
+  for option in current_variant.options
+    assign options_string = options_string | append: option.id | append: ', '
+  endfor
+
+  if settings.pc_show_border
+    assign show_border_class = 'border border-solid rgba(var(--color-line-and-border)) '
+  endif
+
+  assign title_limit_desktop = settings.pc_title_line_limit_desktop | default: 'none'
+  assign title_limit_mobile = settings.pc_title_line_limit_mobile | default: 'none'
+  if title_limit_desktop == 'full'
+    assign title_limit_desktop = 'none'
+  endif
+  if title_limit_mobile == 'full'
+    assign title_limit_mobile = 'none'
+  endif
+
+  assign class_rounded_corners = ''
+  if settings.edges_type == 'rounded_corners'
+    assign class_rounded_corners = 'rounded-b-md rounded-t-[10px]' 
+  endif
+%}
+{%- unless disable_badges -%}
+  {% liquid
+    assign inventory_management = track_inventory_status | default: false
+  %}
+  {%- capture data_for_label -%}
+    {%-
+      render "data-for-label",
+      product: product,
+      current_variant: current_variant,
+      target: product,
+      sale_amount: sale_amount,
+      label_quantity: label_quantity,
+      container: "card",
+      inventory_management: inventory_management,
+      is_show_preorder: is_show_preorder,
+      login_hide_price: login_hide_price
+    -%}
+  {%- endcapture -%}
+{%- endunless -%}
+<div class="slide-item">
+  {% if product and product != empty %}
+    {%- liquid
+      assign product_form_id = 'product-form-' | append: section_id | append: '-' | append: product.id | append: '-' | append: index
+
+      assign swatch_natural = false
+      if settings.swatch_style == 'natural'
+        assign swatch_natural = true
+      endif
+
+      assign product_card_image = product.featured_media.preview_image
+      assign show_secondary_image_when_hover = false
+      assign show_carousel_image_when_hover = false
+      if settings.pc_effect_to_mouse_hover == 'reveal' and product.media.size > 1
+        assign show_secondary_image_when_hover = true
+      endif
+
+      if settings.pc_effect_to_mouse_hover == 'carousel' and product.media.size > 1
+        assign show_carousel_image_when_hover = true
+      endif
+
+      assign img_first_class = 'product-card__image w-full is-active object-cover h-full'
+      if show_secondary_image_when_hover
+        assign img_first_class = img_first_class | append: 'product-card__image w-full h-full'
+      endif
+      assign product_card_id = section_id | append: '-' | append: block_id | append: '-' | append: product.id | append: '-' | append: index_param
+      if append_id
+        assign product_card_id = product_card_id | append: append_id
+      endif
+      assign product_card_element_id = 'ProductCard_' | append: product_card_id
+      assign product_url = product.url | within: collection | split: '?' | first
+    %}
+
+    {% style %}
+      #{{ product_card_element_id }} .product-card__image-wrapper {
+      {% if media_aspect_ratio == "auto" %}
+        {% if product_card_image != blank %}
+          padding-bottom: {{ 1 | divided_by: product_card_image.aspect_ratio | times: 100 }}%;
+        {% else %}
+          padding-bottom: 100%;
+        {% endif %}
+      {% endif %}
+      }
+    {% endstyle %}
+    <div
+      class="product-card__wrapper product-card-bundle color-scheme-theme anm-reveal-item text-{{ content_alignment }} h-full overflow-hidden flex flex-col gap-2 relative {{ show_border_class }} {{ class_rounded_corners }}"
+      id="{{ product_card_element_id }}"
+      data-current-variant-id="{{ current_variant.id }}"
+      data-original-product-id="{{ current_variant.product.id }}"
+      x-data="{ showOptions: false, activeElement: null }"
+      data-list-option-values-id-selected="{{ options_string }}"
+      data-active="{% if is_always_active %}true{% else %}false{% endif %}"
+      data-show-b2b-price-label="{{ show_b2b_price_label }}"
+    >
+      <div class="product-card__image-container w-full">
+        <div
+          class="product-card__image-wrapper pb-[{{ media_aspect_ratio }}%] rounded-corners overflow-hidden w-full relative {% if show_carousel_image_when_hover %} swiffy-slider{% endif %}"
+          id="ProductCardImage__{{ block_id }}__{{ product.id }}"
+          {% if show_carousel_image_when_hover %}
+            x-intersect.once="
+            $store.xSwiffy.load($el, {
+              'effect': 'fade',
+              'isLoop': false,
+              'paginationBar': 'number_bar'
+            });
+            $store.xProductCard.handleCardHover($el);
+          "
+          data-effect="fade"
+          {% endif %}
+        >
+          <a
+            href="{{ product_url }}"
+            aria-label="{{ product.title | escape }}"
+            class="link-product-variant rounded-corners w-full{% if product_card_image != blank %} absolute top-0 left-0 bottom-0{% endif %}{% if show_carousel_image_when_hover %} slider-container !absolute h-full{% endif %}"
+            {% unless disable_badges %}
+              x-data="{ lastWindowWidth: 0 }"
+              x-intersect.once.margin.200px="$nextTick(() => {$store.xLabelsAndBadges?.load($el);})"
+              x-labels-data="{{- data_for_label | escape -}}"
+            {% endunless %}
+            tabindex="-1"
+          >
+            {% if product_card_image != blank %}
+              {% capture attributes_first_image %}data-media-id="{{ product.featured_media.id }}"{% endcapture %}
+              {%- capture sizes -%}
+                (min-width: {{ settings.page_width }}px) {% if section.settings.section_width == 'page-width' %}{{ settings.page_width | plus: 100 | divided_by: columns_desktop | plus: 1 }}px{% else %}calc(100vw / {{ columns_desktop | plus: 1 }}){% endif %}, (min-width: 1024px) calc((100vw) / {{ columns_desktop | plus: 1 }}), (min-width: 768px)
+                calc((100vw) / 2), calc(100vw /{{ column_mobile }})
+              {%- endcapture -%}
+              {% liquid
+                assign eager_loading = false
+                if section.index == 1 and section.location == 'template'
+                  assign eager_loading = true
+                endif
+              %}
+              <div class="slide-item h-full is-active{% if show_carousel_image_when_hover %} pointer-events-none{% endif %}{% if show_secondary_image_when_hover %} transition-opacity duration-300 first-hover-image{% endif %}" {{ attributes_first_image }}>
+                {% render 'image', img_class: img_first_class, img: product_card_image, alt: product.featured_media.alt, img_width: 500, sizes: sizes, eager_loading: eager_loading %}
+              </div>
+              {% if settings.pc_effect_to_mouse_hover != 'none' %}
+                {% for media in product.media limit: 4 %}
+                  {%- if forloop.index > 1 -%}
+                    {% liquid
+                      assign img_class = 'product-card__image object-cover w-full h-full '
+                      if show_secondary_image_when_hover and forloop.index == 2
+                        assign img_class = img_class | append: ' absolute object-cover top-0 h-full'
+                      endif
+                    %}
+
+                    {% capture attributes_image %}data-media-id="{{ media.id }}"{% endcapture %}
+                    <div class="slide-item h-full{% if show_carousel_image_when_hover %} pointer-events-none{% endif %}{% if show_secondary_image_when_hover %} transition-opacity duration-300 opacity-0 second-hover-image{% endif %}" {{ attributes_first_image }}>
+                      {% render 'image', img_class: img_class, img: media, alt: media.title, img_width: 500, attributes: attributes_image, eager_loading: eager_loading, sizes: sizes %}
+                    </div>
+                    {% if show_secondary_image_when_hover %}
+                      {% break %}
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+            {% else %}
+              <div class="product-card__img-placeholder-wrapper absolute w-full h-full flex items-center justify-center">
+                <div class="product-card__img-placeholder w-full h-full overflow-hidden">
+                  {% liquid
+                    assign index = index | default: 1
+                    assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+                    assign placeholder_product_name = 'product_' | append: index
+                  %}
+                  {% render 'placeholder-image', image_type: placeholder_product_name %}
+                </div>
+              </div>
+            {% endif %}
+          </a>
+          {% if show_carousel_image_when_hover %}
+            <div class="slider-indicators z-10 mb-1.5 px-3 py-1.5 pointer-events-none invisible justify-center items-center w-full left-0 right-0 gap-1">
+              {% for media in product.media limit: 4 %}
+                <button class="slider-indicator w-full{% if settings.edges_type == 'rounded_corners' %} rounded-full{% endif %}{% if forloop.index == 1 %} active{% endif %}"></button>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% unless disable_button %}
+            <div class="product-card__widget flex flex-col gap-1 h-fit absolute w-fit right-0 top-auto bottom-0 md:top-0 p-1.5 md:bottom-auto transform">
+              {% if show_quickview %}
+                <div
+                  class="product-card__widget-quick-view product-card__widget-item"
+                  x-show="$store.xQuickView && $store.xQuickView.enabled"
+                >
+                  <custom-button>
+                    <button
+                      class="button-quick-view__product-card w-[34px] h-[34px] md:w-9 md:h-9 rounded-full p-[9px] flex items-center justify-center button-{{ button_style }}"
+                      x-on:click="$store.xQuickView && $store.xQuickView.load('{{ product.id }}', '{{ product_url }}', $el) && $store.xQuickView.open();"
+                      data-variant-id="{{ product.selected_or_first_available_variant.id }}"
+                      aria-label="{{ 'products.product_card.quick_view_button' }}"
+                    >
+                      {% render 'icon-all', icon: 'icon-quickview' %}
+                    </button>
+                  </custom-button>
+                </div>
+              {% endif %}
+              {% if template.name == 'collection' or template.name == 'search' or template.name == 'product' %}
+                <template x-if="$store.xProductComparison && $store.xProductComparison.hasSection">
+                  <div x-show="$store.xProductComparison && $store.xProductComparison.hasSection" class="product-card__widget-compare product-card__widget-item delay-200">
+                    <div class="relative">
+                      <custom-button>
+                        <button
+                          x-cloak
+                          x-show="$store.xProductComparison.listComparisonProducts && !$store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}')"
+                          class="product-card__comparison-button flex justify-center items-center font-bold w-[34px] h-[34px] md:w-9 md:h-9 p-[9px] rounded-full button-{{ button_style }}"
+                          :class="[$store.xProductComparison.listComparisonProducts.length >= $store.xProductComparison.maximumProductCompare && 'cursor-not-allowed pointer-events-none']"
+                          @click.prevent="$store.xProductComparison.addProductToCompare('{{ product.id }}', '{{ product.handle }}')"
+                          aria-label="{{ 'products.product.compare' | t }}"
+                        >
+                          {% render 'icon-all', icon: 'icon-product-comparison' %}
+                        </button>
+                      </custom-button>
+                      <custom-tooltip x-show="$store.xProductComparison.listComparisonProducts.length >= $store.xProductComparison.maximumProductCompare" data-list-position="top" data-tooltip-align="center" data-enable-mobile="true">
+                        <div class="tooltip-popup-wrapper state-error absolute ltr invisible z-10 pointer-events-none flex my-0.5" data-tooltip-position="left">
+                          <div class="tooltip-arrow-up triangle-tooltip relative z-10 w-fit self-center hidden">
+                            <div class="triangle-up border-transparent mx-1"></div>
+                            <div class="triangle-up border-b-white mx-1 absolute top-0 left-0 -z-10"></div>
+                          </div>
+                          <div x-show="$store.xProductComparison.listComparisonProducts.length >= $store.xProductComparison.maximumProductCompare">
+                            <div class="w-[100px] md:w-[130px] rounded-[var(--border-radius-flash-message)] bg-white">
+                              <div
+                                x-init="$el.innerHTML = $el.innerHTML.replace('count_product', $store.xProductComparison.maximumProductCompare)"
+                                class="flash-message error-message w-full text-center"
+                              >
+                                <span class="product_comparison-limit text-x-small">{{ 'product_comparison.tooltip_limit_products' | t }}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="tooltip-arrow-down triangle-tooltip relative z-10 w-fit self-center">
+                            <div class="triangle-down border-transparent mx-1"></div>
+                            <div class="triangle-down border-t-white mx-1 absolute top-0 left-0 -z-10"></div>
+                          </div>
+                        </div>
+                      </custom-tooltip>
+                    </div>
+                    <div class="relative">
+                      <custom-button>
+                        <button
+                          x-cloak
+                          x-show="$store.xProductComparison.listComparisonProducts && $store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}')"
+                          class="product-card__comparison-button cursor-default pointer-events-none flex justify-center items-center font-bold w-[34px] h-[34px] md:w-9 md:h-9 p-[9px] rounded-full button-{{ button_style }}"
+                          aria-label="{{ 'products.product.compare' | t }}"
+                          disabled
+                        >
+                          {% render 'icon-all', icon: 'icon-check-compare' %}
+                        </button>
+                      </custom-button>
+                      <custom-tooltip x-show="$store.xProductComparison.listComparisonProducts && $store.xProductComparison.listComparisonProducts.some(item => item.productId === '{{ product.id }}')" data-list-position="top" data-tooltip-align="center" data-enable-mobile="true">
+                        <div class="tooltip-popup-wrapper state-success absolute ltr invisible z-10 pointer-events-none flex my-0.5" data-tooltip-position="left">
+                          <div class="tooltip-arrow-up triangle-tooltip relative z-10 w-fit self-center hidden">
+                            <div class="triangle-up border-transparent mx-1"></div>
+                            <div class="triangle-up border-b-white mx-1 absolute top-0 left-0 -z-10"></div>
+                          </div>
+                          <div class="w-[100px] md:w-[130px] rounded-[var(--border-radius-flash-message)] bg-white">
+                            <div class="flash-message success-message w-full text-center relative">
+                              <span class="text-x-small">{{ 'product_comparison.tooltip_added_to_compare' | t }}</span>
+                            </div>
+                          </div>
+                          <div class="tooltip-arrow-down triangle-tooltip relative z-10 w-fit self-center">
+                            <div class="triangle-down border-transparent mx-1"></div>
+                            <div class="triangle-down border-t-white mx-1 absolute top-0 left-0 -z-10"></div>
+                          </div>
+                        </div>
+                      </custom-tooltip>
+                    </div>
+                  </div>
+                </template>
+              {% endif %}
+            </div>
+          {% endunless %}
+        </div>
+      </div>
+      <div class="below-image ltr flex flex-wrap justify-{{ content_alignment }} mb-2 gap-1 empty:hidden"></div>
+      <div class="product-card__info-wrapper ltr flex flex-col w-full relative text-{{ content_alignment }}">
+        <div id="current-variant-{{ section_id }}-{{ product.id }}-{{ block_id }}" class="current-variant hidden">
+          {{ product.selected_or_first_available_variant | json }}
+        </div>
+        <div class="product-card__info">
+          {% if show_vendor %}
+            <div class="product-card__vendor product-info__vendor mb-1 text-small color-text-[rgba(var(--color-text),0.6)]">
+              <span class="p-break-words">{{ product.vendor | escape }}</span>
+            </div>
+          {% endif %}
+          <div
+            class="product-card__title h5 md:h6 mb-2 relative z-10"
+            style="--title-line-limit-desktop: {{ title_limit_desktop }}; --title-line-limit-mobile: {{ title_limit_mobile }};"
+          >
+            <a
+              class="link-product-variant touch-element !w-full title-link p-break-words"
+              href="{{ product_url }}"
+              aria-label="{{ product.title | escape }}"
+            >
+              {{- product.title -}}
+            </a>
+            {% if title_limit_desktop != 'none' %}
+              {%- liquid
+                # Grid: tooltip follows the card's Content alignment setting (logical/inline
+                # classes so box align + arrow stay correct under RTL).
+                if content_alignment == 'center'
+                  assign tooltip_align = 'center'
+                  assign _arrow_class = 'mx-auto'
+                elsif content_alignment == 'right'
+                  assign tooltip_align = 'end'
+                  assign _arrow_class = 'me-3 ms-auto'
+                else
+                  assign tooltip_align = 'start'
+                  assign _arrow_class = 'ms-3'
+                endif
+                # List layout always renders content start-aligned, so force the arrow to
+                # start there too; the box is start-aligned via list_align: 'start'.
+                assign _arrow_class = _arrow_class | append: ' list-layout:ms-3 list-layout:me-0'
+              -%}
+              {%- render 'custom-tooltip',
+                content: product.title,
+                position: 'top',
+                align: tooltip_align,
+                list_align: 'start',
+                arrow_class: _arrow_class,
+                list_position: 'bottom'
+              -%}
+            {% endif %}
+          </div>
+          {%- if show_rating -%}
+            <div class="product-card__rating">
+              {% render 'review-product', product: product, product_card: true %}
+            </div>
+          {%- endif -%}
+          {% unless login_hide_price == "true" %}
+            <div class="product-card__price mb-3 h5 w-fit inline-block">
+              {% assign price_wrapper = 'justify-' | append: content_alignment | append: ' h4 md:h5' %}
+              {% liquid
+                assign is_show_sale_label = false
+                if settings.show_sale_label and settings.sale_label_content != blank
+                  assign is_show_sale_label = true
+                endif
+                assign price_id = 'Price' | append: '-' | append: product_card_id
+              %}
+              {% render 'price',
+                product: product,
+                use_variant: false,
+                price_class: price_class,
+                price_wrapper: price_wrapper,
+                price_id: price_id,
+                is_show_sale_label: is_show_sale_label,
+                class_sale_label: ' text-x-small font-base-body pt-0.5 pb-0.5 pl-1 pr-1',
+                sale_label_content: settings.sale_label_content,
+                sale_label_light: settings.sale_label_light,
+                sale_label_dark: settings.sale_label_dark,
+                sale_label_text_light: settings.sale_label_text_light,
+                sale_label_text_dark: settings.sale_label_text_dark,
+                alignment: content_alignment,
+                product_card: true,
+                show_b2b_price_label: show_b2b_price_label
+              %}
+              <div class="next-price empty:hidden"></div>
+            </div>
+          {% endunless %}
+          {% if show_description %}
+            <div class="product-card__description rte hidden text-medium mb-2{% if rtl %} rtl{% endif %} p-break-words">
+              {{
+              product.description
+              | replace: '<img', '<noimg'
+              | replace: '</img>', '</noimg>'
+              | replace: '<iframe', '<noiframe'
+              | replace: '</iframe>', '</noiframe>'
+              | replace: 'src=', 'nosrc='
+              | replace: '<h1', '<p class="h2"'
+              | replace: '<h2', '<p class="h2"'
+              | replace: '<h3', '<p class="h3"'
+              | replace: '<h4', '<p class="h4"'
+              | replace: '<h5', '<p class="h5"'
+              | replace: '<h6', '<p class="h6"'
+              }}
+            </div>
+          {% endif %}
+          {% unless disable_color_swatch %}
+            {% if settings.pc_swatches_type != 'none' %}
+              {% render 'product-card-options',
+                product: product,
+                current_variant: current_variant,
+                product_card_id: product_card_id,
+                section_id: section_id,
+                block_id: block_id,
+                product_url: product_url,
+                show_edt: show_edt,
+                swatch_natural: swatch_natural,
+                content_alignment: content_alignment
+              %}
+            {% endif %}
+          {% endunless %}
+          {% unless disable_inventory_status %}
+            {% if settings.pc_show_inventory != 'none' or show_inventory_status %}
+              <div class="product-card__inventory-wrapper ltr text-small flex mb-3 justify-{{ content_alignment }} empty:hidden">
+                {%- case settings.pc_show_inventory -%}
+                  {%- when 'products_sold' -%}
+                    {%- if product.metafields.custom.product_sold != blank -%}
+                      <div class="product-card__product-sold flex gap-0.5 items-center rtl:flex-row-reverse">
+                        <span class="inline-block w-4.5 h-4.5">{%- render 'icon-all', icon: 'icon-fire' -%}</span>
+                        <span>
+                          {{- product.metafields.custom.product_sold }}
+                          {{ 'products.product.inventory_status.sold' | t -}}
+                        </span>
+                      </div>
+                    {%- endif -%}
+                  {%- when 'inventory_status' -%}
+                    {%- render 'pc-inventory-status', product: product, is_show_preorder: is_show_preorder -%}
+                {%- endcase -%}
+              </div>
+            {% endif %}
+          {% endunless %}
+          {% unless disable_highlight_attributes %}
+            {%- if settings.pc_show_highlight -%}
+              <custom-tooltip-container class="product-card__highlight-attributes-wrapper ltr flex justify-{{ content_alignment }}">
+                {%- if settings.highlight_att_enable_auto_rotate -%}
+                  {%- liquid
+                    assign metafield_icon_1 = settings.pc_metafield_icon_1 | split: '.'
+                    assign metafield_attribute_1 = settings.pc_metafield_attribute_1 | split: '.'
+                    assign icon_value_1 = product.metafields[metafield_icon_1.first][metafield_icon_1.last]
+                    assign attribute_value_1 = product.metafields[metafield_attribute_1.first][metafield_attribute_1.last].value
+
+                    assign metafield_icon_2 = settings.pc_metafield_icon_2 | split: '.'
+                    assign metafield_attribute_2 = settings.pc_metafield_attribute_2 | split: '.'
+                    assign icon_value_2 = product.metafields[metafield_icon_2.first][metafield_icon_2.last]
+                    assign attribute_value_2 = product.metafields[metafield_attribute_2.first][metafield_attribute_2.last].value
+
+                    assign metafield_icon_3 = settings.pc_metafield_icon_3 | split: '.'
+                    assign metafield_attribute_3 = settings.pc_metafield_attribute_3 | split: '.'
+                    assign icon_value_3 = product.metafields[metafield_icon_3.first][metafield_icon_3.last]
+                    assign attribute_value_3 = product.metafields[metafield_attribute_3.first][metafield_attribute_3.last].value
+
+                    assign has_icon_in_list = false
+                    assign has_text_in_list = false
+
+                    if icon_value_1 != blank or icon_value_2 != blank or icon_value_3 != blank
+                      assign has_icon_in_list = true
+                    endif
+                    if attribute_value_1 != blank or attribute_value_2 != blank or attribute_value_3 != blank
+                      assign has_text_in_list = true
+                    endif
+                  -%}
+                  {%- if has_text_in_list or has_icon_in_list -%}
+                    {% liquid
+                      assign custom_class = 'flex'
+                      assign wrapper_class = ''
+                      assign wrapper_background = ''
+
+                      if settings.highlight_att_show_bg
+                        assign wrapper_class = 'p-1.5'
+                        assign wrapper_background = 'rgba(var(--color-text),0.06)'
+                      endif
+
+                      assign wrapper_rounded_class = 'rounded-corners rounded-corners-sm'
+                      assign content_class = 'flex items-center gap-1 text-x-small'
+                      assign text_class = 'p-break-words'
+                      assign content_container_class = 'flex list-layout:md:justify-start list-layout:rtl:md:justify-end justify-' | append: content_alignment
+                    %}
+                    {% capture slide_element_config %}
+                      {
+                        "timeToNext": {{ settings.highlight_att_auto_rotate_every }}
+                      }
+                    {% endcapture %}
+                    <slide-element
+                      class="product-card__highlight-attributes__rotate slide-element relative w-full mb-3 [--icon-size:16px]"
+                      data-animation="{{ settings.highlight_att_animation }}"
+                      data-config='{{ slide_element_config }}'
+                    >
+                      <div class="product-card__highlight-attributes__rotate-list slide-element__list-items">
+                        {%- if icon_value_1 or attribute_value_1 -%}
+                          <div class="slide-element__item w-full">
+                            {%- render 'icon-with-text',
+                              icon_type: icon_value_1.type,
+                              icon: icon_value_1,
+                              text: attribute_value_1,
+                              custom_class: custom_class,
+                              wrapper_class: wrapper_class,
+                              wrapper_background: wrapper_background,
+                              wrapper_rounded_class: wrapper_rounded_class,
+                              content_class: content_class,
+                              text_class: text_class,
+                              currentId: 'product-card',
+                              content_container_class: content_container_class
+                            -%}
+                          </div>
+                        {%- endif -%}
+                        {%- if icon_value_2 or attribute_value_2 -%}
+                          <div class="slide-element__item w-full">
+                            {%- render 'icon-with-text',
+                              icon_type: icon_value_2.type,
+                              icon: icon_value_2,
+                              text: attribute_value_2,
+                              custom_class: custom_class,
+                              wrapper_class: wrapper_class,
+                              wrapper_background: wrapper_background,
+                              wrapper_rounded_class: wrapper_rounded_class,
+                              content_class: content_class,
+                              text_class: text_class,
+                              currentId: 'product-card',
+                              content_container_class: content_container_class
+                            -%}
+                          </div>
+                        {%- endif -%}
+                        {%- if icon_value_3 or attribute_value_3 -%}
+                          <div class="slide-element__item w-full">
+                            {%- render 'icon-with-text',
+                              icon_type: icon_value_3.type,
+                              icon: icon_value_3,
+                              text: attribute_value_3,
+                              custom_class: custom_class,
+                              wrapper_class: wrapper_class,
+                              wrapper_background: wrapper_background,
+                              wrapper_rounded_class: wrapper_rounded_class,
+                              content_class: content_class,
+                              text_class: text_class,
+                              currentId: 'product-card',
+                              content_container_class: content_container_class
+                            -%}
+                          </div>
+                        {%- endif -%}
+                      </div>
+                      {% if has_text_in_list %}
+                        {% liquid
+                          assign tooltip_class = 'icon-with-text__tooltip__wrapper max-w-[calc(100%*2/3)] z-10 mx-1 list-layout:ltr:md:left-0 list-layout:md:translate-x-0 list-layout:rtl:md:right-0 list-layout:rtl:md:left-auto'
+                          if content_alignment == 'left'
+                            assign tooltip_class = tooltip_class | append: ' left-0'
+                          elsif content_alignment == 'center'
+                            assign tooltip_class = tooltip_class | append: ' left-1/2 -translate-x-1/2'
+                          else
+                            assign tooltip_class = tooltip_class | append: ' right-0'
+                          endif
+                        %}
+                        {% render 'tooltip',
+                          tooltip_class: tooltip_class,
+                          content_class: 'icon-with-text__tooltip-message',
+                          content: '',
+                          tooltip_position: 'top'
+                        %}
+                      {% endif %}
+                    </slide-element>
+                  {%- endif -%}
+                {%- else -%}
+                  <div class="product-card__highlight-attributes-wrapper empty:hidden flex flex-wrap gap-[3px] mb-3 justify-self-{{ content_alignment }} rtl:flex-row-reverse">
+                    {%- assign highlight_card_icon = '' -%}
+                    {%- for i in (1..3) -%}
+                      {%- liquid
+                        assign pc_metafield_icon = 'pc_metafield_icon_' | append: i
+                        assign pc_metafield_attribute = 'pc_metafield_attribute_' | append: i
+                        assign metafield_icon = settings[pc_metafield_icon] | split: '.'
+                        assign metafield_attribute = settings[pc_metafield_attribute] | split: '.'
+
+                        assign icon_value = product.metafields[metafield_icon.first][metafield_icon.last]
+                        assign attribute_value = product.metafields[metafield_attribute.first][metafield_attribute.last].value
+                      -%}
+                      {%- if metafield_icon == blank or icon_value == blank -%}
+                        {%- if attribute_value != blank -%}
+                          <div class="product-card__highlight-attributes text-x-small py-0.5 px-2.5 color-bg-[rgba(var(--color-text),0.06)] w-fit flex justify-center gap-[3px] items-center{% if settings.edges_type == 'rounded_corners' %} rounded{% endif %}">
+                            {{- attribute_value -}}
+                          </div>
+                        {%- endif -%}
+                      {%- elsif metafield_icon != blank and icon_value != blank -%}
+                        {%- capture highlight_card_icon -%}
+                          {{- highlight_card_icon -}}
+                          {%- render 'highlight-icon-card-product', highlight_icon: icon_value, label_icon: attribute_value -%}
+                        {%- endcapture -%}
+                      {%- endif -%}
+                    {%- endfor -%}
+                  </div>
+                {%- endif -%}
+              </custom-tooltip-container>
+            {%- endif -%}
+          {% endunless %}
+          {% if show_edt %}
+            <div class="product-card__shipping-information flex justify-{{ content_alignment }}">
+              <div id="x-estimate-delivery-{{ section_id }}" class="estimate-delivery-card-msg w-fit block empty:hidden">
+                {%- if enable_cart_edt -%}
+                  {%- render 'estimate-delivery-product-card', product: product, variant: product.selected_or_first_available_variant, content_alignment: content_alignment -%}
+                {%- endif -%}
+              </div>
+            </div>
+          {% endif %}
+          {% unless disable_pickup_message %}
+            <div id="x-availability-notice-{{ section_id }}"class="flex items-center justify-{{ content_alignment }} flex-wrap gap-1">
+              {%- render 'pickup-message', product: product -%}
+            </div>
+          {% endunless %}
+          {% unless disable_highlight_attributes %}
+            {%- if highlight_card_icon != blank -%}
+              <div class="highlight-attribute-prd-card flex card-info ltr justify-{{ content_alignment }}">
+                <div class="flex flex-wrap gap-1 mb-3 rtl:flex-row-reverse empty:hidden">
+                  {{ highlight_card_icon }}
+                </div>
+              </div>
+            {%- endif -%}
+          {% endunless %}
+        </div>
+      </div>
+      {% comment %} button add to card in bottom of card {% endcomment %}
+        {% unless disable_button %}
+          <div
+            class="product-card__widget-list-layout relative h-fit w-full{% if section.settings.align_button_atb %} mt-auto{% endif %}"
+              x-data="xProductForm('{{ product_form_id_list }}', '{{ current_variant.id }}', {{ current_variant.available | default: false }}, {% if is_show_preorder %} '{{ 'products.product.pre_order' | t }}'{% else %}{% if current_variant.available == false %}'{{ 'products.product.sold_out' | t }}'{% else %}'{{ 'products.product.add_to_cart' | t }}'{% endif %}{% endif %}, '{{ 'products.product.add_to_cart' | t }}', '{{ section_id }}', '{{ product_card_id }}', '{{ settings.preorder_show }}', '{{ 'products.product.pre_order' | t }}', {{ is_show_preorder }} )"
+            x-cloak
+          >
+            <div class="hidden absolute bottom-full mb-2 left-0 w-full z-10" @click.away="errorMessage = false">
+              <div x-ref="error_message" class="flash-message error-message"></div>
+            </div>
+            <div class="product-card__widget-choose-option w-full">
+              {%- if login_hide_price == 'true' -%}
+                {%- render 'guest-price-message' -%}
+              {%- else -%}
+              {% liquid
+                assign pc_show_choose_option_bundle = false
+                assign pc_show_atc_bundle = false
+
+                if product.available
+                  case settings.pc_choose_option_display
+                    when 'always'
+                      if product.has_only_default_variant == false
+                        assign pc_show_choose_option_bundle = true
+                      else
+                        assign pc_show_atc_bundle = true
+                      endif
+                    when 'multi_variant_only'
+                      if product.variants_count > 1
+                        assign pc_show_choose_option_bundle = true
+                      else
+                        assign pc_show_atc_bundle = true
+                      endif
+                    when 'replace_with_atc'
+                      if product.variants_count > 250
+                        assign pc_show_choose_option_bundle = true
+                      else
+                        assign pc_show_atc_bundle = true
+                      endif
+                  endcase
+                else
+                  assign pc_show_atc_bundle = true
+                endif
+              %}
+              {% if pc_show_choose_option_bundle %}
+                <custom-button>
+                  <a
+                    href="{{ product_url }}"
+                    type="button"
+                    tabindex="0"
+                    class="flex justify-center items-center button w-full button-{{ button_style }}"
+                    @click.prevent="loadChooseOptions('{{ product.url | within: collection | split: "?" | first }}', $el, {{ index_param }}); showOptions=true; activeElement=$el;"
+                  >
+                    {% if choose_option_button_label != blank %}{{ choose_option_button_label }}{% else %}{{ 'products.product.choose_option' | t }}{% endif %}
+                  </a>
+                </custom-button>
+              {% elsif pc_show_atc_bundle %}
+                {% assign product_form_id_list = product_form_id | append: '-list' %}
+                <div
+                  class="product-info__form-wrapper w-full"
+                  id="ProductForm-{{ section_id }}-{{ block_id }}"
+                  x-intersect.once.margin.200px="handleInitProductForm()"
+                >
+                  {%- capture _bundle_edt_msg -%}
+                    {%- render 'estimate-shipping-message', product: product, variant: current_variant -%}
+                  {%- endcapture -%}
+                  {%- assign bundle_edt_msg = _bundle_edt_msg | strip -%}
+                  {%- assign bundle_edt_name = settings.name_edt -%}
+                  {%- if bundle_edt_name == blank -%}
+                    {%- assign bundle_edt_name = 'general.estimate_delivery' | t -%}
+                  {%- endif -%}
+                  {%- comment -%}
+                    The bundle summary renders its rows from this JSON, so the quantity-rule
+                    tooltip has to travel with the item as pre-rendered HTML — the same
+                    approach bulk-order takes (see bulk-order-variant-json).
+                  {%- endcomment -%}
+                  {%- capture bundle_item_tooltip_html -%}
+                    {%- if customer != blank and customer.b2b? -%}
+                      {%- render 'quantity-rule-tooltip', variant: current_variant, product: product, clamp_boundary: 'bundle-summary__product-qty', rtl: rtl -%}
+                    {%- endif -%}
+                  {%- endcapture -%}
+                  {%- assign bundle_item_tooltip_html = bundle_item_tooltip_html | strip -%}
+                  <script type="application/json" data-type="current-bundle-item">
+                    {
+                      "id": {{ current_variant.id }},
+                      "tooltipHtml": {{ bundle_item_tooltip_html | json }},
+                      "product_id": {{ product.id }},
+                      "title": {{ product.title | json }},
+                      "option": {% if product.has_only_default_variant %} "" {% else %} {{ current_variant.title | json }} {% endif %},
+                      "featured_image":
+                        {%- if current_variant.featured_image.src != blank -%}{{ current_variant.featured_media | image_url: width: 200 | json -}}{% else -%}
+                          {%- if product.featured_image.src != blank -%}{{ product.featured_media | image_url: width: 200 | json }}{% else %}""{% endif -%}{% endif -%},
+                      "featured_image_alt": {{ current_variant.featured_media.alt | default: product.featured_media.alt | json }},
+                      "quantity": 1,
+                      {%- if customer != blank and customer.b2b? -%}
+                      "quantity_rule": {{ current_variant.quantity_rule | json }},
+                      {%- comment -%}
+                        The summary renders its rows client-side, so the price breaks have to travel
+                        with the item for the per-row price and the bundle total to follow volume
+                        pricing (quantityRuleUtils.priceForQuantity). `quantity_price_breaks` is not
+                        part of Shopify's default variant JSON, hence the explicit list.
+                      {%- endcomment -%}
+                      "priceBreaks": [{%- for pb in current_variant.quantity_price_breaks -%}{ "minimumQuantity": {{ pb.minimum_quantity }}, "price": {{ pb.price }} }{%- unless forloop.last -%},{%- endunless -%}{%- endfor -%}],
+                      {%- endif -%}
+                      "price": {{ current_variant.price | default: 0 }},
+                      "product_url": "{{ product.url | within: collection | split: '?' | first | append: "?variant=" | append: current_variant.id }}",
+                      "product_original_id": "{{ current_variant.product.id }}",
+                      "properties": {
+                        {% if is_show_preorder %}
+                          "{{ 'general.preorder.name' | t }}": {{ message_preorder | json }}
+                          {% if bundle_edt_msg != blank and settings.estimate_show_in_cart == 'show_item' %},{% endif %}
+                        {% endif %}
+                        {% if bundle_edt_msg != blank and settings.estimate_show_in_cart == 'show_item' %}
+                          "{{ bundle_edt_name }}": {{ bundle_edt_msg | json }}
+                        {% endif %}
+                      }
+                    }
+                  </script>
+                  <div x-data="{ _d: false }" x-effect="_d = checkDisabledButton($el)">
+                    <custom-button>
+                    <button
+                      class="product-form__btn-add-to-cart w-full button flex items-center justify-center button-{{ button_style }}"
+                      type="submit"
+                      name="add"
+                      aria-haspopup="dialog"
+                      aria-labelledby="{{ product_form_id_list }}-submit title-{{ section_id }}-{{ product.id }}"
+                      aria-live="polite"
+                      aria-label="{{ 'products.product.add_to_cart' | t }}"
+                      data-sold-out-message="true"
+                      :class="
+                        {
+                          'opacity-80': !isAvailableButton || errorMessage,
+                          'visible': visible,
+                          'invisible': !visible,
+                          'is-loading': isLoading
+                        }
+                      "
+                      :disabled="_d"
+                      :aria-disabled="_d || isLoading"
+                      :tabindex="_d ? '-1' : '0'"
+                      @click.prevent="handleAddToBundle($el, {{ pc_show_choose_option_bundle }})"
+                    >
+                      <span class="btn__text" :class="{'invisible': isLoading}" x-text="atbButtonText"></span>
+                      <span
+                        class="inline-block w-5 h-5 animate-spin absolute left-[calc(50%-10px)]"
+                        x-show="isLoading"
+                        x-cloak
+                      >
+                        {% render 'icon-all', icon: 'icon-loading' %}
+                      </span>
+                    </button>
+                  </custom-button>
+                  </div>
+                </div>
+              {% endif %}
+              {%- endif -%}
+            </div>
+            <script type="application/json" data-type="init-current-variant">{{ current_variant | json }}</script>
+            {% if is_apply_preorder %}
+              <script
+                type="application/json"
+                data-type="current-variant-additional-info"
+                class="product-card-variant-inventory"
+              >
+                {
+                  "id": {{ current_variant.id |  default: false }},
+                  "inventory_policy": "{{ current_variant.inventory_policy }}",
+                  "inventory_quantity": {{ current_variant.inventory_quantity | default: false }},
+                  "inventory_management": "{{ current_variant.inventory_management }}"
+                }
+              </script>
+            {% endif %}
+          </div>
+        {% endunless %}
+      {% comment %} end comment {% endcomment %}
+      <div
+        class="choose-option-wrapper absolute inset-0 z-20 bg-gradient transition-choose-option {{ class_rounded_corners }}"
+        :class="showOptions ? ' opacity-100' : ' opacity-0 translate-y-full'"
+        x-bind:inert="!showOptions"
+      >
+        <div class="choose-option w-full h-full"></div>
+        <div class="icon-loading hidden absolute top-0 left-0 right-0 h-full w-full z-20 bg-gradient">
+          <div class="lg:inline-block animate-spin w-4 h-4 md:w-5 md:h-5 absolute top-[calc(50%-8px)] left-[calc(50%-8px)] md:top-[calc(50%-10px)] md:left-[calc(50%-10px)]">
+            {% render 'icon-all', icon: 'icon-loading' %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    {% style %}
+      .skeleton-product-card-{{ block_id }} .product-card-skeleton__image-wrapper {
+        padding-bottom:{% if media_aspect_ratio == 'auto' %} 100%{% else %} {{ media_aspect_ratio }}% {% endif %};
+      }
+    {% endstyle %}
+    <div 
+      class="skeleton-product-card-{{ block_id }} product-card-skeleton__wrapper anm-reveal-item text-{{ content_alignment }} w-full overflow-hidden flex flex-col relative {{ show_border_class }} {% if settings.edges_type == 'rounded_corners' %}rounded-corners{%- endif -%}"
+      data-active="{% if is_always_active %}true{% else %}false{% endif %}"
+    >
+      <div class="product-card-skeleton__image-wrapper relative w-full rounded-corners overflow-hidden">
+        <div class="h-full w-full absolute flex items-center justify-center">
+          <div class="product-card__img-placeholder overflow-hidden w-full h-full ">
+            {% liquid
+              assign index = index | default: 1
+              assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+              assign placeholder_product_name = 'product_' | append: index
+            %}
+            {% render 'placeholder-image', image_type: placeholder_product_name %}
+          </div>
+        </div>
+      </div>
+      <div class="product-card-skeleton__info-wrapper overflow-hidden flex flex-col relative text-{{ content_alignment }}">
+        <div class="product-card-skeleton__info bg-primary justify-start mt-2">
+          {% if show_vendor %}
+            <div class="product-card__vendor product-info__vendor pb-1 text-small color-text-[rgba(var(--color-text),0.6)]">
+              <span>{{ 'products.product.vendor' | t }}</span>
+            </div>
+          {% endif %}
+          <div class="product-card__title h6 pb-2">
+            <span class="inline-flex" aria-label="{{ 'products.product.title' | t }}">
+              {{ 'products.product.title' | t }}
+            </span>
+          </div>
+          <div class="product-card__price pb-4">
+            <span class="iw-price h5" data-iw-product-id="{{ product_id }}" data-iw-variant-id="{{ variant_id }}">
+              {% if settings.currency_code_enable %}{{ 0.00 | money_with_currency }}{% else %}{{ 0.00 | money }}{% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>

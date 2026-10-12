@@ -1,0 +1,15 @@
+<custom-button>
+  <div class="button empty:hidden
+      {%- if class != blank %} {{ class }}{% endif -%}
+      {%- if button_style == 'secondary' %} inline-block button-secondary 
+      {%- elsif button_style == 'text-link' %} button-link button-no-padding anm-button-{{ settings.button_link_hover_animation -}}
+      {%- elsif button_style == 'direction_link' %} direction_link button-no-padding anm-button-arrow_push
+      {%- else %} inline-block button-primary {% endif -%}
+      {%- if button_link == blank and isAlwaysActive != true %} hover:cursor-not-allowed opacity-70{% endif -%}"
+      {% if button_link == blank and isAlwaysActive != true %}
+        aria-disabled="true"
+      {% endif %}
+  >
+    {% render 'button-label', button_label: view_all_button_label, show_button_style: button_style %}
+  </div>
+</custom-button>

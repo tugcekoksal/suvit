@@ -1,0 +1,171 @@
+{%- if section.settings.select_page != blank %}
+  {% style %}
+    .section--{{ section.id }} {
+      padding-top: calc({{ section.settings.padding_top }}px * var(--mobile-padding-ratio));
+      padding-bottom: calc({{ section.settings.padding_bottom }}px * var(--mobile-padding-ratio));
+    }
+    @media (min-width: 768px) {
+      .section--{{ section.id }} {
+        padding-top: {{ section.settings.padding_top }}px;
+        padding-bottom: {{ section.settings.padding_bottom }}px;
+      }
+    }
+  {% endstyle %}
+
+  {{ 'page.css' | asset_url | stylesheet_tag: preload: true }}
+  {% render 'section-divider' %}
+
+  <div class="section--{{ section.id }} {{ section.settings.section_width }} relative">
+    <div class="page__container section-page">
+      {%- if section.settings.select_page.title != blank -%}
+        <{{ section.settings.heading_tag }} class="heading-{{ section.settings.heading_size }} heading-content-spacing text-left rtl:text-right anm-fade-element" data-fade-on-intersect>
+          {{ section.settings.select_page.title | escape }}
+        </{{ section.settings.heading_tag }}>
+      {%- endif -%}
+      <div class="page__body">
+        <div data-fade-on-intersect class="rte anm-fade-element">
+          {%- if section.settings.select_page.content != blank -%}
+            {{ section.settings.select_page.content | replace: '<meta charset="UTF-8">' }}
+          {%- endif -%}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+{% schema %}
+{
+  "name": "t:main_page.name",
+  "tag": "section",
+  "class": "maximize-section section-page",
+  "disabled_on": {
+    "groups": [
+      "footer",
+      "header",
+      "aside"
+    ]
+  },
+  "settings": [
+    {
+      "type": "page",
+      "id": "select_page",
+      "label": "t:main_product.blocks.vendor.settings.select_page"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "t:global.text.heading_size",
+      "default": "medium",
+      "options": [
+        {
+          "label": "t:global.size.small",
+          "value": "small"
+        },
+        {
+          "label": "t:global.size.medium",
+          "value": "medium"
+        },
+        {
+          "label": "t:global.size.large",
+          "value": "large"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "default": "h2",
+      "label": "t:global.text.heading_tag",
+      "options": [
+        {
+          "value": "h1",
+          "label": "H1"
+        },
+        {
+          "value": "h2",
+          "label": "H2"
+        },
+        {
+          "value": "h3",
+          "label": "H3"
+        },
+        {
+          "value": "h4",
+          "label": "H4"
+        },
+        {
+          "value": "h5",
+          "label": "H5"
+        },
+        {
+          "value": "h6",
+          "label": "H6"
+        },
+        {
+          "value": "p",
+          "label": "p"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": "t:page.settings.paragraph"
+    },
+    {
+      "type": "header",
+      "content": "t:global.header.section_layout"
+    },
+    {
+      "type": "select",
+      "label": "t:global.section.section_width.label",
+      "id": "section_width",
+      "options": [
+        {
+          "label": "t:global.section.section_width.option_1",
+          "value": "page-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_2",
+          "value": "full-width"
+        },
+        {
+          "label": "t:global.section.section_width.option_3",
+          "value": "full-width-padded"
+        }
+      ],
+      "default": "page-width"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.top_padding",
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:global.section.bottom_padding",
+      "default": 28
+    },
+    {
+      "type": "checkbox",
+      "id": "show_section_divider",
+      "label": "t:global.section.show_section_divider",
+      "default": false
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:main_page.name",
+      "category": "t:global.category.content"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,295 @@
+<div class="w-full md:color-bg-[rgba(var(--color-text),0.06)] md:p-4 md:h-full md:w-[300px] lg:w-[360px] md:min-w-[300px] lg:min-w-[360px]">
+  <div class="flex flex-row md:flex-col gap-y-2 w-full md:h-full md:overflow-y-auto md:scrollbar-hidden">
+    {% for i in (1..5) %}
+      <div class="{% unless forloop.first %}hidden {% endunless %}w-full md:flex md:flex-none bg-skeleton rounded-corners-md{% if section.settings.media_ratio != 'natural' %} aspect-{{ section.settings.media_ratio }}{% else %} aspect-square{% endif %}"></div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="w-full md:pb-7.5 md:pt-[68px] md:h-full md:px-7.5">
+  <div class="w-full md:h-full md:overflow-hidden">
+    {%- for block in section.blocks -%}
+      {%- case block.type -%}
+        {%- when 'vendor' -%}
+          <div class="w-2/3 relative mb-2 md:mb-2.5">
+            <div class="skeleton-text">{{ 'general.global.default_skeleton_text' | t }}</div>
+            <div class="skeleton-block"></div>
+          </div>
+        {%- when 'product_title' -%}
+          <div class="w-full relative mb-0.5">
+            <div class="skeleton-text h2 heading-{{ block.settings.heading_size }}">{{ 'general.global.default_skeleton_text' | t }}</div>
+            <div class="skeleton-block"></div>
+          </div>
+        {%- when 'price' -%}
+          <div class="mb-2 md:mb-2.5">
+            <div class="w-2/3 relative">
+              <div class="skeleton-text h2">{{ 'general.global.default_skeleton_text' | t }}</div>
+              <div class="skeleton-block"></div>
+            </div>
+            {% if block.settings.show_tax_and_shipping %}
+              {%- if cart.taxes_included or cart.duties_included or shop.shipping_policy.body != blank -%}
+                <div class="w-full relative mt-3">
+                  <div class="skeleton-text">{{ 'general.global.default_skeleton_text' | t }}</div>
+                  <div class="skeleton-block"></div>
+                </div>
+              {%- endif -%}
+            {%- endif -%}
+          </div>
+        {%- when 'identifier' -%}
+          <div class="w-1/3 relative mb-2 md:mb-2.5">
+            <div class="skeleton-text">{{ 'general.global.default_skeleton_text' | t }}</div>
+            <div class="skeleton-block"></div>
+          </div>
+        {%- when 'description', 'html' -%}
+          <div class="w-full relative mb-[var(--padding-bottom-product-template-block)]">
+            <div class="skeleton-text">{{ 'general.global.default_skeleton_text' | t }}</div>
+            <div class="skeleton-block"></div>
+          </div>
+        {%- when 'variant_picker' -%}
+          <div class="w-full relative mb-[var(--padding-bottom-product-template-block)]">
+            <div class="skeleton-text">{{ 'general.global.default_skeleton_text' | t }}</div>
+            <div class="skeleton-block"></div>
+          </div>
+        {%- when 'qty_and_buy_buttons' -%}
+          <div class="mb-[var(--padding-bottom-product-template-block)]">
+            {% comment %} qty {% endcomment %}
+            <div class="w-1/3 relative mb-1.5">
+              <div class="skeleton-text">{{ 'general.global.default_skeleton_text' | t }}</div>
+              <div class="skeleton-block"></div>
+            </div>
+            <div class="w-1/3 relative mb-[var(--padding-bottom-product-template-block)]">
+              <div class="skeleton-text min-h-[12px] border pt-3 pb-3 w-1/3">{{ 'general.global.default_skeleton_text' | t }}</div>
+              <div class="skeleton-block rounded-corners-md"></div>
+            </div>
+            
+            {% comment %} buy buttons {% endcomment %}
+            <div class="w-full relative">
+              <div class="skeleton-text button button-large">{{ 'general.global.default_skeleton_text' | t }}</div>
+              <div class="skeleton-block rounded-corners-md"></div>
+            </div>
+          </div>
+        {%- when 'inventory_status' -%}
+          <div class="mb-2 md:mb-2.5 flex gap-1.5 items-center">
+            <div class="w-5 h-5 rounded-full bg-skeleton"></div>
+            <div class="w-1/3 relative">
+              <div class="skeleton-text">{{ 'general.global.default_skeleton_text' | t }}</div>
+              <div class="skeleton-block"></div>
+            </div>
+          </div>
+        {%- when 'text' -%}
+          {%- if block.settings.text != blank -%}
+            <div class="w-full relative mb-[var(--padding-bottom-product-template-block)]">
+              <div class="skeleton-text rte flex whitespace-normal">{{ block.settings.text }}</div>
+              <div class="skeleton-block"></div>
+            </div>
+          {%- endif -%}
+        {%- when 'text_with_icon' -%}
+          {% unless block.settings.text == blank or block.settings.icon == 'none' or block.settings.custom_icon_image == blank and block.settings.icon == 'another' and block.settings.another_icon == blank %}
+            <div class="flex gap-3 items-center mb-[var(--padding-bottom-product-template-block)]">
+              {% if block.settings.icon != 'none' %}
+                {% style %}
+                  .size-icon-{{ block.id }} {
+                    width: {{ block.settings.icon_size }}px;
+                    height: {{ block.settings.icon_size }}px;
+                  }
+                {% endstyle %}
+                <div class="size-icon-{{ block.id }} bg-skeleton rounded-corners-md"></div>
+              {% endif %}
+              {% if block.settings.text != blank %}
+                <div class="w-full relative">
+                  <div class="skeleton-text product-info__text-with-icon__text rte flex whitespace-normal">{{ block.settings.text }}</div>
+                  <div class="skeleton-block"></div>
+                </div>
+              {% endif %}
+            </div>
+          {%- endunless -%}
+        {%- when 'labels_and_badges' -%}
+          {% if block.settings.label_position == 'content_inline' %}
+            <div class="w-full relative mb-[var(--padding-bottom-product-template-block)] min-h-[45px]">
+              <div class="skeleton-text text-sm py-2">{{ 'general.global.default_skeleton_text' | t }}</div>
+              <div class="skeleton-block"></div>
+            </div>
+          {% endif %}
+        {%- when 'rating' -%}
+          <div class="w-1/3 relative mb-2 md:mb-2.5 min-h-[var(--rating-star-size)]">
+            <div class="skeleton-text text-small">{{ 'general.global.default_skeleton_text' | t }}</div>
+            <div class="skeleton-block"></div>
+          </div>
+        {%- when 'space' -%}
+          <div
+            class="product-info__space-{{ block.settings.gap }}"
+          ></div>
+        {%- when 'separator' -%}
+          <div
+            class="product-info__separator-wrapper border-t border-solid color-border-[rgba(var(--color-line-and-border))] w-full mb-[var(--padding-bottom-product-template-block)]"
+          ></div>
+        {%- when 'payment_methods' -%}
+          <div class="mb-[var(--padding-bottom-product-template-block)]">
+            {% if block.settings.heading != blank %}
+              <div class="min-w-[50%] relative mb-4 w-fit">
+                <div class="skeleton-text h6 whitespace-normal">{{ block.settings.heading }}</div>
+                <div class="skeleton-block"></div>
+              </div>
+            {% endif %}
+            <div class="w-full mb-2.5 h-7 bg-skeleton"></div>
+            {% if block.settings.text != blank %}
+              <div class="w-full relative">
+                <div class="skeleton-text text-small whitespace-normal">{{ block.settings.text }}</div>
+                <div class="skeleton-block"></div>
+              </div>
+            {% endif %}
+          </div>
+        {%- when 'back_in_stock_alert' -%}
+          <div class="mb-[var(--padding-bottom-product-template-block)] flex flex-col gap-0.5">
+            {% if block.settings.heading != blank %}
+              <div class="min-w-[50%] relative w-fit">
+                <div class="skeleton-text h6 whitespace-normal">{{ block.settings.heading }}</div>
+                <div class="skeleton-block"></div>
+              </div>
+            {% endif %}
+            {% if block.settings.text_info != blank %}
+              <div class="w-full relative">
+                <div class="skeleton-text text-small rte whitespace-normal">{{ block.settings.text_info }}</div>
+                <div class="skeleton-block"></div>
+              </div>
+            {% endif %}
+            {% if block.settings.text_info != blank %}
+              <div class="w-full relative">
+                <div class="skeleton-text border py-3.5">{{ 'general.global.default_skeleton_text' | t }}</div>
+                <div class="skeleton-block rounded-corners-md"></div>
+              </div>
+            {% endif %}
+          </div>
+        {%- when 'gift_wrapping' -%}
+          {% if settings.gift_wrapping_product.selected_or_first_available_variant.available %}
+            {% liquid 
+              assign gift_wrapping_label =  'products.product.gift_wrapping_label' | t 
+              if settings.gift_wrapping_product_page_label != blank
+                assign gift_wrapping_label = settings.gift_wrapping_product_page_label
+              endif 
+              if gift_label != blank
+                assign gift_wrapping_label = gift_label 
+              endif 
+            %}
+            <div class="w-full relative mb-[var(--padding-bottom-product-template-block)]">
+              <div class="skeleton-text py-2.5 border whitespace-normal min-h-[24px]">{{ gift_wrapping_label }}</div>
+              <div class="skeleton-block rounded-corners-md"></div>
+            </div>
+          {% endif %}
+        {%- when 'customizable_options' -%}
+          <div class="mb-[var(--padding-bottom-product-template-block)] {{ block.settings.width_block }}">
+            {% liquid
+              assign option_name = block.settings.option_name
+              if block.settings.picker_type == 'color_picker'
+                assign option_name = option_name | append: ': #000000'
+              endif
+            %}
+            {% if block.settings.option_name != blank %}
+              <div class="min-w-[50%] w-fit relative{% if block.settings.picker_type == 'color_swatches' %} mb-1{% else %} mb-2.5{% endif %}">
+                <div class="skeleton-text h6 whitespace-normal">{{ option_name }}</div>
+                <div class="skeleton-block rounded-corners-md"></div>
+              </div>
+            {% endif %}
+            {% case block.settings.picker_type %} 
+              {%- when 'single_text' -%}
+                <div class="w-full relative">
+                  <div class="skeleton-text py-3.5 h-[calc(var(--body-font-size)*1.6+28px)] border">{{ 'general.global.default_skeleton_text' | t }}</div>
+                  <div class="skeleton-block rounded-corners-md"></div>
+                </div>
+                {% if block.settings.option_text_note != blank %}
+                  <div class="w-full relative mt-2">
+                    <div class="skeleton-text whitespace-normal">{{ block.settings.option_text_note | escape }}</div>
+                    <div class="skeleton-block"></div>
+                  </div>
+                {% endif %}
+              {%- when 'multi_text' -%}
+                <div class="w-full relative">
+                  <textarea class="skeleton-text py-4 border" rows="4"></textarea>
+                  <div class="skeleton-block rounded-corners-md"></div>
+                </div>
+                {% if block.settings.option_text_note != blank %}
+                  <div class="w-full relative mt-2">
+                    <div class="skeleton-text whitespace-normal">{{ block.settings.option_text_note | escape }}</div>
+                    <div class="skeleton-block"></div>
+                  </div>
+                {% endif %}
+              {% when 'radio_button' %}
+                <div class="w-full relative">
+                  <div class="skeleton-text min-h-[18px]">{{ 'general.global.default_skeleton_text' | t }}</div>
+                  <div class="skeleton-block"></div>
+                </div>
+                {% if block.settings.option_select_note != blank %}
+                  <div class="w-full relative mt-2">
+                    <div class="skeleton-text whitespace-normal">{{ block.settings.option_select_note | escape }}</div>
+                    <div class="skeleton-block"></div>
+                  </div>
+                {% endif %}
+              {% when 'color_picker' %}
+                  <div class="bg-skeleton w-10 h-10 rounded-full inline-block"></div>
+              {% when 'date', 'time' %}
+                <div class="w-full relative">
+                  <input class="skeleton-text h-[calc(var(--body-font-size)*1.6+28px)] w-full py-3.5 border" type="date">
+                  <div class="skeleton-block rounded-corners-md"></div>
+                </div>
+              {% when 'checkbox' %}
+                <div class="w-full relative">
+                  <div class="skeleton-text min-h-[22px]">{{ 'general.global.default_skeleton_text' | t }}</div>
+                  <div class="skeleton-block"></div>
+                </div>
+                {% if block.settings.option_select_note != blank %}
+                  <div class="w-full relative mt-2">
+                    <div class="skeleton-text whitespace-normal">{{ block.settings.option_select_note | escape }}</div>
+                    <div class="skeleton-block"></div>
+                  </div>
+                {% endif %}
+              {% when 'dropdown' %}
+                <div class="w-full relative">
+                  <select class="skeleton-text py-3.5 border">{{ 'general.global.default_skeleton_text' | t }}</select>
+                  <div class="skeleton-block rounded-corners-md"></div>
+                </div>
+                {% if block.settings.option_select_note != blank %}
+                  <div class="w-full relative mt-2">
+                    <div class="skeleton-text whitespace-normal">{{ block.settings.option_select_note | escape }}</div>
+                    <div class="skeleton-block"></div>
+                  </div>
+                {% endif %}
+              {% when 'color_swatches' %}
+                <div class="w-full h-10 bg-skeleton"></div>
+              {% when 'text_swatches' %}
+                <div class="w-full relative">
+                  <div class="skeleton-text py-3">{{ 'general.global.default_skeleton_text' | t }}</div>
+                  <div class="skeleton-block"></div>
+                </div>
+              {% when 'file_upload' %}
+                <div class="w-full relative">
+                  <div class="skeleton-text whitespace-normal drop-zone duration-200 border border-dashed color-border-[rgba(var(--color-line-and-border))] {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}">
+                    <div class="cursor-pointer flex flex-col items-center pt-5 pb-5 pl-5 pr-5">
+                      <span class="inline-block text-center w-9 h-7.5 opacity-50 mb-2.5 color-text-[rgba(var(--color-text))]">{% render 'icon-all', icon: 'icon-file-upload' %}</span>
+                      <p class="text-center">{{ 'products.product.file_upload' | t }}</p>
+                      <span class="opacity-50 text-x-small color-text-[rgba(var(--color-heading),0.6)]">{{ 'products.product.file_upload_info' | t }}</span>
+                    </div>
+                  </div>
+                  <div class="skeleton-block rounded-corners-md"></div>
+                </div>
+                {% if block.settings.option_file_note != blank %}
+                  <div class="w-full relative mt-2">
+                    <div class="skeleton-text whitespace-normal">{{ block.settings.option_file_note | escape }}</div>
+                    <div class="skeleton-block"></div>
+                  </div>
+                {% endif %}
+            {% endcase %}
+          </div>
+        {%- when 'button_view_product' -%}
+          {% liquid
+            if block.settings.button_style != 'text-link'
+              assign class_button = class_button | append: 'pt-2.5 pb-2.5 md:pt-3 md:pb-3 pl-7 pr-7 md:pl-9 md:pr-9'
+            endif
+          %}
+          <div class="w-2/3 relative mb-[var(--padding-bottom-product-template-block)]">
+            <div class="skeleton-text button {{ class_button }}">{{ 'general.global.default_skeleton_text' | t }}</div>
+            <div class="skeleton-block rounded-corners-md"></div>
+          </div>
+      {%- endcase -%}
+    {%- endfor -%}
+  </div>
+</div>

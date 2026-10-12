@@ -1,0 +1,373 @@
+{% liquid
+  assign product = closest.product
+  assign current_variant = product.selected_or_first_available_variant
+%}
+
+{% style %}
+  .block-{{ block.id }} {
+    --pad-top: {{ block.settings.desktop_padding_top }}px;
+    --pad-bottom: {{ block.settings.desktop_padding_bottom }}px;
+    --pad-left: {{ block.settings.desktop_padding_left }}px;
+    --pad-right: {{ block.settings.desktop_padding_right }}px;
+    --pad-top-m: {{ block.settings.mobile_padding_top }}px;
+    --pad-bottom-m: {{ block.settings.mobile_padding_bottom }}px;
+    --pad-left-m: {{ block.settings.mobile_padding_left }}px;
+    --pad-right-m: {{ block.settings.mobile_padding_right }}px;
+  }
+{% endstyle %}
+
+{% liquid
+  assign stock_alert_form_id = 'StockAlert' | append: block.id
+%}
+
+{% liquid
+  assign is_rtl = false
+  if settings.lang_direction contains request.locale.iso_code
+    assign is_rtl = true
+  endif
+%}
+
+{% liquid
+  if block.settings.button_label != blank
+    assign button_label = block.settings.button_label
+  else
+    assign button_label = 'templates.contact.form.send' | t
+  endif
+%}
+
+<div class="maximize-block block-back-in-stock-alert product-info__back-in-stock-alert-wrapper block-{{ block.id }} w-full"
+  data-block-id="{{ block.id }}"
+  {{ block.shopify_attributes }}
+>
+  <div class="{% if block.settings.show_when_product_unavailable and current_variant.available %} hidden{% endif %}">
+    <div
+      class="block-padding"
+      x-data="xContactForm('{{ stock_alert_form_id }}')"
+      @input.debounce.300ms="validateForm()"
+      @change="validateForm()"
+    >
+      <div class="w-full flex flex-col gap-y-2.5">
+        {%- liquid
+          assign success_message = block.settings.success_message
+          assign message = 'products.product.back_in_stock_alert' | t
+          assign contact_form_class = 'maximize-contact-form back-in-stock__form'
+        -%}
+        {%- if block.settings.heading != blank or block.settings.text_info != blank -%}
+          <div class="flex flex-col gap-y-0.5">
+            {%- if block.settings.heading != blank -%}
+              <p class="{{ content_center_class }} back-in-stock__heading h5 md:h6">
+                {{ block.settings.heading | escape }}
+              </p>
+            {%- endif -%}
+            {%- if block.settings.text_info != blank -%}
+              <div class="back-in-stock__info text-small rte {{ content_center_class }}">
+                {{ block.settings.text_info }}
+              </div>
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+
+        {%- form 'contact', id: stock_alert_form_id, class: contact_form_class -%}
+          {%- if form.posted_successfully? -%}
+            {% if success_message != blank %}
+              <div class="back-in-stock__success-message mb-2.5">
+                <div
+                  class="flash-message success-message inline-block"
+                  tabindex="-1"
+                  autofocus
+                >
+                  {{ success_message }}
+                </div>
+              </div>
+            {% endif %}
+          {%- elsif form.errors -%}
+            <div class="back-in-stock__error-message mb-2.5">
+              <div
+                class="flash-message error-message inline-block"
+                tabindex="-1"
+                autofocus
+              >
+                {{ form.errors.translated_fields.email | capitalize }}
+                {{ form.errors.messages.email }}
+              </div>
+            </div>
+          {%- endif -%}
+          {%- unless form.posted_successfully? -%}
+            <input
+              type="hidden"
+              name="contact[Message]"
+              value="{{ message }}"
+              form="{{ stock_alert_form_id }}"
+            >
+            <input
+              type="hidden"
+              name="contact[Product ID]"
+              value="{{ product.id }}"
+              form="{{ stock_alert_form_id }}"
+            >
+            <input
+              type="hidden"
+              name="contact[Product Title]"
+              value="{{ product.title }}"
+              form="{{ stock_alert_form_id }}"
+            >
+            <input
+              type="hidden"
+              name="contact[Product URL]"
+              value="{{ shop.url }}{{ product.url }}"
+              form="{{ stock_alert_form_id }}"
+            >
+            {% unless product.has_only_default_variant %}
+              <input
+                type="hidden"
+                name="contact[Product Variant]"
+                value="{{ current_variant.title }}"
+                form="{{ stock_alert_form_id }}"
+              >
+            {% endunless %}
+            <div class="stock-alert__fields text-field__wrapper text-field__has-button outline-none border border-solid color-border-[rgba(var(--color-line-and-border))]">
+              {% if is_rtl %}
+                <custom-button>
+                  <button
+                    type="submit"
+                    class="button button-{{ block.settings.button_style }} py-2.5 px-3.5 cursor-pointer empty:hidden {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+                    name="btnSubmit"
+                    disabled
+                    :disabled="!isFormValid"
+                  >
+                    {% render 'button-label', button_label: button_label, show_button_style: block.settings.button_style %}
+                  </button>
+                </custom-button>
+              {% endif %}
+              <div class="text-field__content">
+                <input
+                  type="email"
+                  id="ContactFormEmail-{{ block.id }}"
+                  class="text-field__input"
+                  name="contact[email]"
+                  autocomplete="email"
+                  autocapitalize="off"
+                  autocorrect="off"
+                  placeholder="{{ 'customer.email' | t }}"
+                  dir="{% if is_rtl %}rtl{% else %}ltr{% endif %}"
+                  required
+                  form="{{ stock_alert_form_id }}"
+                >
+                <label
+                  class="text-field__label"
+                  for="ContactFormEmail-{{ block.id }}"
+                >
+                  {{ 'customer.email' | t }}
+                </label>
+              </div>
+              {% unless is_rtl %}
+                <custom-button>
+                  <button
+                    type="submit"
+                    class="button button-{{ block.settings.button_style }} py-2.5 px-3.5 cursor-pointer empty:hidden {% if settings.edges_type == 'rounded_corners' %} rounded-md{% endif %}"
+                    name="btnSubmit"
+                    disabled
+                    :disabled="!isFormValid"
+                  >
+                    {% render 'button-label', button_label: button_label, show_button_style: block.settings.button_style %}
+                  </button>
+                </custom-button>
+              {% endunless %}
+            </div>
+            <div
+              id="BackInStockAlert-{{ block.id }}__validation"
+              class="contact-form__email-error-{{ stock_alert_form_id }} hidden mt-1 flash-message error-message {% if is_rtl %} justify-end{% endif %}"
+            >
+            </div>
+          {%- endunless -%}
+        {%- endform -%}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Back in stock alert",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "t:main_product.blocks.back_in_stock_alert.settings.paragraph"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_when_product_unavailable",
+      "label": "t:main_product.blocks.back_in_stock_alert.settings.show_when_product_unavailable",
+      "default": true,
+      "info": "t:main_product.blocks.back_in_stock_alert.settings.show_when_product_unavailable_info"
+    },
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:global.text.heading"
+    },
+    {
+      "type": "richtext",
+      "id": "text_info",
+      "label": "t:global.text.text",
+      "default": "<p>Sign up to be the first to know when it's back in stock.</p>"
+    },
+    {
+      "type": "header",
+      "content": "Submit button"
+    },
+    {
+      "type": "select",
+      "id": "button_style",
+      "options": [
+        {
+          "value": "primary",
+          "label": "t:global.button.style.primary"
+        },
+        {
+          "value": "secondary",
+          "label": "t:global.button.style.secondary"
+        }
+      ],
+      "label": "t:global.button.style.label",
+      "default": "secondary"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Label",
+      "default": "Send"
+    },
+    {
+      "type": "header",
+      "content": "Message"
+    },
+    {
+      "type": "text",
+      "id": "success_message",
+      "label": "t:contact_form.settings.success_message",
+      "default": "<p>Thank you for signing up. We'll get back to you as soon as possible.</p>"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "select",
+      "id": "spacing_choose_device",
+      "label": "Choose device",
+      "options": [
+        {
+          "value": "desktop",
+          "label": "Desktop"
+        },
+        {
+          "value": "mobile",
+          "label": "Mobile"
+        }
+      ],
+      "default": "desktop",
+      "info": "Desktop and Mobile settings are configured separately."
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "desktop_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'desktop' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Top",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Bottom",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Left",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Right",
+      "default": 0,
+      "visible_if": "{{ block.settings.spacing_choose_device == 'mobile' }}"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Back in stock alert",
+      "category": "Forms"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,37 @@
+.select-options-wrapper .swatch-option__label[data-type-display="text"] {
+  display: none;
+}
+.select-options-wrapper .swatch-option__label[data-type-display="small_image"] {
+  --swatch-option-width: 26px;
+  --swatch-option-height: 26px;
+}
+.select-options-wrapper .swatch-option__label[data-type-display="large_image"] {
+  --swatch-option-width: 46px;
+  --swatch-option-height: 46px;
+}
+@media screen and (min-width: 1024px) {
+  .select-options-wrapper .swatch-option__label[data-type-display="large_image"] {
+    --swatch-option-width: 56px;
+    --swatch-option-height: 56px;
+  }
+}
+.product-picker-filter__container  .select-option.selected, .product-picker-filter__container  .select-option.focused {
+  background-color: rgba(var(--color-text-no-alpha) / 0.06);
+}
+.product-picker-filter__container  .select-option.disabled {
+  cursor: not-allowed;
+}
+.product-picker-filter__container {
+  --right_range: 0;
+  --left_range: 0;
+}
+.collection-filter-wrapper:has([data-filter-type="price"]) {
+  min-width: 220px;
+}
+.section-product-picker__container .select-options-wrapper:has(ul:empty) {
+  display: none;
+}
+.section-product-picker__container select-element:has(.select-options:empty) .select-button, .select-button.disabled-cursor {
+  cursor: not-allowed;
+  opacity: 0.7;
+}

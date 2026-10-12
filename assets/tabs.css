@@ -1,0 +1,105 @@
+.tabs__content-table__info {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  border: 1px solid rgba(var(--color-text-no-alpha) / 0.12);
+}
+
+@media (min-width: 768px) {
+  .tabs__content-table__info {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
+
+.tabs__content-table__info .tabs__content-table__row,
+.table_info_label {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-style: solid;
+  gap: 3rem;
+}
+
+@media (min-width: 768px) {
+  .tabs__content-table__info .tabs__content-table__row,
+  .table_info_label {
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
+  }
+}
+
+.tabs__content-table__info .tabs__content-table__row {
+  border-bottom: 1px solid rgba(var(--color-text-no-alpha) / 0.12);
+}
+
+.tabs__content-table__info .tabs__content-table__row:last-child {
+  border-bottom: none;
+}
+
+.tabs__content-highlight-column {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  justify-content: center;
+  gap: 0.375rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .tabs__content-highlight-column {
+    padding-left: 1.875rem;
+    padding-right: 1.875rem;
+    width: 25%;
+  }
+}
+
+.tabs__content-highlight-column::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 50%;
+  transform: translateY(50%);
+  border-right: 1px solid rgba(var(--color-text-no-alpha) / 0.12);
+}
+
+@media (min-width: 768px) {
+  .tabs__content-highlight-column::after {
+    border-right: 1px solid rgba(var(--color-text-no-alpha) / 0.12);
+  }
+}
+
+.tabs__content-highlight-column:last-child::after {
+  border-right: none;
+}
+.tabs__button .gradient.gradient-left {
+  background-image: linear-gradient(to left, transparent, rgba(var(--color-background)));
+  position: absolute;
+  width: 3.5rem;
+  height: 100%;
+  bottom: 0;
+}
+
+@media (min-width: 768px) {
+  .tabs__button .gradient.gradient-left {
+    width: 6rem;
+  }
+}
+
+.tabs__button .gradient.gradient-right {
+  background-image: linear-gradient(to right, transparent, rgba(var(--color-background)));
+  position: absolute;
+  width: 3.5rem;
+  height: 100%;
+  bottom: 0;
+}
+
+@media (min-width: 768px) {
+  .tabs__button .gradient.gradient-right {
+    width: 6rem;
+  }
+}

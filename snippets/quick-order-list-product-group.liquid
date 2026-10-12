@@ -1,0 +1,225 @@
+{% doc %}
+  Renders one product's row-group for the Quick order list block: a parent summary row (image, linked title + variant count, "From $X" / single price, expand toggle) plus its variants as collapsible child rows — or, for a single-variant product, one flat row with no expand/collapse (matches order-view-row.liquid's `ov_single` treatment). Used for the current product, every sibling product, every curated product — in both the capped main table and the uncapped "View all" popup.
+
+  @param {object} product - The product to render
+  @param {boolean} default_open - Whether the group starts expanded. Ignored for a single-variant product — there's nothing to expand into.
+  @param {boolean} show_images - Show the product image (52x52)
+  @param {string} image_ratio - Aspect ratio class suffix, e.g. "1/1"
+  @param {boolean} show_inventory_status - Show the in-stock/low-stock/sold-out indicator
+  @param {boolean} [show_skus] - Show the SKU (single-variant row only — folded into variant-order-row's combined option/SKU line; the multi-variant group header never shows a SKU)
+  @param {string} group_id - Unique id for this group (aria-controls / element id)
+  @param {number} index - Position of this product among its render context (current/sibling/curated list); rotates the placeholder image when there's no real image. Default: 1
+  @param {string} [icon_caret] - Pre-rendered 'icon-caret' markup. _quick-order-list.liquid hoists this once for the block (up to 6 groups + popup copy); falls back here when omitted.
+
+  @example
+  {% render 'quick-order-list-product-group',
+    product: product,
+    default_open: true,
+    show_images: show_images,
+    image_ratio: image_ratio,
+    show_inventory_status: show_inventory_status,
+    show_skus: show_skus,
+    group_id: 'qol-current',
+    index: 1
+  %}
+{% enddoc %}
+
+{%- liquid
+  capture qol_group_price_hidden
+    render 'can-hide-price', product: product
+  endcapture
+  assign qol_group_price_hidden = qol_group_price_hidden | strip
+  assign price_hidden = false
+  if qol_group_price_hidden == 'true'
+    assign price_hidden = true
+  endif
+
+  assign qol_group_placeholder_index = index | default: 1
+  assign qol_group_placeholder_index = 'now' | date: '%M' | times: qol_group_placeholder_index | modulo: 5 | plus: 1
+  assign qol_group_placeholder = 'product_' | append: qol_group_placeholder_index
+
+  if icon_caret == null
+    capture icon_caret
+      render 'icon-all', icon: 'icon-caret'
+    endcapture
+  endif
+
+  assign qol_single = false
+  if product.variants_count == 1
+    assign qol_single = true
+  endif
+-%}
+
+<div
+  class="qol-group row-group rounded-corners"
+  {%- unless qol_single %}
+    x-data="{ qolGroupOpen: {{ default_open }} }"
+    :class="{ 'qol-group--open': qolGroupOpen, 'row-group--open': qolGroupOpen }"
+  {%- endunless %}
+  data-price-hidden="{{ price_hidden }}"
+  data-product-url="{{ product.url }}"
+  data-default-open="{{ default_open }}"
+  data-product-id="{{ product.id }}"
+  data-product-title="{{ product.title | escape }}"
+  data-has-only-default-variant="{{ product.has_only_default_variant }}"
+  {%- if product.featured_image %}
+    data-product-image="{{ product.featured_image | image_url: width: 240 }}"
+  {%- endif %}
+>
+  {%- if qol_single -%}
+    {%- liquid
+      assign qol_single_variant = product.selected_or_first_available_variant
+
+      assign qol_single_apply_preorder = false
+      if settings.applied_products_preorder == blank and settings.applied_collections_preorder == blank
+        assign qol_single_apply_preorder = true
+      else
+        assign qol_single_product_ids = ''
+        for prod in settings.applied_products_preorder
+          assign qol_single_product_ids = qol_single_product_ids | append: ';' | append: prod.id
+        endfor
+        for collec in settings.applied_collections_preorder
+          for prod in collec.products
+            assign qol_single_product_ids = qol_single_product_ids | append: ';' | append: prod.id
+          endfor
+        endfor
+        if qol_single_product_ids contains product.id
+          assign qol_single_apply_preorder = true
+        endif
+      endif
+
+      assign qol_single_message_preorder = 'general.preorder.message_preorder' | t
+      if settings.message_preorder_cart != blank
+        assign qol_single_message_preorder = settings.message_preorder_cart
+      endif
+    -%}
+    {%- render 'variant-order-row',
+      standalone: true,
+      variant: qol_single_variant,
+      product: product,
+      is_apply_preorder: qol_single_apply_preorder,
+      message_preorder: qol_single_message_preorder,
+      hide_price: qol_group_price_hidden,
+      show_skus: show_skus,
+      is_last_variant: true,
+      index: index,
+      image_width: 52,
+      row_class: 'p-2 flex-nowrap'
+    -%}
+  {%- else -%}
+    <div
+      class="qol-group__header row-group__header p-2 cursor-pointer"
+      role="button"
+      tabindex="0"
+      :aria-expanded="qolGroupOpen"
+      aria-controls="{{ group_id }}"
+      @click="if (!$event.target.closest('a')) { qolGroupOpen = !qolGroupOpen }"
+      {% if settings.edges_type == 'rounded_corners' %}
+        :class="qolGroupOpen ? 'rounded-t-[10px]' : 'rounded-corners'"
+      {% endif %}
+      @keyup.enter="if (!$event.target.closest('a')) { qolGroupOpen = !qolGroupOpen }"
+    >
+      {% if show_images %}
+        <a
+          href="{{ product.url }}"
+          class="qol-col-media shrink-0"
+        >
+          <div class="qol-group__image aspect-{{ image_ratio }} overflow-hidden w-[52px] {%- if settings.edges_type == 'rounded_corners' %} rounded-[10px]{% endif %}">
+            {% if product.featured_image %}
+              {{ product.featured_image | image_url: width: 52 | image_tag: loading: 'lazy', class: 'qol-image w-full h-full duration-300 object-cover' }}
+            {% else %}
+              {% render 'placeholder-image', image_type: qol_group_placeholder %}
+            {% endif %}
+          </div>
+        </a>
+      {% endif %}
+      <div class="qol-col-variant flex flex-col gap-1 flex-1 min-w-0">
+        <a
+          href="{{ product.url }}"
+          class="qol-group__title heading title-link whitespace-nowrap overflow-hidden text-ellipsis h5 lg:h6 block"
+        >
+          {{- product.title -}}
+        </a>
+        {% if product.variants_count > 1 %}
+          <p class="qol-group__variant-count text-x-small color-text-[rgba(var(--color-text),0.6)]">
+            {{- 'quick_order_list.variant_count' | t | replace: '[count]', product.variants_count -}}
+          </p>
+        {% endif %}
+        {% if show_inventory_status %}
+          <div class="qol-group__inventory-status lg:hidden w-fit ltr">
+            {%- render 'pc-inventory-status', product: product -%}
+          </div>
+        {% endif %}
+        <div class="lg:hidden">
+          {% if price_hidden %}
+            {%- render 'guest-price-message', disabled_border: true -%}
+          {% else %}
+            <span class="qol-group__price h5 lg:h6">
+              {%- if product.variants_count > 1 -%}
+                {%- assign qol_group_from_price = product.price_min | money -%}
+                {{ 'products.product.price.from_price_html' | t: price: qol_group_from_price }}
+              {%- else -%}
+                {{ product.price | money }}
+              {%- endif -%}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if show_inventory_status %}
+        <div class="qol-col-status hidden lg:flex">
+          {%- render 'pc-inventory-status', product: product -%}
+        </div>
+      {% else %}
+        <div class="qol-col-status hidden lg:flex"></div>
+      {% endif %}
+
+      <div class="qol-col-price hidden lg:flex">
+        {% if price_hidden %}
+          {%- render 'guest-price-message', disabled_border: true -%}
+        {% else %}
+          <span class="qol-group__price h5 lg:h6">
+            {%- if product.variants_count > 1 -%}
+              {%- assign qol_group_from_price = product.price_min | money -%}
+              {{ 'products.product.price.from_price_html' | t: price: qol_group_from_price }}
+            {%- else -%}
+              {{ product.price | money }}
+            {%- endif -%}
+          </span>
+        {% endif %}
+      </div>
+
+      <div class="qol-col-qty hidden lg:flex color-text-[rgba(var(--color-text),0.4)]">--</div>
+
+      <div class="qol-group__total flex items-center h5 lg:h6">--</div>
+
+      <div class="qol-col-action flex justify-end items-center">
+        <span
+          class="row-toggle-icon flex items-center justify-center w-6.5 h-6.5 p-2 rounded-full transition-transform shrink-0 color-bg-[rgba(var(--color-text),0.12)]"
+          aria-hidden="true"
+        >
+          {{ icon_caret }}
+        </span>
+      </div>
+    </div>
+    <div
+      id="{{ group_id }}"
+      class="qol-group__children variant-expand-surface"
+      x-show="qolGroupOpen"
+      x-collapse
+    >
+      {%- comment -%} Variant rows are fetched lazily on first expand — see assets/quick-order-list.js. {%- endcomment -%}
+      <div
+        class="variant-loader-spinner py-4"
+        hidden
+      >
+        <span class="mx-auto flex w-5 h-5 animate-spin color-text-[rgba(var(--color-text))]">{%- render 'icon-all', icon: 'icon-loading' -%}</span>
+      </div>
+      <div
+        class="variant-loader-error flash-message error-message m-4"
+        hidden
+      ></div>
+      <div class="variant-loader-body"></div>
+    </div>
+  {%- endif -%}
+</div>

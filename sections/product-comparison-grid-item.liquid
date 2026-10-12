@@ -1,0 +1,275 @@
+{% liquid
+  if cart.attributes.product_comparison_variant_options != blank
+    assign variant_options = cart.attributes.product_comparison_variant_options | split: '|||'
+  endif
+  if cart.attributes.product_comparison_metafields
+    assign metafields = cart.attributes.product_comparison_metafields | split: '|||'
+  endif
+
+  assign product_url = product.url | within: collection | split: '?' | first
+
+  assign image_class = 'rounded-corners w-full object-cover anm-image-hover'
+  if settings.pc_media_ratio != 'auto'
+    assign image_class = image_class | append: ' absolute insert-0 h-full'
+  endif
+
+  assign swatch_natural = false
+  if settings.swatch_style == 'natural'
+    assign swatch_natural = true
+  endif
+%}
+<div>
+  <div class="product-comparison-table-header">
+    <div class="w-full{% if settings.pc_media_ratio != 'auto' %} relative h-0 pb-[{{ settings.pc_media_ratio }}%]{% endif %}">
+      <a
+        class="absolute inset-0 {%- if product_url != blank %} media-hyperlink overflow-hidden rounded-corners{% endif -%}"
+        href="{{ product_url }}"
+        aria-label="{{ product.title | escape }}"
+        target="_blank"
+      >
+        {% if product.featured_media.preview_image != blank %}
+          {%- capture sizes -%}
+            (min-width: 1024px) calc(100vw / 6), (min-width: 768px) calc(100vw / 3), calc(100vw * 2 / 5)
+          {%- endcapture -%}
+          {% render 'image', img_class: image_class, img: product.featured_media.preview_image, alt: product.featured_media.preview_image.alt, aspect_ratio: settings.pc_media_ratio, img_width: 500, sizes: sizes, loading: 'eager' %}
+        {% else %}
+          <div class="{{ image_class }}">
+            {% liquid
+              assign index = 1
+              assign index = 'now' | date: '%M' | times: index | modulo: 5 | plus: 1
+              assign placeholder_product_name = 'product_' | append: index
+            %}
+            {% render 'placeholder-image', image_type: placeholder_product_name %}
+          </div>
+        {% endif %}
+      </a>
+    </div>
+    <a
+      href="{{ product_url }}"
+      aria-label="{{ product.title | escape }}"
+      target="_blank"
+      class="title-link"
+    >
+      <p class="h5 md:h6 pt-2 md:pt-3 p-break-words">{{ product.title }}</p>
+    </a>
+    <div class="pt-1.5">
+      {%- capture login_hide_price -%}{%- render 'can-hide-price', product: product -%}{%- endcapture -%}
+      {%- assign login_hide_price = login_hide_price | strip -%}
+      {% if login_hide_price == 'true' %}
+        {% render 'guest-price-message' %}
+      {% else %}
+        {% render 'price', product: product, use_variant: false, price_wrapper: 'h4 md:h5 gap-x-2', show_b2b_price_label: true %}
+      {% endif %}
+    </div>
+  </div>
+  <div class="product-comparison-rating">
+    {% render 'review-product', product: product %}
+  </div>
+  <div class="product-comparison-sku">
+    {% if product.selected_or_first_available_variant.sku != blank %}
+      <p class="p-break-words">{{ product.selected_or_first_available_variant.sku }}</p>
+    {% endif %}
+  </div>
+  <div class="product-comparison-description">
+    {% if product.description != blank %}
+      <div class="rte p-break-words line-clamp-5">{{ product.description }}</div>
+    {% endif %}
+  </div>
+  <div class="product-comparison-vendor">
+    {% if product.vendor != blank %}
+      <p class="product-comparison-vendor-name p-break-words">{{ product.vendor | link_to_vendor }}</p>
+    {% endif %}
+  </div>
+  <div class="product-comparison-vendor-new-tab">
+    {% if product.vendor != blank %}
+      <p class="product-comparison-vendor-name p-break-words">{{ product.vendor | link_to_vendor | replace: '<a', '<a target="_blank"' }}</p>
+    {% endif %}
+  </div>
+  {% if variant_options != blank %}
+    <div>
+      {% for option in variant_options %}
+        {% if product.options_by_name[option] != blank %}
+          {% assign product_option = product.options_by_name[option] %}
+          {% liquid
+            assign show_color_swatch = false
+            assign text_option_name = settings.pc_swatch_text_option_name | split: ';'
+            assign swatch_option_name = settings.swatch_option_name | split: ';'
+            if settings.pc_swatches_type == 'color' or settings.pc_swatches_type == 'both_text_and_color'
+              assign settings_show_swatch = true
+              assign list_swatch_option_values = settings.swatch_option_values | newline_to_br | strip_newlines | split: '<br />'
+            endif
+            if settings_show_swatch
+              if swatch_option_name contains product_option.name
+                assign show_color_swatch = "color-setting"
+              else
+                for option_value in product_option.values
+                  if option_value.swatch
+                    assign show_color_swatch = "category-mtf"
+                    break
+                  endif
+                endfor
+              endif
+            endif
+
+            if settings.pc_swatches_type == 'text' or settings.pc_swatches_type == 'both_text_and_color'
+              unless show_color_swatch == "color-setting"
+                if text_option_name contains product_option.name
+                  assign show_color_swatch = false
+                endif
+              endunless
+            endif
+          %}
+          {% comment %} disable swatches {% endcomment %}
+          <div class="product-comparison-option-{{ option |  replace: ' ', '_' }}">
+            <div class="flex flex-wrap gap-1.5 w-full h-full">
+              {% for option_value in product_option.values %}
+                {% liquid
+                  assign option_id = section.id | append: '-' | append: option_value.id
+                %}
+                <label
+                  class="option__label inline-block w-fit color-border-[rgba(var(--color-text),0.12)] text-small relative md:list-layout:text-small py-2 px-3 border border-solid overflow-hidden break-words {%  if settings.edges_type == 'rounded_corners' %} rounded{% endif %}"
+                  for="{{ option_id }}"
+                  data-swatch-type="text"
+                >
+                  {{ option_value | escape }}
+                </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          {% comment %} enable swatches {% endcomment %}
+          <div class="product-comparison-option-swatches-{{ option |  replace: ' ', '_' }}">
+            <div class="flex flex-wrap gap-1.5 w-full h-full">
+              {% for option_value in product_option.values %}
+                {% liquid
+                  assign option_id = section.id | append: '-' | append: option_value.id
+                %}
+                {% if show_color_swatch %}
+                  {% liquid
+                    assign swatch_value_option = null
+                    assign multi_colors = null
+                    assign image_url = false
+
+                    if show_color_swatch == "color-setting"
+                      for swatch_option in list_swatch_option_values
+                        assign swatch_item_key = swatch_option | split: ':' | first
+                        assign swatch_item_value = swatch_option | split: ':' | last | strip
+                        if swatch_item_key == option_value
+                          assign swatch_value_option = swatch_item_value
+                          break
+                        endif
+                      endfor
+                    endif
+
+                    assign swatch_value = option_value.name | downcase
+                    assign swatch_option_style = 'color'
+                    if option_value.swatch.image != blank
+                      assign swatch_option_style = 'image'
+                      assign image_url = option_value.swatch.image | image_url: width: 40
+                      assign swatch_value = 'url(' | append: image_url | append: ')'
+                    elsif option_value.swatch.color
+                      assign swatch_value = 'rgba(' | append: option_value.swatch.color.rgba | append: ')'
+                    endif
+
+                    if swatch_value_option
+                      if swatch_value_option contains '.'
+                        assign swatch_option_style = 'image'
+                        assign image_url = swatch_value_option | file_img_url: '50x50'
+                        assign swatch_value = 'url(' | append: image_url | append: ')'
+                      else
+                        assign multi_colors = swatch_value_option | remove_first: '#' | split: '#'
+                        assign swatch_value = swatch_value_option
+                        assign swatch_option_style = 'color'
+                      endif
+                    endif
+                  %}
+                  {% capture linear_background %}
+                    {% if multi_colors.size == 3 %}
+                      linear-gradient(45deg, {{ '#' | append: multi_colors[0] }}, {{ '#' | append: multi_colors[0] }} 33.3%, {{ '#' | append: multi_colors[1] }} 33.3%, {{ '#' | append: multi_colors[1] }} 66.6%, {{ '#' | append: multi_colors[2] }} 66.6%, {{ '#' | append: multi_colors[2] }});
+                    {% elsif multi_colors.size == 2 %}
+                      linear-gradient(45deg, {{ '#' | append: multi_colors[0] }}, {{ '#' | append: multi_colors[0] }} 50%, {{ '#' | append: multi_colors[1] }} 50%, {{ '#' | append: multi_colors[1] }});
+                    {% endif %}
+                  {% endcapture %}
+                  {% liquid
+                    if multi_colors.size > 1
+                      assign swatch_value = linear_background
+                      assign swatch_option_style = 'image'
+                    endif
+                    if settings.replace_color_with_variant_images
+                      assign variant_of_option_value = option_value.variant
+                      if variant_of_option_value.featured_media.preview_image != blank
+                        assign image_url = variant_of_option_value.featured_media.preview_image | image_url: width: 40
+                      elsif product.featured_media.preview_image != blank
+                        assign image_url = product.featured_media.preview_image | image_url: width: 40
+                      endif
+                      if image_url != blank
+                        assign swatch_option_style = 'image'
+                        assign swatch_value = 'url(' | append: image_url | append: ')'
+                      endif
+                    endif
+
+                    if forloop.first
+                      assign ratio_image = 1
+                      if swatch_option_style == 'image'
+                        assign ratio_image = 1 | divided_by: image_url.aspect_ratio
+                      endif
+                    endif
+                  %}
+                  {% style %}
+                    {% if swatch_value %}
+                      .swatch-option__label[for="{{ option_id }}"]::before {
+                      {% if swatch_option_style == "color" %}
+                        --swatch-color-value: {{ swatch_value }}
+                      {% elsif swatch_option_style == "image" %}
+                        --swatch-image-value: {{ swatch_value }}; --swatch-color-value: {{ option_value.name | downcase }};
+                      {% endif %} }
+                    {% endif %}
+                  {% endstyle %}
+
+                  <label
+                    class="swatch-option__label comparison-swatch flex items-center color-border-[rgba(var(--color-text),0.12)] variant-option__label {% unless swatch_natural %} !h-9 !w-9{% endunless %}"
+                    data-swatch-value="{{ option_value | downcase }}"
+                    data-swatch-type="color"
+                    style="{% if swatch_natural %}--swatch-option-ratio-image: {{ ratio_image }}; --swatch-option-height: calc(var(--swatch-option-ratio-image) * var(--swatch-option-width));{% endif %}"
+                    for="{{ option_id }}"
+                  >
+                  </label>
+                {% else %}
+                  <label
+                    class="swatch-option__label comparison-swatch inline-block w-fit color-border-[rgba(var(--color-text),0.12)] text-small relative md:list-layout:text-small py-2 px-3 border border-solid overflow-hidden break-words {%  if settings.edges_type == 'rounded_corners' %} rounded{% endif %}"
+                    for="{{ option_id }}"
+                    data-swatch-type="text"
+                  >
+                    {{ option_value | escape }}
+                  </label>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% if metafields != blank %}
+    <div>
+      {%- for item in metafields -%}
+        {%- assign metafield_key = item | split: '.' -%}
+        {%- assign metafield = product.metafields[metafield_key.first][metafield_key.last] -%}
+        {%- if metafield.value != blank -%}
+          <div class="product-comparison-metafield-{{ item |  replace: '.', '_' }}">
+            {%- if metafield.type contains 'list.' -%}
+              <div class="gap-y-1 grid">
+                {%- for item in metafield.value -%}
+                  {%- assign metafield_type = metafield.type | replace: 'list.', '' -%}
+                  <div>{%- render 'metafield', metafield: metafield, metafield_type: metafield_type, metafield_value: item -%}</div>
+                {% endfor %}
+              </div>
+            {%- else -%}
+              {%- render 'metafield', metafield: metafield, metafield_type: metafield.type, metafield_value: metafield.value -%}
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+  {% endif %}
+</div>
