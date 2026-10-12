@@ -92,12 +92,14 @@
                 {%- endif -%}
                 <div class="product__tax caption rte">
                   {%- if customer.b2b? -%}
-                    <span style="color:#666;">zzgl. 19% MwSt</span>
-                  {%- elsif cart.taxes_included -%}
-                    {{ 'products.product.include_taxes' | t }}
-                  {%- endif -%}
-                  {%- if shop.shipping_policy.body != blank -%}
-                    {{ 'products.product.shipping_policy_html' | t: link: shop.shipping_policy.url }}
+                    <span style="color:#666;">zzgl. 19% MwSt. Versand an der Kasse berechnet.</span>
+                  {%- else -%}
+                    {%- if cart.taxes_included -%}
+                      {{ 'products.product.include_taxes' | t }}
+                    {%- endif -%}
+                    {%- if shop.shipping_policy.body != blank -%}
+                      {{ 'products.product.shipping_policy_html' | t: link: shop.shipping_policy.url }}
+                    {%- endif -%}
                   {%- endif -%}
                 </div>
                 {% if product.tags contains 'standard_shipping' %}
