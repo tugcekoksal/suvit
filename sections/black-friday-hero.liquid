@@ -1,0 +1,542 @@
+{% style %}
+  .bfhero-{{ section.id }} {
+    position: relative;
+    width: 100%;
+    display: block;
+    overflow: hidden;
+  }
+  .bfhero-{{ section.id }} img {
+    display: block;
+    width: 100%;
+    height: {{ section.settings.height_mobile }}px;
+    object-fit: cover;
+    object-position: {{ section.settings.focal_point }};
+  }
+  @media (min-width: 768px) {
+    .bfhero-{{ section.id }} img {
+      height: {{ section.settings.height_desktop }}px;
+    }
+  }
+  .bfhero-{{ section.id }} .bfhero-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .bfhero-{{ section.id }} .bfhero-overlay > * {
+    pointer-events: auto;
+  }
+  .bfhero-{{ section.id }} .bfhero-abs {
+    position: absolute;
+  }
+  .bfhero-{{ section.id }} .bfhero-countdown {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .bfhero-{{ section.id }} .cd-unit {
+    background-color: {{ section.settings.cd_bg }};
+    color: {{ section.settings.cd_color }};
+    border-radius: {{ section.settings.cd_radius }}px;
+    width: {{ section.settings.cd_box_size_mobile }}px;
+    height: {{ section.settings.cd_box_size_mobile }}px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .bfhero-{{ section.id }} .cd-num {
+    font-size: {{ section.settings.cd_font_size_mobile }}px;
+    font-weight: 900;
+    line-height: 1;
+  }
+  .bfhero-{{ section.id }} .cd-sep {
+    color: {{ section.settings.cd_sep_color }};
+    font-size: {{ section.settings.cd_font_size_mobile }}px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  .bfhero-{{ section.id }} .cd-label {
+    font-size: {{ section.settings.cd_label_size }}px;
+    font-weight: 400;
+    opacity: 0.8;
+    line-height: 1;
+    margin-top: 2px;
+  }
+  @media (min-width: 768px) {
+    .bfhero-{{ section.id }} .cd-unit {
+      width: {{ section.settings.cd_box_size }}px;
+      height: {{ section.settings.cd_box_size }}px;
+    }
+    .bfhero-{{ section.id }} .cd-num {
+      font-size: {{ section.settings.cd_font_size }}px;
+    }
+    .bfhero-{{ section.id }} .cd-sep {
+      font-size: {{ section.settings.cd_font_size }}px;
+    }
+  }
+  .bfhero-{{ section.id }} .bfhero-btn {
+    display: inline-block;
+    padding: {{ section.settings.btn_padding_v_mobile }}px {{ section.settings.btn_padding_h_mobile }}px;
+    background-color: {{ section.settings.btn_bg }};
+    color: {{ section.settings.btn_color }};
+    font-size: {{ section.settings.btn_font_size_mobile }}px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-radius: {{ section.settings.btn_radius }}px;
+    border: 2px solid {{ section.settings.btn_border }};
+    white-space: nowrap;
+    transition: background-color 0.2s, color 0.2s;
+  }
+  @media (min-width: 768px) {
+    .bfhero-{{ section.id }} .bfhero-btn {
+      padding: {{ section.settings.btn_padding_v }}px {{ section.settings.btn_padding_h }}px;
+      font-size: {{ section.settings.btn_font_size }}px;
+    }
+  }
+  .bfhero-{{ section.id }} .bfhero-btn:hover {
+    background-color: {{ section.settings.btn_bg_hover }};
+    color: {{ section.settings.btn_color_hover }};
+  }
+{% endstyle %}
+
+{%- liquid
+  assign cd_style = ''
+  if section.settings.cd_valign == 'top'
+    assign cd_style = cd_style | append: 'top:' | append: section.settings.cd_top | append: 'px;'
+  elsif section.settings.cd_valign == 'bottom'
+    assign cd_style = cd_style | append: 'bottom:' | append: section.settings.cd_bottom | append: 'px;'
+  else
+    assign cd_style = cd_style | append: 'top:50%;'
+  endif
+  if section.settings.cd_halign == 'left'
+    assign cd_style = cd_style | append: 'left:' | append: section.settings.cd_left | append: 'px;'
+  elsif section.settings.cd_halign == 'right'
+    assign cd_style = cd_style | append: 'right:' | append: section.settings.cd_right | append: 'px;'
+  else
+    assign cd_style = cd_style | append: 'left:50%;'
+  endif
+  if section.settings.cd_valign == 'middle' and section.settings.cd_halign == 'center'
+    assign cd_style = cd_style | append: 'transform:translate(-50%,-50%);'
+  elsif section.settings.cd_valign == 'middle'
+    assign cd_style = cd_style | append: 'transform:translateY(-50%);'
+  elsif section.settings.cd_halign == 'center'
+    assign cd_style = cd_style | append: 'transform:translateX(-50%);'
+  endif
+
+  assign cd_style_m = ''
+  if section.settings.cd_valign_mobile == 'top'
+    assign cd_style_m = cd_style_m | append: 'top:' | append: section.settings.cd_top_mobile | append: 'px;'
+  elsif section.settings.cd_valign_mobile == 'bottom'
+    assign cd_style_m = cd_style_m | append: 'bottom:' | append: section.settings.cd_bottom_mobile | append: 'px;'
+  else
+    assign cd_style_m = cd_style_m | append: 'top:50%;'
+  endif
+  if section.settings.cd_halign_mobile == 'left'
+    assign cd_style_m = cd_style_m | append: 'left:' | append: section.settings.cd_left_mobile | append: 'px;'
+  elsif section.settings.cd_halign_mobile == 'right'
+    assign cd_style_m = cd_style_m | append: 'right:' | append: section.settings.cd_right_mobile | append: 'px;'
+  else
+    assign cd_style_m = cd_style_m | append: 'left:50%;'
+  endif
+  if section.settings.cd_valign_mobile == 'middle' and section.settings.cd_halign_mobile == 'center'
+    assign cd_style_m = cd_style_m | append: 'transform:translate(-50%,-50%);'
+  elsif section.settings.cd_valign_mobile == 'middle'
+    assign cd_style_m = cd_style_m | append: 'transform:translateY(-50%);'
+  elsif section.settings.cd_halign_mobile == 'center'
+    assign cd_style_m = cd_style_m | append: 'transform:translateX(-50%);'
+  endif
+
+  assign btn_style = ''
+  if section.settings.btn_valign == 'top'
+    assign btn_style = btn_style | append: 'top:' | append: section.settings.btn_top | append: 'px;'
+  elsif section.settings.btn_valign == 'bottom'
+    assign btn_style = btn_style | append: 'bottom:' | append: section.settings.btn_bottom | append: 'px;'
+  else
+    assign btn_style = btn_style | append: 'top:50%;'
+  endif
+  if section.settings.btn_halign == 'left'
+    assign btn_style = btn_style | append: 'left:' | append: section.settings.btn_left | append: 'px;'
+  elsif section.settings.btn_halign == 'right'
+    assign btn_style = btn_style | append: 'right:' | append: section.settings.btn_right | append: 'px;'
+  else
+    assign btn_style = btn_style | append: 'left:50%;'
+  endif
+  if section.settings.btn_valign == 'middle' and section.settings.btn_halign == 'center'
+    assign btn_style = btn_style | append: 'transform:translate(-50%,-50%);'
+  elsif section.settings.btn_valign == 'middle'
+    assign btn_style = btn_style | append: 'transform:translateY(-50%);'
+  elsif section.settings.btn_halign == 'center'
+    assign btn_style = btn_style | append: 'transform:translateX(-50%);'
+  endif
+
+  assign btn_style_m = ''
+  if section.settings.btn_valign_mobile == 'top'
+    assign btn_style_m = btn_style_m | append: 'top:' | append: section.settings.btn_top_mobile | append: 'px;'
+  elsif section.settings.btn_valign_mobile == 'bottom'
+    assign btn_style_m = btn_style_m | append: 'bottom:' | append: section.settings.btn_bottom_mobile | append: 'px;'
+  else
+    assign btn_style_m = btn_style_m | append: 'top:50%;'
+  endif
+  if section.settings.btn_halign_mobile == 'left'
+    assign btn_style_m = btn_style_m | append: 'left:' | append: section.settings.btn_left_mobile | append: 'px;'
+  elsif section.settings.btn_halign_mobile == 'right'
+    assign btn_style_m = btn_style_m | append: 'right:' | append: section.settings.btn_right_mobile | append: 'px;'
+  else
+    assign btn_style_m = btn_style_m | append: 'left:50%;'
+  endif
+  if section.settings.btn_valign_mobile == 'middle' and section.settings.btn_halign_mobile == 'center'
+    assign btn_style_m = btn_style_m | append: 'transform:translate(-50%,-50%);'
+  elsif section.settings.btn_valign_mobile == 'middle'
+    assign btn_style_m = btn_style_m | append: 'transform:translateY(-50%);'
+  elsif section.settings.btn_halign_mobile == 'center'
+    assign btn_style_m = btn_style_m | append: 'transform:translateX(-50%);'
+  endif
+-%}
+
+<div class="bfhero-{{ section.id }}">
+
+  {%- if section.settings.image != blank -%}
+    {%- if section.settings.image_mobile != blank -%}
+      <picture>
+        <source media="(max-width: 767px)" srcset="{{ section.settings.image_mobile | image_url: width: 800 }} 800w, {{ section.settings.image_mobile | image_url: width: 1000 }} 1000w" sizes="100vw">
+        <source media="(min-width: 768px)" srcset="{{ section.settings.image | image_url: width: 1200 }} 1200w, {{ section.settings.image | image_url: width: 1600 }} 1600w, {{ section.settings.image | image_url: width: 1920 }} 1920w" sizes="100vw">
+        <img src="{{ section.settings.image | image_url: width: 1600 }}" alt="{{ section.settings.image.alt | escape }}" loading="eager" fetchpriority="high" width="{{ section.settings.image.width }}" height="{{ section.settings.image.height }}">
+      </picture>
+    {%- else -%}
+      <img src="{{ section.settings.image | image_url: width: 1600 }}" srcset="{{ section.settings.image | image_url: width: 800 }} 800w, {{ section.settings.image | image_url: width: 1200 }} 1200w, {{ section.settings.image | image_url: width: 1600 }} 1600w, {{ section.settings.image | image_url: width: 1920 }} 1920w" sizes="100vw" alt="{{ section.settings.image.alt | escape }}" loading="eager" fetchpriority="high" width="{{ section.settings.image.width }}" height="{{ section.settings.image.height }}">
+    {%- endif -%}
+  {%- else -%}
+    <div style="width:100%;height:{{ section.settings.height_mobile }}px;background:#1a1a1a;display:flex;align-items:center;justify-content:center;">
+      <span style="color:#555;font-size:16px;">← Görsel yükle</span>
+    </div>
+  {%- endif -%}
+
+  <div class="bfhero-overlay">
+
+    {%- if section.settings.cd_target != blank -%}
+      <div class="bfhero-abs bfhero-countdown bfhero-cd-desktop" id="bfhero-cd-{{ section.id }}" style="{{ cd_style }}">
+        <div class="cd-unit"><span class="cd-num" data-cd-days>00</span>{%- if section.settings.cd_show_labels -%}<span class="cd-label">{{ section.settings.cd_label_days }}</span>{%- endif -%}</div>
+        <span class="cd-sep">:</span>
+        <div class="cd-unit"><span class="cd-num" data-cd-hours>00</span>{%- if section.settings.cd_show_labels -%}<span class="cd-label">{{ section.settings.cd_label_hours }}</span>{%- endif -%}</div>
+        <span class="cd-sep">:</span>
+        <div class="cd-unit"><span class="cd-num" data-cd-mins>00</span>{%- if section.settings.cd_show_labels -%}<span class="cd-label">{{ section.settings.cd_label_mins }}</span>{%- endif -%}</div>
+        <span class="cd-sep">:</span>
+        <div class="cd-unit"><span class="cd-num" data-cd-secs>00</span>{%- if section.settings.cd_show_labels -%}<span class="cd-label">{{ section.settings.cd_label_secs }}</span>{%- endif -%}</div>
+      </div>
+      <div class="bfhero-abs bfhero-countdown bfhero-cd-mobile" id="bfhero-cd-m-{{ section.id }}" style="{{ cd_style_m }}">
+        <div class="cd-unit"><span class="cd-num" data-cd-days-m>00</span>{%- if section.settings.cd_show_labels -%}<span class="cd-label">{{ section.settings.cd_label_days }}</span>{%- endif -%}</div>
+        <span class="cd-sep">:</span>
+        <div class="cd-unit"><span class="cd-num" data-cd-hours-m>00</span>{%- if section.settings.cd_show_labels -%}<span class="cd-label">{{ section.settings.cd_label_hours }}</span>{%- endif -%}</div>
+        <span class="cd-sep">:</span>
+        <div class="cd-unit"><span class="cd-num" data-cd-mins-m>00</span>{%- if section.settings.cd_show_labels -%}<span class="cd-label">{{ section.settings.cd_label_mins }}</span>{%- endif -%}</div>
+        <span class="cd-sep">:</span>
+        <div class="cd-unit"><span class="cd-num" data-cd-secs-m>00</span>{%- if section.settings.cd_show_labels -%}<span class="cd-label">{{ section.settings.cd_label_secs }}</span>{%- endif -%}</div>
+      </div>
+      <style>
+        .bfhero-{{ section.id }} .bfhero-cd-mobile { display: flex; }
+        .bfhero-{{ section.id }} .bfhero-cd-desktop { display: none; }
+        @media (min-width: 768px) {
+          .bfhero-{{ section.id }} .bfhero-cd-mobile { display: none; }
+          .bfhero-{{ section.id }} .bfhero-cd-desktop { display: flex; }
+        }
+      </style>
+      <script>
+        (function() {
+          var target = new Date('{{ section.settings.cd_target }}').getTime();
+          function pad(n) { return n < 10 ? '0' + n : '' + n; }
+          function tick() {
+            var diff = target - Date.now();
+            [
+              ['[data-cd-days]','[data-cd-hours]','[data-cd-mins]','[data-cd-secs]'],
+              ['[data-cd-days-m]','[data-cd-hours-m]','[data-cd-mins-m]','[data-cd-secs-m]']
+            ].forEach(function(sel) {
+              var wrap = document.querySelector(sel[0]) ? document.querySelector(sel[0]).closest('.bfhero-countdown') : null;
+              if (!wrap) return;
+              if (diff <= 0) { wrap.style.display = 'none'; return; }
+              wrap.querySelector(sel[0]).textContent = pad(Math.floor(diff / 86400000));
+              wrap.querySelector(sel[1]).textContent = pad(Math.floor((diff % 86400000) / 3600000));
+              wrap.querySelector(sel[2]).textContent = pad(Math.floor((diff % 3600000) / 60000));
+              wrap.querySelector(sel[3]).textContent = pad(Math.floor((diff % 60000) / 1000));
+            });
+          }
+          tick();
+          setInterval(tick, 1000);
+        })();
+      </script>
+    {%- endif -%}
+
+    {%- if section.settings.btn_label != blank -%}
+      <div class="bfhero-abs bfhero-btn-desktop" style="{{ btn_style }}">
+        <a href="{{ section.settings.btn_url }}" class="bfhero-btn">{{ section.settings.btn_label }}</a>
+      </div>
+      <div class="bfhero-abs bfhero-btn-mobile" style="{{ btn_style_m }}">
+        <a href="{{ section.settings.btn_url }}" class="bfhero-btn">{{ section.settings.btn_label }}</a>
+      </div>
+      <style>
+        .bfhero-{{ section.id }} .bfhero-btn-mobile { display: block; }
+        .bfhero-{{ section.id }} .bfhero-btn-desktop { display: none; }
+        @media (min-width: 768px) {
+          .bfhero-{{ section.id }} .bfhero-btn-mobile { display: none; }
+          .bfhero-{{ section.id }} .bfhero-btn-desktop { display: block; }
+        }
+      </style>
+    {%- endif -%}
+
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Black Friday Hero",
+  "settings": [
+    {
+      "type": "header",
+      "content": "── Görsel ──"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Görsel (önerilen: 1920×800px)"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_mobile",
+      "label": "Mobil görsel (opsiyonel, önerilen: 750×900px)"
+    },
+    {
+      "type": "select",
+      "id": "focal_point",
+      "label": "Görsel odak noktası",
+      "options": [
+        { "value": "center center", "label": "Orta" },
+        { "value": "top center", "label": "Üst" },
+        { "value": "bottom center", "label": "Alt" },
+        { "value": "left center", "label": "Sol" },
+        { "value": "right center", "label": "Sağ" }
+      ],
+      "default": "center center"
+    },
+    {
+      "type": "range",
+      "id": "height_desktop",
+      "label": "Desktop yüksekliği (px)",
+      "min": 300, "max": 900, "step": 10, "default": 650
+    },
+    {
+      "type": "range",
+      "id": "height_mobile",
+      "label": "Mobil yüksekliği (px)",
+      "min": 200, "max": 700, "step": 10, "default": 450
+    },
+    {
+      "type": "header",
+      "content": "── Geri Sayım ──"
+    },
+    {
+      "type": "text",
+      "id": "cd_target",
+      "label": "Hedef tarih ve saat",
+      "info": "Format: 2026-11-29T23:59:59 — Boş bırakırsan geri sayım gizlenir.",
+      "placeholder": "2026-11-29T23:59:59"
+    },
+    {
+      "type": "header",
+      "content": "Geri sayım — Desktop konumu"
+    },
+    {
+      "type": "select",
+      "id": "cd_valign",
+      "label": "Dikey",
+      "options": [
+        { "value": "top", "label": "Üst" },
+        { "value": "middle", "label": "Orta" },
+        { "value": "bottom", "label": "Alt" }
+      ],
+      "default": "bottom"
+    },
+    { "type": "range", "id": "cd_top", "label": "Üstten (px)", "min": 0, "max": 400, "step": 4, "default": 40 },
+    { "type": "range", "id": "cd_bottom", "label": "Alttan (px)", "min": 0, "max": 400, "step": 4, "default": 40 },
+    {
+      "type": "select",
+      "id": "cd_halign",
+      "label": "Yatay",
+      "options": [
+        { "value": "left", "label": "Sol" },
+        { "value": "center", "label": "Orta" },
+        { "value": "right", "label": "Sağ" }
+      ],
+      "default": "center"
+    },
+    { "type": "range", "id": "cd_left", "label": "Soldan (px)", "min": 0, "max": 400, "step": 4, "default": 40 },
+    { "type": "range", "id": "cd_right", "label": "Sağdan (px)", "min": 0, "max": 400, "step": 4, "default": 40 },
+    {
+      "type": "header",
+      "content": "Geri sayım — Mobil konumu"
+    },
+    {
+      "type": "select",
+      "id": "cd_valign_mobile",
+      "label": "Dikey",
+      "options": [
+        { "value": "top", "label": "Üst" },
+        { "value": "middle", "label": "Orta" },
+        { "value": "bottom", "label": "Alt" }
+      ],
+      "default": "bottom"
+    },
+    { "type": "range", "id": "cd_top_mobile", "label": "Üstten (px)", "min": 0, "max": 400, "step": 4, "default": 40 },
+    { "type": "range", "id": "cd_bottom_mobile", "label": "Alttan (px)", "min": 0, "max": 400, "step": 4, "default": 20 },
+    {
+      "type": "select",
+      "id": "cd_halign_mobile",
+      "label": "Yatay",
+      "options": [
+        { "value": "left", "label": "Sol" },
+        { "value": "center", "label": "Orta" },
+        { "value": "right", "label": "Sağ" }
+      ],
+      "default": "center"
+    },
+    { "type": "range", "id": "cd_left_mobile", "label": "Soldan (px)", "min": 0, "max": 400, "step": 4, "default": 16 },
+    { "type": "range", "id": "cd_right_mobile", "label": "Sağdan (px)", "min": 0, "max": 400, "step": 4, "default": 16 },
+    {
+      "type": "header",
+      "content": "Geri sayım görünüm — Desktop"
+    },
+    { "type": "range", "id": "cd_box_size", "label": "Kutu boyutu (px)", "min": 40, "max": 120, "step": 2, "default": 72 },
+    { "type": "range", "id": "cd_font_size", "label": "Sayı boyutu (px)", "min": 16, "max": 60, "step": 1, "default": 32 },
+    {
+      "type": "header",
+      "content": "Geri sayım görünüm — Mobil"
+    },
+    { "type": "range", "id": "cd_box_size_mobile", "label": "Kutu boyutu (px)", "min": 30, "max": 90, "step": 2, "default": 52 },
+    { "type": "range", "id": "cd_font_size_mobile", "label": "Sayı boyutu (px)", "min": 12, "max": 40, "step": 1, "default": 22 },
+    {
+      "type": "header",
+      "content": "Geri sayım görünüm — Genel"
+    },
+    { "type": "color", "id": "cd_bg", "label": "Kutu rengi", "default": "#9e573c" },
+    { "type": "color", "id": "cd_color", "label": "Yazı rengi", "default": "#ffffff" },
+    { "type": "color", "id": "cd_sep_color", "label": "Ayırıcı ( : ) rengi", "default": "#ffffff" },
+    { "type": "range", "id": "cd_radius", "label": "Köşe yuvarlaklığı (px)", "min": 0, "max": 24, "step": 1, "default": 8 },
+    {
+      "type": "checkbox",
+      "id": "cd_show_labels",
+      "label": "Etiket göster (Tage / Std / Min / Sek)",
+      "default": true
+    },
+    { "type": "range", "id": "cd_label_size", "label": "Etiket boyutu (px)", "min": 8, "max": 16, "step": 1, "default": 10 },
+    { "type": "text", "id": "cd_label_days", "label": "Gün", "default": "Tage" },
+    { "type": "text", "id": "cd_label_hours", "label": "Saat", "default": "Std" },
+    { "type": "text", "id": "cd_label_mins", "label": "Dakika", "default": "Min" },
+    { "type": "text", "id": "cd_label_secs", "label": "Saniye", "default": "Sek" },
+    {
+      "type": "header",
+      "content": "── Buton ──"
+    },
+    { "type": "text", "id": "btn_label", "label": "Buton metni", "placeholder": "Jetzt shoppen" },
+    { "type": "url", "id": "btn_url", "label": "Buton linki" },
+    {
+      "type": "header",
+      "content": "Buton — Desktop konumu"
+    },
+    {
+      "type": "select",
+      "id": "btn_valign",
+      "label": "Dikey",
+      "options": [
+        { "value": "top", "label": "Üst" },
+        { "value": "middle", "label": "Orta" },
+        { "value": "bottom", "label": "Alt" }
+      ],
+      "default": "bottom"
+    },
+    { "type": "range", "id": "btn_top", "label": "Üstten (px)", "min": 0, "max": 400, "step": 4, "default": 40 },
+    { "type": "range", "id": "btn_bottom", "label": "Alttan (px)", "min": 0, "max": 400, "step": 4, "default": 100 },
+    {
+      "type": "select",
+      "id": "btn_halign",
+      "label": "Yatay",
+      "options": [
+        { "value": "left", "label": "Sol" },
+        { "value": "center", "label": "Orta" },
+        { "value": "right", "label": "Sağ" }
+      ],
+      "default": "center"
+    },
+    { "type": "range", "id": "btn_left", "label": "Soldan (px)", "min": 0, "max": 400, "step": 4, "default": 60 },
+    { "type": "range", "id": "btn_right", "label": "Sağdan (px)", "min": 0, "max": 400, "step": 4, "default": 60 },
+    {
+      "type": "header",
+      "content": "Buton — Mobil konumu"
+    },
+    {
+      "type": "select",
+      "id": "btn_valign_mobile",
+      "label": "Dikey",
+      "options": [
+        { "value": "top", "label": "Üst" },
+        { "value": "middle", "label": "Orta" },
+        { "value": "bottom", "label": "Alt" }
+      ],
+      "default": "bottom"
+    },
+    { "type": "range", "id": "btn_top_mobile", "label": "Üstten (px)", "min": 0, "max": 400, "step": 4, "default": 40 },
+    { "type": "range", "id": "btn_bottom_mobile", "label": "Alttan (px)", "min": 0, "max": 400, "step": 4, "default": 60 },
+    {
+      "type": "select",
+      "id": "btn_halign_mobile",
+      "label": "Yatay",
+      "options": [
+        { "value": "left", "label": "Sol" },
+        { "value": "center", "label": "Orta" },
+        { "value": "right", "label": "Sağ" }
+      ],
+      "default": "center"
+    },
+    { "type": "range", "id": "btn_left_mobile", "label": "Soldan (px)", "min": 0, "max": 400, "step": 4, "default": 16 },
+    { "type": "range", "id": "btn_right_mobile", "label": "Sağdan (px)", "min": 0, "max": 400, "step": 4, "default": 16 },
+    {
+      "type": "header",
+      "content": "Buton — Desktop boyutu"
+    },
+    { "type": "range", "id": "btn_font_size", "label": "Yazı boyutu (px)", "min": 11, "max": 24, "step": 1, "default": 14 },
+    { "type": "range", "id": "btn_padding_v", "label": "Dikey padding (px)", "min": 8, "max": 28, "step": 1, "default": 14 },
+    { "type": "range", "id": "btn_padding_h", "label": "Yatay padding (px)", "min": 16, "max": 60, "step": 2, "default": 36 },
+    {
+      "type": "header",
+      "content": "Buton — Mobil boyutu"
+    },
+    { "type": "range", "id": "btn_font_size_mobile", "label": "Yazı boyutu (px)", "min": 10, "max": 22, "step": 1, "default": 12 },
+    { "type": "range", "id": "btn_padding_v_mobile", "label": "Dikey padding (px)", "min": 6, "max": 24, "step": 1, "default": 10 },
+    { "type": "range", "id": "btn_padding_h_mobile", "label": "Yatay padding (px)", "min": 12, "max": 48, "step": 2, "default": 24 },
+    {
+      "type": "header",
+      "content": "Buton — Görünüm"
+    },
+    { "type": "color", "id": "btn_bg", "label": "Arkaplan", "default": "#ffffff" },
+    { "type": "color", "id": "btn_color", "label": "Yazı rengi", "default": "#111111" },
+    { "type": "color", "id": "btn_border", "label": "Kenarlık", "default": "#ffffff" },
+    { "type": "color", "id": "btn_bg_hover", "label": "Hover arkaplan", "default": "#9e573c" },
+    { "type": "color", "id": "btn_color_hover", "label": "Hover yazı rengi", "default": "#ffffff" },
+    { "type": "range", "id": "btn_radius", "label": "Köşe yuvarlaklığı (px)", "min": 0, "max": 40, "step": 2, "default": 4 }
+  ],
+  "presets": [
+    {
+      "name": "Black Friday Hero",
+      "settings": {
+        "btn_label": "Jetzt shoppen",
+        "cd_target": "2026-11-29T23:59:59",
+        "cd_label_days": "Tage",
+        "cd_label_hours": "Std",
+        "cd_label_mins": "Min",
+        "cd_label_secs": "Sek"
+      }
+    }
+  ]
+}
+{% endschema %}
