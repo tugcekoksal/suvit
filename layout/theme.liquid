@@ -1,338 +1,218 @@
-{%- liquid
-  assign rtl = false
-
-  if settings.lang_direction contains request.locale.iso_code
-    assign rtl = true
-  endif
-%}
 <!doctype html>
-<html class="maximize-theme no-js{% if settings.theme_mode_default == "dark" %} dark{% endif %} {% if settings.img_hover_anm == 'zoom_out' %} img-hover-zo{% endif %}"
-      lang="{{ request.locale.iso_code }}"
-      dir="{% if rtl %}rtl{% else %}ltr{% endif %}"
->
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="">
-  {% if settings.show_canonical_url_collection and template.name == "collection" %}
-    <link rel="canonical" href="{{ canonical_url | split: '?' | first }}">
-  {% else %}
+<html class="no-js" lang="{{ request.locale.iso_code }}">
+   <!-- R - Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-TM9ZRJZB');</script>
+    <!-- R - End Google Tag Manager -->
+  <head>
+   
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="theme-color" content="">
+    <meta name="google-site-verification" content="ICyZlfKS7nze08L1eF5qpcHRvk-FsIn3J_4GyDxnsF0" />
+
     <link rel="canonical" href="{{ canonical_url }}">
-  {% endif %}
 
-  {%- if settings.favicon != blank -%}
-    <link rel="icon" type="image/png" sizes="48x48" href="{{ settings.favicon | image_url: width: 48, height: 48 }}">
-    <link rel="icon" type="image/png" sizes="96x96" href="{{ settings.favicon | image_url: width: 96, height: 96 }}">
-  {%- endif -%}
 
-  {%- unless settings.header_font.system? and settings.body_font.system? -%}
-    <link rel="preconnect" href="https://fonts.shopifycdn.com" crossorigin>
-  {%- endunless -%}
+    {%- if settings.favicon != blank -%}
+      <link rel="icon" type="image/png" href="{{ settings.favicon | image_url: width: 32, height: 32 }}">
+    {%- endif -%}
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    {%- unless settings.type_header_font.system? and settings.type_body_font.system? -%}
+      <link rel="preconnect" href="https://fonts.shopifycdn.com" crossorigin>
+    {%- endunless -%}
+    
+    <title>
+      {{ page_title }}
+      {%- if current_tags %} &ndash; tagged "{{ current_tags | join: ', ' }}"{% endif -%}
+      {%- if current_page != 1 %} &ndash; Page {{ current_page }}{% endif -%}
+      {% comment %} {%- unless page_title contains shop.name %} &ndash; {{ shop.name }}{% endunless -%} {% endcomment %}
+    </title>
 
-  {%- comment -%} Preload critical heading + body fonts to reduce critical path latency {%- endcomment -%}
-  {%- unless settings.heading_font.system? -%}
-    <link rel="preload" as="font" type="font/woff2"
-          href="{{ settings.heading_font | font_url }}"
-          crossorigin>
-  {%- endunless -%}
-  {%- unless settings.body_font.system? -%}
-    <link rel="preload" as="font" type="font/woff2"
-          href="{{ settings.body_font | font_url }}"
-          crossorigin>
-  {%- endunless -%}
+    {%- if page_description -%}
+      <meta name="description" content="{{ page_description | escape }}">
+    {%- endif -%}
 
-  <title>
-    {{ page_title }}
-    {%- if current_tags %} &ndash; tagged "{{ current_tags | join: ', ' }}"{% endif -%}
-    {%- if current_page != 1 %} &ndash; Page {{ current_page }}{% endif -%}
-    {%- unless page_title contains shop.name %} &ndash; {{ shop.name }}{% endunless -%}
-  </title>
+    {%- render 'meta-tags' -%}
+    {{ 'slide-swiper.css' | asset_url | stylesheet_tag: preload: true }}    
+    {{ 'component-card.css' | asset_url | stylesheet_tag }} 
+    <script src="{{ 'slide-swiper.js' | asset_url }}" defer></script>
+    <script src="{{ 'constants.js' | asset_url }}" defer="defer"></script>
+    <script src="{{ 'pubsub.js' | asset_url }}" defer="defer"></script>
+    <script src="{{ 'theme.js' | asset_url }}" defer="defer"></script>
+    {%- if settings.animations_reveal_on_scroll -%}
+      <script src="{{ 'animations.js' | asset_url }}" defer="defer"></script>
+    {%- endif -%}
 
-  {%- if settings.enable_organization_schema and template.name == 'index' -%}
-    {% liquid
-      if settings.business_address_1 != nil
-        assign first_business_addr = settings.business_address_1 | split: ","
-      endif
-      if settings.business_address_2 != nil
-        assign second_business_addr = settings.business_address_2 | split: ","
-      endif
-    %}
-    <script type="application/ld+json">
-      {
-        "@context": "http://schema.org",
-        "@type": "{{ settings.site_type }}",
-          "name": "{{ settings.business_name }}",
-          "description": "{{ settings.business_description }}",
-      {% if settings.business_logo != blank %}
-          "logo": {{ settings.business_logo | image_url: width: 112 | prepend: "https:" | json }},
-          {% endif %}
-      "telephone": "{{ settings.business_phone }}",
-          "address": [{
-            "@type": "PostalAddress",
-            "streetAddress": "{{ first_business_addr[0] }}",
-            "addressLocality": "{{ first_business_addr[1] }}",
-            "addressRegion": "{{ first_business_addr[2] }}",
-            "postalCode": "{{ first_business_addr[3] }}",
-            "addressCountry": "{{ first_business_addr[4] }}"
-          },{
-            "streetAddress": "{{ second_business_addr[0] }}",
-            "addressLocality": "{{ second_business_addr[1] }}",
-            "addressRegion": "{{ second_business_addr[2] }}",
-            "postalCode": "{{ second_business_addr[3] }}",
-            "addressCountry": "{{ second_business_addr[4] }}"
-          }],
-          "email": "{{ settings.business_email }}",
-          "foundingDate": "{{ settings.founded_on }}"
-        }
+    {{ content_for_header }}
+
+    {%- style %}
+      {%- for scheme in settings.color_schemes -%}
+        {% assign scheme_classes = scheme_classes | append: ', .color-' | append: scheme.id %}
+        {% if forloop.index == 1 -%}
+          :root,
+        {%- endif %}
+        .color-{{ scheme.id }} {
+          --color-background: {{ scheme.settings.background.red }},{{ scheme.settings.background.green }},{{ scheme.settings.background.blue }};
+        {% if scheme.settings.background_gradient != empty %}
+          --gradient-background: {{ scheme.settings.background_gradient }};
+        {% else %}
+          --gradient-background: {{ scheme.settings.background }};
+        {% endif %}
+
+        {%- liquid
+          assign background_color = scheme.settings.background
+          assign background_color_brightness = background_color | color_brightness
+          if background_color_brightness <= 26
+            assign background_color_contrast = background_color | color_lighten: 50
+          elsif background_color_brightness <= 65
+            assign background_color_contrast = background_color | color_lighten: 5
+          else
+            assign background_color_contrast = background_color | color_darken: 25
+          endif
+        -%}
+
+        --color-foreground: {{ scheme.settings.text.red }},{{ scheme.settings.text.green }},{{ scheme.settings.text.blue }};
+        --color-background-contrast: {{ background_color_contrast.red }},{{ background_color_contrast.green }},{{ background_color_contrast.blue }};
+        --color-shadow: {{ scheme.settings.shadow.red }},{{ scheme.settings.shadow.green }},{{ scheme.settings.shadow.blue }};
+        
+        --color-button: {{ scheme.settings.button.red }},{{ scheme.settings.button.green }},{{ scheme.settings.button.blue }};
+        --color-button-text: {{ scheme.settings.button_label.red }},{{ scheme.settings.button_label.green }},{{ scheme.settings.button_label.blue }};
+        --color-secondary-button: {{ scheme.settings.background.red }},{{ scheme.settings.background.green }},{{ scheme.settings.background.blue }};
+        --color-secondary-button-text: {{ scheme.settings.secondary_button_label.red }},{{ scheme.settings.secondary_button_label.green }},{{ scheme.settings.secondary_button_label.blue }};
+        --color-solid-button-hover-background: {{ scheme.settings.solid_button_hover_background.red }}, {{ scheme.settings.solid_button_hover_background.green }}, {{ scheme.settings.solid_button_hover_background.blue }};
+        --color-solid-label-hover: {{ scheme.settings.solid_label_hover.red }}, {{ scheme.settings.solid_label_hover.green }}, {{ scheme.settings.solid_label_hover.blue }};
+        --color-link: {{ scheme.settings.secondary_button_label.red }},{{ scheme.settings.secondary_button_label.green }},{{ scheme.settings.secondary_button_label.blue }};
+        --color-badge-foreground: {{ scheme.settings.text.red }},{{ scheme.settings.text.green }},{{ scheme.settings.text.blue }};
+        --color-badge-background: {{ scheme.settings.background.red }},{{ scheme.settings.background.green }},{{ scheme.settings.background.blue }};
+        --color-badge-border: {{ scheme.settings.text.red }},{{ scheme.settings.text.green }},{{ scheme.settings.text.blue }};
+        --payment-terms-background-color: rgb({{ scheme.settings.background.rgb }});
+      }
+      {%- endfor -%}
+
+      {{ scheme_classes | prepend: 'body' }} {
+        color: rgba(var(--color-foreground));
+        background-color: rgb(var(--color-background));
+      }
+    {% endstyle %}
+
+    {{ 'variable.css' | asset_url | stylesheet_tag }}
+    {{ 'theme.css' | asset_url | stylesheet_tag }}
+    {% comment %} {{ 'custom.css' | asset_url | stylesheet_tag }} {% endcomment %}
+
+    {%- unless settings.type_body_font.system? -%}
+      <link rel="preload" as="font" href="{{ settings.type_body_font | font_url }}" type="font/woff2" crossorigin>
+    {%- endunless -%}
+    {%- unless settings.type_header_font.system? -%}
+      <link rel="preload" as="font" href="{{ settings.type_header_font | font_url }}" type="font/woff2" crossorigin>
+    {%- endunless -%}
+
+    {%- if localization.available_countries.size > 1 or localization.available_languages.size > 1 -%}
+      {{ 'component-localization-form.css' | asset_url | stylesheet_tag: preload: true }}
+      <script src="{{ 'localization-form.js' | asset_url }}" defer="defer"></script>
+    {%- endif -%}
+
+    {%- if settings.predictive_search_enabled -%}
+      <link rel="stylesheet" href="{{ 'component-predictive-search.css' | asset_url }}" media="print" onload="this.media='all'">
+    {%- endif -%}
+
+    <script>
+      document.documentElement.className = document.documentElement.className.replace('no-js', 'js');
+      if (Shopify.designMode) {
+        document.documentElement.classList.add('shopify-design-mode');
+      }
     </script>
-  {%- endif -%}
+    {%- capture template_handle -%}{{ template | handle }}{%- endcapture -%}
+    {%- if settings.cart_type == "drawer" and template_handle != 'cart' -%}
+      {{ 'component-cart-drawer.css' | asset_url | stylesheet_tag }}
+      {{ 'component-cart.css' | asset_url | stylesheet_tag }}
+      {{ 'component-totals.css' | asset_url | stylesheet_tag }}
+    {%- endif -%}
+    <link rel="stylesheet" href="{{ 'component-cart-notification.css' | asset_url }}" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ 'component-cart-items.css' | asset_url }}" media="print" onload="this.media='all'">
+  </head>
 
-  {% if page_description %}
-    <meta name="description" content="{{ page_description | escape }}">
-  {% endif %}
+  <body class="gradient template-{{ request.page_type | handle }} {{ page.handle }} {{ product.handle  }}{% if settings.animations_hover_elements != 'none' %} animate--hover-{{ settings.animations_hover_elements }}{% endif %}">
+    <!-- R - Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TM9ZRJZB"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- R - End Google Tag Manager (noscript) -->
+    
+    <a class="skip-to-content-link button visually-hidden" href="#MainContent">
+      {{ 'accessibility.skip_to_text' | t }}
+    </a>
 
-  {% liquid
-    render 'meta-tags'
-    render 'font-face'
-    echo 'theme.css' | asset_url | stylesheet_tag: preload: true
-    render 'css-variables'
-    render 'theme-mode-control'
-  %}
-  <script>
-    (function () {
-      var stored = localStorage.getItem('currentStoreSelected');
-      if (!stored) return;
+    {%- sections 'header-group' -%}
 
-      window.Maximize = window.Maximize || {};
-      window.Maximize.getInitialStoreText = function () {
-        try {
-          return JSON.parse(stored)?.selectedStore || '';
-        } catch (_) {
-          return '';
-        }
+    {%- sections 'popups' -%}
+
+    <main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
+      {{ content_for_layout }}
+    </main>
+
+    {%- if settings.backtotop -%}
+      <div class="arrow-dows">
+        <button id="back-to-up" class="scroll_Top" onclick="scrollToTop()" aria-label="scroll_Top">
+          {%- render 'icon' with 'caret' -%}
+        </button>
+      </div> 
+    {%- endif -%}
+
+    {%- sections 'footer-group' -%}
+
+    <ul hidden>
+      <li id="a11y-refresh-page-message">{{ 'accessibility.refresh_page' | t }}</li>
+      <li id="a11y-new-window-message">{{ 'accessibility.link_messages.new_window' | t }}</li>
+    </ul>
+
+    <script>
+      window.shopUrl = '{{ request.origin }}';
+      window.routes = {
+        cart_add_url: '{{ routes.cart_add_url }}',
+        cart_change_url: '{{ routes.cart_change_url }}',
+        cart_update_url: '{{ routes.cart_update_url }}',
+        cart_url: '{{ routes.cart_url }}',
+        predictive_search_url: '{{ routes.predictive_search_url }}',
       };
 
-      var storeText = window.Maximize.getInitialStoreText();
-      if (storeText !== "") {
-        document.documentElement.style.setProperty(
-          '--x-store-selector-content',
-          JSON.stringify(storeText)
-        );
-      }
-    })();
-  </script>
-  {%- assign theme_sm_url     = 'theme-sm.css'     | asset_url -%}
-  {%- assign theme_max_lg_url = 'theme-max-lg.css' | asset_url -%}
-  {%- assign theme_md_url     = 'theme-md.css'     | asset_url -%}
-  {%- assign theme_lg_url     = 'theme-lg.css'     | asset_url -%}
-  {%- assign theme_xl_url     = 'theme-xl.css'     | asset_url -%}
-  <link rel="preload" as="style" href="{{ theme_sm_url }}"     media="(max-width: 767px)">
-  <link rel="preload" as="style" href="{{ theme_max_lg_url }}" media="(max-width: 1023px)">
-  <link rel="preload" as="style" href="{{ theme_md_url }}"     media="(min-width: 768px)">
-  <link rel="preload" as="style" href="{{ theme_lg_url }}"     media="(min-width: 1024px)">
-  <link rel="preload" as="style" href="{{ theme_xl_url }}"     media="(min-width: 1280px)">
-  <link rel="stylesheet" href="{{ theme_sm_url }}"     media="(max-width: 767px)">
-  <link rel="stylesheet" href="{{ theme_max_lg_url }}" media="(max-width: 1023px)">
-  <link rel="stylesheet" href="{{ theme_md_url }}"     media="(min-width: 768px)">
-  <link rel="stylesheet" href="{{ theme_lg_url }}"     media="(min-width: 1024px)">
-  <link rel="stylesheet" href="{{ theme_xl_url }}"     media="(min-width: 1280px)">
-  {% if rtl %}
-    {% liquid
-      echo 'rtl.css' | asset_url | stylesheet_tag: preload: true
-    %}
-  {% endif %}
-  {{ 'buttons.css' | asset_url | stylesheet_tag: preload: true }}
-  {% if request.page_type == 'policy' %}
-    {{ 'page.css' | asset_url | stylesheet_tag: preload: true }}
-  {% endif %}
-  {% if template.name == "product" %}
-    {{ 'product-details.css' | asset_url | stylesheet_tag }}
-  {% endif %}
-  <script src="{{ 'constants.js' | asset_url }}" defer></script>
-  {%- comment -%}
-    Shopify Standard Events library — loaded as a module so it doesn't block rendering.
-    Sets window.StandardEvents for use by storefront-events.js.
-  {%- endcomment -%}
-  <script type="module">
-    import * as SE from 'https://cdn.shopify.com/storefront/standard-events.js';
-    window.StandardEvents = SE;
-  </script>
-  {{ content_for_header }}
-  {{ settings.additional_head }}
-</head>
-<body
-    class="gradient scrollbar-body overflow-x-hidden min-h-screen theme-template-{{ template.name }}"
-    {% if request.design_mode and template == "index" %}
-      x-init="$store.xCc.load('{{ shop.url }}','{{ shop.email }}','{{ settings.selected_preset }}', '{{ shop.id }}')"
-    {% endif %}
-    x-data
->
-<div class="main-content__wrapper flex flex-col min-h-screen">
-  <a class="skip-to-content button button-skip-to-content focus-visible:z-60" href="#MainContent">
-    {{ 'accessibility.skip_to_text' | t }}
-  </a>
+      window.cartStrings = {
+        error: `{{ 'sections.cart.cart_error' | t }}`,
+        quantityError: `{{ 'sections.cart.cart_quantity_error_html' | t: quantity: '[quantity]' }}`,
+      };
 
-  {% sections 'header-group' %}
-  {% sections 'aside-group' %}
-  {% style %}
-    #x-header-container, .header-collapse-menu {
-      opacity: 1 !important;
-    }
-  {% endstyle %}
-
-  <main id="MainContent"
-        class="content-for-layout focus-none outline-none grow theme-template-{{ template.name }} theme-template-suffix-{{ template.suffix | default: 'none' }}"
-        role="main" tabindex="-1"
-  >
-    {{ content_for_layout }}
-  </main>
-
-  {% sections 'footer-group' %}
-
-  {% render 'popups' %}
-
-  {%- capture theme_can_request_quote -%}{%- render 'can-request-quote' -%}{%- endcapture -%}
-  {%- assign theme_can_request_quote = theme_can_request_quote | strip -%}
-  {%- if theme_can_request_quote == 'true' -%}
-    {% render 'quote-request-modal', can_request_quote: theme_can_request_quote %}
-  {%- endif -%}
-  
-  {% render 'media-pointer' %}
-
-  {% if settings.enable_scroll_top_desktop or settings.enable_scroll_top_mobile %}
-    {% render 'scroll-to-top' %}
-  {% endif %}
-
-  {% if theme.role == 'demo' and request.design_mode %}
-    {% render 'quick-help-popup' %}
-  {% endif %}
-
-  <ul hidden>
-    <li id="a11y-refresh-page-message">{{ 'accessibility.refresh_page' | t }}
-    </li>
-    <li id="a11y-new-window-message">{{ 'accessibility.link_messages.new_window' | t }}
-    </li>
-  </ul>
-  
-  {%- capture login_can_view_price -%}{%- render 'can-view-price' -%}{%- endcapture -%}
-  <script>
-    window.Maximize = {
-      sliderScript: '{{ 'swiffy-slider.js' | asset_url }}',
-      loadedScript: [],
-      loginToViewPrice: {
-        mode: '{{ settings.login_to_view_price }}',
-        customerCanView: {% if login_can_view_price contains 'true' %}true{% else %}false{% endif %},
-        loginUrl: '{{ routes.account_login_url }}',
-      },
-      cart_add_url: '{{ routes.cart_add_url }}',
-      variantStrings: {
+      window.variantStrings = {
         addToCart: `{{ 'products.product.add_to_cart' | t }}`,
         soldOut: `{{ 'products.product.sold_out' | t }}`,
         unavailable: `{{ 'products.product.unavailable' | t }}`,
-      },
-      isB2BCustomer: {% if customer != blank and customer.b2b? %}true{% else %}false{% endif %},
-      {%- if customer != blank and customer.b2b? %}
-      quantityRuleStrings: {
-        min: `{{ 'products.product.quantity.min_error' | t }}`,
-        max: `{{ 'products.product.quantity.max_error' | t }}`,
-        step: `{{ 'products.product.quantity.step_error' | t }}`,
-      },
-      {%- endif %}
-      cartTranslations: {
-        removeDiscountSuccess: `{{ 'general.cart.removeDiscountSuccess' | t | escape }}`,
-        removeDiscountFailure: `{{ 'general.cart.removeDiscountFailure' | t | escape }}`,
-      },
-      productComparison: {
-        limitMessageTemplate: `{{ 'product_comparison.tooltip_limit_products' | t | escape }}`,
-      },
-      routes: {
-        addToCart: '{{ routes.cart_add_url }}',
-        cartChange: '{{ routes.cart_change_url }}',
-        cartUpdate: '{{ routes.cart_update_url }}',
-        cart: '{{ routes.cart_url }}',
-        search_url: '{{ routes.search_url }}',
-        predictiveSearch: '{{ routes.predictive_search_url }}',
-        productRecommendations: '{{ routes.product_recommendations_url }}'
-      },
-      isCartPage: {% if template.name == 'cart' %}true{% else %}false{% endif %},
-      isEnableCartDrawer: {{ settings.enable_cart_drawer }},
-      cartProperties: {
-        additionalFee: '_item_id'
-      },
-      isProductPage: {% if template.name == 'product' %}true{% else %}false{% endif %},
-      rtl: {{ rtl }},
-      isDesignMode: {%- if request.design_mode -%}true{%- else -%}false{%- endif -%},
-      hasMousePointer: window.matchMedia('(hover: hover)').matches,
-      giftWrappingVariantId: {% if settings.gift_wrapping_product.selected_or_first_available_variant.available %}{{ settings.gift_wrapping_product.selected_or_first_available_variant.id }}{% else %}false{% endif %},
-      isShowPopupOverlay: {{ settings.show_popup_overlay }},
-      checkFileNotLoaded: function () {
-        const fileName = document.currentScript.src.split('/').pop().split('?')[0];
-        if (!window.Maximize.loadedScript.includes(fileName)) {
-          window.Maximize.loadedScript.push(fileName)
-          return true;
-        } else {
-          return false;
-        }
-      },
-      buttonHoverAnm: '{{ settings.button_hover_animation }}',
-      formTranslations: {
-        emailInvalidMessage: `{{ 'products.product.recipient.message_email_invalid' | t }}`,
-        emailRequiredMessage: `{{ 'products.product.recipient.message_email_required' | t }}`
-      }
-    };
+        unavailable_with_option: `{{ 'products.product.value_unavailable' | t: option_value: '[value]' }}`,
+      };
 
-    window.xParseJSON = function(jsonString) {
-      jsonString = String.raw`${jsonString}`;
-      jsonString = jsonString.replaceAll("\\", "\\\\").replaceAll('\\"', '"');
-      return JSON.parse(jsonString);
-    };
+      window.quickOrderListStrings = {
+        itemsAdded: `{{ 'sections.quick_order_list.items_added.other' | t: quantity: '[quantity]' }}`,
+        itemAdded: `{{ 'sections.quick_order_list.items_added.one' | t: quantity: '[quantity]' }}`,
+        itemsRemoved: `{{ 'sections.quick_order_list.items_removed.other' | t: quantity: '[quantity]' }}`,
+        itemRemoved: `{{ 'sections.quick_order_list.items_removed.one' | t: quantity: '[quantity]' }}`,
+        viewCart: `{{- 'sections.quick_order_list.view_cart' | t -}}`,
+        each: `{{- 'sections.quick_order_list.each' | t: money: '[money]' }}`,
+      };
 
-    document.addEventListener('DOMContentLoaded', function () {
-      let attempt = 0;
-      function tryDispatch() {
-        if (window.MaximizeStorefrontEvents && window.StandardEvents) {
-          window.MaximizeStorefrontEvents.dispatchPageView();
-          {% if template.name == 'collection' %}
-          window.MaximizeStorefrontEvents.dispatchCollectionView({
-            id: {% if collection.id %}'gid://shopify/Collection/{{ collection.id }}'{% else %}null{% endif %},
-            handle: {{ collection.handle | json }},
-            productsCount: {{ collection.all_products_count | default: 0 }}
-          });
-          {% endif %}
-        } else if (attempt++ < 20) {
-          setTimeout(tryDispatch, 50);
-        }
-      }
-      tryDispatch();
-    });
-  </script>
-
-  {%- if request.design_mode -%}
-    <script src="{{ 'theme-editor.js' | asset_url }}" defer></script>
-    <script src="{{ 'theme-editor-alpine-custom.js' | asset_url }}" defer></script>
-  {%- endif -%}
-  <script src="{{ 'storefront-events.js' | asset_url }}" defer></script>
-  <script src="{{ 'storefront-actions.js' | asset_url }}" defer></script>
-  <script src="{{ 'theme.js' | asset_url }}" defer></script>
-  <script src="{{ 'custom-elements.js' | asset_url }}" defer></script>
-  <script src="{{ 'new-cart-helper.js' | asset_url }}" defer></script>
-  {% comment %}<script src="{{ 'cart.js' | asset_url }}" defer></script>{% endcomment %}
-  <script src="{{ 'swiffy-slider.js' | asset_url }}" defer></script>
-  <script src="{{ 'header.js' | asset_url }}" defer></script>
-  <script src="{{ 'animation-card.js' | asset_url }}" defer></script>
-  <script src="{{ 'product-form.js' | asset_url }}" defer></script>
-  <script src="{{ 'product-card.js' | asset_url }}" defer></script>
-  <script src="{{ 'vendors.js' | asset_url }}" defer></script>
-  <script>
-    window.addEventListener("load", (event) => {
-      deferScriptLoad('instant.page', '{{ 'instant.page.v5.1.1.js' | asset_url }}', () => {
-      }, true);
-    });
-  </script>
-</div>
-</body>
+      window.accessibilityStrings = {
+        imageAvailable: `{{ 'products.product.media.image_available' | t: index: '[index]' }}`,
+        shareSuccess: `{{ 'general.share.success_message' | t }}`,
+        pauseSlideshow: `{{ 'sections.slideshow.pause_slideshow' | t }}`,
+        playSlideshow: `{{ 'sections.slideshow.play_slideshow' | t }}`,
+        recipientFormExpanded: `{{ 'recipient.form.expanded' | t }}`,
+        recipientFormCollapsed: `{{ 'recipient.form.collapsed' | t }}`,
+        countrySelectorSearchCount: `{{ 'localization.country_results_count' | t: count: '[count]' }}`,
+      };
+    </script>
+    {%- if settings.predictive_search_enabled -%}
+      <script src="{{ 'predictive-search.js' | asset_url }}" defer="defer"></script>
+    {%- endif -%}
+    
+  </body>
 </html>
